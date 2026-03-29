@@ -1,0 +1,10 @@
+[project]
+name = "harvest-operations"
+version = "0.1.0"
+description = "Tracking and planning harvests for the BTAA Geoportal"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[tool.uv]
+package = false
