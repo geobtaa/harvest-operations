@@ -27,12 +27,12 @@ class HarvestTaskDashboardJob:
         self.config = config
         self.harvest_records_path = Path(config.get("harvest_records_csv", "inputs/harvest-records.csv"))
         self.websites_path = Path(config.get("websites_csv", "inputs/websites.csv"))
-        self.output_tasks_csv = Path(config.get("output_tasks_csv", "outputs/harvest-task-dashboard.csv"))
+        self.output_tasks_csv = Path(config.get("output_tasks_csv", "reports/harvest-task-dashboard.csv"))
         self.output_dashboard_html = Path(
-            config.get("output_dashboard_html", "outputs/harvest-task-dashboard.html")
+            config.get("output_dashboard_html", "reports/harvest-task-dashboard.html")
         )
         self.output_workflow_dir = Path(
-            config.get("output_workflow_dir", "outputs/harvest-workflow-inputs")
+            config.get("output_workflow_dir", "inputs/harvest-workflow-inputs")
         )
         self.issue_repositories = config.get("issue_repositories", [])
 
@@ -580,9 +580,9 @@ if __name__ == "__main__":
     default_config = {
         "harvest_records_csv": "inputs/harvest-records.csv",
         "websites_csv": "inputs/websites.csv",
-        "output_tasks_csv": "outputs/harvest-task-dashboard.csv",
-        "output_dashboard_html": "outputs/harvest-task-dashboard.html",
-        "output_workflow_dir": "outputs/harvest-workflow-inputs",
+        "output_tasks_csv": "reports/harvest-task-dashboard.csv",
+        "output_dashboard_html": "reports/harvest-task-dashboard.html",
+        "output_workflow_dir": "inputs/harvest-workflow-inputs",
         "issue_repositories": [
             {
                 "name": "harvest-operations",
