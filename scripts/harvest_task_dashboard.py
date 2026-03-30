@@ -21,6 +21,10 @@ UNSCHEDULED_PERIODICITIES = {
     "unknown",
 }
 
+CONSOLIDATED_WORKFLOW_TITLES = {
+    "py_arcgis_hub": "Scan ArcGIS Hubs",
+}
+
 
 class HarvestTaskDashboardJob:
     def __init__(self, config: dict[str, Any]):
@@ -64,11 +68,11 @@ class HarvestTaskDashboardJob:
             "workflow_inputs": workflow_outputs,
         }
 
-    def render_dashboard_view(self) -> str:
+    def render_dashboard_view(self, embedded: bool = False) -> str:
         harvest_df = self._load_csv(self.harvest_records_path)
         websites_df = self._load_csv(self.websites_path)
         task_df = self._build_task_dataframe(harvest_df, websites_df)
-        return self._render_dashboard_html(task_df)
+        return self._render_dashboard_html(task_df, embedded=embedded)
 
     def _load_csv(self, path: Path) -> pd.DataFrame:
         df = pd.read_csv(path, dtype=str).fillna("")
@@ -157,6 +161,8 @@ class HarvestTaskDashboardJob:
         if task_df.empty:
             return task_df
 
+        task_df = self._consolidate_workflows(task_df, websites_df)
+
         task_df["Effective Harvest Workflow"] = task_df["Effective Harvest Workflow"].map(
             lambda value: self._clean_value(value) or "unspecified"
         )
@@ -170,6 +176,45 @@ class HarvestTaskDashboardJob:
         ).reset_index(drop=True)
 
         return task_df.drop(columns=["__due_sort", "__display_name"])
+
+    def _consolidate_workflows(self, task_df: pd.DataFrame, websites_df: pd.DataFrame) -> pd.DataFrame:
+        consolidated_rows: list[dict[str, Any]] = []
+        remaining_frames: list[pd.DataFrame] = []
+
+        for workflow, group in task_df.groupby("Effective Harvest Workflow", dropna=False):
+            workflow_name = self._clean_value(workflow)
+            if workflow_name not in CONSOLIDATED_WORKFLOW_TITLES:
+                remaining_frames.append(group)
+                continue
+
+            websites_for_workflow = websites_df[
+                websites_df["Harvest Workflow"].map(self._clean_value) == workflow_name
+            ].copy()
+            website_count = len(websites_for_workflow)
+
+            consolidated_row = group.iloc[0].to_dict()
+            consolidated_row["Title"] = CONSOLIDATED_WORKFLOW_TITLES[workflow_name]
+            consolidated_row["ID"] = workflow_name
+            consolidated_row["Identifier"] = ""
+            consolidated_row["Website Match Count"] = str(website_count)
+            consolidated_row["Website Name"] = self._format_website_count_label(website_count)
+            consolidated_row["Website Title"] = self._format_website_count_label(website_count)
+            consolidated_row["Website ID"] = ""
+            consolidated_row["Effective Harvest Workflow"] = workflow_name
+            consolidated_row["Due Date"] = self._select_due_date(group)
+            consolidated_row["Due Status"] = self._select_due_status(group)
+            consolidated_row["Last Harvested"] = self._format_date_range(group["Last Harvested"].tolist())
+            consolidated_row["Accrual Periodicity"] = self._format_unique_values(
+                group["Accrual Periodicity"].tolist()
+            )
+            consolidated_rows.append(consolidated_row)
+
+        frames = remaining_frames.copy()
+        if consolidated_rows:
+            frames.append(pd.DataFrame(consolidated_rows))
+        if not frames:
+            return pd.DataFrame(columns=task_df.columns)
+        return pd.concat(frames, ignore_index=True, sort=False)
 
     def _write_workflow_inputs(self, websites_df: pd.DataFrame) -> dict[str, str]:
         self._ensure_columns(websites_df, ["Harvest Workflow"])
@@ -221,7 +266,7 @@ class HarvestTaskDashboardJob:
             "no_schedule": int((due_status == "No Schedule").sum()),
         }
 
-    def _render_dashboard_html(self, task_df: pd.DataFrame) -> str:
+    def _render_dashboard_html(self, task_df: pd.DataFrame, embedded: bool = False) -> str:
         summary = self._build_summary(task_df)
         sections = self._build_dashboard_sections(task_df)
 
@@ -246,14 +291,32 @@ class HarvestTaskDashboardJob:
             "    code { background: #f2f2f2; padding: 0.1rem 0.3rem; }",
             "    .actions { min-width: 210px; }",
             "    .action-link { display: inline-block; margin: 0.2rem 0.35rem 0.2rem 0; padding: 0.35rem 0.55rem; border: 1px solid #ccc; border-radius: 6px; text-decoration: none; color: inherit; background: #fafafa; }",
+            "    .source-box { background: #f8f8f8; border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin: 1rem 0 1.5rem; }",
+            "    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.25rem; }",
             "  </style>",
             "</head>",
             "<body>",
-            "  <h1>Harvest Task Dashboard</h1>",
-            f"  <p class=\"muted\">Generated from <code>{escape(str(self.harvest_records_path))}</code> and <code>{escape(str(self.websites_path))}</code>.</p>",
-            "  <p class=\"muted\">Use the issue buttons to open a prefilled GitHub issue from the harvest-task template.</p>",
-            "  <div class=\"summary\">",
         ]
+
+        if embedded:
+            html_parts.append("  <div class=\"summary\">")
+        else:
+            html_parts.extend(
+                [
+                    "  <h1>Harvest Task Dashboard</h1>",
+                    f"  <p class=\"muted\">Generated from <code>{escape(str(self.harvest_records_path))}</code> and <code>{escape(str(self.websites_path))}</code>.</p>",
+                    "  <div class=\"source-box\">",
+                    "    <h2>Get Latest Source CSVs</h2>",
+                    "    <p>Download the newest files before running the dashboard, then save them into <code>inputs/</code> with these names:</p>",
+                    "    <ul>",
+                    "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>",
+                    "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>websites.csv</code></a> -> save as <code>inputs/websites.csv</code></li>",
+                    "    </ul>",
+                    "  </div>",
+                    "  <p class=\"muted\">Use the issue buttons to open a prefilled GitHub issue from the harvest-task template.</p>",
+                    "  <div class=\"summary\">",
+                ]
+            )
 
         summary_cards = [
             ("Total Tasks", summary["total"]),
@@ -464,6 +527,52 @@ class HarvestTaskDashboardJob:
             if value:
                 return value
         return "None"
+
+    def _select_due_date(self, group: pd.DataFrame) -> str:
+        due_dates = sorted(
+            {
+                due_date
+                for due_date in group["Due Date"].tolist()
+                if self._clean_value(due_date)
+            }
+        )
+        return due_dates[0] if due_dates else ""
+
+    def _select_due_status(self, group: pd.DataFrame) -> str:
+        priorities = {
+            "Overdue": 0,
+            "Due Today": 1,
+            "Upcoming": 2,
+            "No Schedule": 3,
+        }
+        statuses = [
+            self._clean_value(status)
+            for status in group["Due Status"].tolist()
+            if self._clean_value(status)
+        ]
+        if not statuses:
+            return "No Schedule"
+        return sorted(statuses, key=lambda status: priorities.get(status, 99))[0]
+
+    def _format_date_range(self, values: list[Any]) -> str:
+        cleaned = sorted({self._clean_value(value) for value in values if self._clean_value(value)})
+        if not cleaned:
+            return ""
+        if len(cleaned) == 1:
+            return cleaned[0]
+        return f"{cleaned[0]} to {cleaned[-1]}"
+
+    def _format_unique_values(self, values: list[Any]) -> str:
+        cleaned = sorted({self._clean_value(value) for value in values if self._clean_value(value)})
+        if not cleaned:
+            return ""
+        if len(cleaned) == 1:
+            return cleaned[0]
+        return ", ".join(cleaned)
+
+    def _format_website_count_label(self, count: int) -> str:
+        suffix = "website" if count == 1 else "websites"
+        return f"{count} {suffix}"
 
     def _render_issue_links(self, row: pd.Series | dict[str, Any]) -> str:
         if not self.issue_repositories:

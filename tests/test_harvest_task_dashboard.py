@@ -21,6 +21,14 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
                 "Accrual Periodicity": "monthly",
             },
             {
+                "ID": "task-1b",
+                "Title": "Road Centerlines",
+                "Harvest Workflow": "py_arcgis_hub",
+                "Identifier": "site-3",
+                "Last Harvested": "2026-02-20",
+                "Accrual Periodicity": "monthly",
+            },
+            {
                 "ID": "task-2",
                 "Title": "Transit Stops",
                 "Harvest Workflow": "py_socrata",
@@ -53,6 +61,12 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
                 "Harvest Workflow": "py_socrata",
                 "URL": "https://example.com/socrata",
             },
+            {
+                "ID": "site-3",
+                "Name": "Regional GIS Portal",
+                "Harvest Workflow": "py_arcgis_hub",
+                "URL": "https://example.com/arcgis-2",
+            },
         ]
     ).to_csv(websites_path, index=False)
 
@@ -80,14 +94,17 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     task_df = pd.read_csv(results["task_csv"], dtype=str).fillna("")
     dashboard_html = Path(results["dashboard_html"]).read_text(encoding="utf-8")
 
-    county_parcels = task_df.loc[task_df["ID"] == "task-1"].iloc[0]
+    arcgis_task = task_df.loc[task_df["ID"] == "py_arcgis_hub"].iloc[0]
     transit_stops = task_df.loc[task_df["ID"] == "task-2"].iloc[0]
     geology_index = task_df.loc[task_df["ID"] == "task-3"].iloc[0]
 
-    assert county_parcels["Due Date"] == "2026-03-15"
-    assert county_parcels["Due Status"] == "Overdue"
-    assert county_parcels["Website Name"] == "County GIS Portal"
-    assert county_parcels["Effective Harvest Workflow"] == "py_arcgis_hub"
+    assert len(task_df.loc[task_df["Effective Harvest Workflow"] == "py_arcgis_hub"]) == 1
+    assert arcgis_task["Title"] == "Scan ArcGIS Hubs"
+    assert arcgis_task["Due Date"] == "2026-03-15"
+    assert arcgis_task["Due Status"] == "Overdue"
+    assert arcgis_task["Website Name"] == "2 websites"
+    assert arcgis_task["Website Match Count"] == "2"
+    assert arcgis_task["Effective Harvest Workflow"] == "py_arcgis_hub"
 
     assert transit_stops["Due Date"] == "2026-03-30"
     assert transit_stops["Due Status"] == "Due Today"
@@ -96,8 +113,9 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     assert geology_index["Due Status"] == "No Schedule"
 
     assert "2026-03-15" in dashboard_html
+    assert "Scan ArcGIS Hubs" in dashboard_html
+    assert "2 websites" in dashboard_html
     assert "py_arcgis_hub" in dashboard_html
-    assert "County GIS Portal" in dashboard_html
     assert "https://github.com/geobtaa/harvest-operations/issues/new" in dashboard_html
     assert "template=harvest-task.md" in dashboard_html
     assert "Issue: harvest-operations" in dashboard_html

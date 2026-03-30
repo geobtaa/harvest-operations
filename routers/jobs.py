@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import HTMLResponse
 import os
 import yaml
@@ -87,7 +87,7 @@ async def run_job(job_id: str):
 
 
 @router.get("/jobs/harvest-task-dashboard/view", response_class=HTMLResponse)
-async def view_harvest_task_dashboard():
+async def view_harvest_task_dashboard(embedded: bool = Query(default=False)):
     job_cfg = load_job_config("harvest-task-dashboard")
     dashboard_job = HarvestTaskDashboardJob(job_cfg)
-    return HTMLResponse(content=dashboard_job.render_dashboard_view())
+    return HTMLResponse(content=dashboard_job.render_dashboard_view(embedded=embedded))

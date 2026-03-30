@@ -35,6 +35,13 @@
       margin-top: 1rem;
       background: #fff;
     }
+    .source-box {
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0 1.5rem;
+    }
   </style>
 </head>
 <body>
@@ -57,12 +64,21 @@
     using the <code>harvest-task</code> template for the configured target repository.
   </p>
 
+  <div class="source-box">
+    <h2>Get Latest Source CSVs</h2>
+    <p>Download the newest files before running the dashboard, then save them into <code>inputs/</code> with these names:</p>
+    <ul>
+      <li><a href="https://geo.btaa.org/admin/documents?f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc" target="_blank" rel="noreferrer"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>
+      <li><a href="https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc" target="_blank" rel="noreferrer"><code>websites.csv</code></a> -> save as <code>inputs/websites.csv</code></li>
+    </ul>
+  </div>
+
   <button onclick="runDashboardJob()">Generate Dashboard Files</button>
   <button onclick="refreshPreview()">Refresh Live Preview</button>
 
   <div id="status"></div>
   <pre id="output"></pre>
-  <iframe id="preview" src="/jobs/harvest-task-dashboard/view" title="Harvest Task Dashboard Preview"></iframe>
+  <iframe id="preview" src="/jobs/harvest-task-dashboard/view?embedded=true" title="Harvest Task Dashboard Preview"></iframe>
 
   <script>
     async function runDashboardJob() {
@@ -91,7 +107,7 @@
 
     function refreshPreview() {
       const preview = document.getElementById("preview");
-      preview.src = `/jobs/harvest-task-dashboard/view?ts=${Date.now()}`;
+      preview.src = `/jobs/harvest-task-dashboard/view?embedded=true&ts=${Date.now()}`;
     }
   </script>
 </body>
