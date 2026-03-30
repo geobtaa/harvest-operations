@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Harvest Task Dashboard</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1rem 2rem;
+      line-height: 1.5;
+    }
+    button {
+      padding: 0.7rem 1.2rem;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-right: 0.75rem;
+    }
+    #status {
+      margin: 1rem 0;
+      font-weight: bold;
+    }
+    #output {
+      border: 1px solid #ddd;
+      background: #fafafa;
+      padding: 1rem;
+      white-space: pre-wrap;
+      min-height: 8rem;
+    }
+    iframe {
+      width: 100%;
+      min-height: 700px;
+      border: 1px solid #ddd;
+      margin-top: 1rem;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Harvest Task Dashboard</h1>
+
+  <p>
+    This job reads <code>inputs/harvest-records.csv</code> and <code>inputs/websites.csv</code>,
+    calculates due dates from <code>Last Harvested</code> and <code>Accrual Periodicity</code>,
+    enriches tasks with matching website metadata, and writes per-workflow website input CSVs.
+  </p>
+
+  <p>
+    Use <strong>Generate Dashboard Files</strong> to write the CSV and HTML outputs into
+    <code>outputs/</code>. The live preview below renders the current inputs directly from FastAPI.
+  </p>
+
+  <p>
+    Each task row in the preview includes an issue button that opens a prefilled GitHub issue
+    using the <code>harvest-task</code> template for the configured target repository.
+  </p>
+
+  <button onclick="runDashboardJob()">Generate Dashboard Files</button>
+  <button onclick="refreshPreview()">Refresh Live Preview</button>
+
+  <div id="status"></div>
+  <pre id="output"></pre>
+  <iframe id="preview" src="/jobs/harvest-task-dashboard/view" title="Harvest Task Dashboard Preview"></iframe>
+
+  <script>
+    async function runDashboardJob() {
+      const status = document.getElementById("status");
+      const output = document.getElementById("output");
+
+      status.textContent = "Running harvest task dashboard job...";
+      output.textContent = "";
+
+      try {
+        const response = await fetch("/jobs/harvest-task-dashboard/run", { method: "POST" });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Dashboard job failed.");
+        }
+
+        status.textContent = "Dashboard files generated.";
+        output.textContent = JSON.stringify(data, null, 2);
+        refreshPreview();
+      } catch (error) {
+        status.textContent = "Dashboard job failed.";
+        output.textContent = error.message;
+      }
+    }
+
+    function refreshPreview() {
+      const preview = document.getElementById("preview");
+      preview.src = `/jobs/harvest-task-dashboard/view?ts=${Date.now()}`;
+    }
+  </script>
+</body>
+</html>

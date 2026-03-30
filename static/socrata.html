@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Socrata Harvester</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    h2, h3 { margin-top: 1.5em; }
+    #upload-message { color: green; }
+  </style>
+</head>
+<body>
+  <h1>Socrata Harvester</h1>
+
+  <h2>Purpose</h2>
+  <p>This script scans the DCAT 1.1 APIs of Socrata portals and returns metadata for all suitable items. It produces two CSV files:</p>
+  <ul>
+    <li>A Primary CSV containing all metadata except the link fields</li>
+    <li>A Distribution CSV with only the link fields (e.g., landing page, download, web services)</li>
+  </ul>
+
+  <h2>Prepare the list of active Socrata portals</h2>
+
+  <p>Use the following shortcut query to filter for appropriate items:</p>
+  <p><a href="https://geo.btaa.org/admin/documents?f%5Bb1g_prov_wasGeneratedBy_sm%5D%5B%5D=py_socrata&f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc" target="_blank">
+    Filter Socrata portals in GBL Admin
+  </a></p>
+
+  <p>Export the results as a CSV file. You can upload this file directly using the interface below, and it will be placed in the <code>data</code> folder for harvesting.</p>
+
+  <h2>Required Columns</h2>
+  <p>The exported CSV from GBL Admin will contain many fields, but this script uses only the following:</p>
+  <ul>
+    <li><strong>ID:</strong> Unique code assigned to each portal. Transferred to the <em>Is Part Of</em> field for each dataset.</li>
+    <li><strong>Title:</strong> The name of the Portal. Transferred to the <em>Local Collection</em> field for each dataset.</li>
+    <li><strong>Publisher:</strong> The place or administration associated with the portal. Applied to the title of each dataset in brackets.</li>
+    <li><strong>Spatial Coverage:</strong> A list of place names. Transferred to the <em>Spatial Coverage</em> for each dataset.</li>
+    <li><strong>Bounding Box:</strong> Used as the fallback value if the harvested dataset does not have one.</li>
+    <li><strong>Member Of:</strong> The ID of a larger collection-level record. Most Hubs are either part of the Government Open Geospatial Data Collection or the Research Institutes Geospatial Data Collection.</li>
+  </ul>
+
+  <h3>Step 1: Upload CSV of Socrata portals</h3>
+  <form action="/upload" method="post" enctype="multipart/form-data">
+    <label>Select your CSV file:</label><br>
+    <input type="file" name="file" required><br><br>
+    <button type="submit">Upload</button>
+    <p id="upload-message"></p>
+  </form>
+
+  <h3>Step 2: Run Socrata Harvester</h3>
+  <button onclick="runHarvester()">Run Harvester</button>
+  <pre id="stream-output" style="border:1px solid #ccc; padding:1em; margin-top:1em; height:300px; overflow:auto;"></pre>
+
+  <h3>Step 3: Run Geojson Updater</h3>
+  <p>Run the python script in scripts/check_geojsons.py. This will remove nonfunctioning geojson links. Upload the output file called {data}_socrata_distributions_cleaned.csv to GBL Admin.</p>
+
+
+  <script>
+    // Show success message if redirected with ?upload=success
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("upload") === "success") {
+        document.getElementById("upload-message").textContent = "Upload successful! File saved as socrataPortals.csv in the data folder.";
+    }
+
+    // Streaming harvester output
+    function runHarvester() {
+    const output = document.getElementById("stream-output");
+    output.textContent = "Starting harvester...\n";
+    const eventSource = new EventSource("/run-socrata-stream");
+
+    eventSource.onmessage = function (event) {
+        if (event.data === "DONE") {
+        // output.textContent += "Harvester completed successfully.\n";
+        eventSource.close();
+        } else {
+        output.textContent += event.data + "\n";
+        output.scrollTop = output.scrollHeight;
+        }
+    };
+
+    eventSource.onerror = function () {
+        output.textContent += "Stream closed. If the harvester did not complete, please check logs.\n";
+        eventSource.close();
+    };
+    }
+  </script>
+</body>
+</html>

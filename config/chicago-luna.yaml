@@ -1,0 +1,18 @@
+name: Chicago Luna
+type: chicago-luna
+collection_url: https://luna.lib.uchicago.edu/luna/servlet/iiif/collection/s/sn5b01
+input_csv: outputs/2026-03-26_chicago_luna_raw.csv
+input_json: inputs/chicago_luna.json
+output_primary_csv: outputs/chicago_luna_primary.csv
+output_distributions_csv: outputs/chicago_luna_distributions.csv
+output_raw_csv: outputs/chicago_luna_raw.csv
+timeout: 60
+page_size: 50
+delay: 0.25
+cookie_file: inputs/chicago-luna.cookie
+# cookie: ""
+headers:
+  Referer: https://luna.lib.uchicago.edu/luna/servlet/iiif/collection/s/sn5b01
+  Origin: https://luna.lib.uchicago.edu
+  Accept-Encoding: gzip, deflate, br
+  Connection: keep-alive

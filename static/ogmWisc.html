@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OGM Wisc Metadata Transformer</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 700px;
+            margin: 2rem auto;
+            padding: 1rem;
+            line-height: 1.6;
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+        button {
+            padding: 0.6rem 1.2rem;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1.5rem;
+        }
+        #status {
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Transform UW-Madison GBL 1.0 Metadata</h1>
+
+<p><strong>Purpose:</strong> This script reads a batch of GBL 1.0 JSON files and produces two CSV files:</p>
+  <ul>
+    <li>A Primary CSV containing all metadata except the link fields</li>
+    <li>A Distribution CSV with only the link fields (e.g., landing page, download, REST services)</li>
+  </ul>
+
+<p>This version is tailored specifically for UW-Madison records. The input should be a folder of metadata JSONs located at <code>data/ogmWisc</code>.</p>
+
+<p>GeoBlacklight and OpenGeoMetadata records are often shared as JSON files in bulk. To process these for the BTAA Geoportal, we convert them into a normalized tabular format.</p>
+
+<button onclick="runHarvest()">▶️ Run Harvest</button>
+<div id="status"></div>
+
+<script>
+    async function runHarvest() {
+        const statusDiv = document.getElementById("status");
+        statusDiv.textContent = "Running...";
+
+        try {
+            const response = await fetch("/jobs/ogmWisc/run", {
+                method: "POST"
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                statusDiv.textContent = "Harvest complete!";
+                console.log(result);
+            } else {
+                statusDiv.textContent = "Harvest failed.";
+            }
+        } catch (err) {
+            statusDiv.textContent = "Error connecting to the directory.";
+            console.error(err);
+        }
+    }
+</script>
+
+</body>
+</html>

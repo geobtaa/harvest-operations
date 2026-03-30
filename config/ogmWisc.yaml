@@ -1,0 +1,5 @@
+name: ogmWisc
+type: ogmWisc
+json_path: inputs/ogmWisc
+output_primary_csv: outputs/ogmWisc_primary.csv
+output_distributions_csv: outputs/ogmWisc_distributions.csv

@@ -1,0 +1,416 @@
+$schema: https://specs.frictionlessdata.io/table-schema.json
+primaryKey:
+- ID
+fields:
+- name: Title
+  type: string
+  title: Title
+  description: 'To provide the user with the name of the resource. The title is the
+    most prominent metadata field that users see when browsing or scanning search
+    results. Titles should include place names and dates when available. The ideal
+    sequence is ''Topic of Layer: Place, Year.'''
+  example: 'Address Points: Ann Arbor, Michigan, 2010'
+  rdfType: https://opengeometadata.org/ogm-aardvark/#title
+- name: Alternative Title
+  type: string
+  title: Alternative Title
+  separator: '|'
+  description: To provide the user with another title if needed. This could be for
+    a secondary or original title or subtitle.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#alternative-title
+- name: Description
+  type: string
+  title: Description
+  separator: '|'
+  description: To provide the user with a summary of the resource. At a minimum, this
+    is a reiteration of the title in sentence format. Other relevant information,
+    such as data creation methods, data sources, and special licenses, may also be
+    included. This field is the second-most prominent value that users see when searching
+    or browsing for items.
+  example: This polygon shapefile represents boundaries of election districts in New
+    York City. It was harvested from the NYC Open Data Portal.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#description
+- name: Language
+  type: string
+  title: Language
+  separator: '|'
+  description: The language of the resource content. Use ISO 639-2 language codes
+    (e.g., 'eng' for English, 'spa' for Spanish).
+  rdfType: https://opengeometadata.org/ogm-aardvark/#language
+- name: Display Note
+  type: string
+  title: Display Note
+  separator: '|'
+  description: To highlight additional information about a resource, such as warnings
+    or tips for using the data. Prefix the string with 'Danger:', 'Info:', 'Tip:',
+    or 'Warning:' to specify the type of note. Text in this field is prominently displayed
+    in a shaded box just after the title.
+  example: 'Info: This is an archived copy of the data held at UW-Madison.'
+  rdfType: https://opengeometadata.org/ogm-aardvark/#display-note
+- name: B1G Language
+  type: string
+  title: B1G Language
+  description: Big Ten Academic Alliance specific language field.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#language-string
+- name: Creator
+  type: string
+  title: Creator
+  separator: '|'
+  description: The person or organization responsible for creating the resource content.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#creator
+- name: Creator ID
+  type: string
+  title: Creator ID
+  description: Unique identifier for the creator.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#creator-id
+- name: Publisher
+  type: string
+  title: Publisher
+  separator: '|'
+  description: The person or organization responsible for making the resource available.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#publisher
+- name: Provider
+  type: string
+  title: Provider
+  description: To clarify which organization holds the resource or acts as the custodian
+    for the metadata record. This field can be any string value. However, if the value
+    corresponds to the name of an SVG icon in GeoBlacklight, the icon will display
+    next to the title.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#provider
+- name: Resource Class
+  type: string
+  title: Resource Class
+  separator: '|'
+  constraints:
+    pattern: ^(Datasets|Maps|Imagery|Collections|Websites|Web services|Other)(\|(Datasets|Maps|Imagery|Collections|Websites|Web
+      services|Other))*$
+  description: 'High-level classification of the resource type. Controlled vocabulary
+    with values: Collections, Datasets, Imagery, Maps, Web services, Websites, Other.'
+  rdfType: https://opengeometadata.org/ogm-aardvark/#resource-class
+- name: Resource Type
+  type: string
+  title: Resource Type
+  separator: '|'
+  description: Specific type of the resource. Can include Library of Congress Cartographic
+    Genres (for scanned maps) or OpenGeoMetadata community terms (for geospatial data).
+  rdfType: https://opengeometadata.org/ogm-aardvark/#resource-type
+- name: Subject
+  type: string
+  title: Subject
+  separator: '|'
+  description: Topic or subject matter of the resource.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#subject
+- name: Theme
+  type: string
+  title: Theme
+  separator: '|'
+  description: High-level thematic category of the resource. Can include values like
+    'Agriculture', 'Boundaries', 'Climate', 'Economy', 'Environment', 'Health', 'Imagery',
+    'Inland Waters', 'Location', 'Oceans', 'Society', 'Transportation', 'Utilities'.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#theme
+- name: Keyword
+  type: string
+  title: Keyword
+  separator: '|'
+  description: Keywords or tags that describe the resource content.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#keyword
+- name: Temporal Coverage
+  type: string
+  title: Temporal Coverage
+  separator: '|'
+  description: Time period covered by the resource content.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#temporal-coverage
+- name: Date Issued
+  type: string
+  title: Date Issued
+  description: Date when the resource was published or made available.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#date-issued
+- name: Index Year
+  type: integer
+  title: Index Year
+  separator: '|'
+  description: Year used for indexing and temporal filtering of the resource.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#index-year
+- name: Date Range
+  type: string
+  title: Date Range
+  description: Range of dates covered by the resource content.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#date-range
+- name: Spatial Coverage
+  type: string
+  title: Spatial Coverage
+  separator: '|'
+  description: Geographic area covered by the resource content.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#spatial-coverage
+- name: Geometry
+  type: string
+  title: Geometry
+  description: Geometric representation of the resource extent in WKT (Well-Known
+    Text) format.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#geometry
+- name: Bounding Box
+  type: string
+  title: Bounding Box
+  description: Geographic bounding box coordinates in the format 'minX, minY, maxX,
+    maxY'.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#bounding-box
+- name: Centroid
+  type: string
+  title: Centroid
+  description: Center point coordinates of the resource extent in the format 'latitude,longitude'.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#centroid
+- name: Georeferenced
+  type: string
+  title: Georeferenced
+  description: Indicates whether the resource has been georeferenced.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#georeferenced
+- name: GeoNames
+  type: string
+  title: GeoNames
+  description: GeoNames identifiers associated with the resource.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#geonames
+- name: Relation
+  type: string
+  title: Relation
+  separator: '|'
+  description: Related resources or references.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#relation
+- name: Member Of
+  type: string
+  title: Member Of
+  separator: '|'
+  description: Collections or groups that this resource belongs to.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#member-of
+- name: Is Part Of
+  type: string
+  title: Is Part Of
+  separator: '|'
+  description: Larger resource or collection that this resource is part of.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#is-part-of
+- name: Source
+  type: string
+  title: Source
+  separator: '|'
+  description: Original source of the resource data.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#source
+- name: Is Version Of
+  type: string
+  title: Is Version Of
+  separator: '|'
+  description: Original resource that this is a version of.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#is-version-of
+- name: Replaces
+  type: string
+  title: Replaces
+  separator: '|'
+  description: Resources that this resource replaces.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#replaces
+- name: Is Replaced By
+  type: string
+  title: Is Replaced By
+  separator: '|'
+  description: Resources that replace this resource.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#is-replaced-by
+- name: In Series
+  type: string
+  title: In Series
+  description: Series that this resource belongs to.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#in-series
+- name: Rights
+  type: string
+  title: Rights
+  separator: '|'
+  description: Rights and permissions associated with the resource.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#rights
+- name: Rights Holder
+  type: string
+  title: Rights Holder
+  separator: '|'
+  description: Person or organization that holds rights to the resource.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#rights-holder
+- name: License
+  type: string
+  title: License
+  separator: '|'
+  description: License terms under which the resource is available.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#license
+- name: Access Rights
+  type: string
+  title: Access Rights
+  description: 'To clarify to the user if the resource is public (any user can access)
+    or restricted (a user will need to log in to some kind of authentication protocol).
+    Only one of two values are allowed: Public or Restricted.'
+  example: Public
+  constraints:
+    enum:
+    - Public
+    - Restricted
+  rdfType: https://opengeometadata.org/ogm-aardvark/#access-rights
+- name: Format
+  type: string
+  title: Format
+  description: File format or medium of the resource. Can include values like 'Shapefile',
+    'GeoJSON', 'Geodatabase', 'PDF', 'TIFF', 'GeoPackage', etc.
+  constraints:
+    enum:
+    - ArcGRID
+    - CD-ROM
+    - Datasets
+    - DEM
+    - DVD-ROM
+    - Feature Class
+    - Geodatabase
+    - GeoJPEG
+    - GeoJSON
+    - GeoPackage
+    - GeoPDF
+    - GeoTIFF
+    - JPEG
+    - JPEG2000
+    - KML
+    - KMZ
+    - LAS
+    - LAZ
+    - Mixed
+    - MrSID
+    - Multiple Formats
+    - PDF
+    - PNG
+    - Pulsewaves
+    - Raster Dataset
+    - Shapefile
+    - SQLite Database
+    - Tabular Data
+    - TIFF
+  rdfType: https://opengeometadata.org/ogm-aardvark/#format
+- name: File Size
+  type: string
+  title: File Size
+  description: Size of the resource file(s).
+  rdfType: https://opengeometadata.org/ogm-aardvark/#file-size
+- name: WxS Identifier
+  type: string
+  title: WxS Identifier
+  description: Web Coverage Service (WCS), Web Feature Service (WFS), or Web Map Service
+    (WMS) identifier.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#wxs-identifier
+- name: B1G Image
+  type: string
+  title: B1G Image
+  description: Big Ten Academic Alliance specific image field.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#image
+- name: ID
+  type: string
+  title: ID
+  constraints:
+    required: true
+  description: Unique identifier for the resource record.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#id
+- name: Identifier
+  type: string
+  title: Identifier
+  separator: '|'
+  description: Additional identifiers for the resource.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#identifier
+- name: Code
+  type: string
+  title: Code
+  description: Code or classification system identifier.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#code
+- name: Accrual Method
+  type: string
+  title: Accrual Method
+  description: Method by which items are added to a collection.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#accrual-method
+- name: Accrual Periodicity
+  type: string
+  title: Accrual Periodicity
+  description: Frequency with which items are added to a collection.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#accrual-periodicity
+- name: Date Accessioned
+  type: string
+  title: Date Accessioned
+  description: Date when the resource was added to the collection.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#date-accessioned
+- name: Date Retired
+  type: string
+  title: Date Retired
+  description: Date when the resource was retired or removed from active use.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#date-retired
+- name: Status
+  type: string
+  title: Status
+  description: Current status of the resource.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#status
+- name: Publication State
+  type: string
+  title: Publication State
+  description: Publication status of the resource (e.g., 'published', 'draft').
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#publication-state
+- name: Suppressed Record
+  type: string
+  title: Suppressed Record
+  description: Indicates whether the record is suppressed from public view.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#suppressed
+- name: Child Record
+  type: string
+  title: Child Record
+  description: Indicates whether this is a child record.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#child-record
+- name: Mediator
+  type: string
+  title: Mediator
+  description: Intermediary organization or service.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#mediator
+- name: Access
+  type: string
+  title: Access
+  description: Access method or protocol for the resource.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#access
+- name: Created At
+  type: datetime
+  title: Created At
+  format: '%Y-%m-%d %H:%M:%S %z'
+  description: Timestamp when the record was created.
+- name: Updated At
+  type: datetime
+  title: Updated At
+  format: '%Y-%m-%d %H:%M:%S %z'
+  description: Timestamp when the record was last updated.
+- name: Conforms to
+  type: string
+  title: Conforms to
+  description: Standards or specifications that the resource conforms to.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#conforms-to
+- name: Extent
+  type: string
+  title: Extent
+  description: Spatial or temporal extent of the resource.
+- name: Spatial Resolution in Meters
+  type: string
+  title: Spatial Resolution in Meters
+  description: Spatial resolution of the resource in meters.
+  rdfType: https://opengeometadata.org/ogm-aardvark/#spatial-resolution
+- name: Provenance Statement
+  type: string
+  title: Provenance Statement
+  description: Statement about the origin and history of the resource.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#provenance-statement
+- name: Local Collection
+  type: string
+  title: Local Collection
+  description: Local collection or repository information.
+- name: Tags
+  type: string
+  title: Tags
+  description: Additional tags or labels for the resource.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#admin-tags
+- name: Spatial Resolution as Text
+  type: string
+  title: Spatial Resolution as Text
+  description: Spatial resolution of the resource as text description.
+  rdfType: https://gin.btaa.org/metadata/b1g-custom-elements/#spatial-resolution-as-text
+missingValues:
+- ''
+- 'null'
+- 'NULL'

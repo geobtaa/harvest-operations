@@ -1,0 +1,135 @@
+distribution_types:
+  - key: arcgis_dynamic_map_layer
+    variables: [mapService]
+    name: ArcGIS DynamicMapLayer
+    reference_uri: urn:x-esri:serviceType:ArcGIS#DynamicMapLayer
+
+  - key: arcgis_feature_layer
+    variables: [featureService]
+    name: ArcGIS FeatureLayer
+    reference_uri: urn:x-esri:serviceType:ArcGIS#FeatureLayer
+
+  - key: arcgis_image_map_layer
+    variables: [imageService]
+    name: ArcGIS ImageMapLayer
+    reference_uri: urn:x-esri:serviceType:ArcGIS#ImageMapLayer
+
+  - key: arcgis_tiled_map_layer
+    variables: [tileService]
+    name: ArcGIS TiledMapLayer
+    reference_uri: urn:x-esri:serviceType:ArcGIS#TiledMapLayer
+
+  - key: cog
+    variables: [cog]
+    name: Cloud Optimized GeoTIFF (COG)
+    reference_uri: https://github.com/cogeotiff/cog-spec
+
+  - key: documentation_download
+    variables: [documentation]
+    name: Data dictionary / supplemental documentation
+    reference_uri: http://lccn.loc.gov/sh85035852
+
+  - key: documentation_external
+    variables: [information]
+    name: Documentation (External)
+    reference_uri: http://schema.org/url
+
+  - key: download
+    variables: [download]
+    name: Download file
+    reference_uri: http://schema.org/downloadUrl
+
+  - key: geo_json
+    variables: [geo_json]
+    name: GeoJSON
+    reference_uri: http://geojson.org/geojson-spec.html
+
+  - key: iiif_image
+    variables: [iiif]
+    name: International Image Interoperability Framework (IIIF) Image API
+    reference_uri: http://iiif.io/api/image
+
+  - key: iiif_manifest
+    variables: [manifest]
+    name: International Image Interoperability Framework (IIIF) Presentation API Manifest
+    reference_uri: http://iiif.io/api/presentation#manifest
+
+  - key: image
+    variables: [image]
+    name: Image file
+    reference_uri: http://schema.org/image
+
+  - key: metadata_fgdc
+    variables: [fgdc]
+    name: Metadata in FGDC
+    reference_uri: http://www.opengis.net/cat/csw/csdgm
+
+  - key: metadata_html
+    variables: [html]
+    name: Metadata in HTML
+    reference_uri: http://www.w3.org/1999/xhtml
+
+  - key: metadata_iso
+    variables: [iso]
+    name: Metadata in ISO 19139
+    reference_uri: http://www.isotc211.org/schemas/2005/gmd/
+
+  - key: metadata_mods
+    variables: [mods]
+    name: Metadata in MODS
+    reference_uri: http://www.loc.gov/mods/v3
+
+  - key: oembed
+    variables: [oembed]
+    name: oEmbed
+    reference_uri: https://oembed.com
+
+  - key: open_index_map
+    variables: [openindexmap]
+    name: OpenIndexMap
+    reference_uri: https://openindexmaps.org
+
+  - key: pmtiles
+    variables: [pmtiles]
+    name: PMTiles
+    reference_uri: https://github.com/protomaps/PMTiles
+
+  - key: thumbnail
+    variables: [thumbnail]
+    name: Thumbnail file
+    reference_uri: http://schema.org/thumbnailUrl
+
+  - key: tile_map_service
+    variables: [tms]
+    name: Tile Mapping Service (TMS)
+    reference_uri: https://wiki.osgeo.org/wiki/Tile_Map_Service_Specification
+
+  - key: tile_json
+    variables: [tileJson]
+    name: TileJSON
+    reference_uri: https://github.com/mapbox/tilejson-spec
+
+  - key: wcs
+    variables: [wcs]
+    name: Web Coverage Service (WCS)
+    reference_uri: http://www.opengis.net/def/serviceType/ogc/wcs
+
+  - key: wfs
+    variables: [wfs]
+    name: Web Feature Service (WFS)
+    reference_uri: http://www.opengis.net/def/serviceType/ogc/wfs
+
+  - key: wmts
+    variables: [wms]
+    name: Web Mapping Service (WMS)
+    reference_uri: http://www.opengis.net/def/serviceType/ogc/wms
+
+  - key: wms
+    variables: [wmtx]
+    name: WMTS
+    reference_uri: http://www.opengis.net/def/serviceType/ogc/wmts
+
+  - key: xyz_tiles
+    variables: [xyz]
+    name: XYZ tiles
+    reference_uri: https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames

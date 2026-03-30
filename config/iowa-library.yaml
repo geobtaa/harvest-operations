@@ -1,0 +1,12 @@
+name: iowa-library
+type: oai_qdc
+feed_type: oai_qdc
+oai_base_url: "https://digital.lib.uiowa.edu/oai/request"
+metadata_prefix: oai_qdc
+provider: "University of Iowa"
+source_name: "University of Iowa Libraries"
+sets_csv: config/iowa-sets.csv
+sets_csv_set_column: set
+sets_csv_title_column: title
+output_primary_csv: outputs/iowa-library_primary.csv
+output_distributions_csv: outputs/iowa-library_distributions.csv

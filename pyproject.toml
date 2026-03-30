@@ -1,0 +1,32 @@
+[project]
+name = "harvester-api"
+version = "0.1.0"
+description = "FastAPI-based metadata harvesting and API toolkit"
+requires-python = ">=3.12"
+
+dependencies = [
+  # FastAPI + API runtime
+  "fastapi",
+  "uvicorn[standard]",
+  "pydantic",
+  "python-multipart",
+
+  # Harvesting & data processing
+  "requests",
+  "pandas",
+  "pyyaml",
+  "beautifulsoup4",
+  "playwright",
+
+  # External platforms
+  "hdx-python-api",
+
+  # Compatibility pin
+  "typing_extensions<4.15",
+]
+
+[dependency-groups]
+dev = [
+  "pytest",
+  "ruff",
+]

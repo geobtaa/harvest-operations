@@ -1,0 +1,22 @@
+name: oregon-digital-maps
+type: hyrax
+source_name: "Oregon Digital"
+base_url: "https://oregondigital.org"
+input_json_root: inputs/oregon-maps-json/oregondigital.org
+input_json_glob: concern/**/*.json
+provider: "University of Oregon"
+publisher: "Oregon Digital"
+source_id_prefix: "oredig"
+code: "16d-01"
+member_of: "64bd8c4c-8e60-4956-b43d-bdc3f93db488"
+default_language: "eng"
+default_resource_class: "Maps"
+default_resource_type: "Maps"
+default_spatial_coverage: "Oregon"
+default_bbox: "-124.703541,41.992082,-116.463262,46.299099"
+default_geonames: "https://sws.geonames.org/5744337/"
+resolve_linked_labels: true
+linked_data_timeout: 15
+linked_data_cache_json: inputs/oregon-maps-json/linked_data_cache.json
+output_primary_csv: outputs/oregon-digital-maps_primary.csv
+output_distributions_csv: outputs/oregon-digital-maps_distributions.csv

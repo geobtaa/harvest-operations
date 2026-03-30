@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chicago Luna Harvester</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    h2, h3 { margin-top: 1.5em; }
+    #status { margin-top: 1em; white-space: pre-wrap; }
+    pre { border: 1px solid #ccc; padding: 1em; margin-top: 1em; min-height: 12em; }
+  </style>
+</head>
+<body>
+  <h1>Chicago Luna Harvester</h1>
+
+  <h2>Source</h2>
+  <p>
+    This job is configured against the University of Chicago LUNA IIIF collection endpoint:
+    <a href="https://luna.lib.uchicago.edu/luna/servlet/iiif/collection/s/sn5b01" target="_blank" rel="noreferrer">
+      https://luna.lib.uchicago.edu/luna/servlet/iiif/collection/s/sn5b01
+    </a>
+  </p>
+
+  <p>
+    The current harvester is a skeleton. It creates the job wiring and a minimal schema-compatible output,
+    but additional field mapping will still be needed for a production harvest.
+  </p>
+
+  <h3>Run Harvester</h3>
+  <button onclick="runHarvester()">Run Harvester</button>
+  <div id="status"></div>
+  <pre id="output"></pre>
+
+  <script>
+    async function runHarvester() {
+      const status = document.getElementById("status");
+      const output = document.getElementById("output");
+
+      status.textContent = "Running chicago-luna job...";
+      output.textContent = "";
+
+      try {
+        const response = await fetch("/jobs/chicago-luna/run", { method: "POST" });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Job failed.");
+        }
+
+        status.textContent = "Job completed.";
+        output.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        status.textContent = "Job failed.";
+        output.textContent = error.message;
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Illinois State Geological Survey Harvester</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    h2, h3 { margin-top: 1.5em; }
+    #upload-message { color: green; }
+  </style>
+</head>
+<body>
+  <h1> Harvester</h1>
+
+    <h3>Run ISGS Harvester</h3>
+  <button onclick="runHarvester()">Run Harvester</button>
+  <pre id="stream-output" style="border:1px solid #ccc; padding:1em; margin-top:1em; height:300px; overflow:auto;"></pre>
+
+  <script>
+    // Show success message if redirected with ?upload=success
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("upload") === "success") {
+        document.getElementById("upload-message").textContent = "Upload successful! File saved as HDX in the data folder.";
+    }
+
+    // Streaming harvester output
+    function runHarvester() {
+    const output = document.getElementById("stream-output");
+    output.textContent = "Starting harvester...\n";
+    const eventSource = new EventSource("/run-isgs-stream");
+
+    eventSource.onmessage = function (event) {
+        if (event.data === "DONE") {
+        // output.textContent += "Harvester completed successfully.\n";
+        eventSource.close();
+        } else {
+        output.textContent += event.data + "\n";
+        output.scrollTop = output.scrollHeight;
+        }
+    };
+
+    eventSource.onerror = function () {
+        output.textContent += "Stream closed. If the harvester did not complete, please check logs.\n";
+        eventSource.close();
+    };
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+pydantic
+pyyaml
+requests
+pandas
+python-multipart
+playwright
+typing_extensions<4.15
+
+## For Humanitarian Data Exchange
+hdx-python-api

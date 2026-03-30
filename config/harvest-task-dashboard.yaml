@@ -1,0 +1,19 @@
+name: Harvest Task Dashboard
+type: task_dashboard
+harvest_records_csv: inputs/harvest-records.csv
+websites_csv: inputs/websites.csv
+output_tasks_csv: outputs/harvest-task-dashboard.csv
+output_dashboard_html: outputs/harvest-task-dashboard.html
+output_workflow_dir: outputs/harvest-workflow-inputs
+issue_repositories:
+  - name: harvest-operations
+    issues_new_url: https://github.com/geobtaa/harvest-operations/issues/new
+    template: harvest-task.md
+    labels:
+      - harvest-task
+  # Add the same template file to another repository, then uncomment a target here.
+  # - name: harvester-api
+  #   issues_new_url: https://github.com/geobtaa/harvester-api/issues/new
+  #   template: harvest-task.md
+  #   labels:
+  #     - harvest-task

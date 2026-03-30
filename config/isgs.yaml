@@ -1,0 +1,5 @@
+name: ISGS
+type: isgs
+base_url: 'https://clearinghouse.isgs.illinois.edu'
+output_primary_csv: outputs/isgs_primary.csv
+output_distributions_csv: outputs/isgs_distributions.csv

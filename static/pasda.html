@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PASDA Harvester</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    h2, h3 { margin-top: 1.5em; }
+    #upload-message { color: green; }
+  </style>
+</head>
+<body>
+  <h1>PASDA Harvester</h1>
+
+  <h2>Purpose</h2>
+  <p>This script parses metadata from the PASDA search results page and produces two CSV files:</p>
+  <ul>
+    <li>A Primary CSV with all main metadata fields</li>
+    <li>A Distribution CSV with download, landing page, and metadata links</li>
+  </ul>
+
+  <h2>Step 1: Download the PASDA Search Results</h2>
+  <p>Go to the following page and use <strong>Save As → Web Page, Complete</strong> to save it as <code>pasda-search.html</code> in this project's /inputs folder.</p>
+  <p>
+    <a href="https://www.pasda.psu.edu/uci/SearchResults.aspx?Keyword=+" target="_blank">
+      https://www.pasda.psu.edu/uci/SearchResults.aspx?Keyword=+
+    </a>
+  </p>
+
+  <h2>Step 2: Run the PASDA Harvester</h2>
+  <button onclick="runHarvester()">Run Harvester</button>
+  <pre id="stream-output" style="border:1px solid #ccc; padding:1em; margin-top:1em; height:300px; overflow:auto;"></pre>
+
+  <script>
+    // Streaming harvester output
+    function runHarvester() {
+      const output = document.getElementById("stream-output");
+      output.textContent = "Starting PASDA harvester...\n";
+      const eventSource = new EventSource("/run-pasda-stream");
+
+      eventSource.onmessage = function (event) {
+        if (event.data === "DONE") {
+          eventSource.close();
+        } else {
+          output.textContent += event.data + "\n";
+          output.scrollTop = output.scrollHeight;
+        }
+      };
+
+      eventSource.onerror = function () {
+        output.textContent += "Stream closed. The harvester did not complete, please check logs.\n";
+        eventSource.close();
+      };
+    }
+  </script>
+  <h2>Step 3: Update the PASDA website record</h2>
+  In GBL Admin,  <a href="https://geo.btaa.org/admin/documents/08a-01/edit#provenance-activity" target="_blank">open the Provenance Activity section of the PASDA record</a>.  Update the Date Accessioned field to today (yyyy-mm-dd)
+</body>
+</html>

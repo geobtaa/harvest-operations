@@ -1,0 +1,16 @@
+name: hdx
+type: hdx
+
+# local cache of HDX has_geodata results
+input_json: inputs/hdx_geodata.json
+
+# output files
+output_primary_csv: outputs/hdx_primary.csv
+output_distributions_csv: outputs/hdx_distributions.csv
+
+# optional knobs
+refresh_cache: false          # true to re-download from HDX
+rows: 200                     # page size for HDX API
+q: ""                         # free-text search (optional)
+fq_extra: ""                  # additional CKAN filter, e.g. "organization:world-bank"
+throttle: 0.1                 # seconds to sleep between API pages

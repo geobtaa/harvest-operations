@@ -1,0 +1,6 @@
+name: pasda
+type: pasda
+input_html: inputs/pasda-search.html
+pasda_url: "https://www.pasda.psu.edu/uci/SearchResults.aspx?Keyword=."
+output_primary_csv: outputs/pasda_primary.csv
+output_distributions_csv: outputs/pasda_distributions.csv
