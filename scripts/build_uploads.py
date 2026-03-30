@@ -9,7 +9,7 @@ import pandas as pd
 # Configure your harvester:
 # =========================
 # e.g., "arcgis", "pasda", "ogm", etc.
-SOURCE = "arcgis"
+SOURCE = "hdx"
 
 # ---- Paths ----
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -119,8 +119,14 @@ if not old_only.empty:
         old_only["Publication State"] = ""
     if "Date Retired" not in old_only.columns:
         old_only["Date Retired"] = ""
+    if "Display Note" not in old_only.columns:
+        old_only["Display Note"] = ""
     old_only["Publication State"] = "unpublished"
-    old_only["Date Retired"] = date.today().isoformat()
+    today_str = date.today().isoformat()
+    old_only["Date Retired"] = today_str
+    old_only["Display Note"] = (
+        f"Danger: Record not found during verification on {today_str}; marked as retired."
+    )
     parts.append(old_only)
 
 # Combine and de-dup by ID (keep first occurrence: Websites/new additions/retirements in that order)

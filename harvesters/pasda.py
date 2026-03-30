@@ -121,7 +121,7 @@ class PasdaHarvester(BaseHarvester):
     def add_defaults(self, df):
         df = super().add_defaults(df)
         df['Code'] = '08a-01'
-        df['Provider'] = 'Pennsylvania Spatial Data Access (PASDA)'
+        df['Publisher'] = 'Pennsylvania Spatial Data Access (PASDA)'
         df['Language'] = 'eng'
         df['Is Part Of'] = '08a-01'
         df['Member Of'] = 'ba5cc745-21c5-4ae9-954b-72dd8db6815a'

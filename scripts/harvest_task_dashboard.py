@@ -188,10 +188,7 @@ class HarvestTaskDashboardJob:
                 remaining_frames.append(group)
                 continue
 
-            websites_for_workflow = websites_df[
-                websites_df["Harvest Workflow"].map(self._clean_value) == workflow_name
-            ].copy()
-            website_count = len(websites_for_workflow)
+            website_count = self._count_grouped_websites(group, websites_df, workflow_name)
 
             consolidated_row = group.iloc[0].to_dict()
             consolidated_row["Title"] = CONSOLIDATED_WORKFLOW_TITLES[workflow_name]
@@ -216,6 +213,28 @@ class HarvestTaskDashboardJob:
         if not frames:
             return pd.DataFrame(columns=task_df.columns)
         return pd.concat(frames, ignore_index=True, sort=False)
+
+    def _count_grouped_websites(
+        self,
+        group: pd.DataFrame,
+        websites_df: pd.DataFrame,
+        workflow_name: str,
+    ) -> int:
+        referenced_ids = {
+            self._normalize_key(value)
+            for value in group.get("Website ID", pd.Series(dtype=str)).tolist()
+            if self._normalize_key(value)
+        }
+        if not referenced_ids:
+            for identifier_value in group.get("Identifier", pd.Series(dtype=str)).tolist():
+                referenced_ids.update(self._extract_identifier_values(identifier_value))
+
+        if referenced_ids:
+            website_ids = websites_df["ID"].map(self._normalize_key)
+            return int(website_ids.isin(referenced_ids).sum())
+
+        workflow_matches = websites_df["Harvest Workflow"].map(self._clean_value) == workflow_name
+        return int(websites_df.loc[workflow_matches, "ID"].map(self._normalize_key).nunique())
 
     def _write_workflow_inputs(self, websites_df: pd.DataFrame) -> dict[str, str]:
         self._ensure_columns(websites_df, ["Harvest Workflow"])
