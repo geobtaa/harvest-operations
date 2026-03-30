@@ -23,6 +23,7 @@ UNSCHEDULED_PERIODICITIES = {
 
 CONSOLIDATED_WORKFLOW_TITLES = {
     "py_arcgis_hub": "Scan ArcGIS Hubs",
+    "py_socrata": "Scan Socrata Sites",
 }
 
 
@@ -260,9 +261,8 @@ class HarvestTaskDashboardJob:
 
         return {
             "total": int(len(task_df)),
-            "overdue": int((due_status == "Overdue").sum()),
-            "due_today": int((due_status == "Due Today").sum()),
-            "upcoming": int((due_status == "Upcoming").sum()),
+            "due": int((due_status == "Due").sum()),
+            "scheduled": int((due_status == "Scheduled").sum()),
             "no_schedule": int((due_status == "No Schedule").sum()),
         }
 
@@ -320,9 +320,8 @@ class HarvestTaskDashboardJob:
 
         summary_cards = [
             ("Total Tasks", summary["total"]),
-            ("Overdue", summary["overdue"]),
-            ("Due Today", summary["due_today"]),
-            ("Upcoming", summary["upcoming"]),
+            ("Due", summary["due"]),
+            ("Scheduled", summary["scheduled"]),
             ("No Schedule", summary["no_schedule"]),
         ]
         for label, value in summary_cards:
@@ -364,11 +363,11 @@ class HarvestTaskDashboardJob:
                         "        <thead>",
                         "          <tr>",
                         "            <th>Task</th>",
+                        "            <th>Due Date</th>",
                         "            <th>Last Harvested</th>",
                         "            <th>Accrual Periodicity</th>",
                         "            <th>Identifier</th>",
                         "            <th>Website Record</th>",
-                        "            <th>Due Status</th>",
                         "            <th class=\"actions\">Actions</th>",
                         "          </tr>",
                         "        </thead>",
@@ -380,11 +379,11 @@ class HarvestTaskDashboardJob:
                         [
                             "          <tr>",
                             f"            <td>{escape(self._build_display_name(row))}</td>",
+                            f"            <td>{escape(self._clean_value(row.get('Due Date', '')) or 'No schedule')}</td>",
                             f"            <td>{escape(self._clean_value(row.get('Last Harvested', '')) or 'Not yet harvested')}</td>",
                             f"            <td>{escape(self._clean_value(row.get('Accrual Periodicity', '')) or 'Not provided')}</td>",
                             f"            <td>{escape(self._clean_value(row.get('Identifier', '')) or 'None')}</td>",
                             f"            <td>{escape(self._build_website_name(row))}</td>",
-                            f"            <td>{escape(self._clean_value(row.get('Due Status', '')) or 'No Schedule')}</td>",
                             f"            <td class=\"actions\">{self._render_issue_links(row)}</td>",
                             "          </tr>",
                         ]
@@ -408,20 +407,18 @@ class HarvestTaskDashboardJob:
         sections: list[tuple[str, list[tuple[str, pd.DataFrame]]]] = []
         working_df = task_df.copy()
         working_df["__due_sort"] = pd.to_datetime(working_df["Due Date"], errors="coerce")
+        due_status_order = ["Due", "Scheduled", "No Schedule"]
 
-        ordered_due_labels = []
-        dated_rows = working_df.dropna(subset=["__due_sort"])
-        for due_date in dated_rows["__due_sort"].drop_duplicates().sort_values():
-            ordered_due_labels.append(due_date.strftime("%Y-%m-%d"))
+        for due_label in due_status_order:
+            due_group = working_df[working_df["Due Status"] == due_label].copy()
+            if due_group.empty:
+                continue
 
-        if working_df["__due_sort"].isna().any():
-            ordered_due_labels.append("No Schedule")
-
-        for due_label in ordered_due_labels:
-            if due_label == "No Schedule":
-                due_group = working_df[working_df["__due_sort"].isna()].copy()
-            else:
-                due_group = working_df[working_df["Due Date"] == due_label].copy()
+            due_group = due_group.sort_values(
+                by=["__due_sort", "Effective Harvest Workflow", "Due Date"],
+                ascending=[True, True, True],
+                na_position="last",
+            )
 
             workflow_groups: list[tuple[str, pd.DataFrame]] = []
             for workflow_name, workflow_group in due_group.groupby(
@@ -489,11 +486,9 @@ class HarvestTaskDashboardJob:
     def _determine_due_status(self, due_date: pd.Timestamp | None, periodicity: str) -> str:
         if due_date is None:
             return "No Schedule"
-        if due_date < self.today:
-            return "Overdue"
-        if due_date == self.today:
-            return "Due Today"
-        return "Upcoming"
+        if due_date <= self.today:
+            return "Due"
+        return "Scheduled"
 
     def _extract_identifier_values(self, value: str) -> list[str]:
         candidates = re.split(r"[|;,]", self._clean_value(value))
@@ -540,10 +535,9 @@ class HarvestTaskDashboardJob:
 
     def _select_due_status(self, group: pd.DataFrame) -> str:
         priorities = {
-            "Overdue": 0,
-            "Due Today": 1,
-            "Upcoming": 2,
-            "No Schedule": 3,
+            "Due": 0,
+            "Scheduled": 1,
+            "No Schedule": 2,
         }
         statuses = [
             self._clean_value(status)
@@ -581,9 +575,8 @@ class HarvestTaskDashboardJob:
         links = []
         for issue_repository in self.issue_repositories:
             issue_url = self._build_issue_url(row, issue_repository)
-            link_label = self._clean_value(issue_repository.get("name")) or "Create Issue"
             links.append(
-                f'<a class="action-link" href="{escape(issue_url, quote=True)}" target="_blank" rel="noreferrer">Issue: {escape(link_label)}</a>'
+                f'<a class="action-link" href="{escape(issue_url, quote=True)}" target="_blank" rel="noreferrer">Create issue</a>'
             )
         return "".join(links)
 
