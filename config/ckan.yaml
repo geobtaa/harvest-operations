@@ -1,0 +1,16 @@
+name: WPRDC CKAN Harvest
+type: ckan
+
+base_url: https://data.wprdc.org
+site_title: Western Pennsylvania Regional Data Center Open Data
+publisher: Western Pennsylvania Regional Data Center Open Data
+provider: CKAN
+harvest_workflow: py_ckan
+language: eng
+
+rows: 100
+timeout: 60
+endpoint_url: https://data.wprdc.org/api/3/action/package_search
+
+output_primary_csv: outputs/ckan_primary.csv
+output_distributions_csv: outputs/ckan_distributions.csv

@@ -57,3 +57,5 @@ To create new harvesters, here are the basic steps:
 4. Test the new harvester
 
 *More details tbd*
+
+Current generic source types include `arcgis`, `ckan`, and `socrata`.

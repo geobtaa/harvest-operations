@@ -6,6 +6,7 @@ import yaml
 from utils.file_io import load_local_schema
 
 from harvesters.arcgis import ArcGISHarvester
+from harvesters.ckan import CkanHarvester
 from harvesters.socrata import SocrataHarvester
 from harvesters.pasda import PasdaHarvester
 from harvesters.ogmWisc import OgmWiscHarvester
@@ -19,6 +20,7 @@ from scripts.harvest_task_dashboard import HarvestTaskDashboardJob
 
 HARVESTER_REGISTRY = {
     "arcgis": ArcGISHarvester,
+    "ckan": CkanHarvester,
     "socrata": SocrataHarvester,
     "pasda": PasdaHarvester,
     "ogmWisc": OgmWiscHarvester,
