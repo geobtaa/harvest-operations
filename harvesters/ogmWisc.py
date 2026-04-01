@@ -107,8 +107,7 @@ class OgmWiscHarvester(BaseHarvester):
             'dc_format_s': 'Format',
             'layer_slug_s': 'ID',
             'layer_id_s': 'WxS Identifier',
-            'dct_provenance_s': 'Provider',
-            'dc_publisher_s': 'Publisher',
+            'dct_provenance_s': 'Publisher',
             'dc_publisher_sm': 'Publisher',  # sometimes multivalued
             'dct_temporal_sm': 'Temporal Coverage',
             'dct_isPartOf_sm': 'Local Collection',
@@ -144,6 +143,7 @@ class OgmWiscHarvester(BaseHarvester):
         df['Member Of'] = "dc8c18df-7d64-4ff4-a754-d18d0891187d"
         df['Language'] = "eng"
         df['Spatial Coverage'] = "Wisconsin"
+        df['Provider'] = "University of Wisconsin-Madison"
         return df
     
     def add_provenance(self, df):
