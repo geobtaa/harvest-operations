@@ -11,11 +11,13 @@ from utils.distribution_writer import generate_secondary_table
 
 class OgmWiscHarvester(BaseHarvester):
     def __init__(self, config):
+        """Initialize the harvester and set Wisconsin-specific config values."""
         super().__init__(config)
         self.json_path = self.config.get("json_path")
         self.county_lookup = {} 
 
     def load_reference_data(self):
+        """Load shared distribution metadata and county lookup data used by this harvester."""
         super().load_reference_data()  # Sets self.distribution_types
         counties_path = "reference_data/spatial_counties.csv"
         counties_df = pd.read_csv(counties_path, sep="\t" if "\t" in open(counties_path).readline() else ",")
@@ -122,6 +124,7 @@ class OgmWiscHarvester(BaseHarvester):
     
     
     def derive_fields(self, df):
+        """Apply the Wisconsin-specific field derivation pipeline to the dataframe."""
         df = super().add_defaults(df)
         df = (
             df
@@ -138,7 +141,8 @@ class OgmWiscHarvester(BaseHarvester):
         return df
     
     def add_defaults(self, df):
-        df['Code'] = "10"
+        """Populate fixed default values required for Wisconsin output records."""
+        df['Code'] = "10d_00"
         df['Is Part Of'] = "10d-03"
         df['Member Of'] = "dc8c18df-7d64-4ff4-a754-d18d0891187d"
         df['Language'] = "eng"
@@ -147,6 +151,7 @@ class OgmWiscHarvester(BaseHarvester):
         return df
     
     def add_provenance(self, df):
+        """Add provenance metadata describing how these records were harvested."""
         df = super().add_provenance(df)
         df['Accrual Method'] = 'Mediated deposit'
         df["Website Platform"] = "GeoBlacklight"
@@ -156,14 +161,17 @@ class OgmWiscHarvester(BaseHarvester):
         return df
     
     def clean(self, df):
+        """Run the standard cleanup step for the harvested dataframe."""
         df = super().clean(df)
         return df
 
     def validate(self, df):
+        """Run the standard validation step for the harvested dataframe."""
         df = super().validate(df)
         return df
 
     def write_outputs(self, primary_df, distributions_df=None):
+        """Build the secondary distribution table and write the final outputs."""
         distributions_df = generate_secondary_table(primary_df.copy(), self.distribution_types)
         return super().write_outputs(primary_df, distributions_df)
 
@@ -171,6 +179,7 @@ class OgmWiscHarvester(BaseHarvester):
 # --- OGM Wisconsin-Specific Field Derive Functions ---
 
     def ogmWisc_format_temporal_coverage(self, df):
+        """Convert temporal coverage values into normalized date range strings."""
         def format_temporal(temporal):
             if pd.notna(temporal) and re.match(r'\d{4}-\d{4}', str(temporal)):
                 return temporal
@@ -183,12 +192,14 @@ class OgmWiscHarvester(BaseHarvester):
 
 
     def ogmWisc_flag_georeferenced(self, df):
+        """Mark records as georeferenced when their format indicates GeoTIFF data."""
         if 'Format' in df.columns:
             df['Georeferenced'] = df['Format'].apply(lambda x: "true" if pd.notna(x) and "GeoTIFF" in x else "false")
         return df
 
 
     def ogmWisc_generate_identifier(self, df):
+        """Build a catalog URL identifier from each record ID."""
         if 'ID' in df.columns:
             df['Identifier'] = "https://geodata.wisc.edu/catalog/" + df['ID']
         return df
@@ -213,6 +224,7 @@ class OgmWiscHarvester(BaseHarvester):
 
 
     def ogmWisc_map_theme_from_subject(self, df):
+        """Map subject values to normalized theme labels."""
         theme_map = {
             "Farming": "Agriculture",
             "Biota": "Biology",
@@ -236,6 +248,7 @@ class OgmWiscHarvester(BaseHarvester):
 
 
     def ogmWisc_build_display_note(self, df):
+        """Combine notice and supplemental text into a single display note field."""
         def map_display_note(notice, supplemental):
             parts = []
             if isinstance(notice, str) and notice.strip():
@@ -253,12 +266,14 @@ class OgmWiscHarvester(BaseHarvester):
 
 
     def ogmWisc_add_resource_class(self, df):
+        """Assign a resource class based on the source record type."""
         if 'dc_type_s' in df.columns:
             df['Resource Class'] = df['dc_type_s'].apply(lambda x: 'Imagery' if x == 'Image' else 'Datasets')
         return df
 
 
     def ogmWisc_add_resource_type(self, df):
+        """Build a human-readable resource type from the geometry type."""
         if 'layer_geom_type_s' in df.columns:
             df['Resource Type'] = df['layer_geom_type_s'].astype(str) + " data"
         return df
@@ -314,5 +329,4 @@ class OgmWiscHarvester(BaseHarvester):
         df["GeoNames"] = df.apply(lambda row: get_field_or_blank(row, geonames_lookup), axis=1)
 
         return df
-
 

@@ -12,7 +12,8 @@ from utils.derive_themes import derive_themes_from_keywords
 class BaseHarvester:
     def __init__(self, config):
         """
-        Initialize harvester with a config dictionary. Should include paths to input files and output locations.
+        Store the harvester configuration and initialize shared state used across
+        the pipeline, including distribution metadata and keyword-to-theme mappings.
         """
         self.config = config
         self.distribution_types = None
@@ -20,8 +21,8 @@ class BaseHarvester:
 
     def load_reference_data(self):
         """
-        Load shared lookup tables and reference data needed for harvesting.
-        This now includes distribution types and the theme keyword map.
+        Load lookup tables that are reused by many harvesters, including
+        distribution type definitions and the keyword map used to derive themes.
         """
         self.distribution_types = load_distribution_types()
         
@@ -49,33 +50,37 @@ class BaseHarvester:
 
     def fetch(self):
         """
-        REQUIRED: Retrieve raw metadata from a source (file, API, etc.).
-        Should return either a list (of records) or a generator.
+        Retrieve raw records from the source system, such as a local file tree,
+        web endpoint, or API. Subclasses must implement this source-specific step.
         """
         raise NotImplementedError("Subclasses must implement fetch()")
 
     def parse(self, raw_data):
         """
-        Default passthrough. Parsing is for unstructured formats, like HTML.
+        Convert raw harvested content into a more structured form when needed.
+        The base implementation is a passthrough for sources that are already structured.
         """
         return raw_data
 
     def flatten(self, harvested_metadata):
         """
-        Default passthrough. Use if records are nested and need flattening to 1 row per record.
+        Normalize nested source records into a flat record-per-row shape before
+        building a dataframe. The base implementation leaves already-flat data unchanged.
         """
         return harvested_metadata
 
     def build_dataframe(self, parsed_or_flattened_data):
         """
-        REQUIRED: Convert a list of dicts into a Pandas DataFrame. Also responsible for mapping source fields to target schema.
+        Transform parsed records into a pandas DataFrame and map source fields
+        into the target output schema. Subclasses must implement this mapping step.
         """
         raise NotImplementedError("Subclasses must implement build_dataframe()")
 
 
     def derive_fields(self, df):
         """
-        Override to add specific transformations.
+        Apply shared derived-field logic after the initial dataframe is built.
+        By default this derives themes from configured keyword mappings.
         """
         df = derive_themes_from_keywords(df, self.theme_map)
 
@@ -83,8 +88,8 @@ class BaseHarvester:
 
     def add_defaults(self, df):
         """
-        Add static default values required by schema
-        Override in subclasses if needed
+        Populate schema-required fields with standard default values when the
+        source does not provide them. Subclasses can extend or replace these defaults.
         """
         df['Publication State'] = 'published'
         df['Access Rights'] = 'Public'
@@ -92,8 +97,8 @@ class BaseHarvester:
     
     def add_provenance(self, df):
         """
-        Add harvest metadata (e.g. timestamp, harvester name) for internal tracking.
-        Override in subclasses if more detailed provenance is needed.
+        Add internal provenance metadata that records when the harvest ran.
+        Subclasses can append source-specific provenance details to this baseline.
         """
         today = time.strftime('%Y-%m-%d')
         df['Date Accessioned'] = today
@@ -102,8 +107,8 @@ class BaseHarvester:
 
     def clean(self, df):
         """
-        Shared cleaning logic—removes extra pipes, trims whitespace, deduplicates, etc.
-        Override in subclasses for source-specific cleaning.
+        Run the shared dataframe cleanup routines that normalize values, fix
+        spatial fields, and remove common formatting issues before validation.
         """
         df = dataframe_cleaning(df)
         df = spatial_cleaning(df)
@@ -112,8 +117,8 @@ class BaseHarvester:
 
     def validate(self, df):
         """
-        Shared validation pipeline—logs errors or enforces required fields.
-        Override to skip or customize rules.
+        Run the shared validation pipeline to check required fields and record-level
+        quality issues before output files are written.
         """
         validation_pipeline(df)
         return df
@@ -121,8 +126,8 @@ class BaseHarvester:
 
     def write_outputs(self, primary_df: pd.DataFrame, distributions_df: pd.DataFrame = None) -> dict:
         """
-        Write the primary and optional distributions DataFrames to CSVs in the outputs directory.
-        Returns a dict of written file paths for logging or downstream use.
+        Write the finalized primary table and optional distributions table to
+        dated CSV files in the outputs directory, then return their file paths.
         """
         today = time.strftime("%Y-%m-%d")
         results = {}
@@ -155,8 +160,8 @@ class BaseHarvester:
 
     def harvest_pipeline(self):
         """
-        Main pipeline orchestrator. Runs all steps in order and writes output files.
-        Subclasses can override specific steps but should not need to modify this method itself.
+        Orchestrate the full harvest workflow from reference-data loading through
+        output writing, calling each pipeline stage in the expected order.
         """
         self.load_reference_data()
         raw = self.fetch()
