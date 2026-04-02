@@ -59,3 +59,33 @@ To create new harvesters, here are the basic steps:
 *More details tbd*
 
 Current generic source types include `arcgis`, `ckan`, and `socrata`.
+
+## Publishing Dashboard Reports On GitHub Pages
+
+This repository now includes a GitHub Pages workflow that publishes the generated dashboard HTML files in `reports/` as a simple static site.
+
+How it works:
+
+1. Generate the dashboard reports locally so new dated `reports/*.html` files exist.
+2. Commit and push those report files to `main`.
+3. GitHub Actions runs `.github/workflows/publish-dashboard-pages.yml`.
+4. The workflow builds a small site with:
+   - `latest/` for the newest full dashboard
+   - `latest/due/` for the newest due-only report
+   - `latest/retrospective/` for the newest retrospective report
+   - dated archive pages for each published report date
+
+Setup in GitHub:
+
+1. Open the repository Settings page in GitHub.
+2. Go to Pages.
+3. Set the source to GitHub Actions.
+4. Push report updates to `main` whenever you want to refresh the published site.
+
+You can also build the site locally with:
+
+```bash
+uv run python scripts/build_dashboard_pages_site.py --reports-dir reports --output-dir site
+```
+
+That command writes a deployable static site into `site/`.

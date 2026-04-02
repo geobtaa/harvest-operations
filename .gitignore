@@ -18,6 +18,7 @@ venv/
 
 # Outputs
 outputs/
+site/
 
 
 # Pytest cache
