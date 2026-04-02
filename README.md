@@ -39,12 +39,28 @@ This repository contains an API-driven metadata harvesting toolkit.
 4. Review the API documentation (Swagger UI) at http://localhost:8000/docs
 5. For a list of runnable jobs, go to http://localhost:8000/
 
-
 **Notes:**
 
 * The --reload flag automatically restarts the server when you edit code.
 * Jobs are configured in YAML files inside the jobs/ directory.
 * Outputs from harvests will be saved in the outputs/ folder.
+
+### Local GitHub Token For Dashboard Issue Lookup
+
+The harvest task dashboard can detect existing GitHub issues and link to them, but that lookup needs a GitHub token in the local FastAPI runtime.
+
+1. Create a local file named `.secrets.local` in the repository root.
+2. Add your token in this format:
+
+```zsh
+export GEOBTAA_PROJECTS_TOKEN='YOUR_TOKEN_HERE'
+```
+
+3. Start the app with `./start-fastapi.command` or your usual local FastAPI command.
+
+`start-fastapi.command` automatically sources `.secrets.local` if it exists. The file is ignored by git and should not be committed.
+
+If you change `.secrets.local` while the server is already running, fully stop and restart the FastAPI process. A running server will not pick up a newly added or changed token until it is restarted.
 
 
 ## Adding jobs

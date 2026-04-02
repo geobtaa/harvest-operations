@@ -30,6 +30,7 @@ site/
 
 # Environment files
 .env
+.secrets.local
 
 # Ignore everything inside inputs and outputs/ but keep the folders
 inputs/*

@@ -1665,11 +1665,6 @@ class HarvestTaskDashboardJob:
         repository_slug: str,
     ) -> dict[str, dict[str, str]]:
         owner, repo = repository_slug.split("/", 1)
-        labels = [
-            self._clean_value(label)
-            for label in issue_repository.get("labels", [])
-            if self._clean_value(label)
-        ]
         headers = {
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
@@ -1689,8 +1684,6 @@ class HarvestTaskDashboardJob:
                     "per_page": "100",
                     "page": str(page),
                 }
-                if labels:
-                    params["labels"] = ",".join(labels)
 
                 response = requests.get(
                     f"https://api.github.com/repos/{owner}/{repo}/issues",
