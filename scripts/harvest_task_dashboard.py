@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import re
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import pandas as pd
 import requests
@@ -35,6 +35,7 @@ HARVEST_RECORD_LINKS = {
 
 DEFAULT_DEDICATED_WORKFLOW_VIEWS = ("py_arcgis_hub",)
 ISSUE_TASK_MARKER_PREFIX = "harvest-task-key"
+PUBLIC_REPORT_SUFFIX = "-public"
 
 
 class HarvestTaskDashboardJob:
@@ -49,11 +50,29 @@ class HarvestTaskDashboardJob:
         self.output_due_dashboard_html = Path(
             config.get("output_due_dashboard_html", "reports/harvest-task-dashboard-due.html")
         )
+        self.output_records_dashboard_html = Path(
+            config.get(
+                "output_records_dashboard_html",
+                self.output_dashboard_html.with_name(
+                    f"{self.output_dashboard_html.stem}-records{self.output_dashboard_html.suffix}"
+                ),
+            )
+        )
         self.output_retrospective_dashboard_html = Path(
             config.get(
                 "output_retrospective_dashboard_html",
                 "reports/harvest-task-dashboard-retrospective.html",
             )
+        )
+        self.output_public_dashboard_html = self._public_output_path(self.output_dashboard_html)
+        self.output_public_due_dashboard_html = self._public_output_path(
+            self.output_due_dashboard_html
+        )
+        self.output_public_records_dashboard_html = self._public_output_path(
+            self.output_records_dashboard_html
+        )
+        self.output_public_retrospective_dashboard_html = self._public_output_path(
+            self.output_retrospective_dashboard_html
         )
         self.output_workflow_dir = Path(
             config.get("output_workflow_dir", "inputs/harvest-workflow-inputs")
@@ -93,22 +112,66 @@ class HarvestTaskDashboardJob:
             main_task_df,
             report_title=self._report_title(),
         )
+        public_dashboard_html = self._render_dashboard_html(
+            main_task_df,
+            report_title=self._report_title(),
+            public=True,
+        )
         due_dashboard_html = self._render_dashboard_html(
             self._filter_due_only_tasks(main_task_df),
             report_title=self._report_title(report_type="due"),
+        )
+        public_due_dashboard_html = self._render_dashboard_html(
+            self._filter_due_only_tasks(main_task_df),
+            report_title=self._report_title(report_type="due"),
+            public=True,
+        )
+        records_dashboard_html = self._render_record_list_html(
+            main_harvest_df,
+            report_title=self._report_title(report_type="records"),
+        )
+        public_records_dashboard_html = self._render_record_list_html(
+            main_harvest_df,
+            report_title=self._report_title(report_type="records"),
+            public=True,
         )
         retrospective_dashboard_html = self._render_retrospective_html(
             main_harvest_df,
             report_title=self._report_title(report_type="retrospective"),
         )
+        public_retrospective_dashboard_html = self._render_retrospective_html(
+            main_harvest_df,
+            report_title=self._report_title(report_type="retrospective"),
+            public=True,
+        )
 
         task_output_path = self._write_dataframe(task_df, self.output_tasks_csv)
         dashboard_output_path = self._write_text(dashboard_html, self.output_dashboard_html)
+        public_dashboard_output_path = self._write_text(
+            public_dashboard_html, self.output_public_dashboard_html
+        )
         due_dashboard_output_path = self._write_text(due_dashboard_html, self.output_due_dashboard_html)
+        public_due_dashboard_output_path = self._write_text(
+            public_due_dashboard_html, self.output_public_due_dashboard_html
+        )
+        records_dashboard_output_path = self._write_text(
+            records_dashboard_html, self.output_records_dashboard_html
+        )
+        public_records_dashboard_output_path = self._write_text(
+            public_records_dashboard_html, self.output_public_records_dashboard_html
+        )
         retrospective_dashboard_output_path = self._write_text(
             retrospective_dashboard_html, self.output_retrospective_dashboard_html
         )
+        public_retrospective_dashboard_output_path = self._write_text(
+            public_retrospective_dashboard_html,
+            self.output_public_retrospective_dashboard_html,
+        )
         dedicated_dashboard_outputs = self._write_dedicated_workflow_dashboards(harvest_df)
+        public_dedicated_dashboard_outputs = self._write_dedicated_workflow_dashboards(
+            harvest_df,
+            public=True,
+        )
         workflow_outputs = self._write_workflow_inputs(websites_df)
 
         summary = self._build_summary(task_df)
@@ -119,9 +182,17 @@ class HarvestTaskDashboardJob:
             "summary": summary,
             "task_csv": str(task_output_path),
             "dashboard_html": str(dashboard_output_path),
+            "public_dashboard_html": str(public_dashboard_output_path),
             "due_dashboard_html": str(due_dashboard_output_path),
+            "public_due_dashboard_html": str(public_due_dashboard_output_path),
+            "records_dashboard_html": str(records_dashboard_output_path),
+            "public_records_dashboard_html": str(public_records_dashboard_output_path),
             "retrospective_dashboard_html": str(retrospective_dashboard_output_path),
+            "public_retrospective_dashboard_html": str(
+                public_retrospective_dashboard_output_path
+            ),
             "dedicated_dashboard_html": dedicated_dashboard_outputs,
+            "public_dedicated_dashboard_html": public_dedicated_dashboard_outputs,
             "workflow_inputs": workflow_outputs,
         }
 
@@ -130,6 +201,7 @@ class HarvestTaskDashboardJob:
         embedded: bool = False,
         report_type: str = "full",
         workflow: str = "",
+        public: bool = False,
     ) -> str:
         harvest_df = self._load_csv(self.harvest_records_path)
         websites_df = self._load_csv(self.websites_path)
@@ -147,6 +219,7 @@ class HarvestTaskDashboardJob:
                 self._filter_harvest_view(harvest_df, scoped_workflow),
                 workflow=scoped_workflow,
                 embedded=embedded,
+                public=public,
             )
         if normalized_report_type == "due":
             task_df = self._filter_due_only_tasks(self._filter_task_view(task_df, scoped_workflow))
@@ -154,17 +227,27 @@ class HarvestTaskDashboardJob:
                 task_df,
                 embedded=embedded,
                 report_title=self._report_title(report_type="due", workflow=scoped_workflow),
+                public=public,
+            )
+        if normalized_report_type == "records":
+            return self._render_record_list_html(
+                self._filter_harvest_view(harvest_df, scoped_workflow),
+                embedded=embedded,
+                report_title=self._report_title(report_type="records", workflow=scoped_workflow),
+                public=public,
             )
         if normalized_report_type == "retrospective":
             return self._render_retrospective_html(
                 self._filter_harvest_view(harvest_df, scoped_workflow),
                 embedded=embedded,
                 report_title=self._report_title(report_type="retrospective", workflow=scoped_workflow),
+                public=public,
             )
         return self._render_dashboard_html(
             self._filter_task_view(task_df, scoped_workflow),
             embedded=embedded,
             report_title=self._report_title(workflow=scoped_workflow),
+            public=public,
         )
 
     def _load_csv(self, path: Path) -> pd.DataFrame:
@@ -202,8 +285,11 @@ class HarvestTaskDashboardJob:
                 row_dict.get("Last Harvested", ""),
                 row_dict.get("Accrual Periodicity", ""),
             )
-            if self._has_pending_updates_tag(row_dict) or self._has_pending_harvest_tag(row_dict):
+            if self._has_pending_updates_tag(row_dict):
                 due_date = self.today
+            pending_harvest_due_date = self._pending_harvest_due_date(row_dict)
+            if pending_harvest_due_date is not None:
+                due_date = pending_harvest_due_date
             base_task["Due Date"] = due_date.strftime("%Y-%m-%d") if due_date is not None else ""
             base_task["Due Status"] = self._determine_due_status(
                 due_date,
@@ -377,13 +463,18 @@ class HarvestTaskDashboardJob:
         output_path.write_text(content, encoding="utf-8")
         return output_path
 
-    def _write_dedicated_workflow_dashboards(self, harvest_df: pd.DataFrame) -> dict[str, str]:
+    def _write_dedicated_workflow_dashboards(
+        self,
+        harvest_df: pd.DataFrame,
+        public: bool = False,
+    ) -> dict[str, str]:
         dedicated_outputs: dict[str, str] = {}
         for workflow_name in self.dedicated_workflow_views:
-            configured_path = self._dedicated_workflow_output_path(workflow_name)
+            configured_path = self._dedicated_workflow_output_path(workflow_name, public=public)
             workflow_html = self._render_combined_workflow_html(
                 self._filter_harvest_view(harvest_df, workflow_name),
                 workflow=workflow_name,
+                public=public,
             )
             output_path = self._write_text(workflow_html, configured_path)
             dedicated_outputs[workflow_name] = str(output_path)
@@ -403,11 +494,207 @@ class HarvestTaskDashboardJob:
             "no_schedule": int((due_status == "No Schedule").sum()),
         }
 
+    def _build_record_list_dataframe(self, harvest_df: pd.DataFrame) -> pd.DataFrame:
+        record_columns = [
+            "ID",
+            "Title",
+            "Identifier",
+            "Code",
+            "Last Harvested",
+            "Accrual Periodicity",
+            "Due Date",
+            "Due Status",
+            "Review Date",
+            "Review Status",
+        ]
+        if harvest_df.empty:
+            return pd.DataFrame(columns=record_columns)
+
+        working_df = harvest_df.copy()
+        self._ensure_columns(
+            working_df,
+            ["ID", "Title", "Identifier", "Code", "Last Harvested", "Accrual Periodicity", "Tag", "Tags"],
+        )
+
+        record_rows: list[dict[str, Any]] = []
+        for _, harvest_row in working_df.iterrows():
+            row_dict = harvest_row.to_dict()
+            due_date = self._calculate_due_date(
+                row_dict.get("Last Harvested", ""),
+                row_dict.get("Accrual Periodicity", ""),
+            )
+            if self._has_pending_updates_tag(row_dict) or self._has_pending_harvest_tag(row_dict):
+                due_date = self.today
+            review_date = self._calculate_review_date(
+                row_dict.get("Last Harvested", ""),
+                row_dict.get("Accrual Periodicity", ""),
+                row_dict,
+            )
+            record_rows.append(
+                {
+                    **row_dict,
+                    "Due Date": due_date.strftime("%Y-%m-%d") if due_date is not None else "",
+                    "Due Status": self._determine_due_status(
+                        due_date,
+                        row_dict.get("Accrual Periodicity", ""),
+                        row_dict,
+                    ),
+                    "Review Date": review_date.strftime("%Y-%m-%d") if review_date is not None else "",
+                    "Review Status": self._determine_review_status(review_date),
+                    "__display_name": self._build_display_name(row_dict),
+                    "__periodicity_group": self._periodicity_group_label(
+                        row_dict.get("Accrual Periodicity", "")
+                    ),
+                    "__periodicity_order": self._periodicity_group_sort_key(
+                        row_dict.get("Accrual Periodicity", "")
+                    ),
+                }
+            )
+
+        record_df = pd.DataFrame(record_rows)
+        sort_dates = record_df["Review Date"].where(
+            record_df["Review Date"].map(self._clean_value).astype(bool),
+            record_df["Due Date"],
+        )
+        record_df["__sort_date"] = pd.to_datetime(sort_dates, errors="coerce")
+        record_df = record_df.sort_values(
+            by=["__periodicity_order", "__periodicity_group", "__sort_date", "__display_name"],
+            ascending=[True, True, True, True],
+            na_position="last",
+        ).reset_index(drop=True)
+        return record_df
+
+    def _render_record_list_html(
+        self,
+        harvest_df: pd.DataFrame,
+        embedded: bool = False,
+        report_title: str = "Harvest Records",
+        public: bool = False,
+    ) -> str:
+        record_df = self._build_record_list_dataframe(harvest_df)
+
+        html_parts = [
+            "<!DOCTYPE html>",
+            "<html lang=\"en\">",
+            "<head>",
+            "  <meta charset=\"UTF-8\">",
+            f"  <title>{escape(report_title)}</title>",
+            "  <style>",
+            "    :root {",
+            "      color-scheme: light;",
+            "      --ink: #17324d;",
+            "      --muted: #5b6b7d;",
+            "      --line: #d7e1ec;",
+            "      --panel: #ffffff;",
+            "      --panel-soft: #f6f9fc;",
+            "      --bg: #eef3f8;",
+            "      --accent: #1f6fb2;",
+            "      --reviews: #0f766e;",
+            "      --reviews-soft: #d8f3ee;",
+            "      --due: #b42318;",
+            "      --due-soft: #fee4e2;",
+            "      --scheduled: #b76e00;",
+            "      --scheduled-soft: #fff1d6;",
+            "      --no-schedule: #667085;",
+            "      --no-schedule-soft: #edf1f5;",
+            "    }",
+            "    * { box-sizing: border-box; }",
+            "    body { margin: 1.5rem auto; max-width: 1100px; padding: 0 1rem 2.5rem; font-family: \"Segoe UI\", sans-serif; line-height: 1.35; color: var(--ink); background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%); }",
+            "    h1, h2, p { margin-top: 0; }",
+            "    a { color: var(--accent); }",
+            "    .muted { color: var(--muted); }",
+            "    code { background: var(--panel-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    .source-box, .periodicity-section { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
+            "    .source-box { padding: 1rem; margin: 1rem 0 1.4rem; }",
+            "    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }",
+            "    .periodicity-section { overflow: hidden; margin-top: 1rem; }",
+            "    .section-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }",
+            "    .section-meta { color: var(--muted); font-size: 0.82rem; }",
+            "    .record-list { display: grid; gap: 0; }",
+            "    .record-item { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr); gap: 1rem; padding: 0.85rem 1rem; border-top: 1px solid var(--line); }",
+            "    .record-item:first-child { border-top: none; }",
+            "    .task-name { font-weight: 700; margin-bottom: 0.2rem; }",
+            "    .task-meta, .timing-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }",
+            "    .task-meta code, .timing-meta code { background: var(--no-schedule-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    .date-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; font-weight: 700; }",
+            "    .status-pill { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }",
+            "    .status-pill--reviews { color: var(--reviews); background: var(--reviews-soft); }",
+            "    .status-pill--due { color: var(--due); background: var(--due-soft); }",
+            "    .status-pill--scheduled { color: var(--scheduled); background: var(--scheduled-soft); }",
+            "    .status-pill--no-schedule { color: var(--no-schedule); background: var(--no-schedule-soft); }",
+            "    @media (max-width: 760px) { body { padding: 0 0.7rem 2rem; } .record-item { grid-template-columns: 1fr; gap: 0.45rem; } .section-header { align-items: flex-start; flex-direction: column; } }",
+            "  </style>",
+            "</head>",
+            "<body>",
+        ]
+
+        if not embedded:
+            html_parts.extend(
+                [
+                    f"  <h1>{escape(report_title)}</h1>",
+                    "  <p class=\"muted\">This view lists harvest records grouped by accrual periodicity, with current timing details and public BTAA links.</p>",
+                ]
+            )
+            if not public:
+                html_parts.extend(
+                    [
+                        "  <div class=\"source-box\">",
+                        "    <h2>Get Latest Source CSVs</h2>",
+                        "    <p>Download the newest files before running the dashboard, then save them into <code>inputs/</code> with these names:</p>",
+                        "    <ul>",
+                        "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>",
+                        "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>websites.csv</code></a> -> save as <code>inputs/websites.csv</code></li>",
+                        "    </ul>",
+                        "  </div>",
+                    ]
+                )
+
+        if record_df.empty:
+            html_parts.extend(
+                [
+                    "  <p>No harvest records were found in the input file.</p>",
+                    "</body>",
+                    "</html>",
+                ]
+            )
+            return "\n".join(html_parts)
+
+        for periodicity_label, group_df in record_df.groupby("__periodicity_group", sort=False):
+            html_parts.extend(
+                [
+                    "  <section class=\"periodicity-section\">",
+                    "    <div class=\"section-header\">",
+                    f"      <h2>{escape(periodicity_label)}</h2>",
+                    f"      <div class=\"section-meta\">{len(group_df)} record{'s' if len(group_df) != 1 else ''}</div>",
+                    "    </div>",
+                    "    <div class=\"record-list\">",
+                ]
+            )
+            for _, row in group_df.iterrows():
+                html_parts.extend(
+                    [
+                        "      <article class=\"record-item\">",
+                        f"        <div>{self._render_task_cell(row, public=True)}</div>",
+                        f"        <div>{self._render_timing_cell(row, self._record_due_label(row))}</div>",
+                        "      </article>",
+                    ]
+                )
+            html_parts.extend(
+                [
+                    "    </div>",
+                    "  </section>",
+                ]
+            )
+
+        html_parts.extend(["</body>", "</html>"])
+        return "\n".join(html_parts)
+
     def _render_combined_workflow_html(
         self,
         harvest_df: pd.DataFrame,
         workflow: str,
         embedded: bool = False,
+        public: bool = False,
     ) -> str:
         workflow_name = self._clean_value(workflow) or "unspecified"
         workflow_label = self._workflow_view_label(workflow_name)
@@ -468,20 +755,33 @@ class HarvestTaskDashboardJob:
         ]
 
         if not embedded:
+            subtitle = (
+                "This is the list of actively harvested ArcGIS Hubs for the BTAA Geoportal"
+                if workflow_name == "py_arcgis_hub"
+                else (
+                    f"Generated from <code>{escape(str(self.harvest_records_path))}</code>. "
+                    "This view combines the current workflow status with the active ArcGIS Hub harvest record list."
+                )
+            )
             html_parts.extend(
                 [
                     f"  <h1>{escape(workflow_label)} Harvest Overview</h1>",
-                    f"  <p class=\"muted\">Generated from <code>{escape(str(self.harvest_records_path))}</code>. This view combines the current workflow status with the active ArcGIS Hub harvest record list.</p>",
-                    "  <div class=\"source-box\">",
-                    "    <h2>Get Latest Source CSVs</h2>",
-                    "    <p>Download the newest files before running the dashboard, then save them into <code>inputs/</code> with these names:</p>",
-                    "    <ul>",
-                    "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>",
-                    "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>websites.csv</code></a> -> save as <code>inputs/websites.csv</code></li>",
-                    "    </ul>",
-                    "  </div>",
+                    f"  <p class=\"muted\">{subtitle}</p>",
                 ]
             )
+            if not public:
+                html_parts.extend(
+                    [
+                        "  <div class=\"source-box\">",
+                        "    <h2>Get Latest Source CSVs</h2>",
+                        "    <p>Download the newest files before running the dashboard, then save them into <code>inputs/</code> with these names:</p>",
+                        "    <ul>",
+                        "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>",
+                        "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>websites.csv</code></a> -> save as <code>inputs/websites.csv</code></li>",
+                        "    </ul>",
+                        "  </div>",
+                    ]
+                )
 
         html_parts.extend(
             [
@@ -525,7 +825,7 @@ class HarvestTaskDashboardJob:
             html_parts.extend(
                 [
                     "        <tr>",
-                    f"          <td data-label=\"Harvest Record\">{self._render_task_cell(row)}</td>",
+                    f"          <td data-label=\"Harvest Record\">{self._render_task_cell(row, public=public)}</td>",
                     f"          <td data-label=\"Last Harvested\">{self._render_workflow_last_harvested_cell(row)}</td>",
                     f"          <td data-label=\"Endpoint\">{self._render_endpoint_cell(row)}</td>",
                     "        </tr>",
@@ -584,6 +884,7 @@ class HarvestTaskDashboardJob:
             "Title",
             "ID",
             "Identifier",
+            "Code",
             "Harvest Workflow",
             "Details",
         ]
@@ -620,6 +921,7 @@ class HarvestTaskDashboardJob:
                         "Title": display_name,
                         "ID": self._clean_value(row_dict.get("ID", "")),
                         "Identifier": self._clean_value(row_dict.get("Identifier", "")),
+                        "Code": self._clean_value(row_dict.get("Code", "")),
                         "Harvest Workflow": workflow_name,
                         "Details": self._select_month_provenance_note(
                             provenance_entries, last_harvested_date
@@ -639,6 +941,7 @@ class HarvestTaskDashboardJob:
                         "Title": display_name,
                         "ID": self._clean_value(row_dict.get("ID", "")),
                         "Identifier": self._clean_value(row_dict.get("Identifier", "")),
+                        "Code": self._clean_value(row_dict.get("Code", "")),
                         "Harvest Workflow": workflow_name,
                         "Details": self._extract_provenance_details(provenance_entry),
                     }
@@ -677,6 +980,7 @@ class HarvestTaskDashboardJob:
         harvest_df: pd.DataFrame,
         embedded: bool = False,
         report_title: str = "Harvest Task Retrospective",
+        public: bool = False,
     ) -> str:
         retrospective_df = self._build_retrospective_dataframe(harvest_df)
         summary = self._build_retrospective_summary(retrospective_df)
@@ -744,17 +1048,22 @@ class HarvestTaskDashboardJob:
             html_parts.extend(
                 [
                     f"  <h1>{escape(report_title)}</h1>",
-                    f"  <p class=\"muted\">Generated from <code>{escape(str(self.harvest_records_path))}</code>. Each <code>Last Harvested</code> date is shown as <strong>Harvested</strong>; each dated <code>Provenance</code> entry is shown as <strong>Reviewed</strong>.</p>",
-                    "  <div class=\"source-box\">",
-                    "    <h2>Get Latest Source CSVs</h2>",
-                    "    <p>Download the newest files before running the dashboard, then save them into <code>inputs/</code> with these names:</p>",
-                    "    <ul>",
-                    "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>",
-                    "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>websites.csv</code></a> -> save as <code>inputs/websites.csv</code></li>",
-                    "    </ul>",
-                    "  </div>",
+                    "  <p class=\"muted\">This list shows recorded harvest tasks over time, organized by source and date. It is not a complete history and may only reflect the most recent task for a source.</p>",
                 ]
             )
+            if not public:
+                html_parts.extend(
+                    [
+                        "  <div class=\"source-box\">",
+                        "    <h2>Get Latest Source CSVs</h2>",
+                        "    <p>Download the newest files before running the dashboard, then save them into <code>inputs/</code> with these names:</p>",
+                        "    <ul>",
+                        "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>",
+                        "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>websites.csv</code></a> -> save as <code>inputs/websites.csv</code></li>",
+                        "    </ul>",
+                        "  </div>",
+                    ]
+                )
 
         html_parts.extend(
             [
@@ -814,7 +1123,7 @@ class HarvestTaskDashboardJob:
                 html_parts.extend(
                     [
                         "          <tr>",
-                        f"            <td data-label=\"Record\">{self._render_task_cell(row)}</td>",
+                        f"            <td data-label=\"Record\">{self._render_task_cell(row, public=public)}</td>",
                         f"            <td data-label=\"Action\">{self._render_retrospective_action_cell(row)}</td>",
                         f"            <td data-label=\"Workflow\"><code>{escape(self._clean_value(row.get('Harvest Workflow', '')) or 'unspecified')}</code></td>",
                         f"            <td data-label=\"Details\">{self._render_retrospective_details_cell(row)}</td>",
@@ -838,6 +1147,7 @@ class HarvestTaskDashboardJob:
         task_df: pd.DataFrame,
         embedded: bool = False,
         report_title: str = "Harvest Task Dashboard",
+        public: bool = False,
     ) -> str:
         summary = self._build_summary(task_df)
         sections = self._build_dashboard_sections(task_df)
@@ -924,10 +1234,28 @@ class HarvestTaskDashboardJob:
         if embedded:
             html_parts.append("  <div class=\"summary\">")
         else:
+            subtitle = (
+                "This view lists harvest and review tasks that are currently due."
+                if report_title == "Harvest Tasks Due Now"
+                else (
+                    f"Generated from <code>{escape(str(self.harvest_records_path))}</code> and "
+                    f"<code>{escape(str(self.websites_path))}</code>."
+                )
+            )
             html_parts.extend(
                 [
                     f"  <h1>{escape(report_title)}</h1>",
-                    f"  <p class=\"muted\">Generated from <code>{escape(str(self.harvest_records_path))}</code> and <code>{escape(str(self.websites_path))}</code>.</p>",
+                    f"  <p class=\"muted\">{subtitle}</p>",
+                    (
+                        "  <p class=\"muted\">Attached GitHub issues are shown when a task already has one.</p>"
+                        if public
+                        else "  <p class=\"muted\">Use the issue buttons to open a prefilled GitHub issue from the harvest-task template.</p>"
+                    ),
+                    "  <div class=\"summary\">",
+                ]
+            )
+            if not public:
+                html_parts[ -2:-2 ] = [
                     "  <div class=\"source-box\">",
                     "    <h2>Get Latest Source CSVs</h2>",
                     "    <p>Download the newest files before running the dashboard, then save them into <code>inputs/</code> with these names:</p>",
@@ -936,10 +1264,7 @@ class HarvestTaskDashboardJob:
                     "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>websites.csv</code></a> -> save as <code>inputs/websites.csv</code></li>",
                     "    </ul>",
                     "  </div>",
-                    "  <p class=\"muted\">Use the issue buttons to open a prefilled GitHub issue from the harvest-task template.</p>",
-                    "  <div class=\"summary\">",
                 ]
-            )
 
         summary_cards = [
             ("Total Tasks", summary["total"], ""),
@@ -1010,9 +1335,9 @@ class HarvestTaskDashboardJob:
                     html_parts.extend(
                         [
                             "          <tr>",
-                            f"            <td data-label=\"Task\">{self._render_task_cell(row)}</td>",
+                            f"            <td data-label=\"Task\">{self._render_task_cell(row, public=public)}</td>",
                             f"            <td data-label=\"Timing\">{self._render_timing_cell(row, due_label)}</td>",
-                            f"            <td class=\"actions\" data-label=\"Actions\">{self._render_issue_links(row)}</td>",
+                            f"            <td class=\"actions\" data-label=\"Actions\">{self._render_issue_links(row, public=public)}</td>",
                             "          </tr>",
                         ]
                     )
@@ -1139,8 +1464,14 @@ class HarvestTaskDashboardJob:
         }
         return pill_classes.get(action_type, "status-pill--reviewed")
 
-    def _render_task_cell(self, row: pd.Series | dict[str, Any]) -> str:
+    def _render_task_cell(self, row: pd.Series | dict[str, Any], public: bool = False) -> str:
         display_name = escape(self._build_display_name(row))
+        if public:
+            return (
+                f'<div class="task-name">{display_name}</div>'
+                f'<div class="task-meta">Public site: {self._render_public_site_link(row)}</div>'
+            )
+
         task_id = self._clean_value(row.get("ID", ""))
         identifier = self._clean_value(row.get("Identifier", ""))
         harvest_record_html = self._render_record_link(task_id, self._harvest_record_url(task_id))
@@ -1150,6 +1481,23 @@ class HarvestTaskDashboardJob:
             f'<div class="task-name">{display_name}</div>'
             f'<div class="task-meta">Harvest record: {harvest_record_html}</div>'
             f'<div class="task-meta">Identifier: {identifier_html}</div>'
+        )
+
+    def _render_public_site_link(self, row: pd.Series | dict[str, Any]) -> str:
+        task_id = self._clean_value(row.get("ID", ""))
+        if task_id in CONSOLIDATED_WORKFLOW_TITLES:
+            return "<code>Not provided</code>"
+
+        code = self._first_non_empty(row.get("Code", ""), row.get("Website Code", ""))
+        return self._render_record_link(code, self._public_site_url(code))
+
+    def _public_site_url(self, code: str) -> str | None:
+        cleaned_code = self._clean_value(code)
+        if not cleaned_code:
+            return None
+        return (
+            "https://geo.btaa.org/?search_field=all_fields&q=%22"
+            f"{quote(cleaned_code, safe='')}%22"
         )
 
     def _render_timing_cell(self, row: pd.Series | dict[str, Any], due_label: str) -> str:
@@ -1174,6 +1522,11 @@ class HarvestTaskDashboardJob:
             f'<div class="timing-meta">Last harvested: {escape(last_harvested)}</div>'
             f'<div class="timing-meta">Periodicity: {escape(periodicity)}</div>'
         )
+
+    def _record_due_label(self, row: pd.Series | dict[str, Any]) -> str:
+        if self._clean_value(row.get("Review Date", "")) and not self._has_pending_harvest_tag(row):
+            return "To be reviewed"
+        return "To be harvested"
 
     def _status_pill_class(self, status_label: str) -> str:
         status_classes = {
@@ -1321,6 +1674,20 @@ class HarvestTaskDashboardJob:
 
         return "queue:pending_harvest" in self._extract_tag_values(row)
 
+    def _pending_harvest_due_date(self, row: pd.Series | dict[str, Any] | None) -> pd.Timestamp | None:
+        if row is None or not self._has_pending_harvest_tag(row):
+            return None
+
+        for tag in self._extract_tag_values(row):
+            match = re.fullmatch(r"harvest_due:(\d{4}-\d{2}-\d{2})", tag)
+            if not match:
+                continue
+            due_date = pd.to_datetime(match.group(1), errors="coerce")
+            if not pd.isna(due_date):
+                return due_date.normalize()
+
+        return None
+
     def _review_interval_years(self, row: pd.Series | dict[str, Any] | None) -> int | None:
         if row is None:
             return None
@@ -1431,6 +1798,54 @@ class HarvestTaskDashboardJob:
         suffix = "website" if count == 1 else "websites"
         return f"{count} {suffix}"
 
+    def _periodicity_group_label(self, value: str) -> str:
+        cleaned_value = self._clean_value(value)
+        if not cleaned_value:
+            return "Not provided"
+        normalized = self._normalize_periodicity(cleaned_value)
+        label_map = {
+            "ad hoc": "Ad hoc",
+            "as needed": "As needed",
+            "irregular": "Irregular",
+            "not planned": "Not planned",
+        }
+        if normalized in label_map:
+            return label_map[normalized]
+        return " ".join(word.capitalize() for word in cleaned_value.split())
+
+    def _periodicity_group_sort_key(self, value: str) -> tuple[int, str]:
+        normalized = self._normalize_periodicity(value)
+        order = {
+            "continual": 0,
+            "continuous": 0,
+            "daily": 0,
+            "weekly": 1,
+            "biweekly": 2,
+            "fortnightly": 2,
+            "semimonthly": 3,
+            "semi monthly": 3,
+            "monthly": 4,
+            "bimonthly": 5,
+            "quarterly": 6,
+            "semiannual": 7,
+            "semi annual": 7,
+            "biannual": 7,
+            "twice a year": 7,
+            "annual": 8,
+            "annually": 8,
+            "yearly": 8,
+            "irregular": 9,
+            "ad hoc": 10,
+            "as needed": 10,
+            "not planned": 11,
+            "none": 11,
+            "one time": 11,
+            "once": 11,
+            "unknown": 11,
+            "": 11,
+        }
+        return (order.get(normalized, 12), self._periodicity_group_label(value).lower())
+
     def _extract_provenance_entries(self, value: str) -> list[str]:
         cleaned_value = self._clean_value(value)
         if not cleaned_value:
@@ -1527,9 +1942,9 @@ class HarvestTaskDashboardJob:
                 return True
         return False
 
-    def _render_issue_links(self, row: pd.Series | dict[str, Any]) -> str:
+    def _render_issue_links(self, row: pd.Series | dict[str, Any], public: bool = False) -> str:
         if not self.issue_repositories:
-            return "<span class=\"muted\">No issue target configured</span>"
+            return "" if public else "<span class=\"muted\">No issue target configured</span>"
 
         links = []
         for issue_repository in self.issue_repositories:
@@ -1542,6 +1957,9 @@ class HarvestTaskDashboardJob:
                 links.append(
                     f'<a class="action-link" href="{escape(existing_issue["html_url"], quote=True)}" target="_blank" rel="noreferrer">{escape(label)}</a>'
                 )
+                continue
+
+            if public:
                 continue
 
             issue_url = self._build_issue_url(row, issue_repository)
@@ -1780,14 +2198,21 @@ class HarvestTaskDashboardJob:
         filename = f"{self.today.strftime('%Y-%m-%d')}_{configured_path.name}"
         return configured_path.parent / filename
 
+    def _public_output_path(self, configured_path: Path) -> Path:
+        return configured_path.with_name(
+            f"{configured_path.stem}{PUBLIC_REPORT_SUFFIX}{configured_path.suffix}"
+        )
+
     def _dated_directory(self, configured_path: Path) -> Path:
         dated_name = f"{self.today.strftime('%Y-%m-%d')}_{configured_path.name}"
         return configured_path.parent / dated_name
 
-    def _dedicated_workflow_output_path(self, workflow: str) -> Path:
+    def _dedicated_workflow_output_path(self, workflow: str, public: bool = False) -> Path:
         workflow_slug = self._slugify(self._clean_value(workflow) or "unspecified")
         filename = (
-            f"{self.output_dashboard_html.stem}-{workflow_slug}{self.output_dashboard_html.suffix}"
+            f"{self.output_dashboard_html.stem}-{workflow_slug}"
+            f"{PUBLIC_REPORT_SUFFIX if public else ''}"
+            f"{self.output_dashboard_html.suffix}"
         )
         return self.output_dashboard_html.with_name(filename)
 
@@ -1860,6 +2285,8 @@ class HarvestTaskDashboardJob:
             base_title = "Harvest Task Retrospective"
         elif report_type == "due":
             base_title = "Harvest Tasks Due Now"
+        elif report_type == "records":
+            base_title = "Harvest Records"
         else:
             base_title = "Harvest Task Dashboard"
 

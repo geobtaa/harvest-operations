@@ -10,15 +10,37 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
 
     report_files = {
         "2026-03-30_harvest-task-dashboard.html": "<html><body>full-2026-03-30</body></html>",
+        "2026-03-30_harvest-task-dashboard-records.html": (
+            "<html><body>records-2026-03-30</body></html>"
+        ),
         "2026-03-30_harvest-task-dashboard-due.html": "<html><body>due-2026-03-30</body></html>",
         "2026-04-01_harvest-task-dashboard.html": "<html><body>full-2026-04-01</body></html>",
+        "2026-04-01_harvest-task-dashboard-records.html": (
+            "<html><body>records-2026-04-01</body></html>"
+        ),
+        "2026-04-01_harvest-task-dashboard-records-public.html": (
+            "<html><body>records-public-2026-04-01</body></html>"
+        ),
+        "2026-04-01_harvest-task-dashboard-public.html": (
+            "<html><body>full-public-2026-04-01</body></html>"
+        ),
         "2026-04-01_harvest-task-dashboard-due.html": "<html><body>due-2026-04-01</body></html>",
+        "2026-04-01_harvest-task-dashboard-due-public.html": (
+            "<html><body>due-public-2026-04-01</body></html>"
+        ),
         "2026-04-01_harvest-task-dashboard-retrospective.html": (
             "<html><body>retrospective-2026-04-01</body></html>"
+        ),
+        "2026-04-01_harvest-task-dashboard-retrospective-public.html": (
+            "<html><body>retrospective-public-2026-04-01</body></html>"
         ),
         "2026-04-01_harvest-task-dashboard-py-arcgis-hub.html": (
             "<html><head><title>ArcGIS Hubs Harvest Overview</title></head>"
             "<body>workflow-2026-04-01</body></html>"
+        ),
+        "2026-04-01_harvest-task-dashboard-py-arcgis-hub-public.html": (
+            "<html><head><title>ArcGIS Hubs Harvest Overview</title></head>"
+            "<body>workflow-public-2026-04-01</body></html>"
         ),
     }
 
@@ -44,26 +66,26 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
 
     assert (
         output_dir.joinpath("latest/index.html").read_text(encoding="utf-8")
-        == "<html><body>full-2026-04-01</body></html>"
+        == "<html><body>records-public-2026-04-01</body></html>"
     )
     assert (
         output_dir.joinpath("latest/due/index.html").read_text(encoding="utf-8")
-        == "<html><body>due-2026-04-01</body></html>"
+        == "<html><body>due-public-2026-04-01</body></html>"
     )
     assert (
         output_dir.joinpath("latest/retrospective/index.html").read_text(encoding="utf-8")
-        == "<html><body>retrospective-2026-04-01</body></html>"
+        == "<html><body>retrospective-public-2026-04-01</body></html>"
     )
     assert (
         output_dir.joinpath("latest/workflows/py-arcgis-hub/index.html").read_text(
             encoding="utf-8"
         )
         == "<html><head><title>ArcGIS Hubs Harvest Overview</title></head>"
-        "<body>workflow-2026-04-01</body></html>"
+        "<body>workflow-public-2026-04-01</body></html>"
     )
     assert (
         output_dir.joinpath("2026-03-30/index.html").read_text(encoding="utf-8")
-        == "<html><body>full-2026-03-30</body></html>"
+        == "<html><body>records-2026-03-30</body></html>"
     )
 
 

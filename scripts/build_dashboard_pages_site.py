@@ -11,10 +11,10 @@ import shutil
 
 SITE_TITLE = "Harvest Task Dashboard Reports"
 STANDARD_REPORT_TYPES = {
-    "full": {
-        "suffix": "harvest-task-dashboard.html",
-        "label": "Full dashboard",
-        "description": "The main dashboard view.",
+    "records": {
+        "suffix": "harvest-task-dashboard-records.html",
+        "label": "Harvest records",
+        "description": "Compact harvest-record list grouped by accrual periodicity.",
         "latest_href": "latest/",
     },
     "due": {
@@ -30,8 +30,9 @@ STANDARD_REPORT_TYPES = {
         "latest_href": "latest/retrospective/",
     },
 }
-STANDARD_REPORT_ORDER = ("full", "due", "retrospective")
+STANDARD_REPORT_ORDER = ("records", "due", "retrospective")
 DEDICATED_WORKFLOW_PREFIX = "harvest-task-dashboard-"
+PUBLIC_REPORT_SUFFIX = "-public"
 
 
 @dataclass(frozen=True)
@@ -51,36 +52,55 @@ class DashboardReport:
 
 
 def collect_reports(reports_dir: Path) -> dict[str, dict[str, DashboardReport]]:
-    collected: dict[str, dict[str, DashboardReport]] = {}
+    collected: dict[str, dict[str, tuple[bool, DashboardReport]]] = {}
 
     for report_path in sorted(reports_dir.glob("*.html")):
         if "_" not in report_path.name:
             continue
 
         report_date, report_name = report_path.name.split("_", 1)
+        report_name, is_public = _normalize_report_name(report_name)
         for report_type, report_config in STANDARD_REPORT_TYPES.items():
             if report_name != report_config["suffix"]:
                 continue
-            collected.setdefault(report_date, {})[report_type] = DashboardReport(
-                date=report_date,
-                report_key=report_type,
-                source_path=report_path,
-                label=report_config["label"],
-                description=report_config["description"],
-                latest_href=report_config["latest_href"],
-                archive_href=_standard_archive_href(report_date, report_type),
+            _store_report(
+                collected,
+                report_date,
+                report_type,
+                DashboardReport(
+                    date=report_date,
+                    report_key=report_type,
+                    source_path=report_path,
+                    label=report_config["label"],
+                    description=report_config["description"],
+                    latest_href=report_config["latest_href"],
+                    archive_href=_standard_archive_href(report_date, report_type),
+                ),
+                is_public,
             )
             break
         else:
             workflow_report = _collect_dedicated_workflow_report(
-                report_date=report_date,
+                date=report_date,
                 report_name=report_name,
                 report_path=report_path,
             )
             if workflow_report is not None:
-                collected.setdefault(report_date, {})[workflow_report.report_key] = workflow_report
+                _store_report(
+                    collected,
+                    report_date,
+                    workflow_report.report_key,
+                    workflow_report,
+                    is_public,
+                )
 
-    return dict(sorted(collected.items(), reverse=True))
+    return {
+        report_date: {
+            report_key: report
+            for report_key, (_, report) in sorted(report_map.items())
+        }
+        for report_date, report_map in sorted(collected.items(), reverse=True)
+    }
 
 
 def build_pages_site(reports_dir: Path, output_dir: Path) -> None:
@@ -436,13 +456,33 @@ def main() -> None:
 
 
 def _standard_archive_href(report_date: str, report_type: str) -> str:
-    if report_type == "full":
+    if report_type == "records":
         return f"{report_date}/"
     return f"{report_date}/{report_type}/"
 
 
-def _collect_dedicated_workflow_report(
+def _normalize_report_name(report_name: str) -> tuple[str, bool]:
+    public_suffix = f"{PUBLIC_REPORT_SUFFIX}.html"
+    if not report_name.endswith(public_suffix):
+        return report_name, False
+    return f"{report_name.removesuffix(public_suffix)}.html", True
+
+
+def _store_report(
+    collected: dict[str, dict[str, tuple[bool, DashboardReport]]],
     report_date: str,
+    report_key: str,
+    report: DashboardReport,
+    is_public: bool,
+) -> None:
+    existing = collected.setdefault(report_date, {}).get(report_key)
+    if existing is not None and existing[0] and not is_public:
+        return
+    collected[report_date][report_key] = (is_public, report)
+
+
+def _collect_dedicated_workflow_report(
+    date: str,
     report_name: str,
     report_path: Path,
 ) -> DashboardReport | None:
@@ -456,13 +496,13 @@ def _collect_dedicated_workflow_report(
     workflow_title = _extract_html_title(report_path)
     workflow_label = _workflow_report_label(workflow_title, workflow_slug)
     return DashboardReport(
-        date=report_date,
+        date=date,
         report_key=f"workflow:{workflow_slug}",
         source_path=report_path,
         label=workflow_label,
         description="Dedicated workflow overview.",
         latest_href=f"latest/workflows/{workflow_slug}/",
-        archive_href=f"{report_date}/workflows/{workflow_slug}/",
+        archive_href=f"{date}/workflows/{workflow_slug}/",
     )
 
 

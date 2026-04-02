@@ -18,6 +18,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
                 "Title": "County Parcels",
                 "Harvest Workflow": "py_arcgis_hub",
                 "Identifier": "site-1",
+                "Code": "27d-01",
                 "Last Harvested": "2026-02-15",
                 "Accrual Periodicity": "monthly",
             },
@@ -26,6 +27,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
                 "Title": "Road Centerlines",
                 "Harvest Workflow": "py_arcgis_hub",
                 "Identifier": "site-3",
+                "Code": "27d-02",
                 "Last Harvested": "2026-02-20",
                 "Accrual Periodicity": "monthly",
             },
@@ -58,6 +60,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
                 "Title": "Parcel Fabric",
                 "Harvest Workflow": "py_pasda",
                 "Identifier": "site-5",
+                "Code": "05f-01",
                 "Last Harvested": "2026-03-29",
                 "Accrual Periodicity": "weekly",
             },
@@ -126,15 +129,33 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
 
     task_df = pd.read_csv(results["task_csv"], dtype=str).fillna("")
     dashboard_html = Path(results["dashboard_html"]).read_text(encoding="utf-8")
+    public_dashboard_html = Path(results["public_dashboard_html"]).read_text(encoding="utf-8")
     due_dashboard_html = Path(results["due_dashboard_html"]).read_text(encoding="utf-8")
+    public_due_dashboard_html = Path(results["public_due_dashboard_html"]).read_text(
+        encoding="utf-8"
+    )
+    records_dashboard_html = Path(results["records_dashboard_html"]).read_text(encoding="utf-8")
+    public_records_dashboard_html = Path(results["public_records_dashboard_html"]).read_text(
+        encoding="utf-8"
+    )
     retrospective_dashboard_html = Path(results["retrospective_dashboard_html"]).read_text(
         encoding="utf-8"
     )
+    public_retrospective_dashboard_html = Path(
+        results["public_retrospective_dashboard_html"]
+    ).read_text(encoding="utf-8")
     dedicated_dashboard_outputs = results["dedicated_dashboard_html"]
+    public_dedicated_dashboard_outputs = results["public_dedicated_dashboard_html"]
     arcgis_dashboard_output_html = Path(
         dedicated_dashboard_outputs["py_arcgis_hub"]
     ).read_text(encoding="utf-8")
+    public_arcgis_dashboard_output_html = Path(
+        public_dedicated_dashboard_outputs["py_arcgis_hub"]
+    ).read_text(encoding="utf-8")
     arcgis_dashboard_html = job.render_dashboard_view(workflow="py_arcgis_hub")
+    public_arcgis_dashboard_html = job.render_dashboard_view(workflow="py_arcgis_hub", public=True)
+    records_view_html = job.render_dashboard_view(report_type="records")
+    public_records_view_html = job.render_dashboard_view(report_type="records", public=True)
     arcgis_due_dashboard_html = job.render_dashboard_view(
         report_type="due",
         workflow="py_arcgis_hub",
@@ -177,8 +198,30 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     assert "https://github.com/geobtaa/harvest-operations/issues/new" in dashboard_html
     assert "template=harvest-task.md" in dashboard_html
     assert "Create issue" in dashboard_html
+    assert "Create issue" not in public_dashboard_html
+    assert "Create issue" not in public_due_dashboard_html
+    assert "https://geo.btaa.org/admin/documents/site-5/edit" not in public_dashboard_html
+    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_dashboard_html
+    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2227d-01%22" in public_arcgis_dashboard_html
+    assert "https://geo.btaa.org/admin/documents/task-1/edit" not in public_arcgis_dashboard_html
+    assert "https://geo.btaa.org/admin/documents/site-1/edit" not in public_arcgis_dashboard_html
     assert "Reviews due" in dashboard_html
     assert "Harvests due" in dashboard_html
+    assert "Harvest Records" in records_dashboard_html
+    assert records_dashboard_html == records_view_html
+    assert public_records_dashboard_html == public_records_view_html
+    assert "County Parcels" not in records_dashboard_html
+    assert "Scan Socrata Sites" not in records_dashboard_html
+    assert "py_socrata" not in records_dashboard_html
+    assert "Actions" not in records_dashboard_html
+    assert "Weekly" in records_dashboard_html
+    assert "Irregular" in records_dashboard_html
+    assert "Parcel Fabric" in records_dashboard_html
+    assert "Geology Index" in records_dashboard_html
+    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in records_dashboard_html
+    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_records_dashboard_html
+    assert "https://geo.btaa.org/admin/documents/site-5/edit" not in records_dashboard_html
+    assert "Create issue" not in records_dashboard_html
     assert "Harvest Tasks Due Now" in due_dashboard_html
     assert "Reviews due" in due_dashboard_html
     assert "Harvests due" in due_dashboard_html
@@ -194,10 +237,21 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     assert "py_arcgis_hub" not in retrospective_dashboard_html
 
     assert set(dedicated_dashboard_outputs) == {"py_arcgis_hub"}
+    assert set(public_dedicated_dashboard_outputs) == {"py_arcgis_hub"}
     assert Path(dedicated_dashboard_outputs["py_arcgis_hub"]).name == (
         "2026-03-30_harvest-task-dashboard-py-arcgis-hub.html"
     )
+    assert Path(results["records_dashboard_html"]).name == (
+        "2026-03-30_harvest-task-dashboard-records.html"
+    )
+    assert Path(results["public_records_dashboard_html"]).name == (
+        "2026-03-30_harvest-task-dashboard-records-public.html"
+    )
+    assert Path(public_dedicated_dashboard_outputs["py_arcgis_hub"]).name == (
+        "2026-03-30_harvest-task-dashboard-py-arcgis-hub-public.html"
+    )
     assert arcgis_dashboard_output_html == arcgis_dashboard_html
+    assert public_arcgis_dashboard_output_html == public_arcgis_dashboard_html
     assert "ArcGIS Hubs Harvest Overview" in arcgis_dashboard_html
     assert "Last time the process was run" in arcgis_dashboard_html
     assert "2026-02-20" in arcgis_dashboard_html
@@ -355,7 +409,7 @@ def test_harvest_task_dashboard_routes_pending_harvest_rows_to_harvest_section(
                 "Harvest Workflow": "template_csv",
                 "Last Harvested": "2026-03-29",
                 "Accrual Periodicity": "Irregular",
-                "Tags": "queue:pending_harvest|ops",
+                "Tags": "queue:pending_harvest|harvest_due:2026-04-01|ops",
             }
         ]
     ).to_csv(harvest_records_path, index=False)
@@ -509,6 +563,7 @@ def test_harvest_task_dashboard_links_existing_issue_when_marker_matches(
                 "Title": "Harvest record for ORNL LandScan Viewer",
                 "Harvest Workflow": "template_csv",
                 "Identifier": "04a-01",
+                "Code": "04a-01",
                 "Last Harvested": "2026-03-30",
                 "Accrual Periodicity": "monthly",
             }
@@ -560,7 +615,19 @@ def test_harvest_task_dashboard_links_existing_issue_when_marker_matches(
 
     results = job.harvest_pipeline()
     dashboard_html = Path(results["dashboard_html"]).read_text(encoding="utf-8")
+    public_dashboard_html = Path(results["public_dashboard_html"]).read_text(encoding="utf-8")
+    public_view_html = job.render_dashboard_view(public=True)
+    public_retrospective_html = job.render_dashboard_view(report_type="retrospective", public=True)
 
     assert "Open issue #123" in dashboard_html
     assert "https://github.com/geobtaa/harvest-operations/issues/123" in dashboard_html
     assert "Create issue" not in dashboard_html
+    assert "Open issue #123" in public_dashboard_html
+    assert "https://github.com/geobtaa/harvest-operations/issues/123" in public_dashboard_html
+    assert "Create issue" not in public_dashboard_html
+    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2204a-01%22" in public_dashboard_html
+    assert "https://geo.btaa.org/admin/documents/harvest_ornl/edit" not in public_dashboard_html
+    assert "https://geo.btaa.org/admin/documents/04a-01/edit" not in public_dashboard_html
+    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2204a-01%22" in public_retrospective_html
+    assert "https://geo.btaa.org/admin/documents/harvest_ornl/edit" not in public_retrospective_html
+    assert public_view_html == public_dashboard_html
