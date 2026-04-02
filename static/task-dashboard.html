@@ -4,43 +4,109 @@
   <meta charset="UTF-8" />
   <title>Harvest Task Dashboard</title>
   <style>
+    :root {
+      color-scheme: light;
+      --ink: #17324d;
+      --muted: #5f6f82;
+      --line: #d7e1ec;
+      --panel: #ffffff;
+      --panel-soft: #f5f8fb;
+      --bg: #edf3f8;
+      --accent: #1f6fb2;
+      --accent-soft: #dcecff;
+      --success: #0f766e;
+    }
     body {
-      font-family: sans-serif;
+      font-family: "Segoe UI", sans-serif;
       max-width: 1100px;
       margin: 2rem auto;
       padding: 0 1rem 2rem;
       line-height: 1.5;
+      color: var(--ink);
+      background: linear-gradient(180deg, #f7fafc 0%, var(--bg) 100%);
     }
-    button {
+    button,
+    .report-link {
       padding: 0.7rem 1.2rem;
       font-size: 1rem;
       cursor: pointer;
       margin-right: 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+    button:hover,
+    .report-link:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(31, 111, 178, 0.14);
+    }
+    button.secondary {
+      background: #fff;
+      color: var(--accent);
+    }
+    h1 {
+      margin-bottom: 0.5rem;
     }
     #status {
       margin: 1rem 0;
       font-weight: bold;
+      color: var(--success);
+    }
+    #status[data-state="error"] {
+      color: #b42318;
+    }
+    #status[data-state="running"] {
+      color: var(--accent);
     }
     #output {
-      border: 1px solid #ddd;
-      background: #fafafa;
+      border: 1px solid var(--line);
+      background: var(--panel);
       padding: 1rem;
       white-space: pre-wrap;
       min-height: 8rem;
+      border-radius: 14px;
+      box-shadow: 0 12px 30px rgba(23, 50, 77, 0.06);
     }
-    iframe {
-      width: 100%;
-      min-height: 700px;
-      border: 1px solid #ddd;
-      margin-top: 1rem;
-      background: #fff;
-    }
-    .source-box {
-      background: #f8f8f8;
-      border: 1px solid #ddd;
-      border-radius: 8px;
+    .source-box,
+    .report-box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
       padding: 1rem;
       margin: 1rem 0 1.5rem;
+      box-shadow: 0 12px 30px rgba(23, 50, 77, 0.06);
+    }
+    .report-box {
+      background: linear-gradient(135deg, var(--panel) 0%, var(--accent-soft) 100%);
+    }
+    .report-box h2,
+    .source-box h2 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+    }
+    .muted {
+      color: var(--muted);
+    }
+    code {
+      background: var(--panel-soft);
+      padding: 0.1rem 0.35rem;
+      border-radius: 6px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin: 1.25rem 0 1rem;
+    }
+    .report-meta {
+      margin-top: 0.9rem;
+      color: var(--muted);
     }
   </style>
 </head>
@@ -56,11 +122,11 @@
   <p>
     Use <strong>Generate Dashboard Files</strong> to write the CSV and HTML outputs into
     <code>reports/</code>. Workflow input splits are written to <code>inputs/</code>.
-    The live preview below renders the current inputs directly from FastAPI.
+    The full report opens as a separate HTML page rendered from the current inputs.
   </p>
 
   <p>
-    Each task row in the preview includes an issue button that opens a prefilled GitHub issue
+    Each task row in the report includes an issue button that opens a prefilled GitHub issue
     using the <code>harvest-task</code> template for the configured target repository.
   </p>
 
@@ -73,18 +139,61 @@
     </ul>
   </div>
 
-  <button onclick="runDashboardJob()">Generate Dashboard Files</button>
-  <button onclick="refreshPreview()">Refresh Live Preview</button>
+  <div class="actions">
+    <button onclick="runDashboardJob()">Generate Dashboard Files</button>
+    <a
+      id="full-report-link"
+      class="report-link"
+      href="/jobs/harvest-task-dashboard/view"
+      target="_blank"
+      rel="noreferrer"
+      onclick="refreshReportLinks()"
+    >
+      Open Full Report
+    </a>
+    <a
+      id="due-report-link"
+      class="report-link secondary"
+      href="/jobs/harvest-task-dashboard/view?report=due"
+      target="_blank"
+      rel="noreferrer"
+      onclick="refreshReportLinks()"
+    >
+      Open Due-Only Report
+    </a>
+    <a
+      id="retrospective-report-link"
+      class="report-link secondary"
+      href="/jobs/harvest-task-dashboard/view?report=retrospective"
+      target="_blank"
+      rel="noreferrer"
+      onclick="refreshReportLinks()"
+    >
+      Open Retrospective Report
+    </a>
+    <button class="secondary" onclick="refreshReportLinks()">Refresh Report Links</button>
+  </div>
+
+  <div class="report-box">
+    <h2>Standalone Report</h2>
+    <p>
+      Open the full dashboard, due-only view, or retrospective view in a new tab after updating the source CSVs or running the job.
+      All links always target the latest dashboard render from FastAPI.
+    </p>
+    <p class="report-meta">Full report URL: <code id="full-report-url">/jobs/harvest-task-dashboard/view</code></p>
+    <p class="report-meta">Due-only report URL: <code id="due-report-url">/jobs/harvest-task-dashboard/view?report=due</code></p>
+    <p class="report-meta">Retrospective report URL: <code id="retrospective-report-url">/jobs/harvest-task-dashboard/view?report=retrospective</code></p>
+  </div>
 
   <div id="status"></div>
   <pre id="output"></pre>
-  <iframe id="preview" src="/jobs/harvest-task-dashboard/view?embedded=true" title="Harvest Task Dashboard Preview"></iframe>
 
   <script>
     async function runDashboardJob() {
       const status = document.getElementById("status");
       const output = document.getElementById("output");
 
+      status.dataset.state = "running";
       status.textContent = "Running harvest task dashboard job...";
       output.textContent = "";
 
@@ -96,19 +205,32 @@
           throw new Error(data.detail || "Dashboard job failed.");
         }
 
+        status.dataset.state = "success";
         status.textContent = "Dashboard files generated.";
         output.textContent = JSON.stringify(data, null, 2);
-        refreshPreview();
+        refreshReportLinks();
       } catch (error) {
+        status.dataset.state = "error";
         status.textContent = "Dashboard job failed.";
         output.textContent = error.message;
       }
     }
 
-    function refreshPreview() {
-      const preview = document.getElementById("preview");
-      preview.src = `/jobs/harvest-task-dashboard/view?embedded=true&ts=${Date.now()}`;
+    function refreshReportLinks() {
+      const timestamp = Date.now();
+      const fullUrl = `/jobs/harvest-task-dashboard/view?ts=${timestamp}`;
+      const dueUrl = `/jobs/harvest-task-dashboard/view?report=due&ts=${timestamp}`;
+      const retrospectiveUrl = `/jobs/harvest-task-dashboard/view?report=retrospective&ts=${timestamp}`;
+      document.getElementById("full-report-link").href = fullUrl;
+      document.getElementById("due-report-link").href = dueUrl;
+      document.getElementById("retrospective-report-link").href = retrospectiveUrl;
+      document.getElementById("full-report-url").textContent = fullUrl;
+      document.getElementById("due-report-url").textContent = dueUrl;
+      document.getElementById("retrospective-report-url").textContent = retrospectiveUrl;
+      return true;
     }
+
+    refreshReportLinks();
   </script>
 </body>
 </html>

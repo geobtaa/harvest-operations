@@ -9,7 +9,7 @@ import pandas as pd
 # Configure your harvester:
 # =========================
 # e.g., "arcgis", "pasda", "ogm", etc.
-SOURCE = "hdx"
+SOURCE = "ogmWisc"
 
 # ---- Paths ----
 SCRIPT_DIR = Path(__file__).resolve().parent

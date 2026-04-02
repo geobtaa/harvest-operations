@@ -1,0 +1,47 @@
+name: Sync Harvest Issue Iteration
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+      - reopened
+
+jobs:
+  sync-iteration:
+    if: github.event.issue.pull_request == null
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check secret configuration
+        id: preflight
+        env:
+          GEOBTAA_PROJECTS_TOKEN: ${{ secrets.GEOBTAA_PROJECTS_TOKEN }}
+        run: |
+          if [ -z "$GEOBTAA_PROJECTS_TOKEN" ]; then
+            echo "::warning title=Missing GEOBTAA_PROJECTS_TOKEN::Add a repository secret named GEOBTAA_PROJECTS_TOKEN with organization Projects write access to enable Iteration syncing."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Add issue to project and set iteration
+        if: steps.preflight.outputs.enabled == 'true'
+        env:
+          GEOBTAA_PROJECTS_TOKEN: ${{ secrets.GEOBTAA_PROJECTS_TOKEN }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NODE_ID: ${{ github.event.issue.node_id }}
+          PROJECT_ORG: geobtaa
+          PROJECT_NUMBER: "4"
+          PROJECT_ITERATION_FIELD: Iteration
+        run: python scripts/sync_issue_project_iteration.py
