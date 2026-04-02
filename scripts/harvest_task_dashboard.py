@@ -31,6 +31,8 @@ HARVEST_RECORD_LINKS = {
     "py_socrata": "https://geo.btaa.org/admin/documents?f%5Bb1g_websitePlatform_s%5D%5B%5D=Socrata&f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc",
 }
 
+DEFAULT_DEDICATED_WORKFLOW_VIEWS = ("py_arcgis_hub",)
+
 
 class HarvestTaskDashboardJob:
     def __init__(self, config: dict[str, Any]):
@@ -54,6 +56,21 @@ class HarvestTaskDashboardJob:
             config.get("output_workflow_dir", "inputs/harvest-workflow-inputs")
         )
         self.issue_repositories = config.get("issue_repositories", [])
+        configured_dedicated_workflows = config.get(
+            "dedicated_workflow_views",
+            DEFAULT_DEDICATED_WORKFLOW_VIEWS,
+        )
+        if isinstance(configured_dedicated_workflows, str):
+            configured_dedicated_workflows = [configured_dedicated_workflows]
+        self.dedicated_workflow_views = tuple(
+            dict.fromkeys(
+                workflow
+                for workflow in (
+                    self._clean_value(value) for value in configured_dedicated_workflows
+                )
+                if workflow
+            )
+        )
 
         configured_today = config.get("today")
         if configured_today:
@@ -66,11 +83,20 @@ class HarvestTaskDashboardJob:
         websites_df = self._load_csv(self.websites_path)
 
         task_df = self._build_task_dataframe(harvest_df, websites_df)
-        dashboard_html = self._render_dashboard_html(task_df)
-        due_dashboard_html = self._render_dashboard_html(
-            self._filter_due_only_tasks(task_df), report_title="Harvest Tasks Due Now"
+        main_task_df = self._filter_task_view(task_df)
+        main_harvest_df = self._filter_harvest_view(harvest_df)
+        dashboard_html = self._render_dashboard_html(
+            main_task_df,
+            report_title=self._report_title(),
         )
-        retrospective_dashboard_html = self._render_retrospective_html(harvest_df)
+        due_dashboard_html = self._render_dashboard_html(
+            self._filter_due_only_tasks(main_task_df),
+            report_title=self._report_title(report_type="due"),
+        )
+        retrospective_dashboard_html = self._render_retrospective_html(
+            main_harvest_df,
+            report_title=self._report_title(report_type="retrospective"),
+        )
 
         task_output_path = self._write_dataframe(task_df, self.output_tasks_csv)
         dashboard_output_path = self._write_text(dashboard_html, self.output_dashboard_html)
@@ -93,17 +119,47 @@ class HarvestTaskDashboardJob:
             "workflow_inputs": workflow_outputs,
         }
 
-    def render_dashboard_view(self, embedded: bool = False, report_type: str = "full") -> str:
+    def render_dashboard_view(
+        self,
+        embedded: bool = False,
+        report_type: str = "full",
+        workflow: str = "",
+    ) -> str:
         harvest_df = self._load_csv(self.harvest_records_path)
         websites_df = self._load_csv(self.websites_path)
         task_df = self._build_task_dataframe(harvest_df, websites_df)
         normalized_report_type = self._clean_value(report_type).lower()
+        scoped_workflow = self._clean_value(workflow)
+        report_workflow, workflow_from_report_type = self._extract_workflow_from_report_type(
+            normalized_report_type
+        )
+        if workflow_from_report_type:
+            scoped_workflow = report_workflow
+            normalized_report_type = "full"
+        if self._use_combined_workflow_view(scoped_workflow):
+            return self._render_combined_workflow_html(
+                self._filter_harvest_view(harvest_df, scoped_workflow),
+                workflow=scoped_workflow,
+                embedded=embedded,
+            )
         if normalized_report_type == "due":
-            task_df = self._filter_due_only_tasks(task_df)
-            return self._render_dashboard_html(task_df, embedded=embedded, report_title="Harvest Tasks Due Now")
+            task_df = self._filter_due_only_tasks(self._filter_task_view(task_df, scoped_workflow))
+            return self._render_dashboard_html(
+                task_df,
+                embedded=embedded,
+                report_title=self._report_title(report_type="due", workflow=scoped_workflow),
+            )
         if normalized_report_type == "retrospective":
-            return self._render_retrospective_html(harvest_df, embedded=embedded)
-        return self._render_dashboard_html(task_df, embedded=embedded)
+            return self._render_retrospective_html(
+                self._filter_harvest_view(harvest_df, scoped_workflow),
+                embedded=embedded,
+                report_title=self._report_title(report_type="retrospective", workflow=scoped_workflow),
+            )
+        return self._render_dashboard_html(
+            self._filter_task_view(task_df, scoped_workflow),
+            embedded=embedded,
+            report_title=self._report_title(workflow=scoped_workflow),
+        )
 
     def _load_csv(self, path: Path) -> pd.DataFrame:
         df = pd.read_csv(path, dtype=str).fillna("")
@@ -326,6 +382,179 @@ class HarvestTaskDashboardJob:
             "scheduled": int((due_status == "Scheduled").sum()),
             "no_schedule": int((due_status == "No Schedule").sum()),
         }
+
+    def _render_combined_workflow_html(
+        self,
+        harvest_df: pd.DataFrame,
+        workflow: str,
+        embedded: bool = False,
+    ) -> str:
+        workflow_name = self._clean_value(workflow) or "unspecified"
+        workflow_label = self._workflow_view_label(workflow_name)
+        last_run = self._latest_harvest_date(harvest_df)
+        current_records = self._prepare_workflow_record_view(harvest_df)
+
+        html_parts = [
+            "<!DOCTYPE html>",
+            "<html lang=\"en\">",
+            "<head>",
+            "  <meta charset=\"UTF-8\">",
+            f"  <title>{escape(workflow_label)} Harvest Overview</title>",
+            "  <style>",
+            "    :root {",
+            "      color-scheme: light;",
+            "      --ink: #17324d;",
+            "      --muted: #5b6b7d;",
+            "      --line: #d7e1ec;",
+            "      --line-strong: #bfd0e2;",
+            "      --panel: #ffffff;",
+            "      --panel-soft: #f6f9fc;",
+            "      --bg: #eef3f8;",
+            "      --accent: #1f6fb2;",
+            "      --accent-soft: #dcecff;",
+            "      --success: #0f766e;",
+            "      --success-soft: #d8f3ee;",
+            "    }",
+            "    * { box-sizing: border-box; }",
+            "    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: \"Segoe UI\", sans-serif; line-height: 1.35; color: var(--ink); background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%); }",
+            "    h1, h2, p { margin-top: 0; }",
+            "    h1 { margin-bottom: 0.4rem; }",
+            "    h2 { margin-bottom: 0.9rem; }",
+            "    a { color: var(--accent); }",
+            "    .muted { color: var(--muted); }",
+            "    code { background: var(--panel-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    .source-box, .status-box, .section-box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 1rem; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
+            "    .source-box { margin: 1rem 0 1.4rem; }",
+            "    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }",
+            "    .status-box { margin: 1.25rem 0 1.4rem; background: linear-gradient(135deg, var(--panel) 0%, var(--success-soft) 100%); border-color: #b7e4d7; }",
+            "    .status-label { color: var(--muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }",
+            "    .status-value { display: block; margin-top: 0.35rem; font-size: 1.65rem; font-weight: 700; color: var(--success); }",
+            "    .section-box { padding: 0; overflow: hidden; }",
+            "    .section-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }",
+            "    .section-meta { color: var(--muted); font-size: 0.82rem; }",
+            "    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }",
+            "    th, td { padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }",
+            "    th { background: #f9fbfd; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }",
+            "    tbody tr:last-child td { border-bottom: none; }",
+            "    tbody tr:nth-child(even) { background: #fbfdff; }",
+            "    .task-name { font-weight: 700; margin-bottom: 0.2rem; }",
+            "    .task-meta, .detail-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }",
+            "    .task-meta code, .detail-meta code { background: #edf1f5; padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    .endpoint-link { display: inline-flex; align-items: center; gap: 0.35rem; }",
+            "    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .section-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } }",
+            "  </style>",
+            "</head>",
+            "<body>",
+        ]
+
+        if not embedded:
+            html_parts.extend(
+                [
+                    f"  <h1>{escape(workflow_label)} Harvest Overview</h1>",
+                    f"  <p class=\"muted\">Generated from <code>{escape(str(self.harvest_records_path))}</code>. This view combines the current workflow status with the active ArcGIS Hub harvest record list.</p>",
+                    "  <div class=\"source-box\">",
+                    "    <h2>Get Latest Source CSVs</h2>",
+                    "    <p>Download the newest files before running the dashboard, then save them into <code>inputs/</code> with these names:</p>",
+                    "    <ul>",
+                    "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>",
+                    "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>websites.csv</code></a> -> save as <code>inputs/websites.csv</code></li>",
+                    "    </ul>",
+                    "  </div>",
+                ]
+            )
+
+        html_parts.extend(
+            [
+                "  <div class=\"status-box\">",
+                "    <span class=\"status-label\">Last time the process was run</span>",
+                f"    <strong class=\"status-value\">{escape(last_run or 'Unknown')}</strong>",
+                "  </div>",
+                "  <section class=\"section-box\">",
+                "    <div class=\"section-header\">",
+                "      <h2>Currently Harvested ArcGIS Hubs</h2>",
+                f"      <div class=\"section-meta\">{len(current_records)} record{'s' if len(current_records) != 1 else ''}</div>",
+                "    </div>",
+            ]
+        )
+
+        if current_records.empty:
+            html_parts.extend(
+                [
+                    "    <div style=\"padding: 1rem;\">No ArcGIS Hub harvest records were found in the input file.</div>",
+                    "  </section>",
+                    "</body>",
+                    "</html>",
+                ]
+            )
+            return "\n".join(html_parts)
+
+        html_parts.extend(
+            [
+                "    <table>",
+                "      <thead>",
+                "        <tr>",
+                "          <th>Harvest Record</th>",
+                "          <th>Last Harvested</th>",
+                "          <th>Endpoint</th>",
+                "        </tr>",
+                "      </thead>",
+                "      <tbody>",
+            ]
+        )
+        for _, row in current_records.iterrows():
+            html_parts.extend(
+                [
+                    "        <tr>",
+                    f"          <td data-label=\"Harvest Record\">{self._render_task_cell(row)}</td>",
+                    f"          <td data-label=\"Last Harvested\">{self._render_workflow_last_harvested_cell(row)}</td>",
+                    f"          <td data-label=\"Endpoint\">{self._render_endpoint_cell(row)}</td>",
+                    "        </tr>",
+                ]
+            )
+        html_parts.extend(
+            [
+                "      </tbody>",
+                "    </table>",
+                "  </section>",
+                "</body>",
+                "</html>",
+            ]
+        )
+        return "\n".join(html_parts)
+
+    def _filter_task_view(self, task_df: pd.DataFrame, workflow: str = "") -> pd.DataFrame:
+        if task_df.empty:
+            return task_df.copy()
+
+        workflow_name = self._clean_value(workflow)
+        view_df = task_df.copy()
+        self._ensure_columns(view_df, ["Effective Harvest Workflow"])
+        normalized_workflow = view_df["Effective Harvest Workflow"].map(self._clean_value)
+        if workflow_name:
+            return view_df.loc[normalized_workflow == workflow_name].copy()
+
+        if not self.dedicated_workflow_views:
+            return view_df
+
+        dedicated_workflows = set(self.dedicated_workflow_views)
+        return view_df.loc[~normalized_workflow.isin(dedicated_workflows)].copy()
+
+    def _filter_harvest_view(self, harvest_df: pd.DataFrame, workflow: str = "") -> pd.DataFrame:
+        if harvest_df.empty:
+            return harvest_df.copy()
+
+        workflow_name = self._clean_value(workflow)
+        view_df = harvest_df.copy()
+        self._ensure_columns(view_df, ["Harvest Workflow"])
+        normalized_workflow = view_df["Harvest Workflow"].map(self._clean_value)
+        if workflow_name:
+            return view_df.loc[normalized_workflow == workflow_name].copy()
+
+        if not self.dedicated_workflow_views:
+            return view_df
+
+        dedicated_workflows = set(self.dedicated_workflow_views)
+        return view_df.loc[~normalized_workflow.isin(dedicated_workflows)].copy()
 
     def _build_retrospective_dataframe(self, harvest_df: pd.DataFrame) -> pd.DataFrame:
         retrospective_columns = [
@@ -843,6 +1072,31 @@ class HarvestTaskDashboardJob:
         details = self._clean_value(row.get("Details", "")) or "Not provided"
         return f'<div class="detail-meta">{escape(details)}</div>'
 
+    def _render_workflow_last_harvested_cell(self, row: pd.Series | dict[str, Any]) -> str:
+        last_harvested = self._clean_value(row.get("Last Harvested", "")) or "Not yet harvested"
+        updated_at = self._clean_value(row.get("Updated At", ""))
+        detail_lines = [f"<div>{escape(last_harvested)}</div>"]
+        if updated_at:
+            detail_lines.append(f'<div class="detail-meta">Updated: {escape(updated_at)}</div>')
+        return "".join(detail_lines)
+
+    def _render_endpoint_cell(self, row: pd.Series | dict[str, Any]) -> str:
+        endpoint_url = self._clean_value(row.get("Endpoint URL", ""))
+        endpoint_description = self._clean_value(row.get("Endpoint Description", ""))
+        website_platform = self._clean_value(row.get("Website Platform", ""))
+        parts: list[str] = []
+        if endpoint_url:
+            parts.append(
+                f'<a class="endpoint-link" href="{escape(endpoint_url, quote=True)}" target="_blank" rel="noreferrer">{escape(endpoint_url)}</a>'
+            )
+        else:
+            parts.append("<span class=\"detail-meta\">Not provided</span>")
+
+        metadata = self._format_unique_values([endpoint_description, website_platform])
+        if metadata:
+            parts.append(f'<div class="detail-meta">{escape(metadata)}</div>')
+        return "".join(parts)
+
     def _retrospective_pill_class(self, action_type: str) -> str:
         pill_classes = {
             "Harvested": "status-pill--harvested",
@@ -1298,6 +1552,66 @@ class HarvestTaskDashboardJob:
             if column not in df.columns:
                 df[column] = ""
 
+    def _extract_workflow_from_report_type(self, report_type: str) -> tuple[str, bool]:
+        workflow_name = self._clean_value(report_type)
+        if workflow_name in self.dedicated_workflow_views:
+            return workflow_name, True
+        return "", False
+
+    def _use_combined_workflow_view(self, workflow: str) -> bool:
+        return self._clean_value(workflow) in self.dedicated_workflow_views
+
+    def _latest_harvest_date(self, harvest_df: pd.DataFrame) -> str:
+        if harvest_df.empty:
+            return ""
+
+        self._ensure_columns(harvest_df, ["Last Harvested"])
+        last_harvested = pd.to_datetime(harvest_df["Last Harvested"], errors="coerce")
+        if last_harvested.isna().all():
+            return ""
+        return last_harvested.max().strftime("%Y-%m-%d")
+
+    def _prepare_workflow_record_view(self, harvest_df: pd.DataFrame) -> pd.DataFrame:
+        if harvest_df.empty:
+            return harvest_df.copy()
+
+        working_df = harvest_df.copy()
+        self._ensure_columns(
+            working_df,
+            ["Last Harvested", "Title", "ID", "Identifier", "Endpoint URL", "Endpoint Description", "Website Platform", "Updated At"],
+        )
+        working_df["__last_harvested_sort"] = pd.to_datetime(
+            working_df["Last Harvested"],
+            errors="coerce",
+        )
+        working_df["__display_name"] = working_df.apply(self._build_display_name, axis=1)
+        working_df = working_df.sort_values(
+            by=["__last_harvested_sort", "__display_name", "ID"],
+            ascending=[False, True, True],
+            na_position="last",
+        ).reset_index(drop=True)
+        return working_df.drop(columns=["__last_harvested_sort", "__display_name"])
+
+    def _report_title(self, report_type: str = "full", workflow: str = "") -> str:
+        workflow_name = self._clean_value(workflow)
+        if report_type == "retrospective":
+            base_title = "Harvest Task Retrospective"
+        elif report_type == "due":
+            base_title = "Harvest Tasks Due Now"
+        else:
+            base_title = "Harvest Task Dashboard"
+
+        if not workflow_name:
+            return base_title
+
+        workflow_label = self._workflow_view_label(workflow_name)
+        return f"{workflow_label} {base_title}"
+
+    def _workflow_view_label(self, workflow: str) -> str:
+        workflow_name = self._clean_value(workflow)
+        consolidated_title = CONSOLIDATED_WORKFLOW_TITLES.get(workflow_name, workflow_name)
+        return re.sub(r"^\s*Scan\s+", "", consolidated_title).strip() or workflow_name
+
 
 if __name__ == "__main__":
     default_config = {
@@ -1306,6 +1620,7 @@ if __name__ == "__main__":
         "output_tasks_csv": "reports/harvest-task-dashboard.csv",
         "output_dashboard_html": "reports/harvest-task-dashboard.html",
         "output_workflow_dir": "inputs/harvest-workflow-inputs",
+        "dedicated_workflow_views": ["py_arcgis_hub"],
         "issue_repositories": [
             {
                 "name": "harvest-operations",

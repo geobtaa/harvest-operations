@@ -92,7 +92,14 @@ async def run_job(job_id: str):
 async def view_harvest_task_dashboard(
     embedded: bool = Query(default=False),
     report: str = Query(default="full"),
+    workflow: str = Query(default=""),
 ):
     job_cfg = load_job_config("harvest-task-dashboard")
     dashboard_job = HarvestTaskDashboardJob(job_cfg)
-    return HTMLResponse(content=dashboard_job.render_dashboard_view(embedded=embedded, report_type=report))
+    return HTMLResponse(
+        content=dashboard_job.render_dashboard_view(
+            embedded=embedded,
+            report_type=report,
+            workflow=workflow,
+        )
+    )

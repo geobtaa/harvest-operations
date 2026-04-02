@@ -129,6 +129,15 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     retrospective_dashboard_html = Path(results["retrospective_dashboard_html"]).read_text(
         encoding="utf-8"
     )
+    arcgis_dashboard_html = job.render_dashboard_view(workflow="py_arcgis_hub")
+    arcgis_due_dashboard_html = job.render_dashboard_view(
+        report_type="due",
+        workflow="py_arcgis_hub",
+    )
+    arcgis_retrospective_html = job.render_dashboard_view(
+        report_type="retrospective",
+        workflow="py_arcgis_hub",
+    )
 
     arcgis_task = task_df.loc[task_df["ID"] == "py_arcgis_hub"].iloc[0]
     socrata_task = task_df.loc[task_df["ID"] == "py_socrata"].iloc[0]
@@ -152,15 +161,12 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     assert geology_index["Due Date"] == ""
     assert geology_index["Due Status"] == "No Schedule"
 
-    assert "2026-03-15" in dashboard_html
-    assert "Scan ArcGIS Hubs" in dashboard_html
+    assert "2026-03-30" in dashboard_html
     assert "Scan Socrata Sites" in dashboard_html
-    assert "To be harvested (3)" in dashboard_html
+    assert "To be harvested (2)" in dashboard_html
     assert "To be reviewed (1)" in dashboard_html
     assert "Geology Index" in dashboard_html
-    assert "py_arcgis_hub" in dashboard_html
     assert "py_socrata" in dashboard_html
-    assert "https://geo.btaa.org/admin/documents?f%5Bb1g_harvestWorkflow_s%5D%5B%5D=py_arcgis_hub&amp;f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&amp;rows=20&amp;sort=score+desc" in dashboard_html
     assert "https://geo.btaa.org/admin/documents?f%5Bb1g_websitePlatform_s%5D%5B%5D=Socrata&amp;f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&amp;rows=20&amp;sort=score+desc" in dashboard_html
     assert "https://geo.btaa.org/admin/documents/site-5/edit" in dashboard_html
     assert "https://github.com/geobtaa/harvest-operations/issues/new" in dashboard_html
@@ -173,11 +179,26 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     assert "Harvests due" in due_dashboard_html
     assert "Scheduled" not in due_dashboard_html
     assert "No Schedule" not in due_dashboard_html
-    assert "Scan ArcGIS Hubs" in due_dashboard_html
     assert "Scan Socrata Sites" in due_dashboard_html
     assert "Parcel Fabric" not in due_dashboard_html
     assert "Geology Index" not in due_dashboard_html
     assert "Harvest Task Retrospective" in retrospective_dashboard_html
+    assert "Scan ArcGIS Hubs" not in dashboard_html
+    assert "py_arcgis_hub" not in dashboard_html
+    assert "Scan ArcGIS Hubs" not in due_dashboard_html
+    assert "py_arcgis_hub" not in retrospective_dashboard_html
+
+    assert "ArcGIS Hubs Harvest Overview" in arcgis_dashboard_html
+    assert "Last time the process was run" in arcgis_dashboard_html
+    assert "2026-02-20" in arcgis_dashboard_html
+    assert "Currently Harvested ArcGIS Hubs" in arcgis_dashboard_html
+    assert "County Parcels" in arcgis_dashboard_html
+    assert "Road Centerlines" in arcgis_dashboard_html
+    assert "Scan Socrata Sites" not in arcgis_dashboard_html
+    assert "https://example.com/arcgis" not in arcgis_dashboard_html
+
+    assert arcgis_due_dashboard_html == arcgis_dashboard_html
+    assert arcgis_retrospective_html == arcgis_dashboard_html
 
     workflow_inputs = results["workflow_inputs"]
     assert set(workflow_inputs) == {"py_arcgis_hub", "py_pasda", "py_socrata"}
@@ -359,6 +380,10 @@ def test_harvest_task_dashboard_generates_retrospective_report_with_month_groupi
         encoding="utf-8"
     )
     retrospective_view_html = job.render_dashboard_view(report_type="retrospective")
+    arcgis_retrospective_html = job.render_dashboard_view(
+        report_type="retrospective",
+        workflow="py_arcgis_hub",
+    )
 
     assert "Harvest Task Retrospective" in retrospective_dashboard_html
     assert "April 2026" in retrospective_dashboard_html
@@ -375,3 +400,7 @@ def test_harvest_task_dashboard_generates_retrospective_report_with_month_groupi
     assert "2026-03-20" in retrospective_dashboard_html
     assert 'augment / Resource Type to &quot;Index maps|Aerial Photographs&quot;' in retrospective_dashboard_html
     assert "Harvest Task Retrospective" in retrospective_view_html
+    assert "ArcGIS Hubs Harvest Overview" in arcgis_retrospective_html
+    assert "Last time the process was run" in arcgis_retrospective_html
+    assert "Currently Harvested ArcGIS Hubs" in arcgis_retrospective_html
+    assert "No ArcGIS Hub harvest records were found in the input file." in arcgis_retrospective_html

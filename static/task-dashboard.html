@@ -122,7 +122,7 @@
   <p>
     Use <strong>Generate Dashboard Files</strong> to write the CSV and HTML outputs into
     <code>reports/</code>. Workflow input splits are written to <code>inputs/</code>.
-    The full report opens as a separate HTML page rendered from the current inputs.
+    The general dashboard excludes <code>py_arcgis_hub</code>, which now has its own dedicated combined workflow view rendered from the current inputs.
   </p>
 
   <p>
@@ -171,18 +171,29 @@
     >
       Open Retrospective Report
     </a>
+    <a
+      id="arcgis-hub-report-link"
+      class="report-link secondary"
+      href="/jobs/harvest-task-dashboard/view?workflow=py_arcgis_hub"
+      target="_blank"
+      rel="noreferrer"
+      onclick="refreshReportLinks()"
+    >
+      Open ArcGIS Hub Report
+    </a>
     <button class="secondary" onclick="refreshReportLinks()">Refresh Report Links</button>
   </div>
 
   <div class="report-box">
     <h2>Standalone Report</h2>
     <p>
-      Open the full dashboard, due-only view, or retrospective view in a new tab after updating the source CSVs or running the job.
+      Open the general dashboard, due-only view, retrospective view, or the dedicated <code>py_arcgis_hub</code> workflow view in a new tab after updating the source CSVs or running the job.
       All links always target the latest dashboard render from FastAPI.
     </p>
     <p class="report-meta">Full report URL: <code id="full-report-url">/jobs/harvest-task-dashboard/view</code></p>
     <p class="report-meta">Due-only report URL: <code id="due-report-url">/jobs/harvest-task-dashboard/view?report=due</code></p>
     <p class="report-meta">Retrospective report URL: <code id="retrospective-report-url">/jobs/harvest-task-dashboard/view?report=retrospective</code></p>
+    <p class="report-meta">ArcGIS Hub report URL: <code id="arcgis-hub-report-url">/jobs/harvest-task-dashboard/view?workflow=py_arcgis_hub</code></p>
   </div>
 
   <div id="status"></div>
@@ -221,12 +232,15 @@
       const fullUrl = `/jobs/harvest-task-dashboard/view?ts=${timestamp}`;
       const dueUrl = `/jobs/harvest-task-dashboard/view?report=due&ts=${timestamp}`;
       const retrospectiveUrl = `/jobs/harvest-task-dashboard/view?report=retrospective&ts=${timestamp}`;
+      const arcgisHubUrl = `/jobs/harvest-task-dashboard/view?workflow=py_arcgis_hub&ts=${timestamp}`;
       document.getElementById("full-report-link").href = fullUrl;
       document.getElementById("due-report-link").href = dueUrl;
       document.getElementById("retrospective-report-link").href = retrospectiveUrl;
+      document.getElementById("arcgis-hub-report-link").href = arcgisHubUrl;
       document.getElementById("full-report-url").textContent = fullUrl;
       document.getElementById("due-report-url").textContent = dueUrl;
       document.getElementById("retrospective-report-url").textContent = retrospectiveUrl;
+      document.getElementById("arcgis-hub-report-url").textContent = arcgisHubUrl;
       return true;
     }
 
