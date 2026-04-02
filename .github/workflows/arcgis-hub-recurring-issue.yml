@@ -1,0 +1,92 @@
+name: ArcGIS Hub Recurring Harvest Issue
+
+on:
+  issues:
+    types:
+      - closed
+
+# Serialize runs so two close events cannot create duplicate follow-up issues
+# at the same time. The script still performs its own open-issue check.
+concurrency:
+  group: arcgis-hub-recurring-harvest
+  cancel-in-progress: false
+
+jobs:
+  create-next-harvest-issue:
+    # Ignore pull requests and only continue when the closed issue carries the
+    # dedicated recurring-harvest label.
+    if: >
+      github.event.issue.pull_request == null &&
+      contains(github.event.issue.labels.*.name, 'arcgis-hub-harvest')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Create next recurring ArcGIS Hub harvest issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Centralized workflow constants for easy maintenance.
+            const ISSUE_TITLE = "ArcGIS Hub weekly harvest";
+            const MARKER_LABEL = "arcgis-hub-harvest";
+            const ISSUE_LABELS = [
+              "task",
+              "arcgis-hub",
+              "recurring",
+              MARKER_LABEL,
+            ];
+            const ASSIGNEE = "cleorose";
+            const ISSUE_BODY = [
+              "Use the ArcGIS Hub dashboard and complete the current ArcGIS Hub harvest work there.",
+              "",
+              "## Harvest Details",
+              "",
+              "- Due Date: YYYY-MM-DD",
+              "- Last Harvested: YYYY-MM-DD",
+              "- Dashboard URL: https://example.com/dashboard",
+              "",
+              "## Notes",
+              "",
+              "- Add blockers, follow-up items, or exceptions here.",
+            ].join("\n");
+
+            const { owner, repo } = context.repo;
+            const closedIssueNumber = context.payload.issue.number;
+
+            // Defensive duplicate guard: if any open issue already carries the
+            // recurring marker label, stop without creating another one.
+            const openIssues = await github.paginate(
+              github.rest.issues.listForRepo,
+              {
+                owner,
+                repo,
+                state: "open",
+                labels: MARKER_LABEL,
+                per_page: 100,
+              }
+            );
+
+            const existingRecurringIssue = openIssues.find(
+              (issue) => !issue.pull_request
+            );
+
+            if (existingRecurringIssue) {
+              core.info(
+                `Open recurring harvest issue #${existingRecurringIssue.number} already exists. Skipping creation.`
+              );
+              return;
+            }
+
+            const newIssue = await github.rest.issues.create({
+              owner,
+              repo,
+              title: ISSUE_TITLE,
+              body: ISSUE_BODY,
+              assignees: [ASSIGNEE],
+              labels: ISSUE_LABELS,
+            });
+
+            core.notice(
+              `Closed recurring issue #${closedIssueNumber}; created replacement issue #${newIssue.data.number}.`
+            );
