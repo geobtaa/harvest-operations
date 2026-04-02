@@ -129,6 +129,10 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     retrospective_dashboard_html = Path(results["retrospective_dashboard_html"]).read_text(
         encoding="utf-8"
     )
+    dedicated_dashboard_outputs = results["dedicated_dashboard_html"]
+    arcgis_dashboard_output_html = Path(
+        dedicated_dashboard_outputs["py_arcgis_hub"]
+    ).read_text(encoding="utf-8")
     arcgis_dashboard_html = job.render_dashboard_view(workflow="py_arcgis_hub")
     arcgis_due_dashboard_html = job.render_dashboard_view(
         report_type="due",
@@ -188,6 +192,11 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     assert "Scan ArcGIS Hubs" not in due_dashboard_html
     assert "py_arcgis_hub" not in retrospective_dashboard_html
 
+    assert set(dedicated_dashboard_outputs) == {"py_arcgis_hub"}
+    assert Path(dedicated_dashboard_outputs["py_arcgis_hub"]).name == (
+        "2026-03-30_harvest-task-dashboard-py-arcgis-hub.html"
+    )
+    assert arcgis_dashboard_output_html == arcgis_dashboard_html
     assert "ArcGIS Hubs Harvest Overview" in arcgis_dashboard_html
     assert "Last time the process was run" in arcgis_dashboard_html
     assert "2026-02-20" in arcgis_dashboard_html

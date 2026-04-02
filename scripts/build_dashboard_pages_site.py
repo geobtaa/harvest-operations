@@ -5,11 +5,12 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
+import re
 import shutil
 
 
 SITE_TITLE = "Harvest Task Dashboard Reports"
-REPORT_TYPES = {
+STANDARD_REPORT_TYPES = {
     "full": {
         "suffix": "harvest-task-dashboard.html",
         "label": "Full dashboard",
@@ -29,28 +30,24 @@ REPORT_TYPES = {
         "latest_href": "latest/retrospective/",
     },
 }
-REPORT_ORDER = ("full", "due", "retrospective")
+STANDARD_REPORT_ORDER = ("full", "due", "retrospective")
+DEDICATED_WORKFLOW_PREFIX = "harvest-task-dashboard-"
 
 
 @dataclass(frozen=True)
 class DashboardReport:
     date: str
-    report_type: str
+    report_key: str
     source_path: Path
+    label: str
+    description: str
+    latest_href: str
+    archive_href: str
 
-    @property
-    def label(self) -> str:
-        return REPORT_TYPES[self.report_type]["label"]
-
-    @property
-    def description(self) -> str:
-        return REPORT_TYPES[self.report_type]["description"]
-
-    @property
-    def archive_href(self) -> str:
-        if self.report_type == "full":
-            return f"{self.date}/"
-        return f"{self.date}/{self.report_type}/"
+    def sort_order(self) -> tuple[int, int, str]:
+        if self.report_key in STANDARD_REPORT_ORDER:
+            return (0, STANDARD_REPORT_ORDER.index(self.report_key), self.label.lower())
+        return (1, 0, self.label.lower())
 
 
 def collect_reports(reports_dir: Path) -> dict[str, dict[str, DashboardReport]]:
@@ -61,15 +58,27 @@ def collect_reports(reports_dir: Path) -> dict[str, dict[str, DashboardReport]]:
             continue
 
         report_date, report_name = report_path.name.split("_", 1)
-        for report_type, report_config in REPORT_TYPES.items():
+        for report_type, report_config in STANDARD_REPORT_TYPES.items():
             if report_name != report_config["suffix"]:
                 continue
             collected.setdefault(report_date, {})[report_type] = DashboardReport(
                 date=report_date,
-                report_type=report_type,
+                report_key=report_type,
                 source_path=report_path,
+                label=report_config["label"],
+                description=report_config["description"],
+                latest_href=report_config["latest_href"],
+                archive_href=_standard_archive_href(report_date, report_type),
             )
             break
+        else:
+            workflow_report = _collect_dedicated_workflow_report(
+                report_date=report_date,
+                report_name=report_name,
+                report_path=report_path,
+            )
+            if workflow_report is not None:
+                collected.setdefault(report_date, {})[workflow_report.report_key] = workflow_report
 
     return dict(sorted(collected.items(), reverse=True))
 
@@ -94,17 +103,17 @@ def _copy_reports(
 ) -> dict[str, DashboardReport]:
     latest_reports: dict[str, DashboardReport] = {}
 
-    for date, reports in reports_by_date.items():
-        for report_type, report in reports.items():
+    for reports in reports_by_date.values():
+        for report in reports.values():
             archive_target = output_dir / report.archive_href / "index.html"
             archive_target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(report.source_path, archive_target)
 
-            if report_type not in latest_reports:
-                latest_target = output_dir / REPORT_TYPES[report_type]["latest_href"] / "index.html"
+            if report.report_key not in latest_reports:
+                latest_target = output_dir / report.latest_href / "index.html"
                 latest_target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(report.source_path, latest_target)
-                latest_reports[report_type] = report
+                latest_reports[report.report_key] = report
 
     return latest_reports
 
@@ -118,15 +127,12 @@ def write_index_page(
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     latest_cards = []
-    for report_type in REPORT_ORDER:
-        report = latest_reports.get(report_type)
-        if report is None:
-            continue
+    for report in _ordered_reports(latest_reports):
         latest_cards.append(
             f"""
       <article class="card">
         <p class="eyebrow">Latest {escape(report.label)}</p>
-        <h2><a href="{escape(REPORT_TYPES[report_type]["latest_href"])}">{escape(report.date)}</a></h2>
+        <h2><a href="{escape(report.latest_href)}">{escape(report.date)}</a></h2>
         <p>{escape(report.description)}</p>
       </article>
 """
@@ -135,13 +141,8 @@ def write_index_page(
     archive_rows = []
     for date, reports in reports_by_date.items():
         links = []
-        for report_type in REPORT_ORDER:
-            report = reports.get(report_type)
-            if report is None:
-                continue
-            links.append(
-                f'<a href="{escape(report.archive_href)}">{escape(report.label)}</a>'
-            )
+        for report in _ordered_reports(reports):
+            links.append(f'<a href="{escape(report.archive_href)}">{escape(report.label)}</a>')
         archive_rows.append(
             f"""
         <tr>
@@ -306,10 +307,7 @@ def write_archive_index_page(
     archive_rows = []
     for date, reports in reports_by_date.items():
         links = []
-        for report_type in REPORT_ORDER:
-            report = reports.get(report_type)
-            if report is None:
-                continue
+        for report in _ordered_reports(reports):
             links.append(f'<a href="../{escape(report.archive_href)}">{escape(report.label)}</a>')
         archive_rows.append(
             f"""
@@ -435,6 +433,57 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     build_pages_site(args.reports_dir, args.output_dir)
+
+
+def _standard_archive_href(report_date: str, report_type: str) -> str:
+    if report_type == "full":
+        return f"{report_date}/"
+    return f"{report_date}/{report_type}/"
+
+
+def _collect_dedicated_workflow_report(
+    report_date: str,
+    report_name: str,
+    report_path: Path,
+) -> DashboardReport | None:
+    if not report_name.startswith(DEDICATED_WORKFLOW_PREFIX) or not report_name.endswith(".html"):
+        return None
+
+    workflow_slug = report_name.removeprefix(DEDICATED_WORKFLOW_PREFIX).removesuffix(".html")
+    if not workflow_slug:
+        return None
+
+    workflow_title = _extract_html_title(report_path)
+    workflow_label = _workflow_report_label(workflow_title, workflow_slug)
+    return DashboardReport(
+        date=report_date,
+        report_key=f"workflow:{workflow_slug}",
+        source_path=report_path,
+        label=workflow_label,
+        description="Dedicated workflow overview.",
+        latest_href=f"latest/workflows/{workflow_slug}/",
+        archive_href=f"{report_date}/workflows/{workflow_slug}/",
+    )
+
+
+def _extract_html_title(report_path: Path) -> str:
+    html = report_path.read_text(encoding="utf-8", errors="ignore")
+    match = re.search(r"<title>(.*?)</title>", html, flags=re.IGNORECASE | re.DOTALL)
+    if match is None:
+        return ""
+    return re.sub(r"\s+", " ", match.group(1)).strip()
+
+
+def _workflow_report_label(workflow_title: str, workflow_slug: str) -> str:
+    if workflow_title:
+        normalized_title = re.sub(r"\s+Harvest Overview\s*$", "", workflow_title).strip()
+        if normalized_title:
+            return normalized_title
+    return workflow_slug.replace("-", " ").title()
+
+
+def _ordered_reports(reports: dict[str, DashboardReport]) -> list[DashboardReport]:
+    return sorted(reports.values(), key=lambda report: report.sort_order())
 
 
 if __name__ == "__main__":

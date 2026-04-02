@@ -104,6 +104,7 @@ class HarvestTaskDashboardJob:
         retrospective_dashboard_output_path = self._write_text(
             retrospective_dashboard_html, self.output_retrospective_dashboard_html
         )
+        dedicated_dashboard_outputs = self._write_dedicated_workflow_dashboards(harvest_df)
         workflow_outputs = self._write_workflow_inputs(websites_df)
 
         summary = self._build_summary(task_df)
@@ -116,6 +117,7 @@ class HarvestTaskDashboardJob:
             "dashboard_html": str(dashboard_output_path),
             "due_dashboard_html": str(due_dashboard_output_path),
             "retrospective_dashboard_html": str(retrospective_dashboard_output_path),
+            "dedicated_dashboard_html": dedicated_dashboard_outputs,
             "workflow_inputs": workflow_outputs,
         }
 
@@ -368,6 +370,18 @@ class HarvestTaskDashboardJob:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(content, encoding="utf-8")
         return output_path
+
+    def _write_dedicated_workflow_dashboards(self, harvest_df: pd.DataFrame) -> dict[str, str]:
+        dedicated_outputs: dict[str, str] = {}
+        for workflow_name in self.dedicated_workflow_views:
+            configured_path = self._dedicated_workflow_output_path(workflow_name)
+            workflow_html = self._render_combined_workflow_html(
+                self._filter_harvest_view(harvest_df, workflow_name),
+                workflow=workflow_name,
+            )
+            output_path = self._write_text(workflow_html, configured_path)
+            dedicated_outputs[workflow_name] = str(output_path)
+        return dict(sorted(dedicated_outputs.items()))
 
     def _build_summary(self, task_df: pd.DataFrame) -> dict[str, int]:
         if "Due Status" in task_df.columns:
@@ -1528,6 +1542,13 @@ class HarvestTaskDashboardJob:
     def _dated_directory(self, configured_path: Path) -> Path:
         dated_name = f"{self.today.strftime('%Y-%m-%d')}_{configured_path.name}"
         return configured_path.parent / dated_name
+
+    def _dedicated_workflow_output_path(self, workflow: str) -> Path:
+        workflow_slug = self._slugify(self._clean_value(workflow) or "unspecified")
+        filename = (
+            f"{self.output_dashboard_html.stem}-{workflow_slug}{self.output_dashboard_html.suffix}"
+        )
+        return self.output_dashboard_html.with_name(filename)
 
     def _slugify(self, value: str) -> str:
         slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")

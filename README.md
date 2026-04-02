@@ -73,6 +73,7 @@ How it works:
    - `latest/` for the newest full dashboard
    - `latest/due/` for the newest due-only report
    - `latest/retrospective/` for the newest retrospective report
+   - `latest/workflows/py-arcgis-hub/` for the newest ArcGIS Hubs view
    - dated archive pages for each published report date
 
 Setup in GitHub:
