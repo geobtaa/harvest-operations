@@ -31,20 +31,19 @@ jobs:
             const ISSUE_TITLE = "ArcGIS Hub weekly harvest";
             const MARKER_LABEL = "arcgis-hub-harvest";
             const ISSUE_LABELS = [
-              "task",
+              "harvest",
               "arcgis-hub",
               "recurring",
               MARKER_LABEL,
             ];
             const ASSIGNEE = "cleorose";
             const ISSUE_BODY = [
-              "Use the ArcGIS Hub dashboard and complete the current ArcGIS Hub harvest work there.",
+              "Complete the current ArcGIS Hub harvest.",
               "",
               "## Harvest Details",
               "",
               "- Due Date: YYYY-MM-DD",
               "- Last Harvested: YYYY-MM-DD",
-              "- Dashboard URL: https://example.com/dashboard",
               "",
               "## Notes",
               "",
