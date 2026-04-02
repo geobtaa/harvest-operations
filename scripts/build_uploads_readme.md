@@ -1,121 +1,120 @@
-# Build Uploads Script for Harvester Outputs
+# Build Uploads Script
 
 ## Purpose
 
-This script streamlines uploads to GBL Admin by producing two smaller CSV files that contain only records that changed since the previous harvest. Each harvest produces a “primary” CSV for a source (for example, ArcGIS or PASDA). Between harvests, some resources are newly published and others are retired. The script compares two dated primary CSVs for the same source, identifies the differences by `ID`, and writes an upload-ready file that includes only the new and retired records. It also filters the same-day “distributions” CSV to include only rows that belong to changed, published records.
+`scripts/build_uploads.py` compares the two most recent dated harvest outputs for a source and prepares upload-ready CSVs for GBL Admin.
 
-## What the script does
+It handles three cases:
 
-1. **Selects input files**
+1. New primary records
+2. Retired primary records
+3. Distribution rows that were added or removed for records whose `ID` stayed the same
 
-   * Looks in `outputs/` for files named `YYYY-MM-DD_<source>_primary.csv` or `YYYY-MM_DD_<source>_primary.csv`.
-   * Picks the most recent primary file as “new”.
-   * Picks the second most recent primary file as “old”.
+This is especially useful for `ogmWisc`, where the source metadata may keep the same record `ID` while replacing or removing distribution links.
 
-2. **Loads and normalizes**
+## Outputs
 
-   * Loads both CSVs as strings, trims whitespace, drops blank `ID` values, and de-duplicates by `ID`.
-   * Accepts comma CSV and falls back to tab if needed.
+For a source like `ogmWisc`, the script writes:
 
-3. **Builds the primary upload (`df`)**
+* `outputs/YYYY-MM-DD_ogmWisc_primary_upload.csv`
+* `outputs/YYYY-MM-DD_ogmWisc_distributions_new.csv`
+* `outputs/YYYY-MM-DD_ogmWisc_distributions_delete.csv`
 
-   * Adds all rows from the newest file where `Resource Class == "Websites"`.
-   * Adds rows that are present in “new” but not in “old” (newly added items).
-   * Adds rows that are present in “old” but not in “new” (retired items) and sets:
+## What the script compares
 
-     * `Publication State = "unpublished"`
-     * `Date Retired = <today’s date>`
-   * De-duplicates by `ID`.
-   * Writes `outputs/YYYY-MM-DD_<source>_primary_upload.csv`.
+### Primary CSVs
 
-4. **Builds the distributions upload**
+The script finds the two most recent files matching:
 
-   * Finds `outputs/YYYY-MM-DD_<source>_distributions.csv` for the same date as the newest primary file.
-   * Loads it and keeps only rows whose `friendlier_id` matches `df["ID"]` where `df["Publication State"] == "published"`.
-   * Preserves all matching rows, including multiple distributions per `ID`.
-   * Writes `outputs/YYYY-MM-DD_<source>_distributions_upload.csv`.
+* `YYYY-MM-DD_<source>_primary.csv`
+* `YYYY-MM_DD_<source>_primary.csv`
 
-## File naming and folder layout
+It compares them by `ID`.
 
-* **Primary inputs** in `outputs/`:
+* Rows in the newest file but not the previous file are treated as new primary records.
+* Rows in the previous file but not the newest file are treated as retired primary records.
+* Shared `ID` values are treated as unchanged at the primary level.
 
-  * `YYYY-MM-DD_<source>_primary.csv`
-  * `YYYY-MM_DD_<source>_primary.csv`
-* **Distributions inputs** in `outputs/`:
+### Distribution CSVs
 
-  * `YYYY-MM-DD_<source>_distributions.csv`
-  * `YYYY-MM_DD_<source>_distributions.csv`
-* **Outputs** in `outputs/` (dated with the day the script runs):
+The script finds:
 
-  * `YYYY-MM-DD_<source>_primary_upload.csv`
-  * `YYYY-MM-DD_<source>_distributions_upload.csv`
+* the distributions CSV for the newest primary date
+* the distributions CSV for the previous primary date, if it exists
 
-## How change detection works
+It compares distribution rows by:
 
-* The script uses a left join with an indicator to compare `ID` values between the “new” and “old” primary dataframes.
+* `friendlier_id`
+* `reference_type`
+* `distribution_url`
+* `label`
 
-  * **New items** are `ID` values present in “new” and absent from “old”.
-  * **Retired items** are `ID` values present in “old” and absent from “new”.
-* A row that exists in both files with the same `ID` is considered unchanged and is omitted, unless it is a “Websites” row from the newest file, which is always included by design.
+For shared primary `ID` values:
 
-## Configuration
+* rows present only in the new distributions file go to `distributions_new.csv`
+* rows present only in the old distributions file go to `distributions_delete.csv`
 
-At the top of the script, set the source label:
+For brand-new primary records:
 
-```python
-# e.g., "arcgis", "pasda", "ogm"
-SOURCE = "arcgis"
+* all current distribution rows for those new `ID` values go to `distributions_new.csv`
+
+If the previous distributions snapshot is missing, the script still builds the primary upload and the new-distributions file for brand-new records, but it skips same-ID distribution change detection.
+
+## Primary upload behavior
+
+`primary_upload.csv` contains:
+
+* all newest-file rows where `Resource Class == "Websites"` if that column exists
+* all brand-new primary records
+* all retired primary records, with:
+  * `Publication State = unpublished`
+  * `Date Retired = <today>`
+  * `Display Note` updated with the retirement warning
+
+The primary upload does not include same-ID records whose only change was in the distributions table. Those changes are handled through the distribution delta files instead.
+
+## Distribution delta behavior
+
+`distributions_new.csv` contains rows to add:
+
+* all distributions for brand-new primary records
+* newly added distribution rows for existing records
+
+`distributions_delete.csv` contains rows to delete:
+
+* distribution rows that existed in the previous run but are gone in the newest run for the same `friendlier_id`
+
+## Command line usage
+
+The script now accepts a source argument and optional outputs directory:
+
+```bash
+python3 scripts/build_uploads.py ogmWisc
 ```
 
-Change this to reuse the script for another harvester. Only the `<source>` part of the filename changes.
+```bash
+python3 scripts/build_uploads.py ogmWisc --outputs-dir outputs
+```
+
+If no source is provided, it defaults to `ogmWisc`.
 
 ## Assumptions
 
 * Primary CSVs include an `ID` column.
-* Primary CSVs include `Publication State` and `Date Retired` columns, or these will be created for retired rows.
-* Primary CSVs include `Resource Class` if you want “Websites” rows always included.
-* Distributions CSVs include a `friendlier_id` column that corresponds to the primary `ID`.
-* The newest distributions CSV date matches the newest primary CSV date.
-
-## Inputs and outputs
-
-**Inputs**
-
-* `outputs/YYYY-MM-DD_<source>_primary.csv` (newest)
-* `outputs/YYYY-MM-DD_<source>_primary.csv` (second newest)
-* `outputs/YYYY-MM-DD_<source>_distributions.csv` (same date as newest primary)
-
-**Outputs**
-
-* `outputs/YYYY-MM-DD_<source>_primary_upload.csv`
-  Contains:
-
-  * New items from the newest primary
-  * Retired items from the previous primary with state updates
-  * All “Websites” items from the newest primary
-* `outputs/YYYY-MM-DD_<source>_distributions_upload.csv`
-  Contains only distributions whose `friendlier_id` matches published `ID` values from the primary upload.
-
-## Running the script
-
-Place the script at `utils/arcgis_compare.py` and run:
-
-```bash
-python utils/arcgis_compare.py
-```
-
-The script discovers the appropriate input files in `outputs/` and writes the two upload CSVs back to `outputs/`.
+* Distribution CSVs include a `friendlier_id` column.
+* Distribution CSVs normally include `reference_type`, `distribution_url`, and `label`. If any of those columns are missing, the script fills them as blank strings before comparing.
+* The comparison is based on the two most recent dated primary snapshots for the chosen source.
 
 ## Troubleshooting
 
-* **No differences detected**
-  Confirm that the “old” file is the second most recent primary file and not the same as the newest. The script prints which files it selected.
+* **Need at least two matching primary files**
+  Ensure the source has at least two dated `*_primary.csv` files in `outputs/`.
 
-* **No distributions upload found**
-  Ensure that a distributions file exists for the same date as the newest primary file.
+* **Newest distributions file not found**
+  Ensure a same-date `*_distributions.csv` exists for the newest primary run.
 
-* **Missing columns**
-  Ensure `ID` exists in both primary CSVs and `friendlier_id` exists in the distributions CSV.
+* **No same-ID distribution changes detected**
+  Confirm that an older same-date distributions snapshot exists for the previous primary run. Without that older file, the script can only prepare new distributions for brand-new records.
 
-* **Mismatched date separators**
-  Both `YYYY-MM-DD` and `YYYY-MM_DD` are accepted. The script normalizes the date internally.
+* **Unexpected distribution delete rows**
+  The delete file is row-based, not ID-based. If a record keeps the same `friendlier_id` but loses one link, only that missing distribution row is written to `distributions_delete.csv`.
