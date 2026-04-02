@@ -7,7 +7,7 @@ on:
 
 # Easy-to-change workflow constants.
 env:
-  ISSUE_ASSIGNEE: karenmajewicz
+  ISSUE_ASSIGNEE: cleorose
   MARKER_LABEL: arcgis-hub-harvest
   PROJECT_ORG: geobtaa
   PROJECT_NUMBER: "4"
@@ -57,7 +57,6 @@ jobs:
               "## Harvest Details",
               "",
               `- Due date: ${dueDate}`,
-              "- Dashboard URL: https://example.com/dashboard",
               "",
               "## Notes",
               "",
