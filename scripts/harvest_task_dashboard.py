@@ -202,6 +202,8 @@ class HarvestTaskDashboardJob:
                 row_dict.get("Last Harvested", ""),
                 row_dict.get("Accrual Periodicity", ""),
             )
+            if self._has_pending_updates_tag(row_dict) or self._has_pending_harvest_tag(row_dict):
+                due_date = self.today
             base_task["Due Date"] = due_date.strftime("%Y-%m-%d") if due_date is not None else ""
             base_task["Due Status"] = self._determine_due_status(
                 due_date,
@@ -1037,8 +1039,9 @@ class HarvestTaskDashboardJob:
 
         periodicity_values = working_df.get("Accrual Periodicity", pd.Series("", index=working_df.index))
         irregular_mask = periodicity_values.map(self._normalize_periodicity) == "irregular"
+        pending_harvest_mask = working_df.apply(self._has_pending_harvest_tag, axis=1)
 
-        harvest_group = working_df[~irregular_mask].copy()
+        harvest_group = working_df[(~irregular_mask) | pending_harvest_mask].copy()
         if not harvest_group.empty:
             harvest_group["__section_date_display"] = harvest_group["Due Date"]
             harvest_group = harvest_group.sort_values(
@@ -1048,12 +1051,15 @@ class HarvestTaskDashboardJob:
             )
             sections.append(("To be harvested", self._group_section_by_workflow(harvest_group)))
 
-        review_group = working_df[irregular_mask].copy()
+        review_group = working_df[irregular_mask & ~pending_harvest_mask].copy()
         if not review_group.empty:
-            review_group["__section_date_display"] = review_group["Review Date"]
+            review_group["__section_date_display"] = review_group["Review Date"].where(
+                review_group["Review Date"].map(self._clean_value).astype(bool),
+                review_group["Due Date"],
+            )
             review_group = review_group.sort_values(
-                by=["__review_sort", "Effective Harvest Workflow", "Review Date", "Title"],
-                ascending=[True, True, True, True],
+                by=["__review_sort", "__due_sort", "Effective Harvest Workflow", "Review Date", "Due Date", "Title"],
+                ascending=[True, True, True, True, True, True],
                 na_position="last",
             )
             sections.append(("To be reviewed", self._group_section_by_workflow(review_group)))
@@ -1064,10 +1070,8 @@ class HarvestTaskDashboardJob:
         if task_df.empty:
             return task_df.copy()
 
-        periodicity_values = task_df.get("Accrual Periodicity", pd.Series("", index=task_df.index))
-        irregular_mask = periodicity_values.map(self._normalize_periodicity) == "irregular"
-        review_due_mask = irregular_mask & (task_df.get("Review Status", pd.Series("", index=task_df.index)) == "Due")
-        harvest_due_mask = (~irregular_mask) & (task_df.get("Due Status", pd.Series("", index=task_df.index)) == "Due")
+        review_due_mask = task_df.get("Review Status", pd.Series("", index=task_df.index)) == "Due"
+        harvest_due_mask = task_df.get("Due Status", pd.Series("", index=task_df.index)) == "Due"
         return task_df.loc[review_due_mask | harvest_due_mask].copy()
 
     def _group_section_by_workflow(self, section_df: pd.DataFrame) -> list[tuple[str, pd.DataFrame]]:
@@ -1155,7 +1159,10 @@ class HarvestTaskDashboardJob:
 
         if due_label == "To be reviewed":
             review_status = self._clean_value(row.get("Review Status", ""))
-            pill_label = f"Review {review_status}".strip()
+            if review_status and review_status != "No Review":
+                pill_label = f"Review {review_status}".strip()
+            else:
+                pill_label = self._clean_value(row.get("Due Status", "")) or due_label
             pill_class = self._status_pill_class(pill_label)
         else:
             pill_label = self._clean_value(row.get("Due Status", "")) or due_label
@@ -1307,6 +1314,12 @@ class HarvestTaskDashboardJob:
             return False
 
         return "queue:pending_updates" in self._extract_tag_values(row)
+
+    def _has_pending_harvest_tag(self, row: pd.Series | dict[str, Any] | None) -> bool:
+        if row is None:
+            return False
+
+        return "queue:pending_harvest" in self._extract_tag_values(row)
 
     def _review_interval_years(self, row: pd.Series | dict[str, Any] | None) -> int | None:
         if row is None:

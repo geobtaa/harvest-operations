@@ -260,11 +260,12 @@ def test_harvest_task_dashboard_marks_pending_updates_tag_as_due(tmp_path: Path)
 
     pending_task = task_df.loc[task_df["ID"] == "task-pending"].iloc[0]
 
-    assert pending_task["Due Date"] == ""
+    assert pending_task["Due Date"] == "2026-03-30"
     assert pending_task["Due Status"] == "Due"
     assert "Pending Updates Task" in dashboard_html
     assert "To be reviewed (1)" in dashboard_html
-    assert "Pending Updates Task" not in due_dashboard_html
+    assert "Pending Updates Task" in due_dashboard_html
+    assert "2026-03-30" in due_dashboard_html
 
 
 def test_harvest_task_dashboard_creates_reviews_section_for_due_irregular_review_tags(
@@ -337,6 +338,59 @@ def test_harvest_task_dashboard_creates_reviews_section_for_due_irregular_review
     assert "To be reviewed (1)" in due_dashboard_html
     assert "Annual Review Task" in due_dashboard_html
     assert "Biennial Review Task" not in due_dashboard_html
+
+
+def test_harvest_task_dashboard_routes_pending_harvest_rows_to_harvest_section(
+    tmp_path: Path,
+) -> None:
+    harvest_records_path = tmp_path / "harvest-records.csv"
+    websites_path = tmp_path / "websites.csv"
+    outputs_dir = tmp_path / "outputs"
+
+    pd.DataFrame(
+        [
+            {
+                "ID": "task-pending-harvest",
+                "Title": "Pending Harvest Task",
+                "Harvest Workflow": "template_csv",
+                "Last Harvested": "2026-03-29",
+                "Accrual Periodicity": "Irregular",
+                "Tags": "queue:pending_harvest|ops",
+            }
+        ]
+    ).to_csv(harvest_records_path, index=False)
+
+    pd.DataFrame(columns=["ID", "Harvest Workflow", "Name", "URL"]).to_csv(websites_path, index=False)
+
+    job = HarvestTaskDashboardJob(
+        {
+            "harvest_records_csv": str(harvest_records_path),
+            "websites_csv": str(websites_path),
+            "output_tasks_csv": str(outputs_dir / "harvest-task-dashboard.csv"),
+            "output_dashboard_html": str(outputs_dir / "harvest-task-dashboard.html"),
+            "output_due_dashboard_html": str(outputs_dir / "harvest-task-dashboard-due.html"),
+            "output_retrospective_dashboard_html": str(
+                outputs_dir / "harvest-task-dashboard-retrospective.html"
+            ),
+            "output_workflow_dir": str(outputs_dir / "harvest-workflow-inputs"),
+            "today": "2026-04-01",
+        }
+    )
+
+    results = job.harvest_pipeline()
+
+    task_df = pd.read_csv(results["task_csv"], dtype=str).fillna("")
+    dashboard_html = Path(results["dashboard_html"]).read_text(encoding="utf-8")
+    due_dashboard_html = Path(results["due_dashboard_html"]).read_text(encoding="utf-8")
+    pending_harvest_task = task_df.loc[task_df["ID"] == "task-pending-harvest"].iloc[0]
+
+    assert pending_harvest_task["Due Date"] == "2026-04-01"
+    assert pending_harvest_task["Due Status"] == "Due"
+    assert "Pending Harvest Task" in dashboard_html
+    assert "To be harvested (1)" in dashboard_html
+    assert "To be reviewed" not in dashboard_html
+    assert "Pending Harvest Task" in due_dashboard_html
+    assert "2026-04-01" in due_dashboard_html
 
 
 def test_harvest_task_dashboard_generates_retrospective_report_with_month_grouping(
