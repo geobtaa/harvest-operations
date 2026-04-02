@@ -16,21 +16,38 @@ STANDARD_REPORT_TYPES = {
         "label": "Harvest records",
         "description": "Compact harvest-record list grouped by accrual periodicity.",
         "latest_href": "latest/",
+        "archive_segment": "",
+    },
+    "institutions": {
+        "suffix": "harvest-task-dashboard-institutions.html",
+        "label": "By institution",
+        "description": "Harvest-record list grouped by institution code prefix.",
+        "latest_href": "latest/institutions/",
+        "archive_segment": "institutions",
+    },
+    "standalone": {
+        "suffix": "harvest-task-dashboard-standalone-websites.html",
+        "label": "Standalone websites",
+        "description": "Standalone website records grouped by institution derived from record ID.",
+        "latest_href": "latest/standalone-websites/",
+        "archive_segment": "standalone-websites",
     },
     "due": {
         "suffix": "harvest-task-dashboard-due.html",
         "label": "Due now",
         "description": "Only tasks that are currently due.",
         "latest_href": "latest/due/",
+        "archive_segment": "due",
     },
     "retrospective": {
         "suffix": "harvest-task-dashboard-retrospective.html",
         "label": "Retrospective",
         "description": "Historical harvest review view.",
         "latest_href": "latest/retrospective/",
+        "archive_segment": "retrospective",
     },
 }
-STANDARD_REPORT_ORDER = ("records", "due", "retrospective")
+STANDARD_REPORT_ORDER = ("records", "institutions", "standalone", "due", "retrospective")
 DEDICATED_WORKFLOW_PREFIX = "harvest-task-dashboard-"
 PUBLIC_REPORT_SUFFIX = "-public"
 
@@ -74,7 +91,10 @@ def collect_reports(reports_dir: Path) -> dict[str, dict[str, DashboardReport]]:
                     label=report_config["label"],
                     description=report_config["description"],
                     latest_href=report_config["latest_href"],
-                    archive_href=_standard_archive_href(report_date, report_type),
+                    archive_href=_standard_archive_href(
+                        report_date,
+                        str(report_config.get("archive_segment", report_type)),
+                    ),
                 ),
                 is_public,
             )
@@ -455,10 +475,10 @@ def main() -> None:
     build_pages_site(args.reports_dir, args.output_dir)
 
 
-def _standard_archive_href(report_date: str, report_type: str) -> str:
-    if report_type == "records":
+def _standard_archive_href(report_date: str, archive_segment: str) -> str:
+    if not archive_segment:
         return f"{report_date}/"
-    return f"{report_date}/{report_type}/"
+    return f"{report_date}/{archive_segment}/"
 
 
 def _normalize_report_name(report_name: str) -> tuple[str, bool]:

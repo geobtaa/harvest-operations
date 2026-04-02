@@ -2,6 +2,7 @@ name: Harvest Task Dashboard
 type: task_dashboard
 harvest_records_csv: inputs/harvest-records.csv
 websites_csv: inputs/websites.csv
+standalone_websites_csv: inputs/standalone-websites.csv
 output_tasks_csv: reports/harvest-task-dashboard.csv
 output_dashboard_html: reports/harvest-task-dashboard.html
 output_due_dashboard_html: reports/harvest-task-dashboard-due.html

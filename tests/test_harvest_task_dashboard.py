@@ -9,6 +9,7 @@ from scripts.harvest_task_dashboard import HarvestTaskDashboardJob
 def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: Path) -> None:
     harvest_records_path = tmp_path / "harvest-records.csv"
     websites_path = tmp_path / "websites.csv"
+    code_schema_map_path = tmp_path / "code-schema-map.csv"
     outputs_dir = tmp_path / "outputs"
 
     pd.DataFrame(
@@ -102,10 +103,17 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
         ]
     ).to_csv(websites_path, index=False)
 
+    code_schema_map_path.write_text(
+        "code_prefix,Related institution or source\n"
+        "05,University of Minnesota\n",
+        encoding="utf-8",
+    )
+
     job = HarvestTaskDashboardJob(
         {
             "harvest_records_csv": str(harvest_records_path),
             "websites_csv": str(websites_path),
+            "code_schema_map_csv": str(code_schema_map_path),
             "output_tasks_csv": str(outputs_dir / "harvest-task-dashboard.csv"),
             "output_dashboard_html": str(outputs_dir / "harvest-task-dashboard.html"),
             "output_due_dashboard_html": str(outputs_dir / "harvest-task-dashboard-due.html"),
@@ -138,6 +146,12 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     public_records_dashboard_html = Path(results["public_records_dashboard_html"]).read_text(
         encoding="utf-8"
     )
+    institution_dashboard_html = Path(results["institution_dashboard_html"]).read_text(
+        encoding="utf-8"
+    )
+    public_institution_dashboard_html = Path(
+        results["public_institution_dashboard_html"]
+    ).read_text(encoding="utf-8")
     retrospective_dashboard_html = Path(results["retrospective_dashboard_html"]).read_text(
         encoding="utf-8"
     )
@@ -156,6 +170,11 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     public_arcgis_dashboard_html = job.render_dashboard_view(workflow="py_arcgis_hub", public=True)
     records_view_html = job.render_dashboard_view(report_type="records")
     public_records_view_html = job.render_dashboard_view(report_type="records", public=True)
+    institution_view_html = job.render_dashboard_view(report_type="institutions")
+    public_institution_view_html = job.render_dashboard_view(
+        report_type="institutions",
+        public=True,
+    )
     arcgis_due_dashboard_html = job.render_dashboard_view(
         report_type="due",
         workflow="py_arcgis_hub",
@@ -210,6 +229,8 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     assert "Harvest Records" in records_dashboard_html
     assert records_dashboard_html == records_view_html
     assert public_records_dashboard_html == public_records_view_html
+    assert institution_dashboard_html == institution_view_html
+    assert public_institution_dashboard_html == public_institution_view_html
     assert "County Parcels" not in records_dashboard_html
     assert "Scan Socrata Sites" not in records_dashboard_html
     assert "py_socrata" not in records_dashboard_html
@@ -222,6 +243,21 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_records_dashboard_html
     assert "https://geo.btaa.org/admin/documents/site-5/edit" not in records_dashboard_html
     assert "Create issue" not in records_dashboard_html
+    assert "Harvest Records by Institution" in institution_dashboard_html
+    assert "Table of Contents" in institution_dashboard_html
+    assert "University of Minnesota" in institution_dashboard_html
+    assert "Other" in institution_dashboard_html
+    assert "Parcel Fabric" in institution_dashboard_html
+    assert "County Parcels" in institution_dashboard_html
+    assert "Road Centerlines" in institution_dashboard_html
+    assert 'href="#university-of-minnesota"' in institution_dashboard_html
+    assert 'href="#other"' in institution_dashboard_html
+    assert 'id="university-of-minnesota"' in institution_dashboard_html
+    assert 'id="other"' in institution_dashboard_html
+    assert '<div class="date-line">' not in institution_dashboard_html
+    assert "No schedule" not in institution_dashboard_html
+    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2227d-01%22" in institution_dashboard_html
+    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_institution_dashboard_html
     assert "Harvest Tasks Due Now" in due_dashboard_html
     assert "Reviews due" in due_dashboard_html
     assert "Harvests due" in due_dashboard_html
@@ -247,6 +283,12 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     assert Path(results["public_records_dashboard_html"]).name == (
         "2026-03-30_harvest-task-dashboard-records-public.html"
     )
+    assert Path(results["institution_dashboard_html"]).name == (
+        "2026-03-30_harvest-task-dashboard-institutions.html"
+    )
+    assert Path(results["public_institution_dashboard_html"]).name == (
+        "2026-03-30_harvest-task-dashboard-institutions-public.html"
+    )
     assert Path(public_dedicated_dashboard_outputs["py_arcgis_hub"]).name == (
         "2026-03-30_harvest-task-dashboard-py-arcgis-hub-public.html"
     )
@@ -269,6 +311,104 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     assert Path(workflow_inputs["py_arcgis_hub"]).exists()
     assert Path(workflow_inputs["py_pasda"]).exists()
     assert Path(workflow_inputs["py_socrata"]).exists()
+
+
+def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: Path) -> None:
+    harvest_records_path = tmp_path / "harvest-records.csv"
+    websites_path = tmp_path / "websites.csv"
+    standalone_websites_path = tmp_path / "standalone-websites.csv"
+    code_schema_map_path = tmp_path / "code-schema-map.csv"
+    outputs_dir = tmp_path / "outputs"
+
+    pd.DataFrame(columns=["ID", "Title", "Harvest Workflow"]).to_csv(
+        harvest_records_path, index=False
+    )
+    pd.DataFrame(columns=["ID", "Name", "Harvest Workflow", "URL"]).to_csv(
+        websites_path, index=False
+    )
+    pd.DataFrame(
+        [
+            {
+                "ID": "05b-27003",
+                "Title": "Anoka County GIS Data Downloads",
+                "Code": "w00_01",
+            },
+            {
+                "ID": "11b-39003",
+                "Title": "Allen County GIS Data Download Page",
+                "Code": "w00_01",
+            },
+            {
+                "ID": "1000f-0004",
+                "Title": "Diversity Data Kids",
+                "Code": "w00_01",
+            },
+        ]
+    ).to_csv(standalone_websites_path, index=False)
+
+    code_schema_map_path.write_text(
+        "code_prefix,Related institution or source\n"
+        "05,University of Minnesota\n"
+        "11,The Ohio State University\n",
+        encoding="utf-8",
+    )
+
+    job = HarvestTaskDashboardJob(
+        {
+            "harvest_records_csv": str(harvest_records_path),
+            "websites_csv": str(websites_path),
+            "standalone_websites_csv": str(standalone_websites_path),
+            "code_schema_map_csv": str(code_schema_map_path),
+            "output_tasks_csv": str(outputs_dir / "harvest-task-dashboard.csv"),
+            "output_dashboard_html": str(outputs_dir / "harvest-task-dashboard.html"),
+            "output_due_dashboard_html": str(outputs_dir / "harvest-task-dashboard-due.html"),
+            "output_retrospective_dashboard_html": str(
+                outputs_dir / "harvest-task-dashboard-retrospective.html"
+            ),
+            "output_workflow_dir": str(outputs_dir / "harvest-workflow-inputs"),
+            "today": "2026-04-01",
+        }
+    )
+
+    results = job.harvest_pipeline()
+
+    standalone_dashboard_html = Path(results["standalone_dashboard_html"]).read_text(
+        encoding="utf-8"
+    )
+    public_standalone_dashboard_html = Path(
+        results["public_standalone_dashboard_html"]
+    ).read_text(encoding="utf-8")
+    standalone_view_html = job.render_dashboard_view(report_type="standalone")
+    standalone_alias_html = job.render_dashboard_view(report_type="standalone-websites")
+
+    assert standalone_dashboard_html == standalone_view_html
+    assert standalone_dashboard_html == standalone_alias_html
+    assert "Standalone Websites by Institution" in standalone_dashboard_html
+    assert "Table of Contents" in standalone_dashboard_html
+    assert "University of Minnesota" in standalone_dashboard_html
+    assert "The Ohio State University" in standalone_dashboard_html
+    assert "Other" in standalone_dashboard_html
+    assert "Anoka County GIS Data Downloads" in standalone_dashboard_html
+    assert "Allen County GIS Data Download Page" in standalone_dashboard_html
+    assert "Diversity Data Kids" in standalone_dashboard_html
+    assert 'href="#university-of-minnesota"' in standalone_dashboard_html
+    assert 'href="#the-ohio-state-university"' in standalone_dashboard_html
+    assert 'href="#other"' in standalone_dashboard_html
+    assert 'id="university-of-minnesota"' in standalone_dashboard_html
+    assert 'id="the-ohio-state-university"' in standalone_dashboard_html
+    assert 'id="other"' in standalone_dashboard_html
+    assert "https://geo.btaa.org/catalog/05b-27003" in standalone_dashboard_html
+    assert "https://geo.btaa.org/catalog/11b-39003" in public_standalone_dashboard_html
+    assert "https://geo.btaa.org/catalog/1000f-0004" in standalone_dashboard_html
+    assert "w00_01" not in standalone_dashboard_html
+    assert "Last harvested:" not in standalone_dashboard_html
+    assert "Periodicity:" not in standalone_dashboard_html
+    assert Path(results["standalone_dashboard_html"]).name == (
+        "2026-04-01_harvest-task-dashboard-standalone-websites.html"
+    )
+    assert Path(results["public_standalone_dashboard_html"]).name == (
+        "2026-04-01_harvest-task-dashboard-standalone-websites-public.html"
+    )
 
 
 def test_harvest_task_dashboard_marks_pending_updates_tag_as_due(tmp_path: Path) -> None:
