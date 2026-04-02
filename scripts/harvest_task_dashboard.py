@@ -596,6 +596,7 @@ class HarvestTaskDashboardJob:
             row_dict = harvest_row.to_dict()
             display_name = self._build_display_name(row_dict)
             workflow_name = self._clean_value(row_dict.get("Harvest Workflow", "")) or "unspecified"
+            provenance_entries = self._extract_provenance_entries(row_dict.get("Provenance", ""))
 
             last_harvested = self._clean_value(row_dict.get("Last Harvested", ""))
             last_harvested_date = pd.to_datetime(last_harvested, errors="coerce")
@@ -604,16 +605,21 @@ class HarvestTaskDashboardJob:
                     {
                         "Action Month": last_harvested_date.strftime("%B %Y"),
                         "Action Date": last_harvested_date.strftime("%Y-%m-%d"),
-                        "Type": "Harvested",
+                        "Type": self._select_month_provenance_action_type(
+                            provenance_entries, last_harvested_date
+                        )
+                        or "Harvested",
                         "Title": display_name,
                         "ID": self._clean_value(row_dict.get("ID", "")),
                         "Identifier": self._clean_value(row_dict.get("Identifier", "")),
                         "Harvest Workflow": workflow_name,
-                        "Details": "Last Harvested field",
+                        "Details": self._select_month_provenance_note(
+                            provenance_entries, last_harvested_date
+                        ),
                     }
                 )
 
-            for provenance_entry in self._extract_provenance_entries(row_dict.get("Provenance", "")):
+            for provenance_entry in provenance_entries:
                 provenance_date = self._extract_dated_entry_date(provenance_entry)
                 if provenance_date is None:
                     continue
@@ -621,12 +627,12 @@ class HarvestTaskDashboardJob:
                     {
                         "Action Month": provenance_date.strftime("%B %Y"),
                         "Action Date": provenance_date.strftime("%Y-%m-%d"),
-                        "Type": "Reviewed",
+                        "Type": self._extract_provenance_action_type(provenance_entry) or "Reviewed",
                         "Title": display_name,
                         "ID": self._clean_value(row_dict.get("ID", "")),
                         "Identifier": self._clean_value(row_dict.get("Identifier", "")),
                         "Harvest Workflow": workflow_name,
-                        "Details": self._strip_dated_entry_prefix(provenance_entry),
+                        "Details": self._extract_provenance_details(provenance_entry),
                     }
                 )
 
@@ -1084,6 +1090,8 @@ class HarvestTaskDashboardJob:
 
     def _render_retrospective_details_cell(self, row: pd.Series | dict[str, Any]) -> str:
         details = self._clean_value(row.get("Details", "")) or "Not provided"
+        if not details or details == "Not provided":
+            return ""
         return f'<div class="detail-meta">{escape(details)}</div>'
 
     def _render_workflow_last_harvested_cell(self, row: pd.Series | dict[str, Any]) -> str:
@@ -1115,6 +1123,9 @@ class HarvestTaskDashboardJob:
         pill_classes = {
             "Harvested": "status-pill--harvested",
             "Reviewed": "status-pill--reviewed",
+            "harvest": "status-pill--harvested",
+            "review": "status-pill--reviewed",
+            "reviewed": "status-pill--reviewed",
         }
         return pill_classes.get(action_type, "status-pill--reviewed")
 
@@ -1425,6 +1436,64 @@ class HarvestTaskDashboardJob:
         stripped_value = re.sub(r"^\d{4}-\d{2}-\d{2}\s*", "", cleaned_value)
         stripped_value = re.sub(r"^[|/\-]+\s*", "", stripped_value)
         return stripped_value or cleaned_value
+
+    def _extract_provenance_action_type(self, value: str) -> str:
+        content = self._strip_dated_entry_prefix(value)
+        if not content:
+            return ""
+        parts = [self._clean_value(part) for part in content.split("/")]
+        for part in parts:
+            if part:
+                return part
+        return ""
+
+    def _extract_provenance_details(self, value: str) -> str:
+        content = self._strip_dated_entry_prefix(value)
+        if not content:
+            return ""
+        parts = [self._clean_value(part) for part in content.split("/")]
+        non_empty_parts = [part for part in parts if part]
+        if len(non_empty_parts) <= 1:
+            return ""
+        return " / ".join(non_empty_parts[1:])
+
+    def _select_month_provenance_note(
+        self, provenance_entries: list[str], target_date: pd.Timestamp | None
+    ) -> str:
+        if target_date is None:
+            return "Not provided"
+
+        target_period = target_date.to_period("M")
+        matched_notes: list[str] = []
+        for provenance_entry in provenance_entries:
+            provenance_date = self._extract_dated_entry_date(provenance_entry)
+            if provenance_date is None or provenance_date.to_period("M") != target_period:
+                continue
+            note = self._extract_provenance_details(provenance_entry)
+            if note:
+                matched_notes.append(note)
+
+        if not matched_notes:
+            return ""
+
+        unique_notes = list(dict.fromkeys(matched_notes))
+        return " | ".join(unique_notes)
+
+    def _select_month_provenance_action_type(
+        self, provenance_entries: list[str], target_date: pd.Timestamp | None
+    ) -> str:
+        if target_date is None:
+            return ""
+
+        target_period = target_date.to_period("M")
+        for provenance_entry in provenance_entries:
+            provenance_date = self._extract_dated_entry_date(provenance_entry)
+            if provenance_date is None or provenance_date.to_period("M") != target_period:
+                continue
+            action_type = self._extract_provenance_action_type(provenance_entry)
+            if action_type:
+                return action_type
+        return ""
 
     def _render_issue_links(self, row: pd.Series | dict[str, Any]) -> str:
         if not self.issue_repositories:

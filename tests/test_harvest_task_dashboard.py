@@ -353,7 +353,7 @@ def test_harvest_task_dashboard_generates_retrospective_report_with_month_groupi
                 "Identifier": "retro-1",
                 "Harvest Workflow": "template_csv",
                 "Last Harvested": "2026-03-15",
-                "Provenance": '2026-03-20 / review completed|2026-04-01 / augment / Resource Type to "Index maps|Aerial Photographs"|2026-04-05 / review completed',
+                "Provenance": '2026-03-20 / review / completed|2026-04-01 / augment / Resource Type to "Index maps|Aerial Photographs"|2026-04-05 / harvest / added 365, retired 1',
             },
             {
                 "ID": "task-retro-2",
@@ -361,7 +361,7 @@ def test_harvest_task_dashboard_generates_retrospective_report_with_month_groupi
                 "Identifier": "retro-2",
                 "Harvest Workflow": "template_json",
                 "Last Harvested": "2026-04-10",
-                "Provenance": "2026-04-12 / review completed",
+                "Provenance": "2026-04-12 / harvest",
             },
         ]
     ).to_csv(harvest_records_path, index=False)
@@ -407,7 +407,17 @@ def test_harvest_task_dashboard_generates_retrospective_report_with_month_groupi
     assert "2026-04-12" in retrospective_dashboard_html
     assert "2026-03-15" in retrospective_dashboard_html
     assert "2026-03-20" in retrospective_dashboard_html
-    assert 'augment / Resource Type to &quot;Index maps|Aerial Photographs&quot;' in retrospective_dashboard_html
+    assert ">review</span>" in retrospective_dashboard_html
+    assert ">harvest</span>" in retrospective_dashboard_html
+    assert ">augment</span>" in retrospective_dashboard_html
+    assert ">completed</div>" in retrospective_dashboard_html
+    assert ">added 365, retired 1</div>" in retrospective_dashboard_html
+    assert "harvest / added 365, retired 1" not in retrospective_dashboard_html
+    assert "2026-04-12" in retrospective_dashboard_html
+    assert "Not provided" not in retrospective_dashboard_html
+    assert '>Resource Type to &quot;Index maps|Aerial Photographs&quot;</div>' in retrospective_dashboard_html
+    assert retrospective_dashboard_html.count(">harvest</span>") >= 2
+    assert "Last Harvested field" not in retrospective_dashboard_html
     assert "Harvest Task Retrospective" in retrospective_view_html
     assert "ArcGIS Hubs Harvest Overview" in arcgis_retrospective_html
     assert "Last time the process was run" in arcgis_retrospective_html
