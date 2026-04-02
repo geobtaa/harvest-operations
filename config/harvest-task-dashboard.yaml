@@ -11,8 +11,11 @@ dedicated_workflow_views:
   - py_arcgis_hub
 issue_repositories:
   - name: harvest-operations
+    repository: geobtaa/harvest-operations
     issues_new_url: https://github.com/geobtaa/harvest-operations/issues/new
     template: harvest-task.md
+    token_env: GEOBTAA_PROJECTS_TOKEN
+    lookup_existing_issues: true
     labels:
       - harvest-task
     projects:

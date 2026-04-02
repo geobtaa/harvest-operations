@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from scripts.harvest_task_dashboard import HarvestTaskDashboardJob
 
@@ -398,14 +399,10 @@ def test_harvest_task_dashboard_generates_retrospective_report_with_month_groupi
     assert "April 2026" in retrospective_dashboard_html
     assert "March 2026" in retrospective_dashboard_html
     assert "Total Actions" in retrospective_dashboard_html
-    assert "<strong>6</strong>" in retrospective_dashboard_html
-    assert "4 actions" in retrospective_dashboard_html
-    assert "2 actions" in retrospective_dashboard_html
-    assert "Harvested" in retrospective_dashboard_html
-    assert "Reviewed" in retrospective_dashboard_html
-    assert "2026-04-10" in retrospective_dashboard_html
+    assert "<strong>4</strong>" in retrospective_dashboard_html
+    assert "3 actions" in retrospective_dashboard_html
+    assert "1 action" in retrospective_dashboard_html
     assert "2026-04-12" in retrospective_dashboard_html
-    assert "2026-03-15" in retrospective_dashboard_html
     assert "2026-03-20" in retrospective_dashboard_html
     assert ">review</span>" in retrospective_dashboard_html
     assert ">harvest</span>" in retrospective_dashboard_html
@@ -418,8 +415,98 @@ def test_harvest_task_dashboard_generates_retrospective_report_with_month_groupi
     assert '>Resource Type to &quot;Index maps|Aerial Photographs&quot;</div>' in retrospective_dashboard_html
     assert retrospective_dashboard_html.count(">harvest</span>") >= 2
     assert "Last Harvested field" not in retrospective_dashboard_html
+    assert "2026-04-10" not in retrospective_dashboard_html
+    assert "2026-03-15" not in retrospective_dashboard_html
     assert "Harvest Task Retrospective" in retrospective_view_html
     assert "ArcGIS Hubs Harvest Overview" in arcgis_retrospective_html
     assert "Last time the process was run" in arcgis_retrospective_html
     assert "Currently Harvested ArcGIS Hubs" in arcgis_retrospective_html
     assert "No ArcGIS Hub harvest records were found in the input file." in arcgis_retrospective_html
+
+
+def test_harvest_task_issue_body_includes_hidden_task_marker() -> None:
+    job = HarvestTaskDashboardJob({"today": "2026-04-01"})
+
+    body = job._build_issue_body(
+        {
+            "ID": "harvest_ornl",
+            "Title": "Harvest record for ORNL LandScan Viewer",
+            "Due Date": "2026-04-30",
+            "Last Harvested": "2026-03-30",
+            "Identifier": "04a-01",
+        }
+    )
+
+    assert "<!-- harvest-task-key: harvest:harvest_ornl:2026-04-30 -->" in body
+
+
+def test_harvest_task_dashboard_links_existing_issue_when_marker_matches(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    harvest_records_path = tmp_path / "harvest-records.csv"
+    websites_path = tmp_path / "websites.csv"
+    outputs_dir = tmp_path / "outputs"
+
+    pd.DataFrame(
+        [
+            {
+                "ID": "harvest_ornl",
+                "Title": "Harvest record for ORNL LandScan Viewer",
+                "Harvest Workflow": "template_csv",
+                "Identifier": "04a-01",
+                "Last Harvested": "2026-03-30",
+                "Accrual Periodicity": "monthly",
+            }
+        ]
+    ).to_csv(harvest_records_path, index=False)
+
+    pd.DataFrame(columns=["ID", "Harvest Workflow", "Name", "URL"]).to_csv(websites_path, index=False)
+
+    job = HarvestTaskDashboardJob(
+        {
+            "harvest_records_csv": str(harvest_records_path),
+            "websites_csv": str(websites_path),
+            "output_tasks_csv": str(outputs_dir / "harvest-task-dashboard.csv"),
+            "output_dashboard_html": str(outputs_dir / "harvest-task-dashboard.html"),
+            "output_due_dashboard_html": str(outputs_dir / "harvest-task-dashboard-due.html"),
+            "output_retrospective_dashboard_html": str(
+                outputs_dir / "harvest-task-dashboard-retrospective.html"
+            ),
+            "output_workflow_dir": str(outputs_dir / "harvest-workflow-inputs"),
+            "issue_repositories": [
+                {
+                    "name": "harvest-operations",
+                    "repository": "geobtaa/harvest-operations",
+                    "issues_new_url": "https://github.com/geobtaa/harvest-operations/issues/new",
+                    "template": "harvest-task.md",
+                    "lookup_existing_issues": True,
+                    "labels": ["harvest-task"],
+                }
+            ],
+            "today": "2026-04-01",
+        }
+    )
+
+    def fake_fetch_existing_issue_index(
+        issue_repository: dict[str, str],
+        repository_slug: str,
+    ) -> dict[str, dict[str, str]]:
+        assert issue_repository["name"] == "harvest-operations"
+        assert repository_slug == "geobtaa/harvest-operations"
+        return {
+            "harvest:harvest_ornl:2026-04-30": {
+                "html_url": "https://github.com/geobtaa/harvest-operations/issues/123",
+                "number": "123",
+                "state": "open",
+            }
+        }
+
+    monkeypatch.setattr(job, "_fetch_existing_issue_index", fake_fetch_existing_issue_index)
+
+    results = job.harvest_pipeline()
+    dashboard_html = Path(results["dashboard_html"]).read_text(encoding="utf-8")
+
+    assert "Open issue #123" in dashboard_html
+    assert "https://github.com/geobtaa/harvest-operations/issues/123" in dashboard_html
+    assert "Create issue" not in dashboard_html

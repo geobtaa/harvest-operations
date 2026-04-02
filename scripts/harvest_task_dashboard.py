@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from html import escape
+import os
 from pathlib import Path
 import re
 from typing import Any
 from urllib.parse import urlencode
 
 import pandas as pd
+import requests
 
 
 UNSCHEDULED_PERIODICITIES = {
@@ -32,6 +34,7 @@ HARVEST_RECORD_LINKS = {
 }
 
 DEFAULT_DEDICATED_WORKFLOW_VIEWS = ("py_arcgis_hub",)
+ISSUE_TASK_MARKER_PREFIX = "harvest-task-key"
 
 
 class HarvestTaskDashboardJob:
@@ -77,6 +80,7 @@ class HarvestTaskDashboardJob:
             self.today = pd.Timestamp(configured_today).normalize()
         else:
             self.today = pd.Timestamp.now().normalize()
+        self._issue_index_cache: dict[str, dict[str, dict[str, str]]] = {}
 
     def harvest_pipeline(self) -> dict[str, Any]:
         harvest_df = self._load_csv(self.harvest_records_path)
@@ -600,7 +604,9 @@ class HarvestTaskDashboardJob:
 
             last_harvested = self._clean_value(row_dict.get("Last Harvested", ""))
             last_harvested_date = pd.to_datetime(last_harvested, errors="coerce")
-            if not pd.isna(last_harvested_date):
+            if not pd.isna(last_harvested_date) and not self._has_provenance_entry_for_month(
+                provenance_entries, last_harvested_date
+            ):
                 action_rows.append(
                     {
                         "Action Month": last_harvested_date.strftime("%B %Y"),
@@ -1495,12 +1501,36 @@ class HarvestTaskDashboardJob:
                 return action_type
         return ""
 
+    def _has_provenance_entry_for_month(
+        self, provenance_entries: list[str], target_date: pd.Timestamp | None
+    ) -> bool:
+        if target_date is None:
+            return False
+
+        target_period = target_date.to_period("M")
+        for provenance_entry in provenance_entries:
+            provenance_date = self._extract_dated_entry_date(provenance_entry)
+            if provenance_date is not None and provenance_date.to_period("M") == target_period:
+                return True
+        return False
+
     def _render_issue_links(self, row: pd.Series | dict[str, Any]) -> str:
         if not self.issue_repositories:
             return "<span class=\"muted\">No issue target configured</span>"
 
         links = []
         for issue_repository in self.issue_repositories:
+            existing_issue = self._find_existing_issue(row, issue_repository)
+            if existing_issue:
+                issue_state = self._clean_value(existing_issue.get("state", "")).lower()
+                issue_label = "Closed issue" if issue_state == "closed" else "Open issue"
+                issue_number = self._clean_value(existing_issue.get("number", ""))
+                label = f"{issue_label} #{issue_number}" if issue_number else issue_label
+                links.append(
+                    f'<a class="action-link" href="{escape(existing_issue["html_url"], quote=True)}" target="_blank" rel="noreferrer">{escape(label)}</a>'
+                )
+                continue
+
             issue_url = self._build_issue_url(row, issue_repository)
             links.append(
                 f'<a class="action-link" href="{escape(issue_url, quote=True)}" target="_blank" rel="noreferrer">Create issue</a>'
@@ -1560,6 +1590,8 @@ class HarvestTaskDashboardJob:
             f"- Due date: {due_date}",
             f"- Last harvested: {self._clean_value(row.get('Last Harvested', '')) or 'Not yet harvested'}",
             "",
+            self._issue_task_marker(row),
+            "",
             "## Notes",
             "",
         ]
@@ -1574,6 +1606,13 @@ class HarvestTaskDashboardJob:
 
     def _issue_label(self, row: pd.Series | dict[str, Any]) -> str:
         return "review" if self._is_review_issue(row) else "harvest"
+
+    def _issue_task_key(self, row: pd.Series | dict[str, Any]) -> str:
+        task_id = self._clean_value(row.get("ID", "")) or self._issue_display_name(row)
+        return f"{self._issue_label(row)}:{task_id}:{self._issue_due_date(row)}"
+
+    def _issue_task_marker(self, row: pd.Series | dict[str, Any]) -> str:
+        return f"<!-- {ISSUE_TASK_MARKER_PREFIX}: {self._issue_task_key(row)} -->"
 
     def _is_review_issue(self, row: pd.Series | dict[str, Any]) -> bool:
         return self._clean_value(row.get("Review Date", "")) != ""
@@ -1596,6 +1635,133 @@ class HarvestTaskDashboardJob:
 
         links = [f"[{identifier}](https://geo.btaa.org/admin/documents/{identifier}/edit)" for identifier in identifiers]
         return f"- Identifier: {', '.join(links)}"
+
+    def _find_existing_issue(
+        self,
+        row: pd.Series | dict[str, Any],
+        issue_repository: dict[str, Any],
+    ) -> dict[str, str] | None:
+        task_key = self._issue_task_key(row)
+        if not task_key:
+            return None
+        return self._existing_issue_index(issue_repository).get(task_key)
+
+    def _existing_issue_index(self, issue_repository: dict[str, Any]) -> dict[str, dict[str, str]]:
+        if not self._lookup_existing_issues_enabled(issue_repository):
+            return {}
+        repository_slug = self._issue_repository_slug(issue_repository)
+        if not repository_slug:
+            return {}
+        if repository_slug not in self._issue_index_cache:
+            self._issue_index_cache[repository_slug] = self._fetch_existing_issue_index(
+                issue_repository,
+                repository_slug,
+            )
+        return self._issue_index_cache[repository_slug]
+
+    def _fetch_existing_issue_index(
+        self,
+        issue_repository: dict[str, Any],
+        repository_slug: str,
+    ) -> dict[str, dict[str, str]]:
+        owner, repo = repository_slug.split("/", 1)
+        labels = [
+            self._clean_value(label)
+            for label in issue_repository.get("labels", [])
+            if self._clean_value(label)
+        ]
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "harvest-task-dashboard",
+        }
+        token = self._issue_repository_token(issue_repository)
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        issue_index: dict[str, dict[str, str]] = {}
+        page = 1
+
+        try:
+            while True:
+                params = {
+                    "state": "all",
+                    "per_page": "100",
+                    "page": str(page),
+                }
+                if labels:
+                    params["labels"] = ",".join(labels)
+
+                response = requests.get(
+                    f"https://api.github.com/repos/{owner}/{repo}/issues",
+                    params=params,
+                    headers=headers,
+                    timeout=10,
+                )
+                response.raise_for_status()
+                issues = response.json()
+                if not isinstance(issues, list):
+                    return issue_index
+
+                for issue in issues:
+                    if "pull_request" in issue:
+                        continue
+                    body = self._clean_value(issue.get("body", ""))
+                    task_key = self._extract_issue_task_key(body)
+                    if not task_key or task_key in issue_index:
+                        continue
+
+                    html_url = self._clean_value(issue.get("html_url", ""))
+                    if not html_url:
+                        continue
+
+                    issue_index[task_key] = {
+                        "html_url": html_url,
+                        "number": self._clean_value(issue.get("number", "")),
+                        "state": self._clean_value(issue.get("state", "")),
+                    }
+
+                if len(issues) < 100:
+                    break
+                page += 1
+        except requests.RequestException:
+            return {}
+
+        return issue_index
+
+    def _lookup_existing_issues_enabled(self, issue_repository: dict[str, Any]) -> bool:
+        raw_value = self._clean_value(issue_repository.get("lookup_existing_issues", ""))
+        return raw_value.lower() in {"1", "true", "yes", "on"}
+
+    def _issue_repository_slug(self, issue_repository: dict[str, Any]) -> str:
+        configured_repository = self._clean_value(issue_repository.get("repository", ""))
+        if configured_repository:
+            return configured_repository.strip("/")
+
+        issues_new_url = self._clean_value(issue_repository.get("issues_new_url", ""))
+        match = re.search(r"github\.com/([^/]+/[^/]+)/issues/new/?$", issues_new_url)
+        if not match:
+            return ""
+        return match.group(1)
+
+    def _issue_repository_token(self, issue_repository: dict[str, Any]) -> str:
+        configured_env = self._clean_value(issue_repository.get("token_env", ""))
+        candidate_envs = [configured_env] if configured_env else ["GITHUB_TOKEN", "GEOBTAA_PROJECTS_TOKEN"]
+        for env_name in candidate_envs:
+            token = os.environ.get(env_name, "").strip()
+            if token:
+                return token
+        return ""
+
+    def _extract_issue_task_key(self, issue_body: str) -> str:
+        match = re.search(
+            rf"<!--\s*{ISSUE_TASK_MARKER_PREFIX}:\s*(.*?)\s*-->",
+            self._clean_value(issue_body),
+            flags=re.IGNORECASE,
+        )
+        if not match:
+            return ""
+        return self._clean_value(match.group(1))
 
     def _normalize_periodicity(self, value: str) -> str:
         normalized = re.sub(r"[^a-z0-9]+", " ", self._clean_value(value).lower()).strip()
@@ -1714,8 +1880,11 @@ if __name__ == "__main__":
         "issue_repositories": [
             {
                 "name": "harvest-operations",
+                "repository": "geobtaa/harvest-operations",
                 "issues_new_url": "https://github.com/geobtaa/harvest-operations/issues/new",
                 "template": "harvest-task.md",
+                "token_env": "GEOBTAA_PROJECTS_TOKEN",
+                "lookup_existing_issues": True,
                 "labels": ["harvest-task"],
                 "projects": ["geobtaa/4"],
             }
