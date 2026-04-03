@@ -4,3 +4,7 @@ The `scripts` folder contains standalone python scripts that are not integrated 
 
 `harvest_task_dashboard.py` builds a due-date dashboard from `inputs/harvest-records.csv`
 and `inputs/websites.csv`, and is also wired into the FastAPI job UI.
+
+`arcgis_landing_page_thumbnails.py` scans ArcGIS Hub landing pages from
+`inputs/arcgisLandingPages.csv` and writes thumbnail URLs to
+`outputs/arcgis_landing_page_thumbnails.csv`.
