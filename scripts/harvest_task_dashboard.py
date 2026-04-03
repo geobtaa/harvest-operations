@@ -1239,6 +1239,10 @@ class HarvestTaskDashboardJob:
         if not cleaned_code:
             return ""
         match = re.match(r"^(\d+)", cleaned_code)
+        if match:
+            return self._normalize_code_prefix(match.group(1))
+
+        match = re.match(r"^([A-Za-z][A-Za-z0-9]*)", cleaned_code)
         if not match:
             return ""
         return self._normalize_code_prefix(match.group(1))
@@ -1247,10 +1251,13 @@ class HarvestTaskDashboardJob:
         cleaned_prefix = self._clean_value(prefix)
         if not cleaned_prefix:
             return ""
-        digits_only = re.sub(r"\D+", "", cleaned_prefix)
-        if not digits_only:
+
+        alphanumeric = re.sub(r"[^A-Za-z0-9]+", "", cleaned_prefix).lower()
+        if not alphanumeric:
             return ""
-        return digits_only.lstrip("0") or "0"
+        if alphanumeric.isdigit():
+            return alphanumeric.lstrip("0") or "0"
+        return alphanumeric
 
     def _build_retrospective_dataframe(self, harvest_df: pd.DataFrame) -> pd.DataFrame:
         retrospective_columns = [

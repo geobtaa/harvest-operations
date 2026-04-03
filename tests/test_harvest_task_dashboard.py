@@ -411,6 +411,73 @@ def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: P
     )
 
 
+def test_harvest_task_dashboard_supports_alphanumeric_institution_prefixes(
+    tmp_path: Path,
+) -> None:
+    harvest_records_path = tmp_path / "harvest-records.csv"
+    websites_path = tmp_path / "websites.csv"
+    code_schema_map_path = tmp_path / "code-schema-map.csv"
+    outputs_dir = tmp_path / "outputs"
+
+    pd.DataFrame(
+        [
+            {
+                "ID": "task-b1g",
+                "Title": "Curated Dataset Set",
+                "Harvest Workflow": "template_csv",
+                "Identifier": "site-b1g",
+                "Code": "b1g-0001",
+                "Last Harvested": "2026-04-01",
+                "Accrual Periodicity": "weekly",
+            },
+            {
+                "ID": "task-01",
+                "Title": "Indiana Dataset Set",
+                "Harvest Workflow": "template_csv",
+                "Identifier": "site-01",
+                "Code": "01a-01",
+                "Last Harvested": "2026-04-01",
+                "Accrual Periodicity": "weekly",
+            },
+        ]
+    ).to_csv(harvest_records_path, index=False)
+
+    pd.DataFrame(columns=["ID", "Harvest Workflow", "Name", "URL"]).to_csv(
+        websites_path, index=False
+    )
+
+    code_schema_map_path.write_text(
+        "code_prefix,Related institution or source\n"
+        "01,Indiana University\n"
+        "b1g,BTAA-GIN curated datasets\n",
+        encoding="utf-8",
+    )
+
+    job = HarvestTaskDashboardJob(
+        {
+            "harvest_records_csv": str(harvest_records_path),
+            "websites_csv": str(websites_path),
+            "code_schema_map_csv": str(code_schema_map_path),
+            "output_tasks_csv": str(outputs_dir / "harvest-task-dashboard.csv"),
+            "output_dashboard_html": str(outputs_dir / "harvest-task-dashboard.html"),
+            "output_due_dashboard_html": str(outputs_dir / "harvest-task-dashboard-due.html"),
+            "output_retrospective_dashboard_html": str(
+                outputs_dir / "harvest-task-dashboard-retrospective.html"
+            ),
+            "output_workflow_dir": str(outputs_dir / "harvest-workflow-inputs"),
+            "today": "2026-04-03",
+        }
+    )
+
+    institution_html = job.render_dashboard_view(report_type="institutions")
+
+    assert "BTAA-GIN curated datasets" in institution_html
+    assert "Indiana University" in institution_html
+    assert 'href="#btaa-gin-curated-datasets"' in institution_html
+    assert "Curated Dataset Set" in institution_html
+    assert "Indiana Dataset Set" in institution_html
+
+
 def test_harvest_task_dashboard_marks_pending_updates_tag_as_due(tmp_path: Path) -> None:
     harvest_records_path = tmp_path / "harvest-records.csv"
     websites_path = tmp_path / "websites.csv"

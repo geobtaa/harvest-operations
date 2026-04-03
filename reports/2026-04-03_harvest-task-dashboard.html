@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Harvest Task Dashboard</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17324d;
+      --muted: #5b6b7d;
+      --line: #d7e1ec;
+      --line-strong: #bfd0e2;
+      --panel: #ffffff;
+      --panel-soft: #f6f9fc;
+      --bg: #eef3f8;
+      --accent: #1f6fb2;
+      --accent-soft: #dcecff;
+      --reviews: #0f766e;
+      --reviews-soft: #d8f3ee;
+      --due: #b42318;
+      --due-soft: #fee4e2;
+      --scheduled: #b76e00;
+      --scheduled-soft: #fff1d6;
+      --no-schedule: #667085;
+      --no-schedule-soft: #edf1f5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: "Segoe UI", sans-serif; line-height: 1.35; color: var(--ink); background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 0.4rem; }
+    h2 { margin-bottom: 0.9rem; }
+    h3 { margin-bottom: 0; font-size: 1rem; }
+    a { color: var(--accent); }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin: 1.25rem 0 1.5rem; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--accent); border-radius: 14px; padding: 0.8rem 0.9rem; box-shadow: 0 12px 30px rgba(23, 50, 77, 0.06); }
+    .card strong { display: block; margin-top: 0.2rem; font-size: 1.5rem; }
+    .card.card--reviews { border-top-color: var(--reviews); }
+    .card.card--due { border-top-color: var(--due); }
+    .card.card--scheduled { border-top-color: var(--scheduled); }
+    .card.card--no-schedule { border-top-color: var(--no-schedule); }
+    .due-section { margin-top: 1.6rem; }
+    .section-header { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.8rem; }
+    .section-pill { display: inline-flex; align-items: center; padding: 0.25rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.02em; }
+    .section-pill--reviews { color: var(--reviews); background: var(--reviews-soft); }
+    .section-pill--due { color: var(--due); background: var(--due-soft); }
+    .section-pill--scheduled { color: var(--scheduled); background: var(--scheduled-soft); }
+    .section-pill--no-schedule { color: var(--no-schedule); background: var(--no-schedule-soft); }
+    .workflow-block { margin: 0.9rem 0 1.15rem; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }
+    .workflow-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.75rem 0.95rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }
+    .workflow-meta { color: var(--muted); font-size: 0.82rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { padding: 0.55rem 0.7rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+    th { background: #f9fbfd; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:nth-child(even) { background: #fbfdff; }
+    .task-name { font-weight: 700; margin-bottom: 0.2rem; }
+    .task-meta, .timing-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }
+    .task-meta code, .timing-meta code, .muted code { background: var(--no-schedule-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .date-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; font-weight: 700; }
+    .status-pill { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .status-pill--reviews { color: var(--reviews); background: var(--reviews-soft); }
+    .status-pill--due { color: var(--due); background: var(--due-soft); }
+    .status-pill--scheduled { color: var(--scheduled); background: var(--scheduled-soft); }
+    .status-pill--no-schedule { color: var(--no-schedule); background: var(--no-schedule-soft); }
+    .website-name { font-weight: 600; }
+    .muted { color: var(--muted); }
+    code { background: var(--panel-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .actions { min-width: 170px; }
+    .action-link { display: inline-flex; align-items: center; margin: 0.1rem 0.3rem 0.1rem 0; padding: 0.34rem 0.62rem; border: 1px solid var(--line-strong); border-radius: 999px; text-decoration: none; color: var(--accent); background: #fff; font-size: 0.84rem; font-weight: 600; }
+    .action-link:hover { background: var(--accent-soft); border-color: var(--accent-soft); }
+    .source-box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 1rem; margin: 1rem 0 1.4rem; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }
+    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }
+    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .workflow-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } .actions { min-width: 0; padding-top: 0.25rem; } }
+  </style>
+</head>
+<body>
+  <h1>Harvest Task Dashboard</h1>
+  <p class="muted">Generated from <code>inputs/harvest-records.csv</code> and <code>inputs/websites.csv</code>.</p>
+  <div class="source-box">
+    <h2>Get Latest Source CSVs</h2>
+    <p>Download the newest files before running the dashboard, then save them into <code>inputs/</code> with these names:</p>
+    <ul>
+      <li><a href="https://geo.btaa.org/admin/documents?f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc" target="_blank" rel="noreferrer"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>
+      <li><a href="https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc" target="_blank" rel="noreferrer"><code>websites.csv</code></a> -> save as <code>inputs/websites.csv</code></li>
+    </ul>
+  </div>
+  <p class="muted">Use the issue buttons to open a prefilled GitHub issue from the harvest-task template.</p>
+  <div class="summary">
+    <div class="card">
+      <span>Total Tasks</span>
+      <strong>70</strong>
+    </div>
+    <div class="card card--reviews">
+      <span>Reviews due</span>
+      <strong>28</strong>
+    </div>
+    <div class="card card--due">
+      <span>Harvests due</span>
+      <strong>10</strong>
+    </div>
+    <div class="card card--scheduled">
+      <span>Scheduled</span>
+      <strong>8</strong>
+    </div>
+    <div class="card card--no-schedule">
+      <span>No Schedule</span>
+      <strong>52</strong>
+    </div>
+  </div>
+  <section class="due-section section-pill--due">
+    <div class="section-header">
+      <h2>To be harvested (19)</h2>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_ckan</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Western Pennsylvania Regional Data Center Open Data</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_08f-01/edit" target="_blank" rel="noreferrer"><code>harvest_08f-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/08f-01/edit" target="_blank" rel="noreferrer"><code>08f-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2026-06-30</span></div><div class="timing-meta">Last harvested: 2026-03-31</div><div class="timing-meta">Periodicity: Quarterly</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Western+Pennsylvania+Regional+Data+Center+Open+Data&amp;body=%23+%5BHarvest+Due%5D+Western+Pennsylvania+Regional+Data+Center+Open+Data%0A%0A-+Harvest+record%3A+%5Bharvest_08f-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_08f-01%2Fedit%29%0A-+Identifier%3A+%5B08f-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F08f-01%2Fedit%29%0A-+Due+date%3A+2026-06-30%0A-+Last+harvested%3A+2026-03-31%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_08f-01%3A2026-06-30+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_hdx</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Humanitarian Data Exchange</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_99-1400/edit" target="_blank" rel="noreferrer"><code>harvest_99-1400</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/99-1400/edit" target="_blank" rel="noreferrer"><code>99-1400</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2026-04-30</span></div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Monthly</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Humanitarian+Data+Exchange&amp;body=%23+%5BHarvest+Due%5D+Humanitarian+Data+Exchange%0A%0A-+Harvest+record%3A+%5Bharvest_99-1400%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_99-1400%2Fedit%29%0A-+Identifier%3A+%5B99-1400%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F99-1400%2Fedit%29%0A-+Due+date%3A+2026-04-30%0A-+Last+harvested%3A+2026-03-30%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_99-1400%3A2026-04-30+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_isgs</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Illinois Geospatial Data Clearinghouse</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_02a-01/edit" target="_blank" rel="noreferrer"><code>harvest_02a-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/02a-01/edit" target="_blank" rel="noreferrer"><code>02a-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2026-06-30</span></div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Quarterly</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Illinois+Geospatial+Data+Clearinghouse&amp;body=%23+%5BHarvest+Due%5D+Illinois+Geospatial+Data+Clearinghouse%0A%0A-+Harvest+record%3A+%5Bharvest_02a-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_02a-01%2Fedit%29%0A-+Identifier%3A+%5B02a-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F02a-01%2Fedit%29%0A-+Due+date%3A+2026-06-30%0A-+Last+harvested%3A+2026-03-30%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_02a-01%3A2026-06-30+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_mncommons_ckan</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Minnesota Geospatial Commons</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_05a-01_ckan/edit" target="_blank" rel="noreferrer"><code>harvest_05a-01_ckan</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/05a-01/edit" target="_blank" rel="noreferrer"><code>05a-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2026-04-16</span></div><div class="timing-meta">Last harvested: 2026-03-16</div><div class="timing-meta">Periodicity: Monthly</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Minnesota+Geospatial+Commons&amp;body=%23+%5BHarvest+Due%5D+Minnesota+Geospatial+Commons%0A%0A-+Harvest+record%3A+%5Bharvest_05a-01_ckan%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_05a-01_ckan%2Fedit%29%0A-+Identifier%3A+%5B05a-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F05a-01%2Fedit%29%0A-+Due+date%3A+2026-04-16%0A-+Last+harvested%3A+2026-03-16%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_05a-01_ckan%3A2026-04-16+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_ogm_gbl1</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Wisconsin Geological and Natural History Survey</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_10d-06/edit" target="_blank" rel="noreferrer"><code>harvest_10d-06</code></a></div><div class="task-meta">Identifier: <code>None</code></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-04-01</div><div class="timing-meta">Periodicity: Not provided</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Wisconsin+Geological+and+Natural+History+Survey&amp;body=%23+%5BHarvest+Due%5D+Wisconsin+Geological+and+Natural+History+Survey%0A%0A-+Harvest+record%3A+%5Bharvest_10d-06%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_10d-06%2Fedit%29%0A-+Identifier%3A+None%0A-+Due+date%3A+No+schedule%0A-+Last+harvested%3A+2026-04-01%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_10d-06%3ANo+schedule+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_pasda</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for PASDA: The Pennsylvania Geospatial Data Clearinghouse</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_08a-01/edit" target="_blank" rel="noreferrer"><code>harvest_08a-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/08a-01/edit" target="_blank" rel="noreferrer"><code>08a-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2026-06-30</span></div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Quarterly</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+PASDA%3A+The+Pennsylvania+Geospatial+Data+Clearinghouse&amp;body=%23+%5BHarvest+Due%5D+PASDA%3A+The+Pennsylvania+Geospatial+Data+Clearinghouse%0A%0A-+Harvest+record%3A+%5Bharvest_08a-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_08a-01%2Fedit%29%0A-+Identifier%3A+%5B08a-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F08a-01%2Fedit%29%0A-+Due+date%3A+2026-06-30%0A-+Last+harvested%3A+2026-03-30%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_08a-01%3A2026-06-30+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_socrata</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Scan Socrata Sites</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents?f%5Bb1g_websitePlatform_s%5D%5B%5D=Socrata&amp;f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&amp;rows=20&amp;sort=score+desc" target="_blank" rel="noreferrer"><code>py_socrata</code></a></div><div class="task-meta">Identifier: <code>None</code></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2026-04-30</span></div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Monthly</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Scan+Socrata+Sites&amp;body=%23+%5BHarvest+Due%5D+Scan+Socrata+Sites%0A%0A-+Harvest+record%3A+%5Bpy_socrata%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%3Ff%255Bb1g_websitePlatform_s%255D%255B%255D%3DSocrata%26f%255Bgbl_resourceClass_sm%255D%255B%255D%3DSeries%26rows%3D20%26sort%3Dscore%2Bdesc%29%0A-+Identifier%3A+None%0A-+Due+date%3A+2026-04-30%0A-+Last+harvested%3A+2026-03-30%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Apy_socrata%3A2026-04-30+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>template_children</h3>
+        <div class="workflow-meta">8 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for SimplyAnalytics</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_999-0004/edit" target="_blank" rel="noreferrer"><code>harvest_999-0004</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/999-0004/edit" target="_blank" rel="noreferrer"><code>999-0004</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2021-11-18</span></div><div class="timing-meta">Last harvested: 2020-11-18</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+SimplyAnalytics&amp;body=%23+%5BHarvest+Due%5D+SimplyAnalytics%0A%0A-+Harvest+record%3A+%5Bharvest_999-0004%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_999-0004%2Fedit%29%0A-+Identifier%3A+%5B999-0004%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F999-0004%2Fedit%29%0A-+Due+date%3A+2021-11-18%0A-+Last+harvested%3A+2020-11-18%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_999-0004%3A2021-11-18+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for General Land Office Township Plats: Minnesota</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_05a-03/edit" target="_blank" rel="noreferrer"><code>harvest_05a-03</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/05a-03/edit" target="_blank" rel="noreferrer"><code>05a-03</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2022-04-26</span></div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+General+Land+Office+Township+Plats%3A+Minnesota&amp;body=%23+%5BHarvest+Due%5D+General+Land+Office+Township+Plats%3A+Minnesota%0A%0A-+Harvest+record%3A+%5Bharvest_05a-03%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_05a-03%2Fedit%29%0A-+Identifier%3A+%5B05a-03%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F05a-03%2Fedit%29%0A-+Due+date%3A+2022-04-26%0A-+Last+harvested%3A+2021-04-26%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_05a-03%3A2022-04-26+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Minnesota Geological Survey County Atlas Series</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_05d-04/edit" target="_blank" rel="noreferrer"><code>harvest_05d-04</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/05d-04/edit" target="_blank" rel="noreferrer"><code>05d-04</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2022-04-26</span></div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Minnesota+Geological+Survey+County+Atlas+Series&amp;body=%23+%5BHarvest+Due%5D+Minnesota+Geological+Survey+County+Atlas+Series%0A%0A-+Harvest+record%3A+%5Bharvest_05d-04%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_05d-04%2Fedit%29%0A-+Identifier%3A+%5B05d-04%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F05d-04%2Fedit%29%0A-+Due+date%3A+2022-04-26%0A-+Last+harvested%3A+2021-04-26%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_05d-04%3A2022-04-26+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Digital Sanborn Maps (Black &amp; White) [All States] {1867-1970}</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_999-0011/edit" target="_blank" rel="noreferrer"><code>harvest_999-0011</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/999-0011/edit" target="_blank" rel="noreferrer"><code>999-0011</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2022-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Digital+Sanborn+Maps+%28Black+%26+White%29+%5BAll+States%5D+%7B1867-1970%7D&amp;body=%23+%5BHarvest+Due%5D+Digital+Sanborn+Maps+%28Black+%26+White%29+%5BAll+States%5D+%7B1867-1970%7D%0A%0A-+Harvest+record%3A+%5Bharvest_999-0011%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_999-0011%2Fedit%29%0A-+Identifier%3A+%5B999-0011%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F999-0011%2Fedit%29%0A-+Due+date%3A+2022-04-27%0A-+Last+harvested%3A+2021-04-27%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_999-0011%3A2022-04-27+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Fire Insurance Maps Online (FIMo) [All States]</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_999-0010/edit" target="_blank" rel="noreferrer"><code>harvest_999-0010</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/999-0010/edit" target="_blank" rel="noreferrer"><code>999-0010</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2022-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Fire+Insurance+Maps+Online+%28FIMo%29+%5BAll+States%5D&amp;body=%23+%5BHarvest+Due%5D+Fire+Insurance+Maps+Online+%28FIMo%29+%5BAll+States%5D%0A%0A-+Harvest+record%3A+%5Bharvest_999-0010%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_999-0010%2Fedit%29%0A-+Identifier%3A+%5B999-0010%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F999-0010%2Fedit%29%0A-+Due+date%3A+2022-04-27%0A-+Last+harvested%3A+2021-04-27%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_999-0010%3A2022-04-27+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for National Historical Geographic Information System (NHGIS)</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_05d-10/edit" target="_blank" rel="noreferrer"><code>harvest_05d-10</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/05d-10/edit" target="_blank" rel="noreferrer"><code>05d-10</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2022-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+National+Historical+Geographic+Information+System+%28NHGIS%29&amp;body=%23+%5BHarvest+Due%5D+National+Historical+Geographic+Information+System+%28NHGIS%29%0A%0A-+Harvest+record%3A+%5Bharvest_05d-10%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_05d-10%2Fedit%29%0A-+Identifier%3A+%5B05d-10%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F05d-10%2Fedit%29%0A-+Due+date%3A+2022-04-27%0A-+Last+harvested%3A+2021-04-27%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_05d-10%3A2022-04-27+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for PolicyMap</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_999-0003/edit" target="_blank" rel="noreferrer"><code>harvest_999-0003</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/999-0003/edit" target="_blank" rel="noreferrer"><code>999-0003</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2022-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/8" target="_blank" rel="noreferrer">Open issue #8</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for ORNL LandScan Viewer</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_88-0001/edit" target="_blank" rel="noreferrer"><code>harvest_88-0001</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/88-0001/edit" target="_blank" rel="noreferrer"><code>88-0001</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2025-12-30</span></div><div class="timing-meta">Last harvested: 2024-12-30</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/10" target="_blank" rel="noreferrer">Open issue #10</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>template_csv</h3>
+        <div class="workflow-meta">4 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Urban Base Layers - Minneapolis</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/b1g_27_43000/edit" target="_blank" rel="noreferrer"><code>b1g_27_43000</code></a></div><div class="task-meta">Identifier: <code>None</code></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2012-01-01</span></div><div class="timing-meta">Last harvested: 2011-01-01</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Urban+Base+Layers+-+Minneapolis&amp;body=%23+%5BHarvest+Due%5D+Urban+Base+Layers+-+Minneapolis%0A%0A-+Harvest+record%3A+%5Bb1g_27_43000%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fb1g_27_43000%2Fedit%29%0A-+Identifier%3A+None%0A-+Due+date%3A+2012-01-01%0A-+Last+harvested%3A+2011-01-01%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Ab1g_27_43000%3A2012-01-01+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Urban Base Layers - Columbus</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/b1g_39_18000/edit" target="_blank" rel="noreferrer"><code>b1g_39_18000</code></a></div><div class="task-meta">Identifier: <code>None</code></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2026-01-05</span></div><div class="timing-meta">Last harvested: 2025-01-05</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Urban+Base+Layers+-+Columbus&amp;body=%23+%5BHarvest+Due%5D+Urban+Base+Layers+-+Columbus%0A%0A-+Harvest+record%3A+%5Bb1g_39_18000%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fb1g_39_18000%2Fedit%29%0A-+Identifier%3A+None%0A-+Due+date%3A+2026-01-05%0A-+Last+harvested%3A+2025-01-05%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Ab1g_39_18000%3A2026-01-05+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Urban Base Layers - Philadelphia</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/b1g_42_60000/edit" target="_blank" rel="noreferrer"><code>b1g_42_60000</code></a></div><div class="task-meta">Identifier: <code>None</code></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2026-12-09</span></div><div class="timing-meta">Last harvested: 2025-12-09</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Urban+Base+Layers+-+Philadelphia&amp;body=%23+%5BHarvest+Due%5D+Urban+Base+Layers+-+Philadelphia%0A%0A-+Harvest+record%3A+%5Bb1g_42_60000%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fb1g_42_60000%2Fedit%29%0A-+Identifier%3A+None%0A-+Due+date%3A+2026-12-09%0A-+Last+harvested%3A+2025-12-09%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Ab1g_42_60000%3A2026-12-09+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Urban Base Layers - Baltimore</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/b1g_24_51000/edit" target="_blank" rel="noreferrer"><code>b1g_24_51000</code></a></div><div class="task-meta">Identifier: <code>None</code></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2027-01-23</span></div><div class="timing-meta">Last harvested: 2026-01-23</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Urban+Base+Layers+-+Baltimore&amp;body=%23+%5BHarvest+Due%5D+Urban+Base+Layers+-+Baltimore%0A%0A-+Harvest+record%3A+%5Bb1g_24_51000%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fb1g_24_51000%2Fedit%29%0A-+Identifier%3A+None%0A-+Due+date%3A+2027-01-23%0A-+Last+harvested%3A+2026-01-23%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Ab1g_24_51000%3A2027-01-23+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="due-section section-pill--reviews">
+    <div class="section-header">
+      <h2>To be reviewed (51)</h2>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>S01_csv</h3>
+        <div class="workflow-meta">2 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Indiana Historic Maps</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/01d-01/edit" target="_blank" rel="noreferrer"><code>01d-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/https://webapp1.dlib.indiana.edu/images/splash.htm?scope=iubmaps/edit" target="_blank" rel="noreferrer"><code>https://webapp1.dlib.indiana.edu/images/splash.htm?scope=iubmaps</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2025-01-01</span></div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Indiana+Historic+Maps&amp;body=%23+%5BReview+Due%5D+Indiana+Historic+Maps%0A%0A-+Harvest+record%3A+%5B01d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F01d-01%2Fedit%29%0A-+Identifier%3A+%5Bhttps%3A%2F%2Fwebapp1.dlib.indiana.edu%2Fimages%2Fsplash.htm%3Fscope%3Diubmaps%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fhttps%3A%2F%2Fwebapp1.dlib.indiana.edu%2Fimages%2Fsplash.htm%3Fscope%3Diubmaps%2Fedit%29%0A-+Due+date%3A+2025-01-01%0A-+Last+harvested%3A+2023-01-01%0A%0A%3C%21--+harvest-task-key%3A+review%3A01d-01%3A2025-01-01+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Russian Military Topographic Map Collection</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/01d-03/edit" target="_blank" rel="noreferrer"><code>01d-03</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/https://digitalcollections.iu.edu/collections/n8710x07k/edit" target="_blank" rel="noreferrer"><code>https://digitalcollections.iu.edu/collections/n8710x07k</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2025-01-01</span></div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/9" target="_blank" rel="noreferrer">Open issue #9</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_arcgis_online</h3>
+        <div class="workflow-meta">2 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Hoosier Resilience Index: Indiana</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_01d-04/edit" target="_blank" rel="noreferrer"><code>harvest_01d-04</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/01d-04/edit" target="_blank" rel="noreferrer"><code>01d-04</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2022-10-21</span></div><div class="timing-meta">Last harvested: 2021-10-21</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Hoosier+Resilience+Index%3A+Indiana&amp;body=%23+%5BReview+Due%5D+Hoosier+Resilience+Index%3A+Indiana%0A%0A-+Harvest+record%3A+%5Bharvest_01d-04%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_01d-04%2Fedit%29%0A-+Identifier%3A+%5B01d-04%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F01d-04%2Fedit%29%0A-+Due+date%3A+2022-10-21%0A-+Last+harvested%3A+2021-10-21%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_01d-04%3A2022-10-21+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for ArcGIS Online at the University of Minnesota</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_05d-07/edit" target="_blank" rel="noreferrer"><code>harvest_05d-07</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/05d-07/edit" target="_blank" rel="noreferrer"><code>05d-07</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2026-08-24</span></div><div class="timing-meta">Last harvested: 2025-08-24</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+ArcGIS+Online+at+the+University+of+Minnesota&amp;body=%23+%5BReview+Due%5D+ArcGIS+Online+at+the+University+of+Minnesota%0A%0A-+Harvest+record%3A+%5Bharvest_05d-07%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_05d-07%2Fedit%29%0A-+Identifier%3A+%5B05d-07%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F05d-07%2Fedit%29%0A-+Due+date%3A+2026-08-24%0A-+Last+harvested%3A+2025-08-24%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_05d-07%3A2026-08-24+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_mods</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Michigan State University Libraries Maps</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_06d-01/edit" target="_blank" rel="noreferrer"><code>harvest_06d-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/06d-01/edit" target="_blank" rel="noreferrer"><code>06d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Michigan+State+University+Libraries+Maps&amp;body=%23+%5BReview+Due%5D+Michigan+State+University+Libraries+Maps%0A%0A-+Harvest+record%3A+%5Bharvest_06d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_06d-01%2Fedit%29%0A-+Identifier%3A+%5B06d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F06d-01%2Fedit%29%0A-+Due+date%3A+2023-04-27%0A-+Last+harvested%3A+2021-04-27%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_06d-01%3A2023-04-27+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_oai_qdc</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for 17d-01 UW Digital Collections Skinner Maps</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_17d-01_skinner/edit" target="_blank" rel="noreferrer"><code>harvest_17d-01_skinner</code></a></div><div class="task-meta">Identifier: <code>None</code></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2027-03-30</span></div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+17d-01+UW+Digital+Collections+Skinner+Maps&amp;body=%23+%5BReview+Due%5D+17d-01+UW+Digital+Collections+Skinner+Maps%0A%0A-+Harvest+record%3A+%5Bharvest_17d-01_skinner%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_17d-01_skinner%2Fedit%29%0A-+Identifier%3A+None%0A-+Due+date%3A+2027-03-30%0A-+Last+harvested%3A+2026-03-30%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_17d-01_skinner%3A2027-03-30+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_oaipmh</h3>
+        <div class="workflow-meta">7 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Digital Collections at the University of Illinois at Urbana-Champaign Library</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_02d-01/edit" target="_blank" rel="noreferrer"><code>harvest_02d-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/02d-01/edit" target="_blank" rel="noreferrer"><code>02d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Digital+Collections+at+the+University+of+Illinois+at+Urbana-Champaign+Library&amp;body=%23+%5BReview+Due%5D+Digital+Collections+at+the+University+of+Illinois+at+Urbana-Champaign+Library%0A%0A-+Harvest+record%3A+%5Bharvest_02d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_02d-01%2Fedit%29%0A-+Identifier%3A+%5B02d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F02d-01%2Fedit%29%0A-+Due+date%3A+2023-04-27%0A-+Last+harvested%3A+2021-04-27%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_02d-01%3A2023-04-27+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for University of Maryland Digital Collections</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_04d-01/edit" target="_blank" rel="noreferrer"><code>harvest_04d-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/04d-01/edit" target="_blank" rel="noreferrer"><code>04d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+University+of+Maryland+Digital+Collections&amp;body=%23+%5BReview+Due%5D+University+of+Maryland+Digital+Collections%0A%0A-+Harvest+record%3A+%5Bharvest_04d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_04d-01%2Fedit%29%0A-+Identifier%3A+%5B04d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F04d-01%2Fedit%29%0A-+Due+date%3A+2023-04-27%0A-+Last+harvested%3A+2021-04-27%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_04d-01%3A2023-04-27+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Aerial Stereograms</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/02d-01-003/edit" target="_blank" rel="noreferrer"><code>02d-01-003</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/https://digital.library.illinois.edu/collections/8d8fb3d0-41f8-0137-6c50-02d0d7bfd6e4-6/edit" target="_blank" rel="noreferrer"><code>https://digital.library.illinois.edu/collections/8d8fb3d0-41f8-0137-6c50-02d0d7bfd6e4-6</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2024-01-01</span></div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Aerial+Stereograms&amp;body=%23+%5BReview+Due%5D+Aerial+Stereograms%0A%0A-+Harvest+record%3A+%5B02d-01-003%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F02d-01-003%2Fedit%29%0A-+Identifier%3A+%5Bhttps%3A%2F%2Fdigital.library.illinois.edu%2Fcollections%2F8d8fb3d0-41f8-0137-6c50-02d0d7bfd6e4-6%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fhttps%3A%2F%2Fdigital.library.illinois.edu%2Fcollections%2F8d8fb3d0-41f8-0137-6c50-02d0d7bfd6e4-6%2Fedit%29%0A-+Due+date%3A+2024-01-01%0A-+Last+harvested%3A+2023-01-01%0A%0A%3C%21--+harvest-task-key%3A+review%3A02d-01-003%3A2024-01-01+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Maps of New Jersey</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_14d-01/edit" target="_blank" rel="noreferrer"><code>harvest_14d-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/14d-01/edit" target="_blank" rel="noreferrer"><code>14d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2024-08-17</span></div><div class="timing-meta">Last harvested: 2022-08-17</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Maps+of+New+Jersey&amp;body=%23+%5BReview+Due%5D+Maps+of+New+Jersey%0A%0A-+Harvest+record%3A+%5Bharvest_14d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_14d-01%2Fedit%29%0A-+Identifier%3A+%5B14d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F14d-01%2Fedit%29%0A-+Due+date%3A+2024-08-17%0A-+Last+harvested%3A+2022-08-17%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_14d-01%3A2024-08-17+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Historical Maps Online: University of Illinois</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/02d-01-001/edit" target="_blank" rel="noreferrer"><code>02d-01-001</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/https://digital.library.illinois.edu/collections/810d3fa0-e3fb-012f-c5b6-0019b9e633c5-a/edit" target="_blank" rel="noreferrer"><code>https://digital.library.illinois.edu/collections/810d3fa0-e3fb-012f-c5b6-0019b9e633c5-a</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2025-01-01</span></div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Historical+Maps+Online%3A+University+of+Illinois&amp;body=%23+%5BReview+Due%5D+Historical+Maps+Online%3A+University+of+Illinois%0A%0A-+Harvest+record%3A+%5B02d-01-001%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F02d-01-001%2Fedit%29%0A-+Identifier%3A+%5Bhttps%3A%2F%2Fdigital.library.illinois.edu%2Fcollections%2F810d3fa0-e3fb-012f-c5b6-0019b9e633c5-a%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fhttps%3A%2F%2Fdigital.library.illinois.edu%2Fcollections%2F810d3fa0-e3fb-012f-c5b6-0019b9e633c5-a%2Fedit%29%0A-+Due+date%3A+2025-01-01%0A-+Last+harvested%3A+2023-01-01%0A%0A%3C%21--+harvest-task-key%3A+review%3A02d-01-001%3A2025-01-01+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Northwestern University Digital Collections</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_15d-01/edit" target="_blank" rel="noreferrer"><code>harvest_15d-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/15d-01/edit" target="_blank" rel="noreferrer"><code>15d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2025-02-28</span></div><div class="timing-meta">Last harvested: 2024-02-28</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Northwestern+University+Digital+Collections&amp;body=%23+%5BReview+Due%5D+Northwestern+University+Digital+Collections%0A%0A-+Harvest+record%3A+%5Bharvest_15d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_15d-01%2Fedit%29%0A-+Identifier%3A+%5B15d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F15d-01%2Fedit%29%0A-+Due+date%3A+2025-02-28%0A-+Last+harvested%3A+2024-02-28%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_15d-01%3A2025-02-28+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for University of Iowa Digital Library: Atlases and Maps</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_03d-01/edit" target="_blank" rel="noreferrer"><code>harvest_03d-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/03d-01/edit" target="_blank" rel="noreferrer"><code>03d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2026-09-16</span></div><div class="timing-meta">Last harvested: 2025-09-16</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+University+of+Iowa+Digital+Library%3A+Atlases+and+Maps&amp;body=%23+%5BReview+Due%5D+University+of+Iowa+Digital+Library%3A+Atlases+and+Maps%0A%0A-+Harvest+record%3A+%5Bharvest_03d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_03d-01%2Fedit%29%0A-+Identifier%3A+%5B03d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F03d-01%2Fedit%29%0A-+Due+date%3A+2026-09-16%0A-+Last+harvested%3A+2025-09-16%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_03d-01%3A2026-09-16+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_ogm_aardvark</h3>
+        <div class="workflow-meta">4 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for American Geographical Society Library – UWM Libraries</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_20d-0006/edit" target="_blank" rel="noreferrer"><code>harvest_20d-0006</code></a></div><div class="task-meta">Identifier: <code>None</code></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2026-06-01</span></div><div class="timing-meta">Last harvested: 2025-06-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+American+Geographical+Society+Library+%E2%80%93+UWM+Libraries&amp;body=%23+%5BReview+Due%5D+American+Geographical+Society+Library+%E2%80%93+UWM+Libraries%0A%0A-+Harvest+record%3A+%5Bharvest_20d-0006%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_20d-0006%2Fedit%29%0A-+Identifier%3A+None%0A-+Due+date%3A+2026-06-01%0A-+Last+harvested%3A+2025-06-01%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_20d-0006%3A2026-06-01+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Geospatial Information Repository (CUGIR)</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_20d-0004/edit" target="_blank" rel="noreferrer"><code>harvest_20d-0004</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/20d-0004/edit" target="_blank" rel="noreferrer"><code>20d-0004</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2026-08-23</span></div><div class="timing-meta">Last harvested: 2025-08-23</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Geospatial+Information+Repository+%28CUGIR%29&amp;body=%23+%5BReview+Due%5D+Geospatial+Information+Repository+%28CUGIR%29%0A%0A-+Harvest+record%3A+%5Bharvest_20d-0004%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_20d-0004%2Fedit%29%0A-+Identifier%3A+%5B20d-0004%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F20d-0004%2Fedit%29%0A-+Due+date%3A+2026-08-23%0A-+Last+harvested%3A+2025-08-23%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_20d-0004%3A2026-08-23+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Harvard Geospatial Library</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_20d-0001/edit" target="_blank" rel="noreferrer"><code>harvest_20d-0001</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/20d-0001/edit" target="_blank" rel="noreferrer"><code>20d-0001</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2026-08-23</span></div><div class="timing-meta">Last harvested: 2025-08-23</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Harvard+Geospatial+Library&amp;body=%23+%5BReview+Due%5D+Harvard+Geospatial+Library%0A%0A-+Harvest+record%3A+%5Bharvest_20d-0001%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_20d-0001%2Fedit%29%0A-+Identifier%3A+%5B20d-0001%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F20d-0001%2Fedit%29%0A-+Due+date%3A+2026-08-23%0A-+Last+harvested%3A+2025-08-23%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_20d-0001%3A2026-08-23+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Stanford Earthworks</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_20d-0003/edit" target="_blank" rel="noreferrer"><code>harvest_20d-0003</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/20d-0003/edit" target="_blank" rel="noreferrer"><code>20d-0003</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2026-12-31</span></div><div class="timing-meta">Last harvested: 2025-12-31</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Stanford+Earthworks&amp;body=%23+%5BReview+Due%5D+Stanford+Earthworks%0A%0A-+Harvest+record%3A+%5Bharvest_20d-0003%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_20d-0003%2Fedit%29%0A-+Identifier%3A+%5B20d-0003%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F20d-0003%2Fedit%29%0A-+Due+date%3A+2026-12-31%0A-+Last+harvested%3A+2025-12-31%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_20d-0003%3A2026-12-31+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_ogm_gbl1</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Princeton University Libraries Digital Maps &amp; Geospatial Data</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_20d-0002/edit" target="_blank" rel="noreferrer"><code>harvest_20d-0002</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/20d-0002/edit" target="_blank" rel="noreferrer"><code>20d-0002</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2026-08-23</span></div><div class="timing-meta">Last harvested: 2025-08-23</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Princeton+University+Libraries+Digital+Maps+%26+Geospatial+Data&amp;body=%23+%5BReview+Due%5D+Princeton+University+Libraries+Digital+Maps+%26+Geospatial+Data%0A%0A-+Harvest+record%3A+%5Bharvest_20d-0002%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_20d-0002%2Fedit%29%0A-+Identifier%3A+%5B20d-0002%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F20d-0002%2Fedit%29%0A-+Due+date%3A+2026-08-23%0A-+Last+harvested%3A+2025-08-23%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_20d-0002%3A2026-08-23+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_ogmwisc</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for edu.wisc</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_10d_00/edit" target="_blank" rel="noreferrer"><code>harvest_10d_00</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/10d-03/edit" target="_blank" rel="noreferrer"><code>10d-03</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-04-02</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+edu.wisc&amp;body=%23+%5BHarvest+Due%5D+edu.wisc%0A%0A-+Harvest+record%3A+%5Bharvest_10d_00%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_10d_00%2Fedit%29%0A-+Identifier%3A+%5B10d-03%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F10d-03%2Fedit%29%0A-+Due+date%3A+No+schedule%0A-+Last+harvested%3A+2026-04-02%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_10d_00%3ANo+schedule+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_opex</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Michiganology</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_06a-03/edit" target="_blank" rel="noreferrer"><code>harvest_06a-03</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/06a-03/edit" target="_blank" rel="noreferrer"><code>06a-03</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2026-08-24</span></div><div class="timing-meta">Last harvested: 2025-08-24</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Michiganology&amp;body=%23+%5BReview+Due%5D+Michiganology%0A%0A-+Harvest+record%3A+%5Bharvest_06a-03%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_06a-03%2Fedit%29%0A-+Identifier%3A+%5B06a-03%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F06a-03%2Fedit%29%0A-+Due+date%3A+2026-08-24%0A-+Last+harvested%3A+2025-08-24%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_06a-03%3A2026-08-24+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_umedia</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for UMedia: University of Minnesota python harvest</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_05d-01_py/edit" target="_blank" rel="noreferrer"><code>harvest_05d-01_py</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/05d-01/edit" target="_blank" rel="noreferrer"><code>05d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2025-12-31</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+UMedia%3A+University+of+Minnesota+python+harvest&amp;body=%23+%5BHarvest+Due%5D+UMedia%3A+University+of+Minnesota+python+harvest%0A%0A-+Harvest+record%3A+%5Bharvest_05d-01_py%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_05d-01_py%2Fedit%29%0A-+Identifier%3A+%5B05d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F05d-01%2Fedit%29%0A-+Due+date%3A+No+schedule%0A-+Last+harvested%3A+2025-12-31%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_05d-01_py%3ANo+schedule+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>template_children</h3>
+        <div class="workflow-meta">11 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for University of Minnesota Digital Conservancy DRUM</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_05d-03/edit" target="_blank" rel="noreferrer"><code>harvest_05d-03</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/05d-03/edit" target="_blank" rel="noreferrer"><code>05d-03</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2022-04-26</span></div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+University+of+Minnesota+Digital+Conservancy+DRUM&amp;body=%23+%5BReview+Due%5D+University+of+Minnesota+Digital+Conservancy+DRUM%0A%0A-+Harvest+record%3A+%5Bharvest_05d-03%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_05d-03%2Fedit%29%0A-+Identifier%3A+%5B05d-03%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F05d-03%2Fedit%29%0A-+Due+date%3A+2022-04-26%0A-+Last+harvested%3A+2021-04-26%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_05d-03%3A2022-04-26+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Social Explorer</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_999-0001/edit" target="_blank" rel="noreferrer"><code>harvest_999-0001</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/999-0001/edit" target="_blank" rel="noreferrer"><code>999-0001</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2022-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Social+Explorer&amp;body=%23+%5BReview+Due%5D+Social+Explorer%0A%0A-+Harvest+record%3A+%5Bharvest_999-0001%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_999-0001%2Fedit%29%0A-+Identifier%3A+%5B999-0001%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F999-0001%2Fedit%29%0A-+Due+date%3A+2022-04-27%0A-+Last+harvested%3A+2021-04-27%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_999-0001%3A2022-04-27+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Purdue Campus Maps: West Lafayette, Indiana, 1890-2014</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_09d-02/edit" target="_blank" rel="noreferrer"><code>harvest_09d-02</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/09d-02/edit" target="_blank" rel="noreferrer"><code>09d-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2022-05-07</span></div><div class="timing-meta">Last harvested: 2021-05-07</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Purdue+Campus+Maps%3A+West+Lafayette%2C+Indiana%2C+1890-2014&amp;body=%23+%5BReview+Due%5D+Purdue+Campus+Maps%3A+West+Lafayette%2C+Indiana%2C+1890-2014%0A%0A-+Harvest+record%3A+%5Bharvest_09d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_09d-02%2Fedit%29%0A-+Identifier%3A+%5B09d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F09d-02%2Fedit%29%0A-+Due+date%3A+2022-05-07%0A-+Last+harvested%3A+2021-05-07%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_09d-02%3A2022-05-07+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Wabash River Historical Maps and Imagery</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_09d-01/edit" target="_blank" rel="noreferrer"><code>harvest_09d-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/09d-01/edit" target="_blank" rel="noreferrer"><code>09d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2022-05-07</span></div><div class="timing-meta">Last harvested: 2021-05-07</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Wabash+River+Historical+Maps+and+Imagery&amp;body=%23+%5BReview+Due%5D+Wabash+River+Historical+Maps+and+Imagery%0A%0A-+Harvest+record%3A+%5Bharvest_09d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_09d-01%2Fedit%29%0A-+Identifier%3A+%5B09d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F09d-01%2Fedit%29%0A-+Due+date%3A+2022-05-07%0A-+Last+harvested%3A+2021-05-07%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_09d-01%3A2022-05-07+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Iowa parcels</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_03d-06/edit" target="_blank" rel="noreferrer"><code>harvest_03d-06</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/78ebcce3-6558-430f-8c3c-7be8cb1fbda2/edit" target="_blank" rel="noreferrer"><code>78ebcce3-6558-430f-8c3c-7be8cb1fbda2</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2024-01-01</span></div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Iowa+parcels&amp;body=%23+%5BReview+Due%5D+Iowa+parcels%0A%0A-+Harvest+record%3A+%5Bharvest_03d-06%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_03d-06%2Fedit%29%0A-+Identifier%3A+%5B78ebcce3-6558-430f-8c3c-7be8cb1fbda2%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F78ebcce3-6558-430f-8c3c-7be8cb1fbda2%2Fedit%29%0A-+Due+date%3A+2024-01-01%0A-+Last+harvested%3A+2023-01-01%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_03d-06%3A2024-01-01+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for standalone resources</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_standalone_resources/edit" target="_blank" rel="noreferrer"><code>harvest_standalone_resources</code></a></div><div class="task-meta">Identifier: <code>None</code></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2024-01-01</span></div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+standalone+resources&amp;body=%23+%5BReview+Due%5D+standalone+resources%0A%0A-+Harvest+record%3A+%5Bharvest_standalone_resources%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_standalone_resources%2Fedit%29%0A-+Identifier%3A+None%0A-+Due+date%3A+2024-01-01%0A-+Last+harvested%3A+2023-01-01%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_standalone_resources%3A2024-01-01+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Dividing the City: Race-Restrictive Covenants in St. Louis and St. Louis County</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_03d-02/edit" target="_blank" rel="noreferrer"><code>harvest_03d-02</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/b492921b-eebf-442f-acb4-1dc6b0d21cc8/edit" target="_blank" rel="noreferrer"><code>b492921b-eebf-442f-acb4-1dc6b0d21cc8</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2025-05-11</span></div><div class="timing-meta">Last harvested: 2023-05-11</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Dividing+the+City%3A+Race-Restrictive+Covenants+in+St.+Louis+and+St.+Louis+County&amp;body=%23+%5BReview+Due%5D+Dividing+the+City%3A+Race-Restrictive+Covenants+in+St.+Louis+and+St.+Louis+County%0A%0A-+Harvest+record%3A+%5Bharvest_03d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_03d-02%2Fedit%29%0A-+Identifier%3A+%5Bb492921b-eebf-442f-acb4-1dc6b0d21cc8%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fb492921b-eebf-442f-acb4-1dc6b0d21cc8%2Fedit%29%0A-+Due+date%3A+2025-05-11%0A-+Last+harvested%3A+2023-05-11%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_03d-02%3A2025-05-11+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for DigitalCommons@University of Nebraska-Lincoln</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_13d-01/edit" target="_blank" rel="noreferrer"><code>harvest_13d-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/13d-01/edit" target="_blank" rel="noreferrer"><code>13d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2026-09-19</span></div><div class="timing-meta">Last harvested: 2025-09-19</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+DigitalCommons%40University+of+Nebraska-Lincoln&amp;body=%23+%5BReview+Due%5D+DigitalCommons%40University+of+Nebraska-Lincoln%0A%0A-+Harvest+record%3A+%5Bharvest_13d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_13d-01%2Fedit%29%0A-+Identifier%3A+%5B13d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F13d-01%2Fedit%29%0A-+Due+date%3A+2026-09-19%0A-+Last+harvested%3A+2025-09-19%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_13d-01%3A2026-09-19+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for American Panorama</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_20d-0005/edit" target="_blank" rel="noreferrer"><code>harvest_20d-0005</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/20d-0005/edit" target="_blank" rel="noreferrer"><code>20d-0005</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2026-09-20</span></div><div class="timing-meta">Last harvested: 2025-09-20</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+American+Panorama&amp;body=%23+%5BReview+Due%5D+American+Panorama%0A%0A-+Harvest+record%3A+%5Bharvest_20d-0005%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_20d-0005%2Fedit%29%0A-+Identifier%3A+%5B20d-0005%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F20d-0005%2Fedit%29%0A-+Due+date%3A+2026-09-20%0A-+Last+harvested%3A+2025-09-20%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_20d-0005%3A2026-09-20+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for The Newberry Library Digital Collections</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_77d-0004/edit" target="_blank" rel="noreferrer"><code>harvest_77d-0004</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/77d-0004/edit" target="_blank" rel="noreferrer"><code>77d-0004</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2026-09-20</span></div><div class="timing-meta">Last harvested: 2025-09-20</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+The+Newberry+Library+Digital+Collections&amp;body=%23+%5BReview+Due%5D+The+Newberry+Library+Digital+Collections%0A%0A-+Harvest+record%3A+%5Bharvest_77d-0004%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_77d-0004%2Fedit%29%0A-+Identifier%3A+%5B77d-0004%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F77d-0004%2Fedit%29%0A-+Due+date%3A+2026-09-20%0A-+Last+harvested%3A+2025-09-20%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_77d-0004%3A2026-09-20+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Image and Multimedia Collections at the University of Nebraska-Lincoln</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_13d-02/edit" target="_blank" rel="noreferrer"><code>harvest_13d-02</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/13d-02/edit" target="_blank" rel="noreferrer"><code>13d-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2021-05-25</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Image+and+Multimedia+Collections+at+the+University+of+Nebraska-Lincoln&amp;body=%23+%5BHarvest+Due%5D+Image+and+Multimedia+Collections+at+the+University+of+Nebraska-Lincoln%0A%0A-+Harvest+record%3A+%5Bharvest_13d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_13d-02%2Fedit%29%0A-+Identifier%3A+%5B13d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F13d-02%2Fedit%29%0A-+Due+date%3A+No+schedule%0A-+Last+harvested%3A+2021-05-25%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_13d-02%3ANo+schedule+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>template_csv</h3>
+        <div class="workflow-meta">16 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Polar Geospatial Center</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_05d-06/edit" target="_blank" rel="noreferrer"><code>harvest_05d-06</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/05d-06/edit" target="_blank" rel="noreferrer"><code>05d-06</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2022-04-26</span></div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Polar+Geospatial+Center&amp;body=%23+%5BReview+Due%5D+Polar+Geospatial+Center%0A%0A-+Harvest+record%3A+%5Bharvest_05d-06%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_05d-06%2Fedit%29%0A-+Identifier%3A+%5B05d-06%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F05d-06%2Fedit%29%0A-+Due+date%3A+2022-04-26%0A-+Last+harvested%3A+2021-04-26%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_05d-06%3A2022-04-26+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Clark Library Scanned Maps</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_07d-01/edit" target="_blank" rel="noreferrer"><code>harvest_07d-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/07d-01/edit" target="_blank" rel="noreferrer"><code>07d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-16</span></div><div class="timing-meta">Last harvested: 2021-04-16</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Clark+Library+Scanned+Maps&amp;body=%23+%5BReview+Due%5D+Clark+Library+Scanned+Maps%0A%0A-+Harvest+record%3A+%5Bharvest_07d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_07d-01%2Fedit%29%0A-+Identifier%3A+%5B07d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F07d-01%2Fedit%29%0A-+Due+date%3A+2023-04-16%0A-+Last+harvested%3A+2021-04-16%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_07d-01%3A2023-04-16+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Donald W. Hamer Center for Maps and Geospatial Information Digital Map Drawer of Penn State Rare Maps</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_08d-01/edit" target="_blank" rel="noreferrer"><code>harvest_08d-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/08d-01/edit" target="_blank" rel="noreferrer"><code>08d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Donald+W.+Hamer+Center+for+Maps+and+Geospatial+Information+Digital+Map+Drawer+of+Penn+State+Rare+Maps&amp;body=%23+%5BReview+Due%5D+Donald+W.+Hamer+Center+for+Maps+and+Geospatial+Information+Digital+Map+Drawer+of+Penn+State+Rare+Maps%0A%0A-+Harvest+record%3A+%5Bharvest_08d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_08d-01%2Fedit%29%0A-+Identifier%3A+%5B08d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F08d-01%2Fedit%29%0A-+Due+date%3A+2023-04-27%0A-+Last+harvested%3A+2021-04-27%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_08d-01%3A2023-04-27+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Early Modern Maps of the Americas</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_12d-02/edit" target="_blank" rel="noreferrer"><code>harvest_12d-02</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/12d-02/edit" target="_blank" rel="noreferrer"><code>12d-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Early+Modern+Maps+of+the+Americas&amp;body=%23+%5BReview+Due%5D+Early+Modern+Maps+of+the+Americas%0A%0A-+Harvest+record%3A+%5Bharvest_12d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_12d-02%2Fedit%29%0A-+Identifier%3A+%5B12d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F12d-02%2Fedit%29%0A-+Due+date%3A+2023-04-27%0A-+Last+harvested%3A+2021-04-27%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_12d-02%3A2023-04-27+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Sanborn Maps: Pennsylvania, 1884-1938</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_08d-02/edit" target="_blank" rel="noreferrer"><code>harvest_08d-02</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/08d-02/edit" target="_blank" rel="noreferrer"><code>08d-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Sanborn+Maps%3A+Pennsylvania%2C+1884-1938&amp;body=%23+%5BReview+Due%5D+Sanborn+Maps%3A+Pennsylvania%2C+1884-1938%0A%0A-+Harvest+record%3A+%5Bharvest_08d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_08d-02%2Fedit%29%0A-+Identifier%3A+%5B08d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F08d-02%2Fedit%29%0A-+Due+date%3A+2023-04-27%0A-+Last+harvested%3A+2021-04-27%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_08d-02%3A2023-04-27+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Social Scientists Map Chicago Collection</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_12d-01/edit" target="_blank" rel="noreferrer"><code>harvest_12d-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/12d-01/edit" target="_blank" rel="noreferrer"><code>12d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Social+Scientists+Map+Chicago+Collection&amp;body=%23+%5BReview+Due%5D+Social+Scientists+Map+Chicago+Collection%0A%0A-+Harvest+record%3A+%5Bharvest_12d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_12d-01%2Fedit%29%0A-+Identifier%3A+%5B12d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F12d-01%2Fedit%29%0A-+Due+date%3A+2023-04-27%0A-+Last+harvested%3A+2021-04-27%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_12d-01%3A2023-04-27+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Minnesota Natural Resource Atlas</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_05d-11/edit" target="_blank" rel="noreferrer"><code>harvest_05d-11</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/05d-11/edit" target="_blank" rel="noreferrer"><code>05d-11</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-05-20</span></div><div class="timing-meta">Last harvested: 2022-05-20</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Minnesota+Natural+Resource+Atlas&amp;body=%23+%5BReview+Due%5D+Minnesota+Natural+Resource+Atlas%0A%0A-+Harvest+record%3A+%5Bharvest_05d-11%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_05d-11%2Fedit%29%0A-+Identifier%3A+%5B05d-11%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F05d-11%2Fedit%29%0A-+Due+date%3A+2023-05-20%0A-+Last+harvested%3A+2022-05-20%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_05d-11%3A2023-05-20+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Geology Library and Map Room: The Ohio State University</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_11d-02/edit" target="_blank" rel="noreferrer"><code>harvest_11d-02</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/11d-02/edit" target="_blank" rel="noreferrer"><code>11d-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2024-06-10</span></div><div class="timing-meta">Last harvested: 2022-06-10</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Geology+Library+and+Map+Room%3A+The+Ohio+State+University&amp;body=%23+%5BReview+Due%5D+Geology+Library+and+Map+Room%3A+The+Ohio+State+University%0A%0A-+Harvest+record%3A+%5Bharvest_11d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_11d-02%2Fedit%29%0A-+Identifier%3A+%5B11d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F11d-02%2Fedit%29%0A-+Due+date%3A+2024-06-10%0A-+Last+harvested%3A+2022-06-10%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_11d-02%3A2024-06-10+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Center for Ancient Middle Eastern Landscapes, Institute for the Study of Ancient Cultures, University of Chicago</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_12d-04/edit" target="_blank" rel="noreferrer"><code>harvest_12d-04</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/12d-04/edit" target="_blank" rel="noreferrer"><code>12d-04</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2025-01-01</span></div><div class="timing-meta">Last harvested: 2024-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Center+for+Ancient+Middle+Eastern+Landscapes%2C+Institute+for+the+Study+of+Ancient+Cultures%2C+University+of+Chicago&amp;body=%23+%5BReview+Due%5D+Center+for+Ancient+Middle+Eastern+Landscapes%2C+Institute+for+the+Study+of+Ancient+Cultures%2C+University+of+Chicago%0A%0A-+Harvest+record%3A+%5Bharvest_12d-04%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_12d-04%2Fedit%29%0A-+Identifier%3A+%5B12d-04%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F12d-04%2Fedit%29%0A-+Due+date%3A+2025-01-01%0A-+Last+harvested%3A+2024-01-01%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_12d-04%3A2025-01-01+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Indiana Sanborn Maps</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_01d-05/edit" target="_blank" rel="noreferrer"><code>harvest_01d-05</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/01d-05/edit" target="_blank" rel="noreferrer"><code>01d-05</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2025-03-07</span></div><div class="timing-meta">Last harvested: 2024-03-07</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Indiana+Sanborn+Maps&amp;body=%23+%5BReview+Due%5D+Indiana+Sanborn+Maps%0A%0A-+Harvest+record%3A+%5Bharvest_01d-05%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_01d-05%2Fedit%29%0A-+Identifier%3A+%5B01d-05%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F01d-05%2Fedit%29%0A-+Due+date%3A+2025-03-07%0A-+Last+harvested%3A+2024-03-07%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_01d-05%3A2025-03-07+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Indiana University Digital Collections</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_01d-00/edit" target="_blank" rel="noreferrer"><code>harvest_01d-00</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/01d-00/edit" target="_blank" rel="noreferrer"><code>01d-00</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2026-08-06</span></div><div class="timing-meta">Last harvested: 2025-08-06</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Indiana+University+Digital+Collections&amp;body=%23+%5BReview+Due%5D+Indiana+University+Digital+Collections%0A%0A-+Harvest+record%3A+%5Bharvest_01d-00%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_01d-00%2Fedit%29%0A-+Identifier%3A+%5B01d-00%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F01d-00%2Fedit%29%0A-+Due+date%3A+2026-08-06%0A-+Last+harvested%3A+2025-08-06%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_01d-00%3A2026-08-06+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for ERDDAP</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_14d-02/edit" target="_blank" rel="noreferrer"><code>harvest_14d-02</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/14d-02/edit" target="_blank" rel="noreferrer"><code>14d-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2026-09-22</span></div><div class="timing-meta">Last harvested: 2025-09-22</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+ERDDAP&amp;body=%23+%5BReview+Due%5D+ERDDAP%0A%0A-+Harvest+record%3A+%5Bharvest_14d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_14d-02%2Fedit%29%0A-+Identifier%3A+%5B14d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F14d-02%2Fedit%29%0A-+Due+date%3A+2026-09-22%0A-+Last+harvested%3A+2025-09-22%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_14d-02%3A2026-09-22+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for MN Digital Library CSV submissions</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_05d-13_csv/edit" target="_blank" rel="noreferrer"><code>harvest_05d-13_csv</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/05d-13/edit" target="_blank" rel="noreferrer"><code>05d-13</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2027-03-16</span></div><div class="timing-meta">Last harvested: 2026-03-16</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+MN+Digital+Library+CSV+submissions&amp;body=%23+%5BReview+Due%5D+MN+Digital+Library+CSV+submissions%0A%0A-+Harvest+record%3A+%5Bharvest_05d-13_csv%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_05d-13_csv%2Fedit%29%0A-+Identifier%3A+%5B05d-13%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F05d-13%2Fedit%29%0A-+Due+date%3A+2027-03-16%0A-+Last+harvested%3A+2026-03-16%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_05d-13_csv%3A2027-03-16+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest parent record for U. Chicago&#x27;s Social Science map collection</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_12d-01_social_science_maps/edit" target="_blank" rel="noreferrer"><code>harvest_12d-01_social_science_maps</code></a></div><div class="task-meta">Identifier: <code>None</code></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2027-03-30</span></div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+Harvest+parent+record+for+U.+Chicago%27s+Social+Science+map+collection&amp;body=%23+%5BReview+Due%5D+Harvest+parent+record+for+U.+Chicago%27s+Social+Science+map+collection%0A%0A-+Harvest+record%3A+%5Bharvest_12d-01_social_science_maps%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_12d-01_social_science_maps%2Fedit%29%0A-+Identifier%3A+None%0A-+Due+date%3A+2027-03-30%0A-+Last+harvested%3A+2026-03-30%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_12d-01_social_science_maps%3A2027-03-30+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Bituminous coal mine maps of Pennsylvania</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_08d-03/edit" target="_blank" rel="noreferrer"><code>harvest_08d-03</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/08d-03/edit" target="_blank" rel="noreferrer"><code>08d-03</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2023-09-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+Bituminous+coal+mine+maps+of+Pennsylvania&amp;body=%23+%5BHarvest+Due%5D+Bituminous+coal+mine+maps+of+Pennsylvania%0A%0A-+Harvest+record%3A+%5Bharvest_08d-03%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_08d-03%2Fedit%29%0A-+Identifier%3A+%5B08d-03%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F08d-03%2Fedit%29%0A-+Due+date%3A+No+schedule%0A-+Last+harvested%3A+2023-09-01%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_08d-03%3ANo+schedule+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for UMedia: University of Minnesota CSVs</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_05d-01_csv/edit" target="_blank" rel="noreferrer"><code>harvest_05d-01_csv</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/05d-01/edit" target="_blank" rel="noreferrer"><code>05d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-03-15</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BHarvest+Due%5D+UMedia%3A+University+of+Minnesota+CSVs&amp;body=%23+%5BHarvest+Due%5D+UMedia%3A+University+of+Minnesota+CSVs%0A%0A-+Harvest+record%3A+%5Bharvest_05d-01_csv%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_05d-01_csv%2Fedit%29%0A-+Identifier%3A+%5B05d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F05d-01%2Fedit%29%0A-+Due+date%3A+No+schedule%0A-+Last+harvested%3A+2026-03-15%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_05d-01_csv%3ANo+schedule+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>template_json</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">University of Maryland: U.S. Government Information, Maps, &amp; GIS Services</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/04d-02/edit" target="_blank" rel="noreferrer"><code>04d-02</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/04d-02/edit" target="_blank" rel="noreferrer"><code>04d-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2025-01-01</span></div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+University+of+Maryland%3A+U.S.+Government+Information%2C+Maps%2C+%26+GIS+Services&amp;body=%23+%5BReview+Due%5D+University+of+Maryland%3A+U.S.+Government+Information%2C+Maps%2C+%26+GIS+Services%0A%0A-+Harvest+record%3A+%5B04d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F04d-02%2Fedit%29%0A-+Identifier%3A+%5B04d-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2F04d-02%2Fedit%29%0A-+Due+date%3A+2025-01-01%0A-+Last+harvested%3A+2023-01-01%0A%0A%3C%21--+harvest-task-key%3A+review%3A04d-02%3A2025-01-01+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>template_website</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for standalone websites</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_standalone_websites/edit" target="_blank" rel="noreferrer"><code>harvest_standalone_websites</code></a></div><div class="task-meta">Identifier: <code>None</code></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2026-08-01</span></div><div class="timing-meta">Last harvested: 2025-08-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+standalone+websites&amp;body=%23+%5BReview+Due%5D+standalone+websites%0A%0A-+Harvest+record%3A+%5Bharvest_standalone_websites%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_standalone_websites%2Fedit%29%0A-+Identifier%3A+None%0A-+Due+date%3A+2026-08-01%0A-+Last+harvested%3A+2025-08-01%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_standalone_websites%3A2026-08-01+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>unspecified</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for 16d-01 Oregon Digital Oregon Maps</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_16d-01/edit" target="_blank" rel="noreferrer"><code>harvest_16d-01</code></a></div><div class="task-meta">Identifier: <code>None</code></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Review Scheduled</span><span>2027-03-30</span></div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?template=harvest-task.md&amp;title=%5BReview+Due%5D+16d-01+Oregon+Digital+Oregon+Maps&amp;body=%23+%5BReview+Due%5D+16d-01+Oregon+Digital+Oregon+Maps%0A%0A-+Harvest+record%3A+%5Bharvest_16d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fadmin%2Fdocuments%2Fharvest_16d-01%2Fedit%29%0A-+Identifier%3A+None%0A-+Due+date%3A+2027-03-30%0A-+Last+harvested%3A+2026-03-30%0A%0A%3C%21--+harvest-task-key%3A+review%3Aharvest_16d-01%3A2027-03-30+--%3E%0A%0A%23%23+Notes%0A&amp;labels=harvest-task%2Creview&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</body>
+</html>
