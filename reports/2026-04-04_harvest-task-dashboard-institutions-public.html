@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Harvest Records by Institution</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17324d;
+      --muted: #5b6b7d;
+      --line: #d7e1ec;
+      --panel: #ffffff;
+      --panel-soft: #f6f9fc;
+      --bg: #eef3f8;
+      --accent: #1f6fb2;
+      --reviews: #0f766e;
+      --reviews-soft: #d8f3ee;
+      --due: #b42318;
+      --due-soft: #fee4e2;
+      --scheduled: #b76e00;
+      --scheduled-soft: #fff1d6;
+      --no-schedule: #667085;
+      --no-schedule-soft: #edf1f5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 1.5rem auto; max-width: 1100px; padding: 0 1rem 2.5rem; font-family: "Segoe UI", sans-serif; line-height: 1.35; color: var(--ink); background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%); }
+    h1, h2, p { margin-top: 0; }
+    a { color: var(--accent); }
+    .muted { color: var(--muted); }
+    code { background: var(--panel-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .source-box, .periodicity-section { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }
+    .source-box { padding: 1rem; margin: 1rem 0 1.4rem; }
+    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }
+    .periodicity-section { overflow: hidden; margin-top: 1rem; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }
+    .section-meta { color: var(--muted); font-size: 0.82rem; }
+    .toc-box { padding: 1rem; margin: 1rem 0 1.4rem; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }
+    .toc-box ul { columns: 2; column-gap: 2rem; margin: 0.75rem 0 0; padding-left: 1.15rem; }
+    .toc-box li { break-inside: avoid; margin-bottom: 0.35rem; }
+    .record-list { display: grid; gap: 0; }
+    .record-item { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr); gap: 1rem; padding: 0.85rem 1rem; border-top: 1px solid var(--line); }
+    .record-item:first-child { border-top: none; }
+    .task-name { font-weight: 700; margin-bottom: 0.2rem; }
+    .task-meta, .timing-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }
+    .task-meta code, .timing-meta code { background: var(--no-schedule-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .date-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; font-weight: 700; }
+    .status-pill { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .status-pill--reviews { color: var(--reviews); background: var(--reviews-soft); }
+    .status-pill--due { color: var(--due); background: var(--due-soft); }
+    .status-pill--scheduled { color: var(--scheduled); background: var(--scheduled-soft); }
+    .status-pill--no-schedule { color: var(--no-schedule); background: var(--no-schedule-soft); }
+    @media (max-width: 760px) { body { padding: 0 0.7rem 2rem; } .toc-box ul { columns: 1; } .record-item { grid-template-columns: 1fr; gap: 0.45rem; } .section-header { align-items: flex-start; flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <h1>Harvest Records by Institution</h1>
+  <p class="muted">This view lists all harvest records grouped by institution code prefix, including ArcGIS Hub records, with unmatched codes collected under Other.</p>
+  <nav class="toc-box" aria-labelledby="institution-toc-heading">
+    <h2 id="institution-toc-heading">Table of Contents</h2>
+    <p class="muted">Jump directly to an institution section.</p>
+    <ul>
+      <li><a href="#indiana-university">Indiana University</a></li>
+      <li><a href="#university-of-illinois-urbana-campaign">University of Illinois Urbana-Campaign</a></li>
+      <li><a href="#university-of-iowa">University of Iowa</a></li>
+      <li><a href="#university-of-maryland">University of Maryland</a></li>
+      <li><a href="#university-of-minnesota">University of Minnesota</a></li>
+      <li><a href="#michigan-state-university">Michigan State University</a></li>
+      <li><a href="#university-of-michigan">University of Michigan</a></li>
+      <li><a href="#pennsylvania-state-university">Pennsylvania State University</a></li>
+      <li><a href="#purdue-university">Purdue University</a></li>
+      <li><a href="#university-of-wisconsin-madison">University of Wisconsin-Madison</a></li>
+      <li><a href="#the-ohio-state-university">The Ohio State University</a></li>
+      <li><a href="#university-of-chicago">University of Chicago</a></li>
+      <li><a href="#university-of-nebraska-lincoln">University of Nebraska-Lincoln</a></li>
+      <li><a href="#rutgers-university">Rutgers University</a></li>
+      <li><a href="#northwestern-university">Northwestern University</a></li>
+      <li><a href="#university-of-washington">University of Washington</a></li>
+      <li><a href="#university-of-oregon">University of Oregon</a></li>
+      <li><a href="#opengeometadata">OpenGeoMetadata</a></li>
+      <li><a href="#licensed-database">Licensed database</a></li>
+      <li><a href="#btaa-gin-curated-datasets">BTAA-GIN curated datasets</a></li>
+      <li><a href="#other">Other</a></li>
+    </ul>
+  </nav>
+  <section class="periodicity-section" id="indiana-university">
+    <div class="section-header">
+      <h2>Indiana University</h2>
+      <div class="section-meta">9 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Hoosier Resilience Index: Indiana</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2201d-04%22" target="_blank" rel="noreferrer"><code>01d-04</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-10-21</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Indiana Historic Maps</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2201d-01%22" target="_blank" rel="noreferrer"><code>01d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Russian Military Topographic Map Collection</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2201d-03%22" target="_blank" rel="noreferrer"><code>01d-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Indiana Sanborn Maps</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2201d-05%22" target="_blank" rel="noreferrer"><code>01d-05</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2024-03-07</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Evansville, Vanderburgh County, Indiana Open Data Collection</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2201b-18163%22" target="_blank" rel="noreferrer"><code>01b-18163</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Hamilton County, Indiana Open Data Collection</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2201b-18057%22" target="_blank" rel="noreferrer"><code>01b-18057</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for OpenIndy Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2201c-02%22" target="_blank" rel="noreferrer"><code>01c-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for City of Bloomington, Indiana Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2201c-01%22" target="_blank" rel="noreferrer"><code>01c-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Monthly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Indiana University Digital Collections</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2201d-00%22" target="_blank" rel="noreferrer"><code>01d-00</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-08-06</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-illinois-urbana-campaign">
+    <div class="section-header">
+      <h2>University of Illinois Urbana-Campaign</h2>
+      <div class="section-meta">11 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Digital Collections at the University of Illinois at Urbana-Champaign Library</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2202d-01%22" target="_blank" rel="noreferrer"><code>02d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Aerial Stereograms</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2202d-03%22" target="_blank" rel="noreferrer"><code>02d-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Historical Maps Online: University of Illinois</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2202d-01%22" target="_blank" rel="noreferrer"><code>02d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for City of Champaign GIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2202c-02%22" target="_blank" rel="noreferrer"><code>02c-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Evanston, Illinois Open Data Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2202c-01%22" target="_blank" rel="noreferrer"><code>02c-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Illinois DOT Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2202a-04%22" target="_blank" rel="noreferrer"><code>02a-04</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Kankakee County GIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2202b-17091%22" target="_blank" rel="noreferrer"><code>02b-17091</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for McLean County GIS Consortium Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2202b-17113%22" target="_blank" rel="noreferrer"><code>02b-17113</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Macoupin Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2202b-17117%22" target="_blank" rel="noreferrer"><code>02b-17117</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Monthly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">State of Illinois Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2202a-03%22" target="_blank" rel="noreferrer"><code>02a-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Monthly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Illinois Geospatial Data Clearinghouse</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2202a-01%22" target="_blank" rel="noreferrer"><code>02a-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Quarterly</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-iowa">
+    <div class="section-header">
+      <h2>University of Iowa</h2>
+      <div class="section-meta">7 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Iowa parcels</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2203d-06%22" target="_blank" rel="noreferrer"><code>03d-06</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Dividing the City: Race-Restrictive Covenants in St. Louis and St. Louis County</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2203d-02%22" target="_blank" rel="noreferrer"><code>03d-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2023-05-11</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Iowa Geodata</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2203a-03%22" target="_blank" rel="noreferrer"><code>03a-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for IowaDOT Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2203a-02%22" target="_blank" rel="noreferrer"><code>03a-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Linn County, Iowa Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2203b-19113%22" target="_blank" rel="noreferrer"><code>03b-19113</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Pottawattamie County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2203b-19155%22" target="_blank" rel="noreferrer"><code>03b-19155</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for University of Iowa Digital Library: Atlases and Maps</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2203d-01%22" target="_blank" rel="noreferrer"><code>03d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-09-16</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-maryland">
+    <div class="section-header">
+      <h2>University of Maryland</h2>
+      <div class="section-meta">15 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for University of Maryland Digital Collections</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204d-01%22" target="_blank" rel="noreferrer"><code>04d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">University of Maryland: U.S. Government Information, Maps, &amp; GIS Services</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204d-02%22" target="_blank" rel="noreferrer"><code>04d-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Anne Arundel County GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204b-24003%22" target="_blank" rel="noreferrer"><code>04b-24003</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Baltimore County Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204b-24005%22" target="_blank" rel="noreferrer"><code>04b-24005</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Calvert County Open GIS Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204b-24009%22" target="_blank" rel="noreferrer"><code>04b-24009</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Carroll County GIS Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204b-24013%22" target="_blank" rel="noreferrer"><code>04b-24013</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Delaware Valley Regional Planning Commission (DVRPC)</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204f-01%22" target="_blank" rel="noreferrer"><code>04f-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Frederick County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204b-24021%22" target="_blank" rel="noreferrer"><code>04b-24021</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Harford County Planning and Zoning Open GIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204b-24025%22" target="_blank" rel="noreferrer"><code>04b-24025</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Maryland iMap</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204a-01%22" target="_blank" rel="noreferrer"><code>04a-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Montgomery County GIS Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204b-24031%22" target="_blank" rel="noreferrer"><code>04b-24031</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Open Baltimore</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204c-02%22" target="_blank" rel="noreferrer"><code>04c-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Open Data DC</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204c-01%22" target="_blank" rel="noreferrer"><code>04c-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Howard County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204b-24027%22" target="_blank" rel="noreferrer"><code>04b-24027</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Monthly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Prince George&#x27;s County Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204b-24033%22" target="_blank" rel="noreferrer"><code>04b-24033</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Monthly</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-minnesota">
+    <div class="section-header">
+      <h2>University of Minnesota</h2>
+      <div class="section-meta">44 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for General Land Office Township Plats: Minnesota</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205a-03%22" target="_blank" rel="noreferrer"><code>05a-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Periodicity: Annual</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Minnesota Geological Survey County Atlas Series</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-04%22" target="_blank" rel="noreferrer"><code>05d-04</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Periodicity: Annual</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Polar Geospatial Center</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-06%22" target="_blank" rel="noreferrer"><code>05d-06</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for University of Minnesota Digital Conservancy DRUM</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-03%22" target="_blank" rel="noreferrer"><code>05d-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for National Historical Geographic Information System (NHGIS)</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-10%22" target="_blank" rel="noreferrer"><code>05d-10</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Annual</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Minnesota Natural Resource Atlas</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-11%22" target="_blank" rel="noreferrer"><code>05d-11</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2022-05-20</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Beltrami County Open GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27007%22" target="_blank" rel="noreferrer"><code>05b-27007</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Big Stone County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27011%22" target="_blank" rel="noreferrer"><code>05b-27011</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Carver County GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27019%22" target="_blank" rel="noreferrer"><code>05b-27019</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Chippewa County Open GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27023%22" target="_blank" rel="noreferrer"><code>05b-27023</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for City of Duluth GeoHub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205c-03%22" target="_blank" rel="noreferrer"><code>05c-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for City of Saint Paul GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205c-02%22" target="_blank" rel="noreferrer"><code>05c-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Clay County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27027%22" target="_blank" rel="noreferrer"><code>05b-27027</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Cook County Open GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27031%22" target="_blank" rel="noreferrer"><code>05b-27031</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Crow Wing County GIS Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27035%22" target="_blank" rel="noreferrer"><code>05b-27035</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Douglas County Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27041%22" target="_blank" rel="noreferrer"><code>05b-27041</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Grant County Open Data Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27051%22" target="_blank" rel="noreferrer"><code>05b-27051</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Hennepin County GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27053%22" target="_blank" rel="noreferrer"><code>05b-27053</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Hubbard County Open Geospatial Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27057%22" target="_blank" rel="noreferrer"><code>05b-27057</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Isanti County Geospatial Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27059%22" target="_blank" rel="noreferrer"><code>05b-27059</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Lyon County, MN Mapping Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27083%22" target="_blank" rel="noreferrer"><code>05b-27083</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Mower County Geospatial Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27099%22" target="_blank" rel="noreferrer"><code>05b-27099</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Open Data Minneapolis</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205c-01%22" target="_blank" rel="noreferrer"><code>05c-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Otter Tail County Maps and Data Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27111%22" target="_blank" rel="noreferrer"><code>05b-27111</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Pipestone County Land Records Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27117%22" target="_blank" rel="noreferrer"><code>05b-27117</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Polk County GIS Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27119%22" target="_blank" rel="noreferrer"><code>05b-27119</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Pope County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27121%22" target="_blank" rel="noreferrer"><code>05b-27121</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Ramsey County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27123%22" target="_blank" rel="noreferrer"><code>05b-27123</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Renville County Open GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27129%22" target="_blank" rel="noreferrer"><code>05b-27129</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Saint Louis County GIS &amp; Mapping</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27137%22" target="_blank" rel="noreferrer"><code>05b-27137</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Scott County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27139%22" target="_blank" rel="noreferrer"><code>05b-27139</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Sherburne County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27141%22" target="_blank" rel="noreferrer"><code>05b-27141</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Stearns County GIS Data for Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27145%22" target="_blank" rel="noreferrer"><code>05b-27145</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Stevens County Geospatial Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27149%22" target="_blank" rel="noreferrer"><code>05b-27149</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Three Rivers Park District Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" target="_blank" rel="noreferrer"><code>05f-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Traverse County Open GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27155%22" target="_blank" rel="noreferrer"><code>05b-27155</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Washington County MN Geospatial Maps and Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27163%22" target="_blank" rel="noreferrer"><code>05b-27163</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Wilkin County, Minnesota Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27167%22" target="_blank" rel="noreferrer"><code>05b-27167</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Yellow Medicine County Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205b-27173%22" target="_blank" rel="noreferrer"><code>05b-27173</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Minnesota Geospatial Commons</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205a-01%22" target="_blank" rel="noreferrer"><code>05a-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-16</div><div class="timing-meta">Periodicity: Monthly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for ArcGIS Online at the University of Minnesota</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-07%22" target="_blank" rel="noreferrer"><code>05d-07</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-08-24</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for MN Digital Library CSV submissions</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-13%22" target="_blank" rel="noreferrer"><code>05d-13</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-16</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for UMedia: University of Minnesota CSVs</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-01%22" target="_blank" rel="noreferrer"><code>05d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-15</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for UMedia: University of Minnesota python harvest</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-01%22" target="_blank" rel="noreferrer"><code>05d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-12-31</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="michigan-state-university">
+    <div class="section-header">
+      <h2>Michigan State University</h2>
+      <div class="section-meta">6 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Michigan State University Libraries Maps</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2206d-01%22" target="_blank" rel="noreferrer"><code>06d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Michigan DNR Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2206a-02%22" target="_blank" rel="noreferrer"><code>06a-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Oakland County, MI Open data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2206b-26125%22" target="_blank" rel="noreferrer"><code>06b-26125</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for SEMCOG Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2206f-01%22" target="_blank" rel="noreferrer"><code>06f-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for State of Michigan Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2206a-01%22" target="_blank" rel="noreferrer"><code>06a-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Michiganology</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2206a-03%22" target="_blank" rel="noreferrer"><code>06a-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-08-24</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-michigan">
+    <div class="section-header">
+      <h2>University of Michigan</h2>
+      <div class="section-meta">6 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Clark Library Scanned Maps</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2207d-01%22" target="_blank" rel="noreferrer"><code>07d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-16</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Detroit Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2207c-01%22" target="_blank" rel="noreferrer"><code>07c-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Grand Rapids, Michigan Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2207c-03%22" target="_blank" rel="noreferrer"><code>07c-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for MapFlint Data Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2207c-04%22" target="_blank" rel="noreferrer"><code>07c-04</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for UM Matthaei Botanical Gardens and Nichols Arboretum</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2207d-02%22" target="_blank" rel="noreferrer"><code>07d-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Washtenaw County, Michigan Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2207b-26161%22" target="_blank" rel="noreferrer"><code>07b-26161</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="pennsylvania-state-university">
+    <div class="section-header">
+      <h2>Pennsylvania State University</h2>
+      <div class="section-meta">17 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Donald W. Hamer Center for Maps and Geospatial Information Digital Map Drawer of Penn State Rare Maps</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208d-01%22" target="_blank" rel="noreferrer"><code>08d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Sanborn Maps: Pennsylvania, 1884-1938</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208d-02%22" target="_blank" rel="noreferrer"><code>08d-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Allegheny County GIS Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208b-42003%22" target="_blank" rel="noreferrer"><code>08b-42003</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Centre County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208b-42027%22" target="_blank" rel="noreferrer"><code>08b-42027</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Chester County GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208b-42029%22" target="_blank" rel="noreferrer"><code>08b-42029</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Crawford County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208b-42039%22" target="_blank" rel="noreferrer"><code>08b-42039</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Dauphin County GIS Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208b-42043%22" target="_blank" rel="noreferrer"><code>08b-42043</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Montgomery County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208b-42091%22" target="_blank" rel="noreferrer"><code>08b-42091</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for North Central PA Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208f-03%22" target="_blank" rel="noreferrer"><code>08f-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for PHLmaps</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208c-01-2%22" target="_blank" rel="noreferrer"><code>08c-01-2</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Pennsylvania Department of Conservation and Natural Resources Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208a-02%22" target="_blank" rel="noreferrer"><code>08a-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Pennsylvania Department of Environmental Protection</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208a-03%22" target="_blank" rel="noreferrer"><code>08a-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Pittsburgh Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208c-02%22" target="_blank" rel="noreferrer"><code>08c-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for York County, PA GIS Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208b-42133%22" target="_blank" rel="noreferrer"><code>08b-42133</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for PASDA: The Pennsylvania Geospatial Data Clearinghouse</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208a-01%22" target="_blank" rel="noreferrer"><code>08a-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Quarterly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Western Pennsylvania Regional Data Center Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208f-01%22" target="_blank" rel="noreferrer"><code>08f-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-31</div><div class="timing-meta">Periodicity: Quarterly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Bituminous coal mine maps of Pennsylvania</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208d-03%22" target="_blank" rel="noreferrer"><code>08d-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2023-09-01</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="purdue-university">
+    <div class="section-header">
+      <h2>Purdue University</h2>
+      <div class="section-meta">4 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Purdue Campus Maps: West Lafayette, Indiana, 1890-2014</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2209d-02%22" target="_blank" rel="noreferrer"><code>09d-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-05-07</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Wabash River Historical Maps and Imagery</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2209d-01%22" target="_blank" rel="noreferrer"><code>09d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-05-07</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for IndianaMap</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2209a-04%22" target="_blank" rel="noreferrer"><code>09a-04</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for South Bend, IN Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2209c-01%22" target="_blank" rel="noreferrer"><code>09c-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-wisconsin-madison">
+    <div class="section-header">
+      <h2>University of Wisconsin-Madison</h2>
+      <div class="section-meta">24 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Ashland County, WI GIS Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55003%22" target="_blank" rel="noreferrer"><code>10b-55003</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Calumet County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55015%22" target="_blank" rel="noreferrer"><code>10b-55015</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Capital Area Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55025%22" target="_blank" rel="noreferrer"><code>10b-55025</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for City of Madison, WI GIS Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210c-03%22" target="_blank" rel="noreferrer"><code>10c-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Discover Dane County, WI</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55025%22" target="_blank" rel="noreferrer"><code>10b-55025</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Eau Claire County Geospatial Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55035%22" target="_blank" rel="noreferrer"><code>10b-55035</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for GIS Divison of Eau Claire County, WI</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55035%22" target="_blank" rel="noreferrer"><code>10b-55035</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Geodata Hub of Vilas County, WI</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55125%22" target="_blank" rel="noreferrer"><code>10b-55125</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Kenosha County, WI GIS Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55059%22" target="_blank" rel="noreferrer"><code>10b-55059</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Land Records Data Portal of Columbia County, WI</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55021%22" target="_blank" rel="noreferrer"><code>10b-55021</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Milwaukee County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55079%22" target="_blank" rel="noreferrer"><code>10b-55079</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Outgamie County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55087%22" target="_blank" rel="noreferrer"><code>10b-55087</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Pierce County GIS Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55093%22" target="_blank" rel="noreferrer"><code>10b-55093</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Racine County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55101%22" target="_blank" rel="noreferrer"><code>10b-55101</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Sauk County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55111%22" target="_blank" rel="noreferrer"><code>10b-55111</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for St. Croix County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55109%22" target="_blank" rel="noreferrer"><code>10b-55109</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Washington County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55131%22" target="_blank" rel="noreferrer"><code>10b-55131</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Waukesha County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55133%22" target="_blank" rel="noreferrer"><code>10b-55133</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Waupaca County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55135%22" target="_blank" rel="noreferrer"><code>10b-55135</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Waushara County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55137%22" target="_blank" rel="noreferrer"><code>10b-55137</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Wisconsin Rapids Online Map Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210c-04%22" target="_blank" rel="noreferrer"><code>10c-04</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Wood County Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210b-55141%22" target="_blank" rel="noreferrer"><code>10b-55141</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Wisconsin Geological and Natural History Survey</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210d-06%22" target="_blank" rel="noreferrer"><code>10d-06</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-04-01</div><div class="timing-meta">Periodicity: Not provided</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for edu.wisc</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210d_00%22" target="_blank" rel="noreferrer"><code>10d_00</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-04-02</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="the-ohio-state-university">
+    <div class="section-header">
+      <h2>The Ohio State University</h2>
+      <div class="section-meta">22 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Geology Library and Map Room: The Ohio State University</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211d-02%22" target="_blank" rel="noreferrer"><code>11d-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2022-06-10</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Athens County GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39009%22" target="_blank" rel="noreferrer"><code>11b-39009</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for CAGIS Open Data Hub for Cincinnati Area, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211c-01-01%22" target="_blank" rel="noreferrer"><code>11c-01-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for City of Cleveland Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211c-03%22" target="_blank" rel="noreferrer"><code>11c-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Clinton County, Ohio, Geographic Information Systems</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39027%22" target="_blank" rel="noreferrer"><code>11b-39027</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Columbus GIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211c-02%22" target="_blank" rel="noreferrer"><code>11c-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Cuyahoga County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39035%22" target="_blank" rel="noreferrer"><code>11b-39035</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Delaware County GIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39041%22" target="_blank" rel="noreferrer"><code>11b-39041</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Franklin County Auditor, Ohio Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39049%22" target="_blank" rel="noreferrer"><code>11b-39049</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for GIS Data Downloads for Madison County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39097%22" target="_blank" rel="noreferrer"><code>11b-39097</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for GIS Data Downloads for Muskingum County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39119%22" target="_blank" rel="noreferrer"><code>11b-39119</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Greene County GIS Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39057%22" target="_blank" rel="noreferrer"><code>11b-39057</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Holmes County GIS Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39075%22" target="_blank" rel="noreferrer"><code>11b-39075</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Lake County GIS Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39085%22" target="_blank" rel="noreferrer"><code>11b-39085</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Logan County GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39091%22" target="_blank" rel="noreferrer"><code>11b-39091</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Lorain County GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39093%22" target="_blank" rel="noreferrer"><code>11b-39093</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Pickaway County GIS Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39129%22" target="_blank" rel="noreferrer"><code>11b-39129</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Putnam County GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39137%22" target="_blank" rel="noreferrer"><code>11b-39137</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Seneca County GeoLibrary</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39047%22" target="_blank" rel="noreferrer"><code>11b-39047</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Stark County GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39151%22" target="_blank" rel="noreferrer"><code>11b-39151</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Summit County GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211b-39153%22" target="_blank" rel="noreferrer"><code>11b-39153</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Open Data Cincinnati, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211c-01%22" target="_blank" rel="noreferrer"><code>11c-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Monthly</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-chicago">
+    <div class="section-header">
+      <h2>University of Chicago</h2>
+      <div class="section-meta">14 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Early Modern Maps of the Americas</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212d-02%22" target="_blank" rel="noreferrer"><code>12d-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Social Scientists Map Chicago Collection</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212d-01%22" target="_blank" rel="noreferrer"><code>12d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Center for Ancient Middle Eastern Landscapes, Institute for the Study of Ancient Cultures, University of Chicago</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212d-04%22" target="_blank" rel="noreferrer"><code>12d-04</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2024-01-01</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for CMAP (Chicago Metropolitan Agency for Planning) Data Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212f-01%22" target="_blank" rel="noreferrer"><code>12f-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Cook Central</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212b-17031%22" target="_blank" rel="noreferrer"><code>12b-17031</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for DuPage County GIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212b-17043%22" target="_blank" rel="noreferrer"><code>12b-17043</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Lake County Illinois Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212b-17097%22" target="_blank" rel="noreferrer"><code>12b-17097</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for McLean County GIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212b-17113-2%22" target="_blank" rel="noreferrer"><code>12b-17113-2</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Opioid Awareness|Peoria City/County Health Department</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212c-02%22" target="_blank" rel="noreferrer"><code>12c-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Peoria County GIS Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212b-17143%22" target="_blank" rel="noreferrer"><code>12b-17143</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for University of Chicago Library GIS Data Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212d-03%22" target="_blank" rel="noreferrer"><code>12d-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for City of Chicago Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212c-01%22" target="_blank" rel="noreferrer"><code>12c-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Monthly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Cook County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212b-17031-2%22" target="_blank" rel="noreferrer"><code>12b-17031-2</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Monthly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest parent record for U. Chicago&#x27;s Social Science map collection</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212d-01%22" target="_blank" rel="noreferrer"><code>12d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-nebraska-lincoln">
+    <div class="section-header">
+      <h2>University of Nebraska-Lincoln</h2>
+      <div class="section-meta">8 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for City of Grand Island Public GIS Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2213c-02%22" target="_blank" rel="noreferrer"><code>13c-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Lincoln Open Data and Performance Management</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2213c-01%22" target="_blank" rel="noreferrer"><code>13c-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Nebraska Game &amp; Parks Map and Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2213a-04%22" target="_blank" rel="noreferrer"><code>13a-04</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for NebraskaMap</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2213a-01%22" target="_blank" rel="noreferrer"><code>13a-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Omaha/Douglas County GIS Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2213b-31055%22" target="_blank" rel="noreferrer"><code>13b-31055</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Sarpy County GIS Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2213b-31153%22" target="_blank" rel="noreferrer"><code>13b-31153</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for DigitalCommons@University of Nebraska-Lincoln</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2213d-01%22" target="_blank" rel="noreferrer"><code>13d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-09-19</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Image and Multimedia Collections at the University of Nebraska-Lincoln</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2213d-02%22" target="_blank" rel="noreferrer"><code>13d-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-05-25</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="rutgers-university">
+    <div class="section-header">
+      <h2>Rutgers University</h2>
+      <div class="section-meta">5 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Maps of New Jersey</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2214d-01%22" target="_blank" rel="noreferrer"><code>14d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2022-08-17</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for City of Newark GIN</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2214c-01%22" target="_blank" rel="noreferrer"><code>14c-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for New Jersey Department of Environmental Protection&#x27;s (NJDEP) Bureau of GIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2214a-02%22" target="_blank" rel="noreferrer"><code>14a-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for New Jersey Geographic Information Network (NJGIN) Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2214a-01%22" target="_blank" rel="noreferrer"><code>14a-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for ERDDAP</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2214d-02%22" target="_blank" rel="noreferrer"><code>14d-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-09-22</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="northwestern-university">
+    <div class="section-header">
+      <h2>Northwestern University</h2>
+      <div class="section-meta">1 record</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Northwestern University Digital Collections</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2215d-01%22" target="_blank" rel="noreferrer"><code>15d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2024-02-28</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-washington">
+    <div class="section-header">
+      <h2>University of Washington</h2>
+      <div class="section-meta">22 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Benton County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-55005%22" target="_blank" rel="noreferrer"><code>16b-55005</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for City of Bellevue Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216c-04%22" target="_blank" rel="noreferrer"><code>16c-04</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for City of Vancouver Open Data Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216c-05%22" target="_blank" rel="noreferrer"><code>16c-05</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Clallam County GIS Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53009%22" target="_blank" rel="noreferrer"><code>16b-53009</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Clark County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53011%22" target="_blank" rel="noreferrer"><code>16b-53011</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Douglas County Mapping and Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53017%22" target="_blank" rel="noreferrer"><code>16b-53017</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Grant County Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53025%22" target="_blank" rel="noreferrer"><code>16b-53025</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Island County Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53029%22" target="_blank" rel="noreferrer"><code>16b-53029</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Jefferson County Washington Open Data Site</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53031%22" target="_blank" rel="noreferrer"><code>16b-53031</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for King County GIS Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53033%22" target="_blank" rel="noreferrer"><code>16b-53033</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Kittitas County Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53037%22" target="_blank" rel="noreferrer"><code>16b-53037</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Open Data Kitsap County GIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53035%22" target="_blank" rel="noreferrer"><code>16b-53035</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Pierce County Open GeoSpatial Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53053%22" target="_blank" rel="noreferrer"><code>16b-53053</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Puget Sound Regional Council Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216f-01%22" target="_blank" rel="noreferrer"><code>16f-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Seattle GeoData</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216c-01%22" target="_blank" rel="noreferrer"><code>16c-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Snohomish County Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53061%22" target="_blank" rel="noreferrer"><code>16b-53061</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Spokane County GIS Data Catalog</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53063%22" target="_blank" rel="noreferrer"><code>16b-53063</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for State of Washington Geospatial Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216a-01%22" target="_blank" rel="noreferrer"><code>16a-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Tacoma Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216c-03%22" target="_blank" rel="noreferrer"><code>16c-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Thurston GeoData Center</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53067%22" target="_blank" rel="noreferrer"><code>16b-53067</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Walla Walla County GIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53071%22" target="_blank" rel="noreferrer"><code>16b-53071</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Yakima County, WA - Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2216b-53077%22" target="_blank" rel="noreferrer"><code>16b-53077</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-oregon">
+    <div class="section-header">
+      <h2>University of Oregon</h2>
+      <div class="section-meta">8 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Bend Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2217c-04%22" target="_blank" rel="noreferrer"><code>17c-04</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for City of Corvallis GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2217c-05%22" target="_blank" rel="noreferrer"><code>17c-05</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for City of Eugene Mapping Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2217c-02%22" target="_blank" rel="noreferrer"><code>17c-02</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Data Salem</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2217c-03%22" target="_blank" rel="noreferrer"><code>17c-03</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Oregon GEOHub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2217a-01%22" target="_blank" rel="noreferrer"><code>17a-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for PortlandMaps Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2217c-06%22" target="_blank" rel="noreferrer"><code>17c-06</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for RLIS Discovery</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2217c-01%22" target="_blank" rel="noreferrer"><code>17c-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for 17d-01 UW Digital Collections Skinner Maps</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2217d-01%22" target="_blank" rel="noreferrer"><code>17d-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="opengeometadata">
+    <div class="section-header">
+      <h2>OpenGeoMetadata</h2>
+      <div class="section-meta">6 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for American Geographical Society Library – UWM Libraries</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2220d-0006%22" target="_blank" rel="noreferrer"><code>20d-0006</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-06-01</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Geospatial Information Repository (CUGIR)</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2220d-0004%22" target="_blank" rel="noreferrer"><code>20d-0004</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-08-23</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Harvard Geospatial Library</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2220d-0001%22" target="_blank" rel="noreferrer"><code>20d-0001</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-08-23</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Princeton University Libraries Digital Maps &amp; Geospatial Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2220d-0002%22" target="_blank" rel="noreferrer"><code>20d-0002</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-08-23</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for American Panorama</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2220d-0005%22" target="_blank" rel="noreferrer"><code>20d-0005</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-09-20</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Stanford Earthworks</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2220d-0003%22" target="_blank" rel="noreferrer"><code>20d-0003</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-12-31</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="licensed-database">
+    <div class="section-header">
+      <h2>Licensed database</h2>
+      <div class="section-meta">5 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for SimplyAnalytics</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22999-0004%22" target="_blank" rel="noreferrer"><code>999-0004</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2020-11-18</div><div class="timing-meta">Periodicity: Annual</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Digital Sanborn Maps (Black &amp; White) [All States] {1867-1970}</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22999-0011%22" target="_blank" rel="noreferrer"><code>999-0011</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Annual</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Fire Insurance Maps Online (FIMo) [All States]</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22999-0010%22" target="_blank" rel="noreferrer"><code>999-0010</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Annual</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for PolicyMap</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22999-0003%22" target="_blank" rel="noreferrer"><code>999-0003</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Annual</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Social Explorer</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22999-0001%22" target="_blank" rel="noreferrer"><code>999-0001</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="btaa-gin-curated-datasets">
+    <div class="section-header">
+      <h2>BTAA-GIN curated datasets</h2>
+      <div class="section-meta">5 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Urban Base Layers - Minneapolis</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22b1g_27_43000%22" target="_blank" rel="noreferrer"><code>b1g_27_43000</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2011-01-01</div><div class="timing-meta">Periodicity: Annual</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Urban Base Layers - Philadelphia</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22b1g_42_60000%22" target="_blank" rel="noreferrer"><code>b1g_42_60000</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-12-09</div><div class="timing-meta">Periodicity: Annual</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Urban Base Layers - Columbus</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22b1g_39_18000%22" target="_blank" rel="noreferrer"><code>b1g_39_18000</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-01-05</div><div class="timing-meta">Periodicity: Annual</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Urban Base Layers - Baltimore</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22b1g_24_51000%22" target="_blank" rel="noreferrer"><code>b1g_24_51000</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-01-23</div><div class="timing-meta">Periodicity: Annual</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for EDGE Geodata datasets</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22b1g_30g-01%22" target="_blank" rel="noreferrer"><code>b1g_30g-01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-03-06</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="other">
+    <div class="section-header">
+      <h2>Other</h2>
+      <div class="section-meta">10 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for standalone resources</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22r00_01%22" target="_blank" rel="noreferrer"><code>r00_01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for ORNL LandScan Viewer</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2288-0001%22" target="_blank" rel="noreferrer"><code>88-0001</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2024-12-30</div><div class="timing-meta">Periodicity: Annual</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Center for Rural Pennsylvania Data Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%228856ec9a-47ac-4c79-bfba-643e97c0b62d%22" target="_blank" rel="noreferrer"><code>8856ec9a-47ac-4c79-bfba-643e97c0b62d</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for HUD-eGIS Geospatial Data Storefront</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%221000-0001%22" target="_blank" rel="noreferrer"><code>1000-0001</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for NAIP GeoHub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2299-1800%22" target="_blank" rel="noreferrer"><code>99-1800</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for U.S. Fish and Wildlife Service Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%221000-0003%22" target="_blank" rel="noreferrer"><code>1000-0003</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-22</div><div class="timing-meta">Periodicity: Weekly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for Humanitarian Data Exchange</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2299-1400%22" target="_blank" rel="noreferrer"><code>99-1400</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Monthly</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for standalone websites</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22w00_01%22" target="_blank" rel="noreferrer"><code>w00_01</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-08-01</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for The Newberry Library Digital Collections</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2277d-0004%22" target="_blank" rel="noreferrer"><code>77d-0004</code></a></div></div>
+        <div><div class="timing-meta">Last harvested: 2025-09-20</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for 16d-01 Oregon Digital Oregon Maps</div><div class="task-meta">Geoportal link: <code>Not provided</code></div></div>
+        <div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Irregular</div></div>
+      </article>
+    </div>
+  </section>
+</body>
+</html>
