@@ -1,0 +1,12 @@
+name: ogm_aardvark
+type: ogm_aardvark
+json_path: inputs/ogm_aardvark
+output_primary_csv: outputs/ogm_aardvark_primary.csv
+output_distributions_csv: outputs/ogm_aardvark_distributions.csv
+endpoint_url: https://github.com/OpenGeoMetadata/edu.uwm
+endpoint_description: GitHub
+website_platform: GeoBlacklight
+accrual_method: Automated retrieval
+accrual_periodicity: Irregular
+harvest_workflow: py_ogm_aardvark
+
