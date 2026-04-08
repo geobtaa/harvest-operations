@@ -6,7 +6,10 @@ import pytest
 from scripts.harvest_task_dashboard import HarvestTaskDashboardJob
 
 
-def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: Path) -> None:
+def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     harvest_records_path = tmp_path / "harvest-records.csv"
     websites_path = tmp_path / "websites.csv"
     code_schema_map_path = tmp_path / "code-schema-map.csv"
@@ -114,6 +117,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
             "harvest_records_csv": str(harvest_records_path),
             "websites_csv": str(websites_path),
             "code_schema_map_csv": str(code_schema_map_path),
+            "geoportal_api_facet_url": "https://example.com/api/v1/search/facets/b1g_code_s",
             "output_tasks_csv": str(outputs_dir / "harvest-task-dashboard.csv"),
             "output_dashboard_html": str(outputs_dir / "harvest-task-dashboard.html"),
             "output_due_dashboard_html": str(outputs_dir / "harvest-task-dashboard-due.html"),
@@ -132,6 +136,19 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
             "today": "2026-03-30",
         }
     )
+
+    fetch_calls = 0
+
+    def fake_fetch_geoportal_code_counts() -> dict[str, int]:
+        nonlocal fetch_calls
+        fetch_calls += 1
+        return {
+            "27d-01": 12,
+            "27d-02": 8,
+            "05f-01": 3,
+        }
+
+    monkeypatch.setattr(job, "_fetch_geoportal_code_counts", fake_fetch_geoportal_code_counts)
 
     results = job.harvest_pipeline()
 
@@ -245,6 +262,9 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     assert "Create issue" not in records_dashboard_html
     assert "Harvest Records by Institution" in institution_dashboard_html
     assert "Table of Contents" in institution_dashboard_html
+    assert "Geoportal item counts are loaded from the development metadata API facet." in (
+        institution_dashboard_html
+    )
     assert "University of Minnesota" in institution_dashboard_html
     assert "Other" in institution_dashboard_html
     assert "Parcel Fabric" in institution_dashboard_html
@@ -256,8 +276,13 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(tmp_path: 
     assert 'id="other"' in institution_dashboard_html
     assert '<div class="date-line">' not in institution_dashboard_html
     assert "No schedule" not in institution_dashboard_html
+    assert "Geoportal items: 12" in institution_dashboard_html
+    assert "Geoportal items: 8" in institution_dashboard_html
+    assert "Geoportal items: 3" in institution_dashboard_html
+    assert "Geoportal items: Not available" in institution_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2227d-01%22" in institution_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_institution_dashboard_html
+    assert fetch_calls == 1
     assert "Harvest Tasks Due Now" in due_dashboard_html
     assert "Reviews due" in due_dashboard_html
     assert "Harvests due" in due_dashboard_html

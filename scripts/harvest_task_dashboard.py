@@ -38,6 +38,9 @@ DEFAULT_DEDICATED_WORKFLOW_VIEWS = ("py_arcgis_hub",)
 ISSUE_TASK_MARKER_PREFIX = "harvest-task-key"
 PUBLIC_REPORT_SUFFIX = "-public"
 DEFAULT_CODE_SCHEMA_MAP_PATH = "schemas/code-schema-map.csv"
+DEFAULT_GEO_API_FACET_URL = ""
+DEFAULT_GEO_API_TIMEOUT_SECONDS = 10
+GEO_API_FACET_PAGE_SIZE = 100
 OTHER_INSTITUTION_LABEL = "Other"
 
 
@@ -135,8 +138,17 @@ class HarvestTaskDashboardJob:
         self.code_schema_map_path = Path(
             config.get("code_schema_map_csv", DEFAULT_CODE_SCHEMA_MAP_PATH)
         )
+        self.geoportal_api_facet_url = self._clean_value(
+            config.get("geoportal_api_facet_url", DEFAULT_GEO_API_FACET_URL)
+        )
+        self.geoportal_api_timeout_seconds = int(
+            config.get("geoportal_api_timeout_seconds", DEFAULT_GEO_API_TIMEOUT_SECONDS)
+        )
         self.institution_map, self.institution_order = self._load_institution_map()
         self._issue_index_cache: dict[str, dict[str, dict[str, str]]] = {}
+        self._geoportal_code_count_cache: dict[str, int] = {}
+        self._geoportal_code_counts_loaded = False
+        self._geoportal_code_counts_available = False
 
     def harvest_pipeline(self) -> dict[str, Any]:
         harvest_df = self._load_csv(self.harvest_records_path)
@@ -686,9 +698,13 @@ class HarvestTaskDashboardJob:
         if record_df.empty:
             return record_df
 
+        geoportal_counts = self._geoportal_code_counts()
         record_df["__institution_group"] = record_df["Code"].map(self._institution_label_for_code)
         record_df["__institution_order"] = record_df["__institution_group"].map(
             self._institution_group_sort_key
+        )
+        record_df["__geoportal_match_count"] = record_df["Code"].map(
+            lambda code: self._geoportal_match_count_for_code(code, geoportal_counts)
         )
         record_df = record_df.sort_values(
             by=["__institution_order", "__institution_group", "__sort_date", "__display_name"],
@@ -774,10 +790,7 @@ class HarvestTaskDashboardJob:
             embedded=embedded,
             report_title=report_title,
             public=public,
-            intro_text=(
-                "This view lists all harvest records grouped by institution code prefix, "
-                "including ArcGIS Hub records, with unmatched codes collected under Other."
-            ),
+            intro_text=self._institution_report_intro_text(),
             empty_message="No harvest records were found in the input file.",
             include_table_of_contents=True,
             metadata_only_timing=True,
@@ -1258,6 +1271,85 @@ class HarvestTaskDashboardJob:
         if alphanumeric.isdigit():
             return alphanumeric.lstrip("0") or "0"
         return alphanumeric
+
+    def _institution_report_intro_text(self) -> str:
+        base_text = (
+            "This view lists all harvest records grouped by institution code prefix, "
+            "including ArcGIS Hub records, with unmatched codes collected under Other."
+        )
+        if not self.geoportal_api_facet_url:
+            return base_text
+        return f"{base_text} Geoportal item counts are loaded from the development metadata API facet."
+
+    def _normalize_code_value(self, code: Any) -> str:
+        return self._clean_value(code).lower()
+
+    def _geoportal_code_counts(self) -> dict[str, int] | None:
+        if not self.geoportal_api_facet_url:
+            return None
+        if not self._geoportal_code_counts_loaded:
+            code_counts = self._fetch_geoportal_code_counts()
+            self._geoportal_code_counts_loaded = True
+            self._geoportal_code_counts_available = code_counts is not None
+            self._geoportal_code_count_cache = code_counts or {}
+        if not self._geoportal_code_counts_available:
+            return None
+        return self._geoportal_code_count_cache
+
+    def _geoportal_match_count_for_code(
+        self,
+        code: Any,
+        code_counts: dict[str, int] | None,
+    ) -> int | None:
+        cleaned_code = self._clean_value(code)
+        if not cleaned_code:
+            return None
+        if code_counts is None:
+            return None
+        return code_counts.get(self._normalize_code_value(cleaned_code), 0)
+
+    def _geoportal_count_label(self, row: pd.Series | dict[str, Any]) -> str:
+        count_value = row.get("__geoportal_match_count")
+        if count_value is None or pd.isna(count_value):
+            code_value = self._clean_value(row.get("Code", ""))
+            if not code_value:
+                return "Not available"
+            if not self.geoportal_api_facet_url:
+                return "Not configured"
+            return "Unavailable"
+        return str(int(count_value))
+
+    def _fetch_geoportal_code_counts(self) -> dict[str, int] | None:
+        page = 1
+        code_counts: dict[str, int] = {}
+
+        try:
+            while True:
+                response = requests.get(
+                    self.geoportal_api_facet_url,
+                    params={"page": page, "per_page": GEO_API_FACET_PAGE_SIZE},
+                    timeout=self.geoportal_api_timeout_seconds,
+                )
+                response.raise_for_status()
+                response_data = response.json()
+
+                for facet_value in response_data.get("data", []):
+                    attributes = facet_value.get("attributes", {})
+                    normalized_code = self._normalize_code_value(attributes.get("value", ""))
+                    hits = attributes.get("hits")
+                    if not normalized_code or not isinstance(hits, int):
+                        continue
+                    code_counts[normalized_code] = hits
+
+                meta = response_data.get("meta", {})
+                total_pages = meta.get("totalPages", 0)
+                if not isinstance(total_pages, int) or page >= total_pages:
+                    break
+                page += 1
+        except (requests.RequestException, ValueError):
+            return None
+
+        return code_counts
 
     def _build_retrospective_dataframe(self, harvest_df: pd.DataFrame) -> pd.DataFrame:
         retrospective_columns = [
@@ -1926,7 +2018,9 @@ class HarvestTaskDashboardJob:
             return ""
         last_harvested = self._clean_value(row.get("Last Harvested", "")) or "Not yet harvested"
         periodicity = self._clean_value(row.get("Accrual Periodicity", "")) or "Not provided"
+        geoportal_count = self._geoportal_count_label(row)
         return (
+            f'<div class="timing-meta">Geoportal items: {escape(geoportal_count)}</div>'
             f'<div class="timing-meta">Last harvested: {escape(last_harvested)}</div>'
             f'<div class="timing-meta">Periodicity: {escape(periodicity)}</div>'
         )
@@ -2719,6 +2813,7 @@ if __name__ == "__main__":
         "harvest_records_csv": "inputs/harvest-records.csv",
         "websites_csv": "inputs/websites.csv",
         "standalone_websites_csv": "inputs/standalone-websites.csv",
+        "geoportal_api_facet_url": "https://lib-btaageoapi-dev-app-01.oit.umn.edu/api/v1/search/facets/b1g_code_s",
         "output_tasks_csv": "reports/harvest-task-dashboard.csv",
         "output_dashboard_html": "reports/harvest-task-dashboard.html",
         "output_workflow_dir": "inputs/harvest-workflow-inputs",
