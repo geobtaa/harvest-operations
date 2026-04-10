@@ -5,8 +5,58 @@ oai_base_url: "https://digital.lib.uiowa.edu/oai/request"
 metadata_prefix: oai_qdc
 provider: "University of Iowa"
 source_name: "University of Iowa Libraries"
+source_id_prefix: "iowa"
+website_platform: Islandora
+hardcoded_values:
+  Is Part Of: "03d-01"
+  Code: "03d-01"
+  Member Of: "64bd8c4c-8e60-4956-b43d-bdc3f93db488"
+clear_output_fields:
+  - Subject
+title_prefix_append_values:
+  - title_startswith: "Iowa land survey map"
+    append_values:
+      Resource Type: "Cadastral maps"
+      Member Of: "77f-0001"
 sets_csv: config/iowa-sets.csv
 sets_csv_set_column: set
 sets_csv_title_column: title
+oai_download_dir: inputs/oai-downloads/iowa-library
+distribution_manifest_builder: oai_build_iowa_library_manifest_url
+spatial_match_state: Iowa
+spatial_counties_csv: reference_data/spatial_counties.csv
+spatial_plss_csv: reference_data/spatial_plss.csv
+spatial_states_csv: reference_data/spatial_us_states.csv
+spatial_plss_state_abbr: IA
+spatial_default_when_blank: Iowa
+spatial_append_state: Iowa
+spatial_normalization_replacements:
+  Pocahantas County: Pocahontas County
+  Powesheik County: Poweshiek County
+metadata_crosswalk:
+  - source: identifier
+    target: Documentation (External)
+  - source: dcterms:isPartOf
+    target: Local Collection
+  - source: dcterms:contributor
+    target: Publisher
+  - source: dcterms:created
+    target: Date Issued
+  - source: dcterms:temporal
+    target: Temporal Coverage
+  - source: dcterms:extent
+    target: Description
+    mode: append
+  - source: dc:title
+    target: Title
+  - source: dcterms:rights
+    target: Rights
+  - source: dcterms:spatial
+    target: Spatial Coverage
+  - source: dcterms:creator
+    target: Creator
+  - source: dcterms:identifier
+    target: Identifier
+
 output_primary_csv: outputs/iowa-library_primary.csv
 output_distributions_csv: outputs/iowa-library_distributions.csv

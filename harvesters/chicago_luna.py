@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 import pandas as pd
 
 from harvesters.base import BaseHarvester
+from utils.resource_type_match import match_resource_type_values
 from utils.distribution_writer import generate_secondary_table
 from utils.temporal_fields import create_date_range
 
@@ -432,7 +433,7 @@ class ChicagoLunaHarvester(BaseHarvester):
 
             values.append(clean_part)
 
-        return self._join_pipe_values(values)
+        return self._join_pipe_values(match_resource_type_values(values))
 
     def chicago_luna_normalize_place_segment(self, segment):
         text = str(segment or "").strip()

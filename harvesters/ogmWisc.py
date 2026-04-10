@@ -7,6 +7,8 @@ import pandas as pd
 
 from harvesters.base import BaseHarvester
 from utils.distribution_writer import generate_secondary_table
+from utils.resource_type_match import match_resource_type
+from utils.spatial_match import load_county_spatial_lookup, match_county_spatial
 
 
 class OgmWiscHarvester(BaseHarvester):
@@ -14,23 +16,16 @@ class OgmWiscHarvester(BaseHarvester):
         """Initialize the harvester and set Wisconsin-specific config values."""
         super().__init__(config)
         self.json_path = self.config.get("json_path")
-        self.county_lookup = {} 
+        self.county_spatial_lookup = {}
+        self.county_spatial_alias_lookup = {}
 
     def load_reference_data(self):
         """Load shared distribution metadata and county lookup data used by this harvester."""
         super().load_reference_data()  # Sets self.distribution_types
         counties_path = "reference_data/spatial_counties.csv"
-        counties_df = pd.read_csv(counties_path, sep="\t" if "\t" in open(counties_path).readline() else ",")
-        counties_df = counties_df.dropna(subset=["County"])
-
-        self.county_lookup = {
-            row["County"].split("--")[-1].replace(" County", "").strip(): {
-                "full_name": row["County"],
-                "geometry": row.get("Geometry", ""),
-                "geonames": row.get("GeoNames", "")
-            }
-            for _, row in counties_df.iterrows()
-        }
+        self.county_spatial_lookup, self.county_spatial_alias_lookup = (
+            load_county_spatial_lookup(counties_path, "Wisconsin")
+        )
 
     def fetch(self):
         """
@@ -275,7 +270,9 @@ class OgmWiscHarvester(BaseHarvester):
     def ogmWisc_add_resource_type(self, df):
         """Build a human-readable resource type from the geometry type."""
         if 'layer_geom_type_s' in df.columns:
-            df['Resource Type'] = df['layer_geom_type_s'].astype(str) + " data"
+            df['Resource Type'] = df['layer_geom_type_s'].astype(str).apply(
+                lambda value: match_resource_type(f"{value} data")
+            )
         return df
 
     def ogmWisc_clean_creator_values(self, df):
@@ -286,16 +283,6 @@ class OgmWiscHarvester(BaseHarvester):
         - Keeping original value if no match is found
         - Appending Geometry and GeoNames values only where matched
         """
-        # Load only Wisconsin counties
-        counties_df = pd.read_csv("reference_data/spatial_counties.csv", encoding="utf-8", dtype=str)
-        wisconsin_df = counties_df[counties_df["County"].str.startswith("Wisconsin--")].copy()
-
-        # Create lookup dicts
-        wisconsin_df["base_name"] = wisconsin_df["County"].str.replace("Wisconsin--", "").str.replace(" County", "")
-        county_lookup = dict(zip(wisconsin_df["base_name"], wisconsin_df["County"]))
-        geom_lookup = dict(zip(wisconsin_df["County"], wisconsin_df["Geometry"]))
-        geonames_lookup = dict(zip(wisconsin_df["County"], wisconsin_df["GeoNames"]))
-
         def normalize_creator(value):
             if not isinstance(value, str) or not value.strip():
                 return value  # Leave blank or non-string as-is
@@ -305,9 +292,13 @@ class OgmWiscHarvester(BaseHarvester):
 
             # County match (e.g., "Adams County")
             if text.endswith(" County"):
-                base = text[:-len(" County")]
-                if base in county_lookup:
-                    return county_lookup[base]
+                county_match = match_county_spatial(
+                    [f"Wisconsin--{text}", text],
+                    self.county_spatial_lookup,
+                    self.county_spatial_alias_lookup,
+                )
+                if county_match["full_name"]:
+                    return county_match["full_name"]
 
             # City match (e.g., "City of Fitchburg")
             if text.startswith("City of "):
@@ -320,13 +311,15 @@ class OgmWiscHarvester(BaseHarvester):
         # Normalize Creator column
         df["Creator"] = df["Creator"].apply(normalize_creator)
 
-        # Only apply Geometry and GeoNames to matched counties
-        def get_field_or_blank(row, lookup):
-            val = row.get("Creator", "")
-            return lookup.get(val, "")
+        creator_matches = df["Creator"].apply(
+            lambda value: match_county_spatial(
+                [value],
+                self.county_spatial_lookup,
+                self.county_spatial_alias_lookup,
+            )
+        )
 
-        df["Geometry"] = df.apply(lambda row: get_field_or_blank(row, geom_lookup), axis=1)
-        df["GeoNames"] = df.apply(lambda row: get_field_or_blank(row, geonames_lookup), axis=1)
+        df["Geometry"] = creator_matches.apply(lambda match: match["geometry"])
+        df["GeoNames"] = creator_matches.apply(lambda match: match["geonames"])
 
         return df
-

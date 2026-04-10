@@ -1,22 +1,94 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from routers import schema as schema_router
-from routers import jobs as jobs_router
-import shutil
-import os
-import yaml
 import asyncio
-from fastapi.responses import StreamingResponse
-import time
-from harvesters.arcgis import ArcGISHarvester
-
-
+import csv
 import os
+import shutil
+import tempfile
+
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
+import yaml
+
+from harvesters.oai_qdc import OaiQdcHarvester
+from routers import jobs as jobs_router
+from routers import schema as schema_router
 
 # Initialize app
 app = FastAPI()
+
+OAI_QDC_UI_JOB_IDS = ("iowa-library", "university-washington")
+
+
+def resolve_config_path(path_value: str, config_path: str | None = None) -> str:
+    candidate = os.path.expanduser(path_value)
+    if os.path.isabs(candidate):
+        return candidate
+
+    project_candidate = os.path.abspath(candidate)
+    if os.path.exists(project_candidate):
+        return project_candidate
+
+    if config_path:
+        config_candidate = os.path.abspath(
+            os.path.join(os.path.dirname(config_path), candidate)
+        )
+        if os.path.exists(config_candidate):
+            return config_candidate
+
+    return project_candidate
+
+
+def load_yaml_config(config_path: str) -> dict:
+    with open(config_path, encoding="utf-8") as handle:
+        return yaml.safe_load(handle) or {}
+
+
+def load_sets_from_csv(
+    csv_path: str,
+    set_column: str = "set",
+    title_column: str = "title",
+) -> list[dict]:
+    sets: list[dict] = []
+    with open(csv_path, newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            set_spec = str(row.get(set_column, "")).strip()
+            set_title = str(row.get(title_column, "")).strip()
+            if not set_spec:
+                continue
+            sets.append({"set_spec": set_spec, "set_title": set_title})
+    return sets
+
+
+def build_oai_qdc_ui_sources() -> list[dict]:
+    sources: list[dict] = []
+
+    for job_id in OAI_QDC_UI_JOB_IDS:
+        config_path = os.path.join("config", f"{job_id}.yaml")
+        config = load_yaml_config(config_path)
+        sets_csv = resolve_config_path(config["sets_csv"], config_path)
+        set_column = config.get("sets_csv_set_column", "set")
+        title_column = config.get("sets_csv_title_column", "title")
+        sets = load_sets_from_csv(
+            csv_path=sets_csv,
+            set_column=set_column,
+            title_column=title_column,
+        )
+
+        sources.append(
+            {
+                "job_id": job_id,
+                "label": config.get("source_name") or config.get("name") or job_id,
+                "base_url": config.get("oai_base_url", ""),
+                "metadata_prefix": config.get("metadata_prefix", "oai_qdc"),
+                "download_dir": config.get("oai_download_dir", ""),
+                "sets": sets,
+            }
+        )
+
+    return sources
 
 # Register routers
 app.include_router(schema_router.router)
@@ -29,6 +101,11 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/", response_class=FileResponse)
 async def root():
     return FileResponse(os.path.join("static", "index.html"))
+
+
+@app.get("/oai-qdc-sources")
+async def oai_qdc_sources():
+    return {"sources": build_oai_qdc_ui_sources()}
 
 # CSV file upload endpoint
 @app.post("/upload")
@@ -267,3 +344,101 @@ async def run_isgs_stream():
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
+@app.get("/run-oai-qdc-stream")
+async def run_oai_qdc_stream(
+    source: str = Query(..., description="OAI QDC job id."),
+    set_spec: str = Query(..., description="OAI set spec to harvest, or '__all__'."),
+):
+    source_map = {item["job_id"]: item for item in build_oai_qdc_ui_sources()}
+    selected_source = source_map.get(source)
+    if not selected_source:
+        raise HTTPException(status_code=404, detail=f"Unknown OAI QDC source '{source}'.")
+
+    run_all_sets = set_spec == "__all__"
+    selected_set = None if run_all_sets else next(
+        (item for item in selected_source["sets"] if item["set_spec"] == set_spec),
+        None,
+    )
+    if not run_all_sets and not selected_set:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Set '{set_spec}' was not found for source '{source}'.",
+        )
+
+    async def event_stream():
+        temp_sets_path = None
+
+        try:
+            config_path = os.path.join("config", f"{source}.yaml")
+            config = load_yaml_config(config_path)
+            config = dict(config)
+
+            if not run_all_sets:
+                set_column = config.get("sets_csv_set_column", "set")
+                title_column = config.get("sets_csv_title_column", "title")
+
+                fd, temp_sets_path = tempfile.mkstemp(
+                    prefix=f"{source}-",
+                    suffix="-sets.csv",
+                )
+                os.close(fd)
+
+                with open(temp_sets_path, "w", newline="", encoding="utf-8") as handle:
+                    writer = csv.DictWriter(handle, fieldnames=[set_column, title_column])
+                    writer.writeheader()
+                    writer.writerow(
+                        {
+                            set_column: selected_set["set_spec"],
+                            title_column: selected_set["set_title"],
+                        }
+                    )
+
+                config["sets_csv"] = temp_sets_path
+
+            harvester = OaiQdcHarvester(config)
+            harvester.load_reference_data()
+
+            if run_all_sets:
+                yield (
+                    f"data: Running OAI QDC harvest for {selected_source['label']} "
+                    f"across all configured sets ({len(selected_source['sets'])}).\n\n"
+                )
+            else:
+                set_label = selected_set["set_title"] or selected_set["set_spec"]
+                yield f"data: Running OAI QDC harvest for {selected_source['label']} -> {set_label}.\n\n"
+            yield (
+                "data: This job reads previously downloaded local XML. "
+                "If files are missing, run scripts/oai_download.py first.\n\n"
+            )
+            await asyncio.sleep(0.01)
+
+            raw = harvester.fetch()
+            yield f"data: Loaded {len(raw)} local XML page(s). Now parsing...\n\n"
+            await asyncio.sleep(0.01)
+
+            parsed = harvester.parse(raw)
+            flat = harvester.flatten(parsed)
+            yield f"data: Prepared {len(flat)} record(s). Now building outputs...\n\n"
+            await asyncio.sleep(0.01)
+
+            df = harvester.build_dataframe(flat)
+            df = harvester.derive_fields(df)
+            df = harvester.add_defaults(df)
+            df = harvester.add_provenance(df)
+            df = harvester.clean(df)
+            harvester.validate(df)
+            results = harvester.write_outputs(df)
+
+            yield f"data: Wrote primary CSV to {results['primary_csv']}\n\n"
+            if "distributions_csv" in results:
+                yield f"data: Wrote distributions CSV to {results['distributions_csv']}\n\n"
+            yield "data: OAI QDC harvest complete.\n\n"
+            yield "data: DONE\n\n"
+        except Exception as exc:
+            yield f"data: ERROR: {exc}\n\n"
+            yield "data: DONE\n\n"
+        finally:
+            if temp_sets_path and os.path.exists(temp_sets_path):
+                os.remove(temp_sets_path)
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")

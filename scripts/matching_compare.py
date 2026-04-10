@@ -1,81 +1,165 @@
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+
 import pandas as pd
 
-def find_matched_rows(csv_a_path, csv_b_path, output_csv_path):
-    """
-    Compares two CSV files based on an 'ID' column and writes the matched rows
-    from the first file to a new CSV.
 
-    Args:
-        csv_a_path (str): The file path for the CSV containing metadata (CSV-A).
-        csv_b_path (str): The file path for the CSV containing only IDs (CSV-B).
-        output_csv_path (str): The file path for the output CSV (CSV-C).
-    """
-    try:
-        # Read both CSV files into pandas DataFrames.
-        # We assume the 'ID' column exists in both files.
-        df_a = pd.read_csv(csv_a_path)
-        df_b = pd.read_csv(csv_b_path)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_NEW_CSV = PROJECT_ROOT / "outputs/new-iowa-records.csv"
+DEFAULT_OLD_CSV = PROJECT_ROOT / "outputs/old-iowa-records.csv"
+DEFAULT_OUTPUT_CSV = PROJECT_ROOT / "outputs/iowa-records-comparison.csv"
+DEFAULT_MATCH_COLUMN = "WxS Identifier"
+MATCH_STATUS_COLUMN = "Match Status"
+OLD_SUFFIX = " (old)"
 
-        # Ensure the 'ID' column exists in both DataFrames to avoid errors.
-        if 'ID' not in df_a.columns:
-            print(f"Error: 'ID' column not found in {csv_a_path}")
-            return
-        if 'ID' not in df_b.columns:
-            print(f"Error: 'ID' column not found in {csv_b_path}")
-            return
 
-        # Extract the list of IDs from CSV-B for efficient lookup.
-        # Using a set provides faster lookups (O(1) on average).
-        ids_in_b = set(df_b['ID'])
+def build_column_order(
+    new_columns: list[str],
+    old_column_map: dict[str, str],
+    status_column: str,
+) -> list[str]:
+    ordered_columns: list[str] = []
 
-        # Filter rows in DataFrame A where the 'ID' IS in the set of IDs from B.
-        matched_df = df_a[df_a['ID'].isin(ids_in_b)]
+    for index, column in enumerate(new_columns):
+        ordered_columns.append(column)
 
-        # Check if any matched rows were found.
-        if matched_df.empty:
-            print("No matched IDs found. No IDs from CSV-A are present in CSV-B.")
-            print("Output file will not be created.")
-        else:
-            # Write the resulting DataFrame of matched rows to a new CSV file.
-            # index=False prevents pandas from writing the DataFrame index as a column.
-            matched_df.to_csv(output_csv_path, index=False)
-            print(f"Successfully created {output_csv_path} with {len(matched_df)} matched rows.")
+        old_column = old_column_map.get(column)
+        if old_column:
+            ordered_columns.append(old_column)
 
-    except FileNotFoundError as e:
-        print(f"Error: The file was not found - {e}")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        if index == 0:
+            ordered_columns.append(status_column)
 
-# --- How to use the script ---
+    for old_column in old_column_map.values():
+        if old_column not in ordered_columns:
+            ordered_columns.append(old_column)
 
-# 1. Replace these file paths with the actual paths to your CSV files.
-#    Make sure the script is in the same directory as your files,
-#    or provide the full path.
-metadata_csv = 'CSV-A.csv'   # Your main data file
-id_list_csv = 'CSV-B.csv'      # The file with the list of IDs to check against
-output_csv = 'CSV-C.csv'       # The name of the file to be created
+    return ordered_columns
 
-# 2. To run the script, you will need to create placeholder CSV files.
-#    For example:
-#
-#    --- CSV-A.csv ---
-#    ID,Name,Data
-#    1,Apple,Fruit
-#    2,Banana,Fruit
-#    3,Carrot,Vegetable
-#    4,Broccoli,Vegetable
-#
-#    --- CSV-B.csv ---
-#    ID
-#    1
-#    3
-#
-#    Running the script with the above files will produce:
-#
-#    --- CSV-C.csv ---
-#    ID,Name,Data
-#    1,Apple,Fruit
-#    3,Carrot,Vegetable
 
-# 3. Call the function with your file paths.
-find_matched_rows(metadata_csv, id_list_csv, output_csv)
+def normalize_match_value(value: str) -> str:
+    # Iowa WxS identifiers differ only by embedded spaces between exports.
+    if pd.isna(value):
+        return ""
+    return "".join(str(value).split())
+
+
+def build_comparison_csv(
+    new_csv_path: Path,
+    old_csv_path: Path,
+    output_csv_path: Path,
+    match_column: str = DEFAULT_MATCH_COLUMN,
+) -> pd.DataFrame:
+    new_df = pd.read_csv(new_csv_path, dtype=str, keep_default_na=False)
+    old_df = pd.read_csv(old_csv_path, dtype=str, keep_default_na=False)
+
+    new_columns = list(new_df.columns)
+    old_columns = list(old_df.columns)
+
+    if match_column not in new_columns:
+        raise KeyError(f"Match column '{match_column}' not found in {new_csv_path}")
+    if match_column not in old_columns:
+        raise KeyError(f"Match column '{match_column}' not found in {old_csv_path}")
+
+    new_df["_match_key"] = new_df[match_column].map(normalize_match_value)
+    old_df["_match_key"] = old_df[match_column].map(normalize_match_value)
+
+    duplicate_new_keys = new_df["_match_key"].duplicated() & new_df["_match_key"].ne("")
+    if duplicate_new_keys.any():
+        duplicate_key = new_df.loc[duplicate_new_keys, "_match_key"].iloc[0]
+        raise ValueError(
+            f"Duplicate normalized '{match_column}' value '{duplicate_key}' found in {new_csv_path}"
+        )
+
+    duplicate_old_keys = old_df["_match_key"].duplicated() & old_df["_match_key"].ne("")
+    if duplicate_old_keys.any():
+        duplicate_key = old_df.loc[duplicate_old_keys, "_match_key"].iloc[0]
+        raise ValueError(
+            f"Duplicate normalized '{match_column}' value '{duplicate_key}' found in {old_csv_path}"
+        )
+
+    old_column_map = {column: f"{column}{OLD_SUFFIX}" for column in old_columns}
+    renamed_old_df = old_df.rename(columns=old_column_map)
+
+    comparison_df = new_df.merge(
+        renamed_old_df,
+        how="outer",
+        left_on="_match_key",
+        right_on="_match_key",
+        indicator=True,
+    )
+    comparison_df[MATCH_STATUS_COLUMN] = comparison_df["_merge"].map(
+        {"both": "matched", "left_only": "only_in_new", "right_only": "only_in_old"}
+    )
+    comparison_df = comparison_df.drop(columns=["_match_key", "_merge"])
+    comparison_df = comparison_df.astype(object).fillna("")
+
+    ordered_columns = build_column_order(
+        new_columns=new_columns,
+        old_column_map=old_column_map,
+        status_column=MATCH_STATUS_COLUMN,
+    )
+    comparison_df = comparison_df[ordered_columns]
+
+    output_csv_path.parent.mkdir(parents=True, exist_ok=True)
+    comparison_df.to_csv(output_csv_path, index=False)
+
+    return comparison_df
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Compare two CSV files by key, keeping all rows from both CSVs and "
+            "placing old CSV columns beside their matching new CSV columns."
+        )
+    )
+    parser.add_argument(
+        "--new-csv",
+        type=Path,
+        default=DEFAULT_NEW_CSV,
+        help=f"Path to the primary CSV. Default: {DEFAULT_NEW_CSV}",
+    )
+    parser.add_argument(
+        "--old-csv",
+        type=Path,
+        default=DEFAULT_OLD_CSV,
+        help=f"Path to the comparison CSV. Default: {DEFAULT_OLD_CSV}",
+    )
+    parser.add_argument(
+        "--output-csv",
+        type=Path,
+        default=DEFAULT_OUTPUT_CSV,
+        help=f"Where to write the comparison CSV. Default: {DEFAULT_OUTPUT_CSV}",
+    )
+    parser.add_argument(
+        "--match-column",
+        default=DEFAULT_MATCH_COLUMN,
+        help=f"Column used to match rows. Default: {DEFAULT_MATCH_COLUMN}",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    comparison_df = build_comparison_csv(
+        new_csv_path=args.new_csv,
+        old_csv_path=args.old_csv,
+        output_csv_path=args.output_csv,
+        match_column=args.match_column,
+    )
+
+    matched_rows = int((comparison_df[MATCH_STATUS_COLUMN] == "matched").sum())
+    new_only_rows = int((comparison_df[MATCH_STATUS_COLUMN] == "only_in_new").sum())
+    old_only_rows = int((comparison_df[MATCH_STATUS_COLUMN] == "only_in_old").sum())
+
+    print(f"Wrote {len(comparison_df)} rows to {args.output_csv}")
+    print(f"Matched rows: {matched_rows}")
+    print(f"Only in new CSV: {new_only_rows}")
+    print(f"Only in old CSV: {old_only_rows}")
+
+
+if __name__ == "__main__":
+    main()

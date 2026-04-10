@@ -8,6 +8,7 @@ import pandas as pd
 
 from harvesters.base import BaseHarvester
 from utils.distribution_writer import generate_secondary_table
+from utils.resource_type_match import match_resource_type
 from utils.temporal_fields import infer_temporal_coverage_from_title, create_date_range
 
 
@@ -290,8 +291,8 @@ class SocrataHarvester(BaseHarvester):
             combined_text = f"{row.get('Alternative Title', '')} {row.get('Description', '')} {row.get('Keyword', '')}".lower()
             for keyword, resource_type in keyword_map.items():
                 if keyword in combined_text:
-                    return resource_type
-            return row.get('Resource Type', '')  # Keep existing value if no match
+                    return match_resource_type(resource_type)
+            return match_resource_type(row.get('Resource Type', ''))  # Keep existing value if no match
 
         df['Resource Type'] = df.apply(match_keywords, axis=1)
         return df
@@ -319,5 +320,4 @@ class SocrataHarvester(BaseHarvester):
 
         df['geo_json'] = df.apply(build_geojson, axis=1)
         return df
-
 

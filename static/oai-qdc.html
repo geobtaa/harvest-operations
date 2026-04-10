@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OAI QDC Harvester</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    h2, h3 { margin-top: 1.5em; }
+    code { background: #f4f4f4; padding: 0.1em 0.3em; }
+    label { display: inline-block; margin-bottom: 0.3em; font-weight: bold; }
+    select { min-width: 24rem; max-width: 100%; padding: 0.4em; }
+    button { margin-top: 1em; }
+    .details-box {
+      border: 1px solid #ccc;
+      padding: 1em;
+      margin-top: 1em;
+      background: #fafafa;
+    }
+  </style>
+</head>
+<body>
+  <h1>OAI QDC Harvester</h1>
+
+  <h2>Purpose</h2>
+  <p>This harvester processes qualified Dublin Core OAI-PMH records from local XML snapshots and writes a primary CSV plus a distributions CSV.</p>
+
+  <h2>Before You Run It</h2>
+  <p>Download the source XML separately in the terminal with <code>scripts/oai_download.py</code> before using this page. This HTML view only runs <code>harvesters/oai_qdc.py</code> against files that already exist locally.</p>
+  <p>Currently supported sources in this view are <strong>University of Iowa Libraries</strong> and <strong>University of Washington Libraries</strong>.</p>
+  <div class="details-box">
+    <div><strong>Required input</strong></div>
+    <div>Downloaded XML must already be present in the configured local OAI download folder for the selected source.</div>
+  </div>
+
+  <h2>Step 1: Select a Source and Record Set</h2>
+  <label for="source-select">Source</label><br>
+  <select id="source-select">
+    <option value="">Loading sources...</option>
+  </select>
+
+  <br><br>
+
+  <label for="set-select">Record Set</label><br>
+  <select id="set-select" disabled>
+    <option value="">Select a source first</option>
+  </select>
+
+  <div id="source-details" class="details-box" hidden></div>
+
+  <h2>Step 2: Run the Harvester</h2>
+  <button id="run-button" onclick="runHarvester()" disabled>Run Selected Set</button>
+  <pre id="stream-output" style="border:1px solid #ccc; padding:1em; margin-top:1em; height:300px; overflow:auto;"></pre>
+
+  <script>
+    const sourceSelect = document.getElementById("source-select");
+    const setSelect = document.getElementById("set-select");
+    const runButton = document.getElementById("run-button");
+    const sourceDetails = document.getElementById("source-details");
+    const output = document.getElementById("stream-output");
+    let sources = [];
+    let eventSource = null;
+
+    async function loadSources() {
+      try {
+        const response = await fetch("/oai-qdc-sources");
+        const data = await response.json();
+        sources = data.sources || [];
+
+        sourceSelect.innerHTML = '<option value="">Select a source</option>';
+        for (const source of sources) {
+          const option = document.createElement("option");
+          option.value = source.job_id;
+          option.textContent = source.label;
+          sourceSelect.appendChild(option);
+        }
+      } catch (error) {
+        sourceSelect.innerHTML = '<option value="">Unable to load sources</option>';
+        output.textContent = "Failed to load OAI QDC sources.\n";
+      }
+    }
+
+    function renderSourceDetails(source) {
+      if (!source) {
+        sourceDetails.hidden = true;
+        sourceDetails.innerHTML = "";
+        return;
+      }
+
+      sourceDetails.hidden = false;
+      sourceDetails.innerHTML = `
+        <div><strong>Base URL:</strong> <code>${source.base_url}</code></div>
+        <div><strong>metadataPrefix:</strong> <code>${source.metadata_prefix}</code></div>
+        <div><strong>Download directory:</strong> <code>${source.download_dir}</code></div>
+        <div><strong>Available sets:</strong> ${source.sets.length}</div>
+      `;
+    }
+
+    function updateSetOptions() {
+      const selectedSource = sources.find((item) => item.job_id === sourceSelect.value);
+
+      setSelect.innerHTML = "";
+      renderSourceDetails(selectedSource);
+
+      if (!selectedSource) {
+        setSelect.disabled = true;
+        runButton.disabled = true;
+        setSelect.innerHTML = '<option value="">Select a source first</option>';
+        return;
+      }
+
+      setSelect.disabled = false;
+      setSelect.innerHTML = '<option value="">Select a record set</option>';
+
+      const allOption = document.createElement("option");
+      allOption.value = "__all__";
+      allOption.textContent = `All configured sets (${selectedSource.sets.length})`;
+      setSelect.appendChild(allOption);
+
+      for (const item of selectedSource.sets) {
+        const option = document.createElement("option");
+        option.value = item.set_spec;
+        option.textContent = item.set_title
+          ? `${item.set_title} (${item.set_spec})`
+          : item.set_spec;
+        setSelect.appendChild(option);
+      }
+
+      runButton.disabled = true;
+    }
+
+    sourceSelect.addEventListener("change", updateSetOptions);
+    setSelect.addEventListener("change", () => {
+      runButton.disabled = !(sourceSelect.value && setSelect.value);
+    });
+
+    function runHarvester() {
+      const source = sourceSelect.value;
+      const setSpec = setSelect.value;
+      const selectedSource = sources.find((item) => item.job_id === source);
+      const selectedSet = selectedSource?.sets.find((item) => item.set_spec === setSpec);
+
+      if (!source || !setSpec) {
+        output.textContent = "Select both a source and a record set.\n";
+        return;
+      }
+
+      if (eventSource) {
+        eventSource.close();
+      }
+
+      const setLabel = setSpec === "__all__"
+        ? `all configured sets (${selectedSource.sets.length})`
+        : (selectedSet?.set_title || setSpec);
+      output.textContent = `Starting OAI QDC harvester for ${selectedSource.label} -> ${setLabel}...\n`;
+
+      eventSource = new EventSource(
+        `/run-oai-qdc-stream?source=${encodeURIComponent(source)}&set_spec=${encodeURIComponent(setSpec)}`
+      );
+
+      eventSource.onmessage = function(event) {
+        if (event.data === "DONE") {
+          eventSource.close();
+          eventSource = null;
+          return;
+        }
+
+        output.textContent += event.data + "\n";
+        output.scrollTop = output.scrollHeight;
+      };
+
+      eventSource.onerror = function() {
+        output.textContent += "Stream closed. If the harvester did not complete, check the server logs.\n";
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+      };
+    }
+
+    loadSources();
+  </script>
+</body>
+</html>
