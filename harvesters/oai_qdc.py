@@ -17,9 +17,11 @@ from utils.distribution_writer import generate_secondary_table
 from utils.field_order import FIELD_ORDER, PRIMARY_FIELD_ORDER
 from utils.resource_type_match import split_resource_type_values
 from utils.spatial_match import (
+    load_city_spatial_lookup,
     load_county_spatial_lookup,
     load_plss_bbox_lookup,
     load_state_spatial_lookup,
+    match_city_spatial,
     match_county_spatial,
     match_plss_bbox,
     match_state_spatial,
@@ -59,10 +61,19 @@ class OaiQdcHarvester(BaseHarvester):
             "source_id_prefix",
             self.oai_slugify(self.config.get("name", "oai")).replace("-", "_"),
         )
+        self.id_set_spec_prefixes_to_strip = [
+            self.oai_normalize_space(prefix)
+            for prefix in self.config.get("id_set_spec_prefixes_to_strip", [])
+            if self.oai_normalize_space(prefix)
+        ]
         self.provider = self.config.get("provider", "")
         self.publisher = self.config.get("publisher", "")
         self.harvest_workflow = self.config.get("harvest_workflow", "py_oai_qdc")
         self.spatial_match_state = self.config.get("spatial_match_state", "").strip()
+        self.spatial_cities_csv = self.config.get(
+            "spatial_cities_csv",
+            "reference_data/spatial_cities.csv",
+        )
         self.spatial_counties_csv = self.config.get(
             "spatial_counties_csv",
             "reference_data/spatial_counties.csv",
@@ -97,6 +108,8 @@ class OaiQdcHarvester(BaseHarvester):
         }
         self.county_spatial_lookup = {}
         self.county_spatial_alias_lookup = {}
+        self.city_spatial_lookup = {}
+        self.city_spatial_alias_lookup = {}
         self.state_spatial_lookup = {}
         self.state_spatial_alias_lookup = {}
         self.plss_lookup = {}
@@ -130,6 +143,10 @@ class OaiQdcHarvester(BaseHarvester):
             "title_prefix_append_values",
             [],
         )
+        self.identifier_prefix_field_map = self.config.get(
+            "identifier_prefix_field_map",
+            {},
+        )
         self.crosswalk_mappings = []
         self.allowed_crosswalk_targets = set(FIELD_ORDER)
         self.oai_load_schema_metadata()
@@ -141,6 +158,16 @@ class OaiQdcHarvester(BaseHarvester):
             for dist in self.distribution_types or []
             for variable in dist.get("variables", [])
         }
+        cities_path = self.oai_resolve_path(self.spatial_cities_csv)
+        self.city_spatial_lookup, self.city_spatial_alias_lookup = (
+            load_city_spatial_lookup(cities_path, self.spatial_match_state)
+        )
+        if self.spatial_match_state:
+            print(
+                f"[OAI_QDC] Loaded {len(self.city_spatial_lookup)} spatial city reference row(s) "
+                f"for {self.spatial_match_state} from {cities_path}."
+            )
+
         counties_path = self.oai_resolve_path(self.spatial_counties_csv)
         self.county_spatial_lookup, self.county_spatial_alias_lookup = (
             load_county_spatial_lookup(counties_path, self.spatial_match_state)
@@ -258,6 +285,7 @@ class OaiQdcHarvester(BaseHarvester):
         context_df = pd.DataFrame([self.oai_prepare_record_context(record) for record in record_rows])
         df = self.oai_map_to_schema(context_df)
         df = self.oai_apply_crosswalk(df, context_df)
+        df = self.oai_route_identifier_values(df)
         df = self.oai_ensure_output_columns(df)
         print(
             f"[OAI_QDC] Crosswalked {len(df)} qualified Dublin Core records using "
@@ -438,6 +466,13 @@ class OaiQdcHarvester(BaseHarvester):
             self.oai_normalize_spatial_field
         )
 
+        city_matches = df["Spatial Coverage"].apply(
+            lambda value: match_city_spatial(
+                self.oai_deserialize_values("Spatial Coverage", value),
+                self.city_spatial_lookup,
+                self.city_spatial_alias_lookup,
+            )
+        )
         plss_matches = df["Spatial Coverage"].apply(
             lambda value: match_plss_bbox(
                 self.oai_deserialize_values("Spatial Coverage", value),
@@ -461,12 +496,14 @@ class OaiQdcHarvester(BaseHarvester):
 
         existing_bboxes = df.get("Bounding Box", pd.Series([""] * len(df)))
         df["Bounding Box"] = [
-            plss_match.get("bounding_box", "")
-            or self.oai_normalize_space(existing_value)
+            self.oai_normalize_space(existing_value)
+            or plss_match.get("bounding_box", "")
+            or city_match.get("bounding_box", "")
             or county_match.get("bounding_box", "")
             or state_match.get("bounding_box", "")
-            for existing_value, county_match, plss_match, state_match in zip(
+            for existing_value, city_match, county_match, plss_match, state_match in zip(
                 existing_bboxes,
+                city_matches,
                 spatial_matches,
                 plss_matches,
                 state_matches,
@@ -475,13 +512,16 @@ class OaiQdcHarvester(BaseHarvester):
 
         existing_geometry = df.get("Geometry", pd.Series([""] * len(df)))
         df["Geometry"] = [
-            ""
-            if plss_match.get("has_plss")
-            else self.oai_normalize_space(existing_value)
-            or county_match.get("geometry", "")
-            or state_match.get("geometry", "")
-            for existing_value, county_match, plss_match, state_match in zip(
+            self.oai_normalize_space(existing_value)
+            or city_match.get("geometry", "")
+            or (
+                ""
+                if plss_match.get("has_plss")
+                else county_match.get("geometry", "") or state_match.get("geometry", "")
+            )
+            for existing_value, city_match, county_match, plss_match, state_match in zip(
                 existing_geometry,
+                city_matches,
                 spatial_matches,
                 plss_matches,
                 state_matches,
@@ -491,10 +531,12 @@ class OaiQdcHarvester(BaseHarvester):
         existing_geonames = df.get("GeoNames", pd.Series([""] * len(df)))
         df["GeoNames"] = [
             self.oai_normalize_space(existing_value)
+            or city_match.get("geonames", "")
             or county_match.get("geonames", "")
             or state_match.get("geonames", "")
-            for existing_value, county_match, state_match in zip(
+            for existing_value, city_match, county_match, state_match in zip(
                 existing_geonames,
+                city_matches,
                 spatial_matches,
                 state_matches,
             )
@@ -979,6 +1021,84 @@ class OaiQdcHarvester(BaseHarvester):
 
         return schema_df
 
+    def oai_route_identifier_values(self, df):
+        if (
+            df.empty
+            or "Identifier" not in df.columns
+            or not isinstance(self.identifier_prefix_field_map, dict)
+            or not self.identifier_prefix_field_map
+        ):
+            return df
+
+        normalized_rules = []
+        for target_field, raw_prefixes in self.identifier_prefix_field_map.items():
+            clean_field = self.oai_normalize_space(target_field)
+            if not clean_field:
+                continue
+
+            if isinstance(raw_prefixes, str):
+                raw_prefixes = [raw_prefixes]
+            elif not isinstance(raw_prefixes, list):
+                continue
+
+            prefixes = [
+                self.oai_normalize_space(prefix)
+                for prefix in raw_prefixes
+                if self.oai_normalize_space(prefix)
+            ]
+            if prefixes:
+                normalized_rules.append((clean_field, prefixes))
+
+        if not normalized_rules:
+            return df
+
+        for target_field, _ in normalized_rules:
+            if target_field not in df.columns:
+                df[target_field] = ""
+
+        updated_identifiers = []
+        routed_values_by_field = {target_field: [] for target_field, _ in normalized_rules}
+
+        for _, row in df.iterrows():
+            remaining_identifiers = []
+            routed_for_row = {target_field: [] for target_field, _ in normalized_rules}
+
+            for value in self.oai_deserialize_values("Identifier", row.get("Identifier", "")):
+                matched_field = None
+                lowered_value = value.lower()
+                for target_field, prefixes in normalized_rules:
+                    if any(lowered_value.startswith(prefix.lower()) for prefix in prefixes):
+                        matched_field = target_field
+                        break
+
+                if matched_field is None:
+                    remaining_identifiers.append(value)
+                    continue
+
+                routed_for_row[matched_field].append(value)
+
+            updated_identifiers.append(
+                self.oai_serialize_values("Identifier", remaining_identifiers)
+            )
+
+            for target_field, _ in normalized_rules:
+                existing_values = self.oai_deserialize_values(
+                    target_field,
+                    row.get(target_field, ""),
+                )
+                routed_values_by_field[target_field].append(
+                    self.oai_serialize_values(
+                        target_field,
+                        existing_values + routed_for_row[target_field],
+                    )
+                )
+
+        df["Identifier"] = updated_identifiers
+        for target_field, values in routed_values_by_field.items():
+            df[target_field] = values
+
+        return df
+
     def oai_crosswalk_source_values(self, context, source_key):
         source_key = self.oai_normalize_space(source_key)
         record = context["record"]
@@ -1187,7 +1307,7 @@ class OaiQdcHarvester(BaseHarvester):
         return "", ""
 
     def oai_build_id(self, record, landing_page):
-        set_part = self.oai_slugify(record.get("set_spec", "")).replace("-", "_")
+        set_part = self.oai_build_id_set_part(record.get("set_spec", ""))
         raw_identifier = (
             self.oai_extract_record_number(landing_page)
             or self.oai_extract_record_number(record.get("oai_identifier", ""))
@@ -1196,6 +1316,21 @@ class OaiQdcHarvester(BaseHarvester):
             ).replace("-", "_")
         )
         return f"{self.source_id_prefix}_{set_part}_{raw_identifier}".strip("_")
+
+    def oai_build_id_set_part(self, set_spec):
+        raw_set_spec = self.oai_normalize_space(set_spec)
+        if not raw_set_spec:
+            return ""
+
+        for prefix in self.id_set_spec_prefixes_to_strip:
+            raw_set_spec = re.sub(
+                rf"^{re.escape(prefix)}[:_\-\s]+",
+                "",
+                raw_set_spec,
+                flags=re.IGNORECASE,
+            )
+
+        return self.oai_slugify(raw_set_spec).replace("-", "_")
 
     def oai_extract_record_number(self, value):
         text = str(value or "").strip()

@@ -3,6 +3,62 @@ import re
 import pandas as pd
 
 
+def load_city_spatial_lookup(cities_csv_path, state):
+    city_lookup = {}
+    city_alias_lookup = {}
+
+    if not state:
+        return city_lookup, city_alias_lookup
+
+    cities_df = pd.read_csv(cities_csv_path, encoding="utf-8", dtype=str).fillna("")
+    state_prefix = f"{state}--"
+    state_df = cities_df[cities_df["City"].str.startswith(state_prefix)].copy()
+
+    for _, row in state_df.iterrows():
+        full_name = _normalize_space(row.get("City", ""))
+        if not full_name:
+            continue
+
+        city_lookup[full_name] = {
+            "full_name": full_name,
+            "bounding_box": _normalize_space(row.get("Bounding Box", "")),
+            "geometry": _normalize_space(row.get("Geometry", "")),
+            "geonames": _normalize_space(row.get("GeoNames", "")),
+        }
+
+        short_name = full_name.split("--")[-1].strip()
+        aliases = {
+            full_name,
+            short_name,
+            f"{state}--{short_name}",
+        }
+        for alias in aliases:
+            alias_key = _normalize_space(alias)
+            if alias_key:
+                city_alias_lookup[alias_key] = full_name
+
+    return city_lookup, city_alias_lookup
+
+
+def match_city_spatial(normalized_values, city_lookup, city_alias_lookup):
+    empty_match = {
+        "full_name": "",
+        "bounding_box": "",
+        "geometry": "",
+        "geonames": "",
+    }
+    if not city_lookup or not city_alias_lookup:
+        return empty_match
+
+    values = normalized_values if isinstance(normalized_values, list) else [normalized_values]
+    for value in values:
+        lookup_key = _resolve_city_lookup_key(value, city_lookup, city_alias_lookup)
+        if lookup_key:
+            return city_lookup.get(lookup_key, empty_match)
+
+    return empty_match
+
+
 def load_county_spatial_lookup(counties_csv_path, state):
     county_lookup = {}
     county_alias_lookup = {}
@@ -151,6 +207,17 @@ def match_plss_bbox(normalized_values, plss_lookup):
         "has_plss": True,
         "bounding_box": plss_lookup.get(plss_key, ""),
     }
+
+
+def _resolve_city_lookup_key(value, city_lookup, city_alias_lookup):
+    spatial_key = _normalize_space(value)
+    if not spatial_key:
+        return ""
+
+    if spatial_key in city_lookup:
+        return spatial_key
+
+    return city_alias_lookup.get(spatial_key, "")
 
 
 def _resolve_county_lookup_key(value, county_lookup, county_alias_lookup):

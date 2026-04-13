@@ -5,7 +5,9 @@ oai_base_url: "https://digital.lib.uiowa.edu/oai/request"
 metadata_prefix: oai_qdc
 provider: "University of Iowa"
 source_name: "University of Iowa Libraries"
-source_id_prefix: "iowa"
+source_id_prefix: "b1g_03d"
+id_set_spec_prefixes_to_strip:
+  - node
 website_platform: Islandora
 hardcoded_values:
   Is Part Of: "03d-01"
@@ -18,12 +20,16 @@ title_prefix_append_values:
     append_values:
       Resource Type: "Cadastral maps"
       Member Of: "77f-0001"
+identifier_prefix_field_map:
+  B1G Image:
+    - "https://digital.lib.uiowa.edu/_foxml/datastream/"
 sets_csv: config/iowa-sets.csv
 sets_csv_set_column: set
 sets_csv_title_column: title
 oai_download_dir: inputs/oai-downloads/iowa-library
 distribution_manifest_builder: oai_build_iowa_library_manifest_url
 spatial_match_state: Iowa
+spatial_cities_csv: reference_data/spatial_cities.csv
 spatial_counties_csv: reference_data/spatial_counties.csv
 spatial_plss_csv: reference_data/spatial_plss.csv
 spatial_states_csv: reference_data/spatial_us_states.csv

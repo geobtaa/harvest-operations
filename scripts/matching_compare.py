@@ -7,7 +7,7 @@ import pandas as pd
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_NEW_CSV = PROJECT_ROOT / "outputs/new-iowa-records.csv"
+DEFAULT_NEW_CSV = PROJECT_ROOT / "outputs/2026-04-13_iowa-library_primary.csv"
 DEFAULT_OLD_CSV = PROJECT_ROOT / "outputs/old-iowa-records.csv"
 DEFAULT_OUTPUT_CSV = PROJECT_ROOT / "outputs/iowa-records-comparison.csv"
 DEFAULT_MATCH_COLUMN = "WxS Identifier"
