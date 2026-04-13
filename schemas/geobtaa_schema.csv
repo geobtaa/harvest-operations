@@ -61,4 +61,4 @@ Endpoint URL,59,string,b1g_dcat_endpointURL_s,URL from which the resource was ha
 Accrual Method,60,string,b1g_dct_accrualMethod_s,Method used to obtain the metadata,https://gin.btaa.org/metadata/b1g/#accrual-method,,
 Accrual Periodicity,61,string,b1g_dct_accrualPeriodicity_s,Frequency at which a website is harvested,https://gin.btaa.org/metadata/b1g/#accrual-periodicity,,
 Harvest Workflow,62,string,b1g_harvestWorkflow_s,Workflow that produced the record,https://gin.btaa.org/metadata/b1g/#harvest-workflow,,
-Admin Notes,63,string,b1g_adminNote_sm,"Internal notes about status, issues, or enrichment",https://gin.btaa.org/metadata/b1g/#admin-note,|,
+Admin Note,63,string,b1g_adminNote_sm,"Internal notes about status, issues, or enrichment",https://gin.btaa.org/metadata/b1g/#admin-note,|,

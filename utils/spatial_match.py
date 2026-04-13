@@ -83,13 +83,9 @@ def load_county_spatial_lookup(counties_csv_path, state):
         }
 
         short_name = full_name.split("--")[-1].strip()
-        base_name = short_name.replace(" County", "").strip()
         aliases = {
             full_name,
             short_name,
-            base_name,
-            f"{state}--{short_name}",
-            f"{state}--{base_name}",
         }
         for alias in aliases:
             alias_key = _normalize_space(alias)
@@ -239,14 +235,7 @@ def _resolve_state_lookup_key(value, state_lookup, state_alias_lookup):
     if spatial_key in state_lookup:
         return spatial_key
 
-    if spatial_key in state_alias_lookup:
-        return state_alias_lookup[spatial_key]
-
-    trimmed_key = spatial_key.split("--")[0]
-    if trimmed_key in state_lookup:
-        return trimmed_key
-
-    return state_alias_lookup.get(trimmed_key, "")
+    return state_alias_lookup.get(spatial_key, "")
 
 
 def _extract_plss_key(normalized_values):

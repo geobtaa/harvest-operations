@@ -40,6 +40,7 @@ def _write_spatial_lookup_csvs(tmp_path: Path) -> dict[str, str]:
         "\n".join(
             [
                 "County,Bounding Box,Geometry,GeoNames",
+                "Iowa--Iowa County,IOWA_COUNTY_BBOX,IOWA_COUNTY_GEOM,IOWA_COUNTY_GEONAMES",
                 "Iowa--Johnson County,COUNTY_BBOX,COUNTY_GEOM,COUNTY_GEONAMES",
                 "Iowa--Des Moines County,DES_MOINES_COUNTY_BBOX,DES_MOINES_COUNTY_GEOM,DES_MOINES_COUNTY_GEONAMES",
             ]
@@ -184,3 +185,52 @@ def test_oai_qdc_does_not_confuse_des_moines_city_with_des_moines_county(tmp_pat
     assert row["Bounding Box"] == "DES_MOINES_COUNTY_BBOX"
     assert row["Geometry"] == "DES_MOINES_COUNTY_GEOM"
     assert row["GeoNames"] == "DES_MOINES_COUNTY_GEONAMES"
+
+
+def test_oai_qdc_distinguishes_iowa_state_county_and_city_matches(tmp_path) -> None:
+    sets_csv = tmp_path / "sets.csv"
+    sets_csv.write_text("set,title\nnode:1,Sample Set\n", encoding="utf-8")
+
+    harvester = OaiQdcHarvester(_config(sets_csv, **_write_spatial_lookup_csvs(tmp_path)))
+    harvester.load_reference_data()
+
+    df = pd.DataFrame(
+        [
+            {
+                "Spatial Coverage": "Iowa",
+                "Bounding Box": "",
+                "Geometry": "",
+                "GeoNames": "",
+            },
+            {
+                "Spatial Coverage": "Iowa--Iowa County",
+                "Bounding Box": "",
+                "Geometry": "",
+                "GeoNames": "",
+            },
+            {
+                "Spatial Coverage": "Iowa--Iowa City",
+                "Bounding Box": "",
+                "Geometry": "",
+                "GeoNames": "",
+            },
+        ]
+    )
+
+    enriched_df = harvester.oai_enrich_spatial_fields(df)
+
+    state_row = enriched_df.iloc[0]
+    county_row = enriched_df.iloc[1]
+    city_row = enriched_df.iloc[2]
+
+    assert state_row["Bounding Box"] == "STATE_BBOX"
+    assert state_row["Geometry"] == "STATE_GEOM"
+    assert state_row["GeoNames"] == "STATE_GEONAMES"
+
+    assert county_row["Bounding Box"] == "IOWA_COUNTY_BBOX"
+    assert county_row["Geometry"] == "IOWA_COUNTY_GEOM"
+    assert county_row["GeoNames"] == "IOWA_COUNTY_GEONAMES"
+
+    assert city_row["Bounding Box"] == "CITY_BBOX"
+    assert city_row["Geometry"] == "CITY_GEOM"
+    assert city_row["GeoNames"] == "CITY_GEONAMES"
