@@ -435,7 +435,7 @@ class HarvestTaskDashboardJob:
                 row_dict,
             )
             base_task["Review Date"] = review_date.strftime("%Y-%m-%d") if review_date is not None else ""
-            base_task["Review Status"] = self._determine_review_status(review_date)
+            base_task["Review Status"] = self._determine_review_status(review_date, row_dict)
 
             identifier_values = self._extract_identifier_values(row_dict.get("Identifier", ""))
             matched_websites = []
@@ -670,7 +670,7 @@ class HarvestTaskDashboardJob:
                         row_dict,
                     ),
                     "Review Date": review_date.strftime("%Y-%m-%d") if review_date is not None else "",
-                    "Review Status": self._determine_review_status(review_date),
+                    "Review Status": self._determine_review_status(review_date, row_dict),
                     "__display_name": self._build_display_name(row_dict),
                     "__periodicity_group": self._periodicity_group_label(
                         row_dict.get("Accrual Periodicity", "")
@@ -2176,6 +2176,9 @@ class HarvestTaskDashboardJob:
         periodicity: str,
         row: pd.Series | dict[str, Any] | None = None,
     ) -> pd.Timestamp | None:
+        if self._has_pending_review_tag(row):
+            return self.today
+
         if self._normalize_periodicity(periodicity) != "irregular":
             return None
 
@@ -2189,7 +2192,13 @@ class HarvestTaskDashboardJob:
 
         return last_harvested_date + pd.DateOffset(years=review_interval_years)
 
-    def _determine_review_status(self, review_date: pd.Timestamp | None) -> str:
+    def _determine_review_status(
+        self,
+        review_date: pd.Timestamp | None,
+        row: pd.Series | dict[str, Any] | None = None,
+    ) -> str:
+        if self._has_pending_review_tag(row):
+            return "Due"
         if review_date is None:
             return "No Review"
         if review_date <= self.today:
@@ -2207,6 +2216,12 @@ class HarvestTaskDashboardJob:
             return False
 
         return "queue:pending_harvest" in self._extract_tag_values(row)
+
+    def _has_pending_review_tag(self, row: pd.Series | dict[str, Any] | None) -> bool:
+        if row is None:
+            return False
+
+        return "queue:pending_review" in self._extract_tag_values(row)
 
     def _pending_harvest_due_date(self, row: pd.Series | dict[str, Any] | None) -> pd.Timestamp | None:
         if row is None or not self._has_pending_harvest_tag(row):
