@@ -734,7 +734,7 @@ class HarvestTaskDashboardJob:
         for _, website_row in working_df.iterrows():
             row_dict = website_row.to_dict()
             standalone_id = self._clean_value(row_dict.get("ID", ""))
-            institution_group = self._institution_label_for_code(standalone_id)
+            institution_group = self._institution_label_for_standalone_website(row_dict)
             record_rows.append(
                 {
                     **row_dict,
@@ -1241,11 +1241,29 @@ class HarvestTaskDashboardJob:
             return OTHER_INSTITUTION_LABEL
         return self.institution_map.get(prefix, OTHER_INSTITUTION_LABEL)
 
+    def _institution_label_for_standalone_website(
+        self, row: pd.Series | dict[str, Any]
+    ) -> str:
+        for candidate in (row.get("ID", ""), row.get("Code", "")):
+            prefix = self._standalone_code_prefix(candidate)
+            if prefix:
+                return self.institution_map.get(prefix, OTHER_INSTITUTION_LABEL)
+        return OTHER_INSTITUTION_LABEL
+
     def _institution_group_sort_key(self, institution_label: str) -> int:
         cleaned_label = self._clean_value(institution_label)
         if cleaned_label == OTHER_INSTITUTION_LABEL:
             return len(self.institution_order) + 1
         return self.institution_order.get(cleaned_label, len(self.institution_order))
+
+    def _standalone_code_prefix(self, value: Any) -> str:
+        cleaned_value = self._clean_value(value)
+        if not cleaned_value:
+            return ""
+        match = re.match(r"^(\d{2})(?=[A-Za-z]-)", cleaned_value)
+        if not match:
+            return ""
+        return self._normalize_code_prefix(match.group(1))
 
     def _code_prefix(self, code: Any) -> str:
         cleaned_code = self._clean_value(code)
@@ -1268,8 +1286,6 @@ class HarvestTaskDashboardJob:
         alphanumeric = re.sub(r"[^A-Za-z0-9]+", "", cleaned_prefix).lower()
         if not alphanumeric:
             return ""
-        if alphanumeric.isdigit():
-            return alphanumeric.lstrip("0") or "0"
         return alphanumeric
 
     def _institution_report_intro_text(self) -> str:

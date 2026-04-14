@@ -13,6 +13,12 @@ REFERENCE_CONFIG = {
         "alt_name_column": None,
         "geonames_column": "GeoNames",
     },
+    "cities": {
+        "path": "reference_data/spatial_cities.csv",
+        "name_column": "City",
+        "alt_name_column": None,
+        "geonames_column": "GeoNames",
+    },
     "states": {
         "path": "reference_data/spatial_us_states.csv",
         "name_column": "Label",
@@ -84,40 +90,140 @@ def combine_bounding_boxes(bboxes):
     return f"{min_lon},{min_lat},{max_lon},{max_lat}"
 
 
+def strip_outer_parentheses(value):
+    text = str(value).strip()
+    if len(text) < 2 or not text.startswith("(") or not text.endswith(")"):
+        return None
+
+    depth = 0
+    for index, char in enumerate(text):
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth < 0:
+                return None
+            if depth == 0 and index != len(text) - 1:
+                return None
+
+    if depth != 0:
+        return None
+
+    return text[1:-1].strip()
+
+
+def split_top_level_wkt_parts(value):
+    parts = []
+    depth = 0
+    start = 0
+    text = str(value).strip()
+
+    for index, char in enumerate(text):
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth < 0:
+                return None
+        elif char == "," and depth == 0:
+            part = text[start:index].strip()
+            if part:
+                parts.append(part)
+            start = index + 1
+
+    if depth != 0:
+        return None
+
+    tail = text[start:].strip()
+    if tail:
+        parts.append(tail)
+
+    return parts
+
+
+def extract_polygon_parts(geometry):
+    text = str(geometry).strip()
+    if not text:
+        return []
+
+    upper_text = text.upper()
+    if upper_text.startswith("MULTIPOLYGON"):
+        payload = text[len("MULTIPOLYGON") :].strip()
+        inner_payload = strip_outer_parentheses(payload)
+        if inner_payload is None:
+            return None
+        return split_top_level_wkt_parts(inner_payload)
+
+    if upper_text.startswith("POLYGON"):
+        payload = text[len("POLYGON") :].strip()
+        if strip_outer_parentheses(payload) is None:
+            return None
+        return [payload]
+
+    return None
+
+
+def combine_geometries(geometries):
+    if not geometries:
+        return ""
+
+    geometry_values = [value.strip() for value in str(geometries).split("|") if value.strip()]
+    if not geometry_values:
+        return ""
+
+    if len(geometry_values) == 1:
+        return geometry_values[0]
+
+    polygon_parts = []
+    for geometry in geometry_values:
+        extracted_parts = extract_polygon_parts(geometry)
+        if extracted_parts is None:
+            return "|".join(geometry_values)
+        polygon_parts.extend(extracted_parts)
+
+    if not polygon_parts:
+        return ""
+
+    return f"MULTIPOLYGON ({', '.join(polygon_parts)})"
+
+
 def prefer_derived_value(derived_value, existing_value):
     return derived_value if derived_value else (existing_value or "")
 
 
-def load_reference_maps(level, repo_root):
-    config = REFERENCE_CONFIG[level]
-    reference_path = repo_root / config["path"]
-
+def load_reference_maps(levels, repo_root):
+    reference_paths = []
     bbox_map = {}
     geometry_map = {}
     geonames_map = {}
 
-    with reference_path.open("r", encoding="utf-8-sig", newline="") as handle:
-        reader = csv.DictReader(handle)
-        for row in reader:
-            names = [row.get(config["name_column"], "")]
-            alt_name_column = config["alt_name_column"]
-            if alt_name_column:
-                names.append(row.get(alt_name_column, ""))
+    for level in levels:
+        config = REFERENCE_CONFIG[level]
+        reference_path = repo_root / config["path"]
+        reference_paths.append(reference_path)
 
-            bbox = row.get("Bounding Box", "")
-            geometry = row.get("Geometry", "")
-            geonames = row.get(config["geonames_column"], "")
+        with reference_path.open("r", encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle)
+            for row in reader:
+                names = [row.get(config["name_column"], "")]
+                alt_name_column = config["alt_name_column"]
+                if alt_name_column:
+                    names.append(row.get(alt_name_column, ""))
 
-            for name in names:
-                clean_name = normalize_name(name)
-                if not clean_name:
-                    continue
+                bbox = row.get("Bounding Box", "")
+                geometry = row.get("Geometry", "")
+                geonames = row.get(config["geonames_column"], "")
 
-                bbox_map[clean_name] = bbox
-                geometry_map[clean_name] = geometry
-                geonames_map[clean_name] = geonames
+                for name in names:
+                    clean_name = normalize_name(name)
+                    if not clean_name:
+                        continue
 
-    return reference_path, bbox_map, geometry_map, geonames_map
+                    bbox_map.setdefault(clean_name, bbox)
+                    geometry_map.setdefault(clean_name, geometry)
+                    geonames_map.setdefault(clean_name, geonames)
+
+    return reference_paths, bbox_map, geometry_map, geonames_map
 
 
 def resolve_spatial_column(fieldnames, requested_name):
@@ -138,9 +244,12 @@ def default_output_path(input_path, level):
     return input_path.with_name(f"{input_path.stem}_{level}_matched{input_path.suffix}")
 
 
-def process_csv(input_csv, output_csv, level, spatial_column):
+def process_csv(input_csv, output_csv, level, spatial_column, include_levels):
     repo_root = Path(__file__).resolve().parents[1]
-    reference_path, bbox_map, geometry_map, geonames_map = load_reference_maps(level, repo_root)
+    lookup_levels = tuple(dict.fromkeys([level, *include_levels]))
+    reference_paths, bbox_map, geometry_map, geonames_map = load_reference_maps(
+        lookup_levels, repo_root
+    )
 
     with input_csv.open("r", encoding="utf-8-sig", newline="") as in_handle:
         reader = csv.DictReader(in_handle)
@@ -168,7 +277,8 @@ def process_csv(input_csv, output_csv, level, spatial_column):
 
                 bbox_values = lookup_spatial_values(spatial_value, bbox_map, unmatched_names)
                 derived_bbox = combine_bounding_boxes(bbox_values)
-                derived_geometry = lookup_spatial_values(spatial_value, geometry_map, Counter())
+                geometry_values = lookup_spatial_values(spatial_value, geometry_map, Counter())
+                derived_geometry = combine_geometries(geometry_values)
                 derived_geonames = lookup_spatial_values(spatial_value, geonames_map, Counter())
 
                 row["Bounding Box"] = prefer_derived_value(derived_bbox, row.get("Bounding Box", ""))
@@ -183,7 +293,8 @@ def process_csv(input_csv, output_csv, level, spatial_column):
     print(f"Input CSV: {input_csv}")
     print(f"Output CSV: {output_csv}")
     print(f"Spatial column: {spatial_field}")
-    print(f"Reference CSV: {reference_path}")
+    print(f"Reference levels: {', '.join(lookup_levels)}")
+    print(f"Reference CSVs: {', '.join(str(path) for path in reference_paths)}")
     print(f"Rows processed: {row_count}")
     print(f"Rows with bounding box matches: {matched_rows}")
 
@@ -216,6 +327,16 @@ def parse_args():
         help="Reference geography to use for matching.",
     )
     parser.add_argument(
+        "--include-level",
+        action="append",
+        choices=sorted(REFERENCE_CONFIG.keys()),
+        default=[],
+        help=(
+            "Additional reference geography to merge into the lookup. "
+            "Repeat to include more than one."
+        ),
+    )
+    parser.add_argument(
         "--spatial-column",
         default="Spatial Coverage",
         help="Name of the spatial coverage column in the input CSV.",
@@ -236,6 +357,7 @@ def main():
         output_csv=output_csv,
         level=args.level,
         spatial_column=args.spatial_column,
+        include_levels=args.include_level,
     )
 
 
