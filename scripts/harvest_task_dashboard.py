@@ -5,7 +5,7 @@ from html import escape
 import os
 from pathlib import Path
 import re
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import quote, urlencode
 
 import pandas as pd
@@ -36,6 +36,7 @@ HARVEST_RECORD_LINKS = {
 
 DEFAULT_DEDICATED_WORKFLOW_VIEWS = ("py_arcgis_hub",)
 ISSUE_TASK_MARKER_PREFIX = "harvest-task-key"
+DEFAULT_STANDALONE_ISSUE_TEMPLATE = "standalone-website.md"
 PUBLIC_REPORT_SUFFIX = "-public"
 DEFAULT_CODE_SCHEMA_MAP_PATH = "schemas/code-schema-map.csv"
 DEFAULT_GEO_API_FACET_URL = ""
@@ -818,10 +819,12 @@ class HarvestTaskDashboardJob:
             empty_message="No standalone website records were found in the input file.",
             include_table_of_contents=True,
             metadata_only_timing=True,
+            record_action_renderer=self._render_standalone_issue_links,
+            header_action_html=self._render_new_standalone_website_issue_link(public=public),
             source_download_items=[
                 {
-                    "label": "standalone-websites.csv",
-                    "url": None,
+                    "label": "Standalone website records",
+                    "url": "https://geo.btaa.org/admin/documents?q=&f%5Bb1g_code_s%5D%5B%5D=w00_01",
                     "save_as": "inputs/standalone-websites.csv",
                 }
             ],
@@ -838,6 +841,8 @@ class HarvestTaskDashboardJob:
         empty_message: str,
         include_table_of_contents: bool = False,
         metadata_only_timing: bool = False,
+        record_action_renderer: Callable[[pd.Series | dict[str, Any], bool], str] | None = None,
+        header_action_html: str = "",
         source_download_items: list[dict[str, str | None]] | None = None,
     ) -> str:
         html_parts = [
@@ -880,12 +885,16 @@ class HarvestTaskDashboardJob:
             "    .toc-box { padding: 1rem; margin: 1rem 0 1.4rem; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
             "    .toc-box ul { columns: 2; column-gap: 2rem; margin: 0.75rem 0 0; padding-left: 1.15rem; }",
             "    .toc-box li { break-inside: avoid; margin-bottom: 0.35rem; }",
+            "    .header-actions { display: flex; flex-wrap: wrap; gap: 0.55rem; margin: 1rem 0 1.2rem; }",
             "    .record-list { display: grid; gap: 0; }",
             "    .record-item { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr); gap: 1rem; padding: 0.85rem 1rem; border-top: 1px solid var(--line); }",
             "    .record-item:first-child { border-top: none; }",
             "    .task-name { font-weight: 700; margin-bottom: 0.2rem; }",
             "    .task-meta, .timing-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }",
             "    .task-meta code, .timing-meta code { background: var(--no-schedule-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    .record-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.55rem; }",
+            "    .action-link { display: inline-flex; align-items: center; padding: 0.34rem 0.62rem; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: var(--accent); background: #fff; font-size: 0.84rem; font-weight: 600; }",
+            "    .action-link:hover { background: #e8f2fd; border-color: #c3d7ed; }",
             "    .date-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; font-weight: 700; }",
             "    .status-pill { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }",
             "    .status-pill--reviews { color: var(--reviews); background: var(--reviews-soft); }",
@@ -905,6 +914,8 @@ class HarvestTaskDashboardJob:
                     f"  <p class=\"muted\">{escape(intro_text)}</p>",
                 ]
             )
+            if header_action_html:
+                html_parts.append(f"  <div class=\"header-actions\">{header_action_html}</div>")
             if not public:
                 if source_download_items is None:
                     source_download_items = [
@@ -1004,15 +1015,20 @@ class HarvestTaskDashboardJob:
                 ]
             )
             for _, row in group_df.iterrows():
+                detail_html = (
+                    self._render_record_metadata_cell(row)
+                    if metadata_only_timing
+                    else self._render_timing_cell(row, self._record_due_label(row))
+                )
+                if record_action_renderer is not None:
+                    action_html = record_action_renderer(row, public=public)
+                    if action_html:
+                        detail_html = f"{detail_html}<div class=\"record-actions\">{action_html}</div>"
                 html_parts.extend(
                     [
                         "      <article class=\"record-item\">",
                         f"        <div>{self._render_task_cell(row, public=True)}</div>",
-                        (
-                            f"        <div>{self._render_record_metadata_cell(row)}</div>"
-                            if metadata_only_timing
-                            else f"        <div>{self._render_timing_cell(row, self._record_due_label(row))}</div>"
-                        ),
+                        f"        <div>{detail_html}</div>",
                         "      </article>",
                     ]
                 )
@@ -2486,17 +2502,45 @@ class HarvestTaskDashboardJob:
             )
         return "".join(links)
 
+    def _render_standalone_issue_links(
+        self, row: pd.Series | dict[str, Any], public: bool = False
+    ) -> str:
+        if public or not self.issue_repositories:
+            return ""
+
+        links = []
+        task_key = self._standalone_issue_task_key(row)
+        for issue_repository in self.issue_repositories:
+            existing_issue = self._find_existing_issue_for_task_key(task_key, issue_repository)
+            if existing_issue:
+                issue_state = self._clean_value(existing_issue.get("state", "")).lower()
+                issue_label = "Closed issue" if issue_state == "closed" else "Open issue"
+                issue_number = self._clean_value(existing_issue.get("number", ""))
+                label = f"{issue_label} #{issue_number}" if issue_number else issue_label
+                links.append(
+                    f'<a class="action-link" href="{escape(existing_issue["html_url"], quote=True)}" target="_blank" rel="noreferrer">{escape(label)}</a>'
+                )
+                continue
+
+            issue_url = self._build_standalone_issue_url(row, issue_repository)
+            links.append(
+                f'<a class="action-link" href="{escape(issue_url, quote=True)}" target="_blank" rel="noreferrer">Create issue</a>'
+            )
+        return "".join(links)
+
+    def _render_new_standalone_website_issue_link(self, public: bool = False) -> str:
+        if public or not self.issue_repositories:
+            return ""
+
+        links = []
+        for issue_repository in self.issue_repositories:
+            issue_url = self._build_new_standalone_website_issue_url(issue_repository)
+            links.append(
+                f'<a class="action-link" href="{escape(issue_url, quote=True)}" target="_blank" rel="noreferrer">Create issue on GitHub for new website</a>'
+            )
+        return "".join(links)
+
     def _build_issue_url(self, row: pd.Series | dict[str, Any], issue_repository: dict[str, Any]) -> str:
-        issues_new_url = self._clean_value(issue_repository.get("issues_new_url"))
-        if not issues_new_url:
-            return "#"
-
-        query_params = {
-            "template": self._clean_value(issue_repository.get("template")) or "harvest-task.md",
-            "title": self._build_issue_title(row),
-            "body": self._build_issue_body(row),
-        }
-
         labels = [
             self._clean_value(label)
             for label in issue_repository.get("labels", [])
@@ -2505,16 +2549,103 @@ class HarvestTaskDashboardJob:
         issue_label = self._issue_label(row)
         if issue_label and issue_label not in labels:
             labels.append(issue_label)
-        if labels:
-            query_params["labels"] = ",".join(labels)
 
         projects = [
             self._clean_value(project)
             for project in issue_repository.get("projects", [])
             if self._clean_value(project)
         ]
-        if projects:
-            query_params["projects"] = ",".join(projects)
+        return self._build_prefilled_issue_url(
+            issue_repository,
+            title=self._build_issue_title(row),
+            body=self._build_issue_body(row),
+            template=self._clean_value(issue_repository.get("template")) or "harvest-task.md",
+            labels=labels,
+            projects=projects,
+        )
+
+    def _build_standalone_issue_url(
+        self, row: pd.Series | dict[str, Any], issue_repository: dict[str, Any]
+    ) -> str:
+        return self._build_prefilled_issue_url(
+            issue_repository,
+            title=self._build_standalone_issue_title(row),
+            body=self._build_standalone_issue_body(row),
+            template=(
+                self._clean_value(issue_repository.get("standalone_website_template"))
+                or DEFAULT_STANDALONE_ISSUE_TEMPLATE
+            ),
+            labels=[
+                self._clean_value(label)
+                for label in issue_repository.get("labels", [])
+                if self._clean_value(label)
+            ],
+            projects=[
+                self._clean_value(project)
+                for project in issue_repository.get("projects", [])
+                if self._clean_value(project)
+            ],
+        )
+
+    def _build_new_standalone_website_issue_url(self, issue_repository: dict[str, Any]) -> str:
+        return self._build_prefilled_issue_url(
+            issue_repository,
+            title=self._build_new_standalone_website_issue_title(),
+            body=self._build_new_standalone_website_issue_body(),
+            template=(
+                self._clean_value(issue_repository.get("standalone_website_template"))
+                or DEFAULT_STANDALONE_ISSUE_TEMPLATE
+            ),
+            labels=[
+                self._clean_value(label)
+                for label in issue_repository.get("labels", [])
+                if self._clean_value(label)
+            ],
+            projects=[
+                self._clean_value(project)
+                for project in issue_repository.get("projects", [])
+                if self._clean_value(project)
+            ],
+        )
+
+    def _build_prefilled_issue_url(
+        self,
+        issue_repository: dict[str, Any],
+        *,
+        title: str,
+        body: str,
+        template: str = "",
+        labels: list[str] | None = None,
+        projects: list[str] | None = None,
+    ) -> str:
+        issues_new_url = self._clean_value(issue_repository.get("issues_new_url"))
+        if not issues_new_url:
+            return "#"
+
+        query_params = {
+            "title": title,
+            "body": body,
+        }
+
+        cleaned_template = self._clean_value(template)
+        if cleaned_template:
+            query_params["template"] = cleaned_template
+
+        cleaned_labels = list(
+            dict.fromkeys(self._clean_value(label) for label in (labels or []) if self._clean_value(label))
+        )
+        if cleaned_labels:
+            query_params["labels"] = ",".join(cleaned_labels)
+
+        cleaned_projects = list(
+            dict.fromkeys(
+                self._clean_value(project)
+                for project in (projects or [])
+                if self._clean_value(project)
+            )
+        )
+        if cleaned_projects:
+            query_params["projects"] = ",".join(cleaned_projects)
 
         return f"{issues_new_url}?{urlencode(query_params)}"
 
@@ -2561,7 +2692,119 @@ class HarvestTaskDashboardJob:
         return f"{self._issue_label(row)}:{task_id}:{self._issue_due_date(row)}"
 
     def _issue_task_marker(self, row: pd.Series | dict[str, Any]) -> str:
-        return f"<!-- {ISSUE_TASK_MARKER_PREFIX}: {self._issue_task_key(row)} -->"
+        return self._issue_task_marker_for_key(self._issue_task_key(row))
+
+    def _issue_task_marker_for_key(self, task_key: str) -> str:
+        cleaned_task_key = self._clean_value(task_key)
+        if not cleaned_task_key:
+            return ""
+        return f"<!-- {ISSUE_TASK_MARKER_PREFIX}: {cleaned_task_key} -->"
+
+    def _standalone_issue_task_key(self, row: pd.Series | dict[str, Any]) -> str:
+        website_id = self._clean_value(row.get("ID", "")) or self._build_display_name(row)
+        return f"standalone:{website_id}"
+
+    def _new_standalone_website_issue_task_key(self) -> str:
+        return "standalone:add-new-website"
+
+    def _build_standalone_issue_title(self, row: pd.Series | dict[str, Any]) -> str:
+        return f"[Standalone Website] {self._build_display_name(row)}"
+
+    def _build_new_standalone_website_issue_title(self) -> str:
+        return "[Standalone Website] Add new website"
+
+    def _build_standalone_issue_body(self, row: pd.Series | dict[str, Any]) -> str:
+        issue_title = self._build_standalone_issue_title(row)
+        website_id = self._clean_value(row.get("ID", ""))
+        website_url = self._standalone_website_source_url(row)
+        website_platform = self._clean_value(row.get("Website Platform", ""))
+        institution_group = self._clean_value(row.get("__institution_group", "")) or (
+            self._institution_label_for_standalone_website(row)
+        )
+        date_accessioned = self._clean_value(row.get("Date Accessioned", ""))
+        updated_at = self._clean_value(row.get("Updated At", ""))
+        admin_note = self._clean_value(row.get("Admin Note", ""))
+        lines = [
+            f"# {issue_title}",
+            "",
+            self._markdown_link_line(
+                "Standalone website record",
+                website_id or "Not provided",
+                self._harvest_record_url(website_id),
+            ),
+            self._markdown_link_line(
+                "Catalog page",
+                website_id or "Not provided",
+                self._standalone_catalog_url(website_id),
+            ),
+            self._markdown_link_line(
+                "Website URL",
+                website_url or "Not provided",
+                website_url or None,
+            ),
+            f"- Website platform: {website_platform or 'Not provided'}",
+            f"- Institution group: {institution_group or OTHER_INSTITUTION_LABEL}",
+            f"- Date accessioned: {date_accessioned or 'Not provided'}",
+            f"- Updated at: {updated_at or 'Not provided'}",
+            f"- Standalone Websites CSV: {self._standalone_websites_input_label()}",
+        ]
+        if admin_note:
+            lines.append(f"- Admin note: {admin_note}")
+        lines.extend(
+            [
+                "",
+                self._issue_task_marker_for_key(self._standalone_issue_task_key(row)),
+                "",
+                "## Summary",
+                "",
+                "Describe the standalone website follow-up needed.",
+                "",
+                "## Notes",
+                "",
+            ]
+        )
+        return "\n".join(lines)
+
+    def _build_new_standalone_website_issue_body(self) -> str:
+        issue_title = self._build_new_standalone_website_issue_title()
+        lines = [
+            f"# {issue_title}",
+            "",
+            self._markdown_link_line(
+                "Standalone websites harvest record",
+                "harvest_standalone_websites",
+                self._harvest_record_url("harvest_standalone_websites"),
+            ),
+            f"- Standalone Websites CSV: {self._standalone_websites_input_label()}",
+            "",
+            self._issue_task_marker_for_key(self._new_standalone_website_issue_task_key()),
+            "",
+            "## Website Details",
+            "",
+            "- Title:",
+            "- ID:",
+            "- URL:",
+            "- Creator/Publisher:",
+            "- Website platform:",
+            "- Justification for addition:",
+            "",
+            "## Notes",
+            "",
+        ]
+        return "\n".join(lines)
+
+    def _standalone_websites_input_label(self) -> str:
+        configured_path = self._clean_value(self.config.get("standalone_websites_csv", ""))
+        if configured_path and not os.path.isabs(configured_path):
+            return configured_path
+        return "inputs/standalone-websites.csv"
+
+    def _standalone_website_source_url(self, row: pd.Series | dict[str, Any]) -> str:
+        return self._first_non_empty(
+            row.get("Identifier", ""),
+            row.get("Endpoint URL", ""),
+            row.get("Source", ""),
+        )
 
     def _is_review_issue(self, row: pd.Series | dict[str, Any]) -> bool:
         return self._clean_value(row.get("Review Date", "")) != ""
@@ -2590,10 +2833,17 @@ class HarvestTaskDashboardJob:
         row: pd.Series | dict[str, Any],
         issue_repository: dict[str, Any],
     ) -> dict[str, str] | None:
-        task_key = self._issue_task_key(row)
-        if not task_key:
+        return self._find_existing_issue_for_task_key(self._issue_task_key(row), issue_repository)
+
+    def _find_existing_issue_for_task_key(
+        self,
+        task_key: str,
+        issue_repository: dict[str, Any],
+    ) -> dict[str, str] | None:
+        cleaned_task_key = self._clean_value(task_key)
+        if not cleaned_task_key:
             return None
-        return self._existing_issue_index(issue_repository).get(task_key)
+        return self._existing_issue_index(issue_repository).get(cleaned_task_key)
 
     def _existing_issue_index(self, issue_repository: dict[str, Any]) -> dict[str, dict[str, str]]:
         if not self._lookup_existing_issues_enabled(issue_repository):

@@ -391,6 +391,14 @@ def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: P
                 outputs_dir / "harvest-task-dashboard-retrospective.html"
             ),
             "output_workflow_dir": str(outputs_dir / "harvest-workflow-inputs"),
+            "issue_repositories": [
+                {
+                    "name": "harvest-operations",
+                    "issues_new_url": "https://github.com/geobtaa/harvest-operations/issues/new",
+                    "template": "harvest-task.md",
+                    "labels": ["harvest-task"],
+                }
+            ],
             "today": "2026-04-01",
         }
     )
@@ -425,7 +433,17 @@ def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: P
     assert "https://geo.btaa.org/catalog/05b-27003" in standalone_dashboard_html
     assert "https://geo.btaa.org/catalog/11b-39003" in public_standalone_dashboard_html
     assert "https://geo.btaa.org/catalog/1000f-0004" in standalone_dashboard_html
-    assert "w00_01" not in standalone_dashboard_html
+    assert "https://github.com/geobtaa/harvest-operations/issues/new" in standalone_dashboard_html
+    assert "template=standalone-website.md" in standalone_dashboard_html
+    assert "Create issue on GitHub for new website" in standalone_dashboard_html
+    assert standalone_dashboard_html.count("Create issue</a>") == 3
+    assert (
+        "https://geo.btaa.org/admin/documents?q=&amp;f%5Bb1g_code_s%5D%5B%5D=w00_01"
+        in standalone_dashboard_html
+    )
+    assert "Create issue on GitHub for new website" not in public_standalone_dashboard_html
+    assert "Create issue</a>" not in public_standalone_dashboard_html
+    assert "<code>w00_01</code>" not in standalone_dashboard_html
     assert "Last harvested:" not in standalone_dashboard_html
     assert "Periodicity:" not in standalone_dashboard_html
     assert Path(results["standalone_dashboard_html"]).name == (
@@ -778,6 +796,23 @@ def test_harvest_task_issue_body_includes_hidden_task_marker() -> None:
     )
 
     assert "<!-- harvest-task-key: harvest:harvest_ornl:2026-04-30 -->" in body
+
+
+def test_standalone_website_issue_body_includes_hidden_task_marker() -> None:
+    job = HarvestTaskDashboardJob({"today": "2026-04-01"})
+
+    body = job._build_standalone_issue_body(
+        {
+            "ID": "05b-27003",
+            "Title": "Anoka County GIS Data Downloads",
+            "Identifier": "https://www.anokacounty.us/1990/Data-Downloads",
+            "Website Platform": "Other",
+            "Code": "w00_01",
+            "__institution_group": "University of Minnesota",
+        }
+    )
+
+    assert "<!-- harvest-task-key: standalone:05b-27003 -->" in body
 
 
 def test_harvest_task_dashboard_links_existing_issue_when_marker_matches(
