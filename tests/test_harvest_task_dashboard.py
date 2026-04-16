@@ -23,6 +23,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
                 "Harvest Workflow": "py_arcgis_hub",
                 "Identifier": "site-1",
                 "Code": "27d-01",
+                "Subject": "Maps",
                 "Last Harvested": "2026-02-15",
                 "Accrual Periodicity": "monthly",
             },
@@ -31,7 +32,8 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
                 "Title": "Road Centerlines",
                 "Harvest Workflow": "py_arcgis_hub",
                 "Identifier": "site-3",
-                "Code": "27d-02",
+                "Code": "27d-01",
+                "Subject": "Transportation|Maps",
                 "Last Harvested": "2026-02-20",
                 "Accrual Periodicity": "monthly",
             },
@@ -40,6 +42,8 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
                 "Title": "Transit Stops",
                 "Harvest Workflow": "py_socrata",
                 "Identifier": "site-2",
+                "Code": "07a-01",
+                "Subject": "Transportation",
                 "Last Harvested": "2026-03-23",
                 "Accrual Periodicity": "weekly",
             },
@@ -48,6 +52,8 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
                 "Title": "Building Permits",
                 "Harvest Workflow": "py_socrata",
                 "Identifier": "site-4",
+                "Code": "99z-01",
+                "Subject": "Structures",
                 "Last Harvested": "2026-03-28",
                 "Accrual Periodicity": "weekly",
             },
@@ -56,6 +62,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
                 "Title": "Geology Index",
                 "Harvest Workflow": "py_pasda",
                 "Identifier": "",
+                "Subject": "Geology",
                 "Last Harvested": "2026-01-01",
                 "Accrual Periodicity": "irregular",
             },
@@ -65,6 +72,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
                 "Harvest Workflow": "py_pasda",
                 "Identifier": "site-5",
                 "Code": "05f-01",
+                "Subject": "Imagery|Maps",
                 "Last Harvested": "2026-03-29",
                 "Accrual Periodicity": "weekly",
             },
@@ -169,6 +177,12 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     public_institution_dashboard_html = Path(
         results["public_institution_dashboard_html"]
     ).read_text(encoding="utf-8")
+    map_collections_dashboard_html = Path(results["map_collections_dashboard_html"]).read_text(
+        encoding="utf-8"
+    )
+    public_map_collections_dashboard_html = Path(
+        results["public_map_collections_dashboard_html"]
+    ).read_text(encoding="utf-8")
     retrospective_dashboard_html = Path(results["retrospective_dashboard_html"]).read_text(
         encoding="utf-8"
     )
@@ -190,6 +204,11 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     institution_view_html = job.render_dashboard_view(report_type="institutions")
     public_institution_view_html = job.render_dashboard_view(
         report_type="institutions",
+        public=True,
+    )
+    map_collections_view_html = job.render_dashboard_view(report_type="map-collections")
+    public_map_collections_view_html = job.render_dashboard_view(
+        report_type="map_collections",
         public=True,
     )
     arcgis_due_dashboard_html = job.render_dashboard_view(
@@ -234,8 +253,10 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "https://github.com/geobtaa/harvest-operations/issues/new" in dashboard_html
     assert "template=harvest-task.md" in dashboard_html
     assert "Create issue" in dashboard_html
+    assert "Get Latest Source CSVs" in dashboard_html
     assert "Create issue" not in public_dashboard_html
     assert "Create issue" not in public_due_dashboard_html
+    assert "Get Latest Source CSVs" not in public_dashboard_html
     assert "https://geo.btaa.org/admin/documents/site-5/edit" not in public_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2227d-01%22" in public_arcgis_dashboard_html
@@ -248,6 +269,8 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert public_records_dashboard_html == public_records_view_html
     assert institution_dashboard_html == institution_view_html
     assert public_institution_dashboard_html == public_institution_view_html
+    assert map_collections_dashboard_html == map_collections_view_html
+    assert public_map_collections_dashboard_html == public_map_collections_view_html
     assert "County Parcels" not in records_dashboard_html
     assert "Scan Socrata Sites" not in records_dashboard_html
     assert "py_socrata" not in records_dashboard_html
@@ -260,7 +283,11 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_records_dashboard_html
     assert "https://geo.btaa.org/admin/documents/site-5/edit" not in records_dashboard_html
     assert "Create issue" not in records_dashboard_html
+    assert "Get Latest Source CSVs" not in records_dashboard_html
+    assert records_dashboard_html.index("Parcel Fabric") < records_dashboard_html.index("Transit Stops")
+    assert records_dashboard_html.index("Transit Stops") < records_dashboard_html.index("Building Permits")
     assert "Harvest Records by Institution" in institution_dashboard_html
+    assert "Get Latest Source CSVs" not in institution_dashboard_html
     assert "Table of Contents" in institution_dashboard_html
     assert "Geoportal item counts are loaded from the development metadata API facet." in (
         institution_dashboard_html
@@ -277,13 +304,38 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert '<div class="date-line">' not in institution_dashboard_html
     assert "No schedule" not in institution_dashboard_html
     assert "Geoportal items: 12" in institution_dashboard_html
-    assert "Geoportal items: 8" in institution_dashboard_html
     assert "Geoportal items: 3" in institution_dashboard_html
     assert "Geoportal items: Not available" in institution_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2227d-01%22" in institution_dashboard_html
+    assert "https://geo.btaa.org/admin/documents/task-1/edit" in institution_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_institution_dashboard_html
+    assert "https://geo.btaa.org/admin/documents/task-1/edit" not in public_institution_dashboard_html
+    assert institution_dashboard_html.index("Transit Stops") < institution_dashboard_html.index("County Parcels")
+    assert institution_dashboard_html.index("County Parcels") < institution_dashboard_html.index("Building Permits")
+    assert "Map Collections" in map_collections_dashboard_html
+    assert "Get Latest Source CSVs" not in map_collections_dashboard_html
+    assert "Subject includes Maps" in map_collections_dashboard_html
+    assert "Table of Contents" in map_collections_dashboard_html
+    assert "County Parcels" in map_collections_dashboard_html
+    assert "Road Centerlines" in map_collections_dashboard_html
+    assert "Parcel Fabric" in map_collections_dashboard_html
+    assert "Transit Stops" not in map_collections_dashboard_html
+    assert "Building Permits" not in map_collections_dashboard_html
+    assert "Geology Index" not in map_collections_dashboard_html
+    assert "Count by Code:" not in map_collections_dashboard_html
+    assert "Periodicity:" not in map_collections_dashboard_html
+    assert "Geoportal items: 12" in map_collections_dashboard_html
+    assert "Geoportal items: 3" in map_collections_dashboard_html
+    assert "https://geo.btaa.org/admin/documents/task-1/edit" in map_collections_dashboard_html
+    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2227d-01%22" in (
+        public_map_collections_dashboard_html
+    )
+    assert "https://geo.btaa.org/admin/documents/task-1/edit" not in (
+        public_map_collections_dashboard_html
+    )
     assert fetch_calls == 1
     assert "Harvest Tasks Due Now" in due_dashboard_html
+    assert "Get Latest Source CSVs" not in due_dashboard_html
     assert "Reviews due" in due_dashboard_html
     assert "Harvests due" in due_dashboard_html
     assert "Scheduled" not in due_dashboard_html
@@ -292,6 +344,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Parcel Fabric" not in due_dashboard_html
     assert "Geology Index" not in due_dashboard_html
     assert "Harvest Task Retrospective" in retrospective_dashboard_html
+    assert "Get Latest Source CSVs" not in retrospective_dashboard_html
     assert "Scan ArcGIS Hubs" not in dashboard_html
     assert "py_arcgis_hub" not in dashboard_html
     assert "Scan ArcGIS Hubs" not in due_dashboard_html
@@ -314,12 +367,19 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert Path(results["public_institution_dashboard_html"]).name == (
         "2026-03-30_harvest-task-dashboard-institutions-public.html"
     )
+    assert Path(results["map_collections_dashboard_html"]).name == (
+        "2026-03-30_harvest-task-dashboard-map-collections.html"
+    )
+    assert Path(results["public_map_collections_dashboard_html"]).name == (
+        "2026-03-30_harvest-task-dashboard-map-collections-public.html"
+    )
     assert Path(public_dedicated_dashboard_outputs["py_arcgis_hub"]).name == (
         "2026-03-30_harvest-task-dashboard-py-arcgis-hub-public.html"
     )
     assert arcgis_dashboard_output_html == arcgis_dashboard_html
     assert public_arcgis_dashboard_output_html == public_arcgis_dashboard_html
     assert "ArcGIS Hubs Harvest Overview" in arcgis_dashboard_html
+    assert "Get Latest Source CSVs" not in arcgis_dashboard_html
     assert "Last time the process was run" in arcgis_dashboard_html
     assert "2026-02-20" in arcgis_dashboard_html
     assert "Currently Harvested ArcGIS Hubs" in arcgis_dashboard_html
@@ -417,6 +477,7 @@ def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: P
     assert standalone_dashboard_html == standalone_view_html
     assert standalone_dashboard_html == standalone_alias_html
     assert "Standalone Websites by Institution" in standalone_dashboard_html
+    assert "Get Latest Source CSVs" not in standalone_dashboard_html
     assert "Table of Contents" in standalone_dashboard_html
     assert "University of Minnesota" in standalone_dashboard_html
     assert "The Ohio State University" in standalone_dashboard_html
@@ -439,7 +500,7 @@ def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: P
     assert standalone_dashboard_html.count("Create issue</a>") == 3
     assert (
         "https://geo.btaa.org/admin/documents?q=&amp;f%5Bb1g_code_s%5D%5B%5D=w00_01"
-        in standalone_dashboard_html
+        not in standalone_dashboard_html
     )
     assert "Create issue on GitHub for new website" not in public_standalone_dashboard_html
     assert "Create issue</a>" not in public_standalone_dashboard_html

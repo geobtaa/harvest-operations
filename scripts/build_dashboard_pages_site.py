@@ -25,6 +25,13 @@ STANDARD_REPORT_TYPES = {
         "latest_href": "latest/institutions/",
         "archive_segment": "institutions",
     },
+    "map-collections": {
+        "suffix": "harvest-task-dashboard-map-collections.html",
+        "label": "Map collections",
+        "description": "Harvest-record list filtered to Subject=Maps and grouped by institution.",
+        "latest_href": "latest/map-collections/",
+        "archive_segment": "map-collections",
+    },
     "standalone": {
         "suffix": "harvest-task-dashboard-standalone-websites.html",
         "label": "Standalone websites",
@@ -47,7 +54,14 @@ STANDARD_REPORT_TYPES = {
         "archive_segment": "retrospective",
     },
 }
-STANDARD_REPORT_ORDER = ("records", "institutions", "standalone", "due", "retrospective")
+STANDARD_REPORT_ORDER = (
+    "records",
+    "institutions",
+    "map-collections",
+    "standalone",
+    "due",
+    "retrospective",
+)
 DEDICATED_WORKFLOW_PREFIX = "harvest-task-dashboard-"
 PUBLIC_REPORT_SUFFIX = "-public"
 

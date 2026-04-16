@@ -27,6 +27,12 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
         "2026-04-01_harvest-task-dashboard-institutions-public.html": (
             "<html><body>institutions-public-2026-04-01</body></html>"
         ),
+        "2026-04-01_harvest-task-dashboard-map-collections.html": (
+            "<html><body>map-collections-2026-04-01</body></html>"
+        ),
+        "2026-04-01_harvest-task-dashboard-map-collections-public.html": (
+            "<html><body>map-collections-public-2026-04-01</body></html>"
+        ),
         "2026-04-01_harvest-task-dashboard-standalone-websites.html": (
             "<html><body>standalone-2026-04-01</body></html>"
         ),
@@ -67,6 +73,7 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
     assert "2026-04-01" in index_html
     assert 'href="latest/"' in index_html
     assert 'href="latest/institutions/"' in index_html
+    assert 'href="latest/map-collections/"' in index_html
     assert 'href="latest/standalone-websites/"' in index_html
     assert 'href="latest/due/"' in index_html
     assert 'href="latest/retrospective/"' in index_html
@@ -74,10 +81,12 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
     assert "ArcGIS Hubs" in index_html
     assert 'href="2026-03-30/"' in index_html
     assert 'href="2026-04-01/institutions/"' in index_html
+    assert 'href="2026-04-01/map-collections/"' in index_html
     assert 'href="2026-04-01/standalone-websites/"' in index_html
     assert 'href="2026-04-01/retrospective/"' in index_html
     assert 'href="2026-04-01/workflows/py-arcgis-hub/"' in index_html
     assert 'href="../2026-04-01/institutions/"' in archive_html
+    assert 'href="../2026-04-01/map-collections/"' in archive_html
     assert 'href="../2026-04-01/standalone-websites/"' in archive_html
     assert 'href="../2026-04-01/retrospective/"' in archive_html
     assert 'href="../2026-04-01/workflows/py-arcgis-hub/"' in archive_html
@@ -89,6 +98,10 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
     assert (
         output_dir.joinpath("latest/institutions/index.html").read_text(encoding="utf-8")
         == "<html><body>institutions-public-2026-04-01</body></html>"
+    )
+    assert (
+        output_dir.joinpath("latest/map-collections/index.html").read_text(encoding="utf-8")
+        == "<html><body>map-collections-public-2026-04-01</body></html>"
     )
     assert (
         output_dir.joinpath("latest/standalone-websites/index.html").read_text(encoding="utf-8")

@@ -81,6 +81,14 @@ class HarvestTaskDashboardJob:
                 ),
             )
         )
+        self.output_map_collections_dashboard_html = Path(
+            config.get(
+                "output_map_collections_dashboard_html",
+                self.output_dashboard_html.with_name(
+                    f"{self.output_dashboard_html.stem}-map-collections{self.output_dashboard_html.suffix}"
+                ),
+            )
+        )
         self.output_standalone_dashboard_html = Path(
             config.get(
                 "output_standalone_dashboard_html",
@@ -104,6 +112,9 @@ class HarvestTaskDashboardJob:
         )
         self.output_public_institution_dashboard_html = self._public_output_path(
             self.output_institution_dashboard_html
+        )
+        self.output_public_map_collections_dashboard_html = self._public_output_path(
+            self.output_map_collections_dashboard_html
         )
         self.output_public_standalone_dashboard_html = self._public_output_path(
             self.output_standalone_dashboard_html
@@ -165,11 +176,13 @@ class HarvestTaskDashboardJob:
         dashboard_html = self._render_dashboard_html(
             main_task_df,
             report_title=self._report_title(),
+            include_source_download_box=True,
         )
         public_dashboard_html = self._render_dashboard_html(
             main_task_df,
             report_title=self._report_title(),
             public=True,
+            include_source_download_box=True,
         )
         due_dashboard_html = self._render_dashboard_html(
             self._filter_due_only_tasks(main_task_df),
@@ -196,6 +209,15 @@ class HarvestTaskDashboardJob:
         public_institution_dashboard_html = self._render_institution_record_list_html(
             harvest_df,
             report_title=self._report_title(report_type="institutions"),
+            public=True,
+        )
+        map_collections_dashboard_html = self._render_map_collection_record_list_html(
+            harvest_df,
+            report_title=self._report_title(report_type="map-collections"),
+        )
+        public_map_collections_dashboard_html = self._render_map_collection_record_list_html(
+            harvest_df,
+            report_title=self._report_title(report_type="map-collections"),
             public=True,
         )
         standalone_dashboard_html = self._render_standalone_website_list_html(
@@ -239,6 +261,14 @@ class HarvestTaskDashboardJob:
             public_institution_dashboard_html,
             self.output_public_institution_dashboard_html,
         )
+        map_collections_dashboard_output_path = self._write_text(
+            map_collections_dashboard_html,
+            self.output_map_collections_dashboard_html,
+        )
+        public_map_collections_dashboard_output_path = self._write_text(
+            public_map_collections_dashboard_html,
+            self.output_public_map_collections_dashboard_html,
+        )
         standalone_dashboard_output_path = self._write_text(
             standalone_dashboard_html,
             self.output_standalone_dashboard_html,
@@ -276,6 +306,10 @@ class HarvestTaskDashboardJob:
             "public_records_dashboard_html": str(public_records_dashboard_output_path),
             "institution_dashboard_html": str(institution_dashboard_output_path),
             "public_institution_dashboard_html": str(public_institution_dashboard_output_path),
+            "map_collections_dashboard_html": str(map_collections_dashboard_output_path),
+            "public_map_collections_dashboard_html": str(
+                public_map_collections_dashboard_output_path
+            ),
             "standalone_dashboard_html": str(standalone_dashboard_output_path),
             "public_standalone_dashboard_html": str(public_standalone_dashboard_output_path),
             "retrospective_dashboard_html": str(retrospective_dashboard_output_path),
@@ -342,6 +376,26 @@ class HarvestTaskDashboardJob:
                 embedded=embedded,
                 report_title=self._report_title(
                     report_type="institutions",
+                    workflow=scoped_workflow,
+                ),
+                public=public,
+            )
+        if normalized_report_type in {
+            "map-collection",
+            "map-collections",
+            "map_collection",
+            "map_collections",
+        }:
+            map_collection_harvest_df = (
+                self._filter_harvest_view(harvest_df, scoped_workflow)
+                if scoped_workflow
+                else harvest_df.copy()
+            )
+            return self._render_map_collection_record_list_html(
+                map_collection_harvest_df,
+                embedded=embedded,
+                report_title=self._report_title(
+                    report_type="map-collections",
                     workflow=scoped_workflow,
                 ),
                 public=public,
@@ -678,6 +732,7 @@ class HarvestTaskDashboardJob:
                     "__periodicity_order": self._periodicity_group_sort_key(
                         row_dict.get("Accrual Periodicity", "")
                     ),
+                    "__code_sort": self._record_code_sort_value(row_dict.get("Code", "")),
                 }
             )
 
@@ -688,17 +743,36 @@ class HarvestTaskDashboardJob:
         )
         record_df["__sort_date"] = pd.to_datetime(sort_dates, errors="coerce")
         record_df = record_df.sort_values(
-            by=["__periodicity_order", "__periodicity_group", "__sort_date", "__display_name"],
-            ascending=[True, True, True, True],
+            by=[
+                "__periodicity_order",
+                "__periodicity_group",
+                "__code_sort",
+                "__display_name",
+                "__sort_date",
+            ],
+            ascending=[True, True, True, True, True],
             na_position="last",
         ).reset_index(drop=True)
         return record_df
 
     def _build_institution_record_list_dataframe(self, harvest_df: pd.DataFrame) -> pd.DataFrame:
         record_df = self._build_record_list_dataframe(harvest_df)
+        return self._decorate_institution_record_list_dataframe(record_df)
+
+    def _build_map_collection_record_list_dataframe(self, harvest_df: pd.DataFrame) -> pd.DataFrame:
+        record_df = self._build_record_list_dataframe(
+            self._filter_harvest_records_by_subject(harvest_df, "Maps")
+        )
+        return self._decorate_institution_record_list_dataframe(record_df)
+
+    def _decorate_institution_record_list_dataframe(
+        self,
+        record_df: pd.DataFrame,
+    ) -> pd.DataFrame:
         if record_df.empty:
             return record_df
 
+        record_df = record_df.copy()
         geoportal_counts = self._geoportal_code_counts()
         record_df["__institution_group"] = record_df["Code"].map(self._institution_label_for_code)
         record_df["__institution_order"] = record_df["__institution_group"].map(
@@ -708,8 +782,14 @@ class HarvestTaskDashboardJob:
             lambda code: self._geoportal_match_count_for_code(code, geoportal_counts)
         )
         record_df = record_df.sort_values(
-            by=["__institution_order", "__institution_group", "__sort_date", "__display_name"],
-            ascending=[True, True, True, True],
+            by=[
+                "__institution_order",
+                "__institution_group",
+                "__code_sort",
+                "__display_name",
+                "__sort_date",
+            ],
+            ascending=[True, True, True, True, True],
             na_position="last",
         ).reset_index(drop=True)
         return record_df
@@ -740,6 +820,7 @@ class HarvestTaskDashboardJob:
                 {
                     **row_dict,
                     "__display_name": self._build_display_name(row_dict),
+                    "__code_sort": self._record_code_sort_value(row_dict.get("Code", "")),
                     "__institution_group": institution_group,
                     "__institution_order": self._institution_group_sort_key(institution_group),
                     "Public Link URL": self._standalone_catalog_url(standalone_id),
@@ -750,8 +831,8 @@ class HarvestTaskDashboardJob:
 
         record_df = pd.DataFrame(record_rows)
         record_df = record_df.sort_values(
-            by=["__institution_order", "__institution_group", "__display_name", "ID"],
-            ascending=[True, True, True, True],
+            by=["__institution_order", "__institution_group", "__code_sort", "__display_name", "ID"],
+            ascending=[True, True, True, True, True],
             na_position="last",
         ).reset_index(drop=True)
         return record_df
@@ -795,6 +876,37 @@ class HarvestTaskDashboardJob:
             empty_message="No harvest records were found in the input file.",
             include_table_of_contents=True,
             metadata_only_timing=True,
+            task_cell_renderer=(
+                (lambda row: self._render_task_cell(row, public=True))
+                if public
+                else self._render_admin_record_list_task_cell
+            ),
+        )
+
+    def _render_map_collection_record_list_html(
+        self,
+        harvest_df: pd.DataFrame,
+        embedded: bool = False,
+        report_title: str = "Map Collections",
+        public: bool = False,
+    ) -> str:
+        record_df = self._build_map_collection_record_list_dataframe(harvest_df)
+        return self._render_grouped_record_list_html(
+            record_df=record_df,
+            group_column="__institution_group",
+            embedded=embedded,
+            report_title=report_title,
+            public=public,
+            intro_text=self._map_collection_report_intro_text(),
+            empty_message="No map collection records were found in the input file.",
+            include_table_of_contents=True,
+            metadata_only_timing=True,
+            metadata_renderer=self._render_map_collection_metadata_cell,
+            task_cell_renderer=(
+                (lambda row: self._render_task_cell(row, public=True))
+                if public
+                else self._render_admin_record_list_task_cell
+            ),
         )
 
     def _render_standalone_website_list_html(
@@ -841,7 +953,10 @@ class HarvestTaskDashboardJob:
         empty_message: str,
         include_table_of_contents: bool = False,
         metadata_only_timing: bool = False,
+        metadata_renderer: Callable[[pd.Series | dict[str, Any]], str] | None = None,
         record_action_renderer: Callable[[pd.Series | dict[str, Any], bool], str] | None = None,
+        record_cell_public: bool = True,
+        task_cell_renderer: Callable[[pd.Series | dict[str, Any]], str] | None = None,
         header_action_html: str = "",
         source_download_items: list[dict[str, str | None]] | None = None,
     ) -> str:
@@ -916,58 +1031,6 @@ class HarvestTaskDashboardJob:
             )
             if header_action_html:
                 html_parts.append(f"  <div class=\"header-actions\">{header_action_html}</div>")
-            if not public:
-                if source_download_items is None:
-                    source_download_items = [
-                        {
-                            "label": "harvest-records.csv",
-                            "url": (
-                                "https://geo.btaa.org/admin/documents?f%5Bgbl_resourceClass_sm%5D%5B%5D=Series"
-                                "&rows=20&sort=score+desc"
-                            ),
-                            "save_as": "inputs/harvest-records.csv",
-                        },
-                        {
-                            "label": "websites.csv",
-                            "url": (
-                                "https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published"
-                                "&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc"
-                            ),
-                            "save_as": "inputs/websites.csv",
-                        },
-                    ]
-                source_item_lines = []
-                for source_item in source_download_items:
-                    label = self._clean_value(source_item.get("label", ""))
-                    save_as = self._clean_value(source_item.get("save_as", ""))
-                    url = self._clean_value(source_item.get("url", ""))
-                    if url:
-                        label_html = (
-                            f'<a href="{escape(url, quote=True)}" target="_blank" rel="noreferrer">'
-                            f"<code>{escape(label)}</code></a>"
-                        )
-                    else:
-                        label_html = f"<code>{escape(label)}</code>"
-                    source_item_lines.append(
-                        f"      <li>{label_html} -> save as <code>{escape(save_as)}</code></li>"
-                    )
-                html_parts.extend(
-                    [
-                        "  <div class=\"source-box\">",
-                        "    <h2>Get Latest Source CSVs</h2>",
-                        (
-                            "    <p>Download the newest file before running the dashboard, then save it into "
-                            "<code>inputs/</code> with this name:</p>"
-                            if len(source_download_items) == 1
-                            else "    <p>Download the newest files before running the dashboard, then save them into "
-                            "<code>inputs/</code> with these names:</p>"
-                        ),
-                        "    <ul>",
-                        *source_item_lines,
-                        "    </ul>",
-                        "  </div>",
-                    ]
-                )
 
         if record_df.empty:
             html_parts.extend(
@@ -1016,7 +1079,7 @@ class HarvestTaskDashboardJob:
             )
             for _, row in group_df.iterrows():
                 detail_html = (
-                    self._render_record_metadata_cell(row)
+                    (metadata_renderer or self._render_record_metadata_cell)(row)
                     if metadata_only_timing
                     else self._render_timing_cell(row, self._record_due_label(row))
                 )
@@ -1027,7 +1090,7 @@ class HarvestTaskDashboardJob:
                 html_parts.extend(
                     [
                         "      <article class=\"record-item\">",
-                        f"        <div>{self._render_task_cell(row, public=True)}</div>",
+                        f"        <div>{(task_cell_renderer or (lambda item: self._render_task_cell(item, public=record_cell_public)))(row)}</div>",
                         f"        <div>{detail_html}</div>",
                         "      </article>",
                     ]
@@ -1122,19 +1185,6 @@ class HarvestTaskDashboardJob:
                     f"  <p class=\"muted\">{subtitle}</p>",
                 ]
             )
-            if not public:
-                html_parts.extend(
-                    [
-                        "  <div class=\"source-box\">",
-                        "    <h2>Get Latest Source CSVs</h2>",
-                        "    <p>Download the newest files before running the dashboard, then save them into <code>inputs/</code> with these names:</p>",
-                        "    <ul>",
-                        "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>",
-                        "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>websites.csv</code></a> -> save as <code>inputs/websites.csv</code></li>",
-                        "    </ul>",
-                        "  </div>",
-                    ]
-                )
 
         html_parts.extend(
             [
@@ -1313,8 +1363,51 @@ class HarvestTaskDashboardJob:
             return base_text
         return f"{base_text} Geoportal item counts are loaded from the development metadata API facet."
 
+    def _map_collection_report_intro_text(self) -> str:
+        base_text = (
+            "This view lists harvest records whose Subject includes Maps, grouped by "
+            "institution code prefix, with unmatched codes collected under Other."
+        )
+        if not self.geoportal_api_facet_url:
+            return base_text
+        return f"{base_text} Geoportal item counts are loaded from the development metadata API facet."
+
     def _normalize_code_value(self, code: Any) -> str:
         return self._clean_value(code).lower()
+
+    def _record_code_sort_value(self, code: Any) -> str:
+        cleaned_code = self._clean_value(code)
+        if not cleaned_code:
+            return "~"
+        return cleaned_code.lower()
+
+    def _subject_values(self, value: Any) -> list[str]:
+        cleaned_value = self._clean_value(value)
+        if not cleaned_value:
+            return []
+        return [part.strip() for part in cleaned_value.split("|") if part.strip()]
+
+    def _has_subject_value(self, value: Any, subject: str) -> bool:
+        normalized_subject = self._clean_value(subject).lower()
+        if not normalized_subject:
+            return False
+        return any(
+            self._clean_value(subject_value).lower() == normalized_subject
+            for subject_value in self._subject_values(value)
+        )
+
+    def _filter_harvest_records_by_subject(
+        self,
+        harvest_df: pd.DataFrame,
+        subject: str,
+    ) -> pd.DataFrame:
+        if harvest_df.empty:
+            return harvest_df.copy()
+
+        view_df = harvest_df.copy()
+        self._ensure_columns(view_df, ["Subject"])
+        subject_mask = view_df["Subject"].map(lambda value: self._has_subject_value(value, subject))
+        return view_df.loc[subject_mask].copy()
 
     def _geoportal_code_counts(self) -> dict[str, int] | None:
         if not self.geoportal_api_facet_url:
@@ -1558,19 +1651,6 @@ class HarvestTaskDashboardJob:
                     "  <p class=\"muted\">This list shows recorded harvest tasks over time, organized by source and date. It is not a complete history and may only reflect the most recent task for a source.</p>",
                 ]
             )
-            if not public:
-                html_parts.extend(
-                    [
-                        "  <div class=\"source-box\">",
-                        "    <h2>Get Latest Source CSVs</h2>",
-                        "    <p>Download the newest files before running the dashboard, then save them into <code>inputs/</code> with these names:</p>",
-                        "    <ul>",
-                        "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>",
-                        "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>websites.csv</code></a> -> save as <code>inputs/websites.csv</code></li>",
-                        "    </ul>",
-                        "  </div>",
-                    ]
-                )
 
         html_parts.extend(
             [
@@ -1655,6 +1735,7 @@ class HarvestTaskDashboardJob:
         embedded: bool = False,
         report_title: str = "Harvest Task Dashboard",
         public: bool = False,
+        include_source_download_box: bool = False,
     ) -> str:
         summary = self._build_summary(task_df)
         sections = self._build_dashboard_sections(task_df)
@@ -1761,7 +1842,7 @@ class HarvestTaskDashboardJob:
                     "  <div class=\"summary\">",
                 ]
             )
-            if not public:
+            if not public and include_source_download_box:
                 html_parts[ -2:-2 ] = [
                     "  <div class=\"source-box\">",
                     "    <h2>Get Latest Source CSVs</h2>",
@@ -1990,6 +2071,20 @@ class HarvestTaskDashboardJob:
             f'<div class="task-meta">Identifier: {identifier_html}</div>'
         )
 
+    def _render_admin_record_list_task_cell(self, row: pd.Series | dict[str, Any]) -> str:
+        display_name = escape(self._build_display_name(row))
+        task_id = self._clean_value(row.get("ID", ""))
+        identifier = self._clean_value(row.get("Identifier", ""))
+        harvest_record_html = self._render_record_link(task_id, self._harvest_record_url(task_id))
+        identifier_html = self._render_identifier_links(identifier)
+        public_site_html = self._render_public_site_link(row)
+        return (
+            f'<div class="task-name">{display_name}</div>'
+            f'<div class="task-meta">Harvest record: {harvest_record_html}</div>'
+            f'<div class="task-meta">Identifier: {identifier_html}</div>'
+            f'<div class="task-meta">Geoportal link: {public_site_html}</div>'
+        )
+
     def _render_public_site_link(self, row: pd.Series | dict[str, Any]) -> str:
         task_id = self._clean_value(row.get("ID", ""))
         custom_url = self._clean_value(row.get("Public Link URL", ""))
@@ -2055,6 +2150,21 @@ class HarvestTaskDashboardJob:
             f'<div class="timing-meta">Geoportal items: {escape(geoportal_count)}</div>'
             f'<div class="timing-meta">Last harvested: {escape(last_harvested)}</div>'
             f'<div class="timing-meta">Periodicity: {escape(periodicity)}</div>'
+        )
+
+    def _render_map_collection_metadata_cell(self, row: pd.Series | dict[str, Any]) -> str:
+        if self._clean_value(row.get("Hide Record Metadata", "")).lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }:
+            return ""
+        last_harvested = self._clean_value(row.get("Last Harvested", "")) or "Not yet harvested"
+        geoportal_count = self._geoportal_count_label(row)
+        return (
+            f'<div class="timing-meta">Geoportal items: {escape(geoportal_count)}</div>'
+            f'<div class="timing-meta">Last harvested: {escape(last_harvested)}</div>'
         )
 
     def _record_due_label(self, row: pd.Series | dict[str, Any]) -> str:
@@ -3072,6 +3182,13 @@ class HarvestTaskDashboardJob:
             base_title = "Harvest Records"
         elif report_type in {"institution", "institutions"}:
             base_title = "Harvest Records by Institution"
+        elif report_type in {
+            "map-collection",
+            "map-collections",
+            "map_collection",
+            "map_collections",
+        }:
+            base_title = "Map Collections"
         elif report_type in {"standalone", "standalone-websites", "standalone_websites"}:
             base_title = "Standalone Websites by Institution"
         else:

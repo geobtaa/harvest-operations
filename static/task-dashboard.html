@@ -172,6 +172,16 @@
       Open By-Institution Report
     </a>
     <a
+      id="map-collections-report-link"
+      class="report-link secondary"
+      href="/jobs/harvest-task-dashboard/view?report=map-collections"
+      target="_blank"
+      rel="noreferrer"
+      onclick="refreshReportLinks()"
+    >
+      Open Map Collections Report
+    </a>
+    <a
       id="standalone-report-link"
       class="report-link secondary"
       href="/jobs/harvest-task-dashboard/view?report=standalone"
@@ -217,12 +227,13 @@
   <div class="report-box">
     <h2>Standalone Report</h2>
     <p>
-      Open the general dashboard, compact harvest-record list, institution-grouped list, standalone-website institution view, due-only view, retrospective view, or the dedicated <code>py_arcgis_hub</code> workflow view in a new tab after updating the source CSVs or running the job.
+      Open the general dashboard, compact harvest-record list, institution-grouped list, map-collections list, standalone-website institution view, due-only view, retrospective view, or the dedicated <code>py_arcgis_hub</code> workflow view in a new tab after updating the source CSVs or running the job.
       All links always target the latest dashboard render from FastAPI.
     </p>
     <p class="report-meta">Full report URL: <code id="full-report-url">/jobs/harvest-task-dashboard/view</code></p>
     <p class="report-meta">Harvest records URL: <code id="records-report-url">/jobs/harvest-task-dashboard/view?report=records</code></p>
     <p class="report-meta">By institution URL: <code id="institutions-report-url">/jobs/harvest-task-dashboard/view?report=institutions</code></p>
+    <p class="report-meta">Map collections URL: <code id="map-collections-report-url">/jobs/harvest-task-dashboard/view?report=map-collections</code></p>
     <p class="report-meta">Standalone websites URL: <code id="standalone-report-url">/jobs/harvest-task-dashboard/view?report=standalone</code></p>
     <p class="report-meta">Due-only report URL: <code id="due-report-url">/jobs/harvest-task-dashboard/view?report=due</code></p>
     <p class="report-meta">Retrospective report URL: <code id="retrospective-report-url">/jobs/harvest-task-dashboard/view?report=retrospective</code></p>
@@ -265,6 +276,7 @@
       const fullUrl = `/jobs/harvest-task-dashboard/view?ts=${timestamp}`;
       const recordsUrl = `/jobs/harvest-task-dashboard/view?report=records&ts=${timestamp}`;
       const institutionsUrl = `/jobs/harvest-task-dashboard/view?report=institutions&ts=${timestamp}`;
+      const mapCollectionsUrl = `/jobs/harvest-task-dashboard/view?report=map-collections&ts=${timestamp}`;
       const standaloneUrl = `/jobs/harvest-task-dashboard/view?report=standalone&ts=${timestamp}`;
       const dueUrl = `/jobs/harvest-task-dashboard/view?report=due&ts=${timestamp}`;
       const retrospectiveUrl = `/jobs/harvest-task-dashboard/view?report=retrospective&ts=${timestamp}`;
@@ -272,6 +284,7 @@
       document.getElementById("full-report-link").href = fullUrl;
       document.getElementById("records-report-link").href = recordsUrl;
       document.getElementById("institutions-report-link").href = institutionsUrl;
+      document.getElementById("map-collections-report-link").href = mapCollectionsUrl;
       document.getElementById("standalone-report-link").href = standaloneUrl;
       document.getElementById("due-report-link").href = dueUrl;
       document.getElementById("retrospective-report-link").href = retrospectiveUrl;
@@ -279,6 +292,7 @@
       document.getElementById("full-report-url").textContent = fullUrl;
       document.getElementById("records-report-url").textContent = recordsUrl;
       document.getElementById("institutions-report-url").textContent = institutionsUrl;
+      document.getElementById("map-collections-report-url").textContent = mapCollectionsUrl;
       document.getElementById("standalone-report-url").textContent = standaloneUrl;
       document.getElementById("due-report-url").textContent = dueUrl;
       document.getElementById("retrospective-report-url").textContent = retrospectiveUrl;
