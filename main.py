@@ -1,12 +1,12 @@
 import asyncio
 import csv
 import os
-import shutil
+import random
 import tempfile
 
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 import yaml
@@ -43,6 +43,39 @@ def resolve_config_path(path_value: str, config_path: str | None = None) -> str:
 def load_yaml_config(config_path: str) -> dict:
     with open(config_path, encoding="utf-8") as handle:
         return yaml.safe_load(handle) or {}
+
+
+def create_arcgis_test_input_csv(source_csv: str, sample_size: int = 3) -> tuple[str, int]:
+    """
+    Create a temporary ArcGIS workflow input CSV containing a random subset of rows.
+    Returns the temp file path and the number of sampled rows written.
+    """
+    with open(source_csv, newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        fieldnames = reader.fieldnames or []
+        rows = list(reader)
+
+    if not fieldnames:
+        raise ValueError(f"ArcGIS input CSV is missing headers: {source_csv}")
+    if not rows:
+        raise ValueError(f"ArcGIS input CSV has no rows to sample: {source_csv}")
+
+    selected_rows = random.sample(rows, k=min(sample_size, len(rows)))
+    temp_handle = tempfile.NamedTemporaryFile(
+        mode="w",
+        newline="",
+        encoding="utf-8",
+        suffix=".csv",
+        delete=False,
+    )
+    try:
+        writer = csv.DictWriter(temp_handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(selected_rows)
+    finally:
+        temp_handle.close()
+
+    return temp_handle.name, len(selected_rows)
 
 
 def load_sets_from_csv(
@@ -107,77 +140,28 @@ async def root():
 async def oai_qdc_sources():
     return {"sources": build_oai_qdc_ui_sources()}
 
-# CSV file upload endpoint
-@app.post("/upload")
-async def upload_csv(file: UploadFile = File(...)):
-    if file.filename.endswith(".csv"):
-        save_path = os.path.join("inputs", "arcHubs.csv")
-        with open(save_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        return RedirectResponse(url="/static/arcgis.html?upload=success", status_code=303)
-    return {"error": "Only CSV files are allowed."}
-
 # Manual trigger for ArcGIS harvester
 @app.post("/run-arcgis")
-async def run_arcgis_harvester():
+async def run_arcgis_harvester(test_run: bool = Query(default=False)):
     from harvesters.arcgis import ArcGISHarvester
 
     config_path = "config/arcgis.yaml"
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
 
-    harvester = ArcGISHarvester(config)
-    harvester.load_schema()
+    temp_input_path = None
+    test_run_message = ""
+    if test_run:
+        temp_input_path, selected_count = create_arcgis_test_input_csv(config["input_csv"])
+        config = {**config, "input_csv": temp_input_path}
+        test_run_message = f"<p>Test run used {selected_count} randomly selected hubs.</p>"
 
-    records = harvester.fetch()
-    parsed = harvester.parse(records)
-    flat = harvester.flatten(parsed)
-    df = harvester.build_dataframe(flat)
-    df = harvester.derive_fields(df)
-    df = harvester.add_defaults(df)
-    df = harvester.add_provenance(df)
-    df = harvester.clean(df)
-    harvester.validate(df)
-    harvester.write_outputs(df)
-
-    return HTMLResponse(content="""
-        <html>
-          <head><title>Harvester Run Complete</title></head>
-          <body>
-            <h2>Harvester completed!</h2>
-            <p>Check the output folder for results.</p>
-            <p><a href="/static/arcgis.html">Back</a></p>
-          </body>
-        </html>
-    """, status_code=200)
-
-@app.get("/run-arcgis-stream")
-async def run_arcgis_stream():
-    from harvesters.arcgis import ArcGISHarvester
-    import yaml
-
-    async def event_stream():
-        config_path = "config/arcgis.yaml"
-        with open(config_path, "r") as f:
-            config = yaml.safe_load(f)
-
+    try:
         harvester = ArcGISHarvester(config)
-        harvester.load_reference_data()
+        harvester.load_schema()
 
-        fetched_records = []
-        for item in harvester.fetch():
-            if isinstance(item, str):
-                # Just yield the message — it was already formatted in arcgis.py
-                yield f"data: {item}\n\n"
-            else:
-                fetched_records.append(item)
-
-            await asyncio.sleep(0.1)  # <— allow the event loop to yield control
-
-
-        # Proceed with the remaining steps
-        yield f"data: Finished fetching {len(fetched_records)} records. Now parsing...\n\n"
-        parsed = harvester.parse(fetched_records)
+        records = harvester.fetch()
+        parsed = harvester.parse(records)
         flat = harvester.flatten(parsed)
         df = harvester.build_dataframe(flat)
         df = harvester.derive_fields(df)
@@ -186,9 +170,73 @@ async def run_arcgis_stream():
         df = harvester.clean(df)
         harvester.validate(df)
         harvester.write_outputs(df)
+    finally:
+        if temp_input_path and os.path.exists(temp_input_path):
+            os.unlink(temp_input_path)
 
-        yield f"data: Harvester complete! Check the output folder.\n\n"
-        yield "data: DONE\n\n"
+    return HTMLResponse(content=f"""
+        <html>
+          <head><title>Harvester Run Complete</title></head>
+          <body>
+            <h2>Harvester completed!</h2>
+            {test_run_message}
+            <p>Check the output folder for results.</p>
+            <p><a href="/static/arcgis.html">Back</a></p>
+          </body>
+        </html>
+    """, status_code=200)
+
+@app.get("/run-arcgis-stream")
+async def run_arcgis_stream(test_run: bool = Query(default=False)):
+    from harvesters.arcgis import ArcGISHarvester
+    import yaml
+
+    async def event_stream():
+        config_path = "config/arcgis.yaml"
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f)
+
+        temp_input_path = None
+        if test_run:
+            temp_input_path, selected_count = create_arcgis_test_input_csv(config["input_csv"])
+            config = {**config, "input_csv": temp_input_path}
+            yield (
+                f"data: Test run enabled. Using {selected_count} randomly selected hubs "
+                f"from py-arcgis-hub.csv.\n\n"
+            )
+
+        try:
+            harvester = ArcGISHarvester(config)
+            harvester.load_reference_data()
+
+            fetched_records = []
+            for item in harvester.fetch():
+                if isinstance(item, str):
+                    # Just yield the message — it was already formatted in arcgis.py
+                    yield f"data: {item}\n\n"
+                else:
+                    fetched_records.append(item)
+
+                await asyncio.sleep(0.1)  # <— allow the event loop to yield control
+
+
+            # Proceed with the remaining steps
+            yield f"data: Finished fetching {len(fetched_records)} records. Now parsing...\n\n"
+            parsed = harvester.parse(fetched_records)
+            flat = harvester.flatten(parsed)
+            df = harvester.build_dataframe(flat)
+            df = harvester.derive_fields(df)
+            df = harvester.add_defaults(df)
+            df = harvester.add_provenance(df)
+            df = harvester.clean(df)
+            harvester.validate(df)
+            harvester.write_outputs(df)
+
+            yield f"data: Harvester complete! Check the output folder.\n\n"
+            yield "data: DONE\n\n"
+        finally:
+            if temp_input_path and os.path.exists(temp_input_path):
+                os.unlink(temp_input_path)
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")\
     

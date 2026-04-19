@@ -42,11 +42,17 @@ def strip_text_fields(df: pd.DataFrame) -> pd.DataFrame:
     Strip HTML and unwanted characters from all string fields in the DataFrame.
     Preserves readable spacing between block/inline elements.
     """
+    html_like_pattern = re.compile(r"</?[A-Za-z][^>]*>|&#?\w+;")
+
     def clean_cell(cell):
         if isinstance(cell, str):
-            soup = BeautifulSoup(cell, "html.parser")
-            # Insert a space between text chunks extracted from tags
-            text = soup.get_text(separator=" ", strip=True)
+            # Skip BeautifulSoup for plain text and URLs so they do not trigger locator warnings.
+            if html_like_pattern.search(cell):
+                soup = BeautifulSoup(cell, "html.parser")
+                # Insert a space between text chunks extracted from tags
+                text = soup.get_text(separator=" ", strip=True)
+            else:
+                text = cell
             # Collapse runs of whitespace to single spaces
             text = re.sub(r"\s+", " ", text)
             # Trim leading/trailing pipes if they sneak in
@@ -132,4 +138,3 @@ def dataframe_cleaning(df: pd.DataFrame) -> pd.DataFrame:
     print(f"[CLEAN] Dataframe cleaning complete: {len(df)} rows, {len(after_cols)} cols. "
           f"Dropped-by-order: {len(dropped)} ({', '.join(sorted(dropped))[:200]}...)")
     return df
-

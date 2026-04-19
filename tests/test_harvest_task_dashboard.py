@@ -396,6 +396,18 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert Path(workflow_inputs["py_arcgis_hub"]).exists()
     assert Path(workflow_inputs["py_pasda"]).exists()
     assert Path(workflow_inputs["py_socrata"]).exists()
+    assert Path(workflow_inputs["py_arcgis_hub"]).parent.name == "harvest-workflow-inputs"
+    assert Path(workflow_inputs["py_arcgis_hub"]).name == "py-arcgis-hub.csv"
+
+    arcgis_workflow_df = pd.read_csv(workflow_inputs["py_arcgis_hub"], dtype=str).fillna("")
+    pasda_workflow_df = pd.read_csv(workflow_inputs["py_pasda"], dtype=str).fillna("")
+    socrata_workflow_df = pd.read_csv(workflow_inputs["py_socrata"], dtype=str).fillna("")
+
+    assert set(arcgis_workflow_df["ID"]) == {"task-1", "task-1b"}
+    assert set(pasda_workflow_df["ID"]) == {"task-3", "task-4"}
+    assert set(socrata_workflow_df["ID"]) == {"task-2", "task-2b"}
+    assert "Identifier" in arcgis_workflow_df.columns
+    assert "Name" not in arcgis_workflow_df.columns
 
 
 def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: Path) -> None:
