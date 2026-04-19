@@ -6,6 +6,12 @@ At the center of the repository is a small FastAPI application that serves brows
 
 ## Project Structure
 
+The repository includes:
+
+1. A Python/FastAPI admin surface for running harvest jobs in the browser.
+2. A library of reusable harvester classes and utilities.
+3. A working repository of standalone scripts for one-off or periodic operational tasks.
+
 ### Main code structure
 
 - `main.py` starts the FastAPI application, mounts the static admin pages, and exposes browser-triggered harvester endpoints.
@@ -13,11 +19,7 @@ At the center of the repository is a small FastAPI application that serves brows
 - `harvesters/` contains the source-specific harvester classes. Most harvesters inherit from `harvesters/base.py`, which defines the shared pipeline for fetching, parsing, flattening, building dataframes, cleaning, validating, and writing outputs.
 - `utils/` contains shared Python helpers used by harvesters and scripts.
 
-The repository is therefore not just a web app and not just a script collection. It is primarily:
 
-1. A Python/FastAPI admin surface for running harvest jobs in the browser.
-2. A library of reusable harvester classes and utilities.
-3. A working repository of standalone scripts for one-off or periodic operational tasks.
 
 ### Directory guide
 
