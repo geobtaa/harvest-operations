@@ -61,5 +61,12 @@ Then override key lifecycle methods as needed:
 9. clean()
 10. validate()
 11. write_outputs()
+12. build_uploads()
 
 Each one aligns with a step in the harvester pipeline defined in BaseHarvester.
+
+`build_uploads()` is an optional final-stage hook. In the base class it can call
+`scripts/build_uploads.py` automatically when a harvester config sets
+`build_uploads: true` and the harvester writes dated `*_primary.csv` and
+`*_distributions.csv` outputs. This keeps the standalone script available while
+making the compare-and-delta step reusable across harvesters that always need it.

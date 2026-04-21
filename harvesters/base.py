@@ -1,8 +1,15 @@
 import os
 import time
+from pathlib import Path
 import pandas as pd
 
+from scripts.build_uploads import (
+    build_filename_regex,
+    discover_dated_files,
+    run_build_uploads,
+)
 from utils.field_order import PRIMARY_FIELD_ORDER  
+from utils.output_naming import infer_upload_source_prefix
 from utils.dataframe_cleaner import dataframe_cleaning
 from utils.spatial_cleaner import spatial_cleaning
 from utils.validation import validation_pipeline
@@ -157,6 +164,56 @@ class BaseHarvester:
 
         return results
 
+    def build_uploads(self, results: dict) -> dict | None:
+        """
+        Optionally build upload delta files by comparing the two most recent
+        dated outputs for this harvester's configured source prefix.
+        """
+        if not self.config.get("build_uploads"):
+            return None
+
+        if not self.config.get("output_distributions_csv"):
+            return {
+                "status": "skipped",
+                "reason": "build_uploads requires output_distributions_csv in config.",
+            }
+
+        primary_csv = results.get("primary_csv")
+        if not primary_csv:
+            return {
+                "status": "skipped",
+                "reason": "build_uploads requires a primary_csv result from write_outputs().",
+            }
+
+        outputs_dir = Path(primary_csv).resolve().parent
+        source = infer_upload_source_prefix(self.config.get("output_primary_csv", ""))
+        primary_candidates = discover_dated_files(
+            outputs_dir,
+            build_filename_regex(source, "primary"),
+        )
+
+        if len(primary_candidates) < 2:
+            return {
+                "status": "skipped",
+                "reason": (
+                    f"Need at least two dated primary outputs for '{source}' before "
+                    "building upload deltas."
+                ),
+            }
+
+        summary = run_build_uploads(source, outputs_dir)
+        return {
+            "status": "created",
+            "source": source,
+            "primary_upload_csv": str(summary["primary_upload_path"]),
+            "distributions_new_csv": str(summary["dist_new_path"]),
+            "distributions_delete_csv": str(summary["dist_delete_path"]),
+            "new_count": summary["new_count"],
+            "retired_count": summary["retired_count"],
+            "distribution_new_count": summary["distribution_new_count"],
+            "distribution_delete_count": summary["distribution_delete_count"],
+            "changed_distribution_ids": sorted(summary["changed_distribution_ids"]),
+        }
 
     def harvest_pipeline(self):
         """
@@ -178,5 +235,8 @@ class BaseHarvester:
         )
 
         results = self.write_outputs(df)
+        upload_summary = self.build_uploads(results)
+        if upload_summary is not None:
+            results["upload_summary"] = upload_summary
         print(f"[Pipeline] Harvest complete: {results}")
         return results

@@ -289,7 +289,8 @@ class HarvestTaskDashboardJob:
             harvest_df,
             public=True,
         )
-        workflow_outputs = self._write_workflow_inputs(websites_df)
+        # Write per-workflow input CSVs from harvest records so harvesters receive task rows.
+        workflow_outputs = self._write_workflow_inputs(harvest_df)
 
         summary = self._build_summary(task_df)
         return {
@@ -611,22 +612,22 @@ class HarvestTaskDashboardJob:
         workflow_matches = websites_df["Harvest Workflow"].map(self._clean_value) == workflow_name
         return int(websites_df.loc[workflow_matches, "ID"].map(self._normalize_key).nunique())
 
-    def _write_workflow_inputs(self, websites_df: pd.DataFrame) -> dict[str, str]:
-        self._ensure_columns(websites_df, ["Harvest Workflow"])
-        output_dir = self._dated_directory(self.output_workflow_dir)
+    def _write_workflow_inputs(self, harvest_df: pd.DataFrame) -> dict[str, str]:
+        self._ensure_columns(harvest_df, ["Harvest Workflow"])
+        output_dir = self.output_workflow_dir
         output_dir.mkdir(parents=True, exist_ok=True)
 
         workflow_outputs: dict[str, str] = {}
-        workflow_series = websites_df["Harvest Workflow"].map(
+        workflow_series = harvest_df["Harvest Workflow"].map(
             lambda value: self._clean_value(value) or "unspecified"
         )
 
-        for workflow_name, workflow_group in websites_df.assign(
+        for workflow_name, workflow_group in harvest_df.assign(
             **{"Harvest Workflow": workflow_series}
         ).groupby("Harvest Workflow", dropna=False):
             workflow_slug = self._slugify(workflow_name or "unspecified")
             output_path = output_dir / f"{workflow_slug}.csv"
-            workflow_group.drop(columns=["__normalized_id"], errors="ignore").to_csv(
+            workflow_group.to_csv(
                 output_path,
                 index=False,
                 encoding="utf-8",
