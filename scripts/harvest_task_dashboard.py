@@ -106,6 +106,7 @@ ARCGIS_REPORT_NUMBER_COLUMNS = (
     "New Records",
     "Unpublished Records",
 )
+ARCGIS_REPORT_STATUS_COLUMNS = ("Harvest Run", "Harvest Message")
 
 
 class HarvestTaskDashboardJob:
@@ -1414,21 +1415,28 @@ class HarvestTaskDashboardJob:
     ) -> str:
         workflow_name = self._clean_value(workflow) or "unspecified"
         workflow_label = self._workflow_view_label(workflow_name)
+        is_arcgis_report = workflow_name == "py_arcgis_hub"
         last_run = (
             self._latest_arcgis_report_date()
-            if workflow_name == "py_arcgis_hub"
+            if is_arcgis_report
             else self._latest_harvest_date(harvest_df)
         )
+        page_title = (
+            f"{workflow_label} Harvest Report - {last_run or 'Unknown date'}"
+            if is_arcgis_report
+            else f"{workflow_label} Harvest Overview"
+        )
         current_records = self._prepare_harvest_record_view(harvest_df)
-        if workflow_name == "py_arcgis_hub":
+        if is_arcgis_report:
             current_records = self._attach_arcgis_report_numbers(current_records)
+        report_totals = self._arcgis_report_totals(current_records) if is_arcgis_report else {}
 
         html_parts = [
             "<!DOCTYPE html>",
             "<html lang=\"en\">",
             "<head>",
             "  <meta charset=\"UTF-8\">",
-            f"  <title>{escape(workflow_label)} Harvest Overview</title>",
+            f"  <title>{escape(page_title)}</title>",
             "  <style>",
             "    :root {",
             "      color-scheme: light;",
@@ -1443,6 +1451,8 @@ class HarvestTaskDashboardJob:
             "      --accent-soft: #dcecff;",
             "      --success: #0f766e;",
             "      --success-soft: #d8f3ee;",
+            "      --error: #b42318;",
+            "      --error-soft: #fee4e2;",
             "    }",
             "    * { box-sizing: border-box; }",
             "    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: \"Segoe UI\", sans-serif; line-height: 1.35; color: var(--ink); background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%); }",
@@ -1466,10 +1476,15 @@ class HarvestTaskDashboardJob:
             "    th { background: #f9fbfd; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }",
             "    tbody tr:last-child td { border-bottom: none; }",
             "    tbody tr:nth-child(even) { background: #fbfdff; }",
+            "    tbody tr.report-error { background: #fff7f6; }",
             "    tfoot th, tfoot td { background: #f1f6fb; border-top: 2px solid var(--line-strong); font-weight: 700; }",
             "    .task-name { font-weight: 700; margin-bottom: 0.2rem; }",
             "    .task-meta, .detail-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }",
             "    .task-meta code, .detail-meta code { background: #edf1f5; padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    .run-pill { display: inline-flex; align-items: center; padding: 0.16rem 0.5rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }",
+            "    .run-pill--success { color: var(--success); background: var(--success-soft); }",
+            "    .run-pill--error { color: var(--error); background: var(--error-soft); }",
+            "    .run-pill--unknown { color: var(--muted); background: var(--panel-soft); }",
             "    .number-cell { text-align: right; white-space: nowrap; }",
             "    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .section-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } }",
             "  </style>",
@@ -1479,8 +1494,8 @@ class HarvestTaskDashboardJob:
 
         if not embedded:
             subtitle = (
-                "This is the list of actively harvested ArcGIS Hubs for the BTAA Geoportal"
-                if workflow_name == "py_arcgis_hub"
+                "This report summarizes the ArcGIS Hub harvest run for the date shown below."
+                if is_arcgis_report
                 else (
                     f"Generated from <code>{escape(str(self.harvest_records_path))}</code>. "
                     "This view combines the current workflow status with the active ArcGIS Hub harvest record list."
@@ -1488,7 +1503,7 @@ class HarvestTaskDashboardJob:
             )
             html_parts.extend(
                 [
-                    f"  <h1>{escape(workflow_label)} Harvest Overview</h1>",
+                    f"  <h1>{escape(page_title)}</h1>",
                     f"  <p class=\"muted\">{subtitle}</p>",
                 ]
             )
@@ -1496,12 +1511,12 @@ class HarvestTaskDashboardJob:
         html_parts.extend(
             [
                 "  <div class=\"status-box\">",
-                "    <span class=\"status-label\">Last time the process was run</span>",
+                f"    <span class=\"status-label\">{'Harvest report date' if is_arcgis_report else 'Last time the process was run'}</span>",
                 f"    <strong class=\"status-value\">{escape(last_run or 'Unknown')}</strong>",
                 "  </div>",
                 "  <section class=\"section-box\">",
                 "    <div class=\"section-header\">",
-                "      <h2>Currently Harvested ArcGIS Hubs</h2>",
+                f"      <h2>{'ArcGIS Hub Harvest Results' if is_arcgis_report else 'Currently Harvested ArcGIS Hubs'}</h2>",
                 f"      <div class=\"section-meta\">{len(current_records)} record{'s' if len(current_records) != 1 else ''}</div>",
                 "    </div>",
             ]
@@ -1524,7 +1539,7 @@ class HarvestTaskDashboardJob:
                 "      <thead>",
                 "        <tr>",
                 "          <th>Harvest Record</th>",
-                "          <th>Last Harvested</th>",
+                "          <th>Harvest Run</th>",
                 "          <th class=\"number-cell\">Total Records Found</th>",
                 "          <th class=\"number-cell\">New Records</th>",
                 "          <th class=\"number-cell\">Unpublished Records</th>",
@@ -1534,11 +1549,12 @@ class HarvestTaskDashboardJob:
             ]
         )
         for _, row in current_records.iterrows():
+            row_class = ' class="report-error"' if self._is_arcgis_report_error(row) else ""
             html_parts.extend(
                 [
-                    "        <tr>",
+                    f"        <tr{row_class}>",
                     f"          <td data-label=\"Harvest Record\">{self._render_task_cell(row, public=public)}</td>",
-                    f"          <td data-label=\"Last Harvested\">{self._render_workflow_last_harvested_cell(row)}</td>",
+                    f"          <td data-label=\"Harvest Run\">{self._render_arcgis_report_status_cell(row)}</td>",
                     f"          <td class=\"number-cell\" data-label=\"Total Records Found\">{self._render_arcgis_report_number_cell(row, 'Total Records Found')}</td>",
                     f"          <td class=\"number-cell\" data-label=\"New Records\">{self._render_arcgis_report_number_cell(row, 'New Records')}</td>",
                     f"          <td class=\"number-cell\" data-label=\"Unpublished Records\">{self._render_arcgis_report_number_cell(row, 'Unpublished Records')}</td>",
@@ -1552,9 +1568,9 @@ class HarvestTaskDashboardJob:
                 "        <tr>",
                 "          <th scope=\"row\">Total</th>",
                 "          <td></td>",
-                f"          <td class=\"number-cell\" data-label=\"Total Records Found\">{self._render_arcgis_report_number_cell(self._arcgis_report_totals(current_records), 'Total Records Found')}</td>",
-                f"          <td class=\"number-cell\" data-label=\"New Records\">{self._render_arcgis_report_number_cell(self._arcgis_report_totals(current_records), 'New Records')}</td>",
-                f"          <td class=\"number-cell\" data-label=\"Unpublished Records\">{self._render_arcgis_report_number_cell(self._arcgis_report_totals(current_records), 'Unpublished Records')}</td>",
+                f"          <td class=\"number-cell\" data-label=\"Total Records Found\">{self._render_arcgis_report_number_cell(report_totals, 'Total Records Found')}</td>",
+                f"          <td class=\"number-cell\" data-label=\"New Records\">{self._render_arcgis_report_number_cell(report_totals, 'New Records')}</td>",
+                f"          <td class=\"number-cell\" data-label=\"Unpublished Records\">{self._render_arcgis_report_number_cell(report_totals, 'Unpublished Records')}</td>",
                 "        </tr>",
                 "      </tfoot>",
                 "    </table>",
@@ -1796,6 +1812,30 @@ class HarvestTaskDashboardJob:
 
         return code_counts
 
+    def _build_arcgis_retrospective_rows(self) -> list[dict[str, str]]:
+        action_rows: list[dict[str, str]] = []
+        for report_date, report_path in self._arcgis_report_paths():
+            totals = self._arcgis_report_totals_for_path(report_path)
+            action_rows.append(
+                {
+                    "Action Month": report_date.strftime("%B %Y"),
+                    "Action Date": report_date.strftime("%Y-%m-%d"),
+                    "Type": "Harvest",
+                    "Title": f"ArcGIS Hubs Harvest Report - {report_date.strftime('%Y-%m-%d')}",
+                    "ID": "",
+                    "Identifier": "",
+                    "Code": "",
+                    "Harvest Workflow": "py_arcgis_hub",
+                    "Details": self._arcgis_report_totals_details(totals),
+                    "Report Href": self._arcgis_report_href(report_date.strftime("%Y-%m-%d")),
+                    "Public Report Href": self._arcgis_report_href(
+                        report_date.strftime("%Y-%m-%d"),
+                        public=True,
+                    ),
+                }
+            )
+        return action_rows
+
     def _build_retrospective_dataframe(self, harvest_df: pd.DataFrame) -> pd.DataFrame:
         retrospective_columns = [
             "Action Month",
@@ -1807,65 +1847,70 @@ class HarvestTaskDashboardJob:
             "Code",
             "Harvest Workflow",
             "Details",
+            "Report Href",
+            "Public Report Href",
         ]
 
-        if harvest_df.empty:
-            return pd.DataFrame(columns=retrospective_columns)
+        action_rows: list[dict[str, str]] = self._build_arcgis_retrospective_rows()
 
-        working_df = harvest_df.copy()
-        self._ensure_columns(
-            working_df,
-            ["ID", "Identifier", "Title", "Harvest Workflow", "Last Harvested", "Provenance"],
-        )
+        if not harvest_df.empty:
+            working_df = harvest_df.copy()
+            self._ensure_columns(
+                working_df,
+                ["ID", "Identifier", "Title", "Harvest Workflow", "Last Harvested", "Provenance"],
+            )
 
-        action_rows: list[dict[str, str]] = []
-        for _, harvest_row in working_df.iterrows():
-            row_dict = harvest_row.to_dict()
-            display_name = self._build_display_name(row_dict)
-            workflow_name = self._clean_value(row_dict.get("Harvest Workflow", "")) or "unspecified"
-            provenance_entries = self._extract_provenance_entries(row_dict.get("Provenance", ""))
+            for _, harvest_row in working_df.iterrows():
+                row_dict = harvest_row.to_dict()
+                display_name = self._build_display_name(row_dict)
+                workflow_name = self._clean_value(row_dict.get("Harvest Workflow", "")) or "unspecified"
+                provenance_entries = self._extract_provenance_entries(row_dict.get("Provenance", ""))
 
-            last_harvested = self._clean_value(row_dict.get("Last Harvested", ""))
-            last_harvested_date = pd.to_datetime(last_harvested, errors="coerce")
-            if not pd.isna(last_harvested_date) and not self._has_provenance_entry_for_month(
-                provenance_entries, last_harvested_date
-            ):
-                action_rows.append(
-                    {
-                        "Action Month": last_harvested_date.strftime("%B %Y"),
-                        "Action Date": last_harvested_date.strftime("%Y-%m-%d"),
-                        "Type": self._select_month_provenance_action_type(
-                            provenance_entries, last_harvested_date
-                        )
-                        or "Harvested",
-                        "Title": display_name,
-                        "ID": self._clean_value(row_dict.get("ID", "")),
-                        "Identifier": self._clean_value(row_dict.get("Identifier", "")),
-                        "Code": self._clean_value(row_dict.get("Code", "")),
-                        "Harvest Workflow": workflow_name,
-                        "Details": self._select_month_provenance_note(
-                            provenance_entries, last_harvested_date
-                        ),
-                    }
-                )
+                last_harvested = self._clean_value(row_dict.get("Last Harvested", ""))
+                last_harvested_date = pd.to_datetime(last_harvested, errors="coerce")
+                if not pd.isna(last_harvested_date) and not self._has_provenance_entry_for_month(
+                    provenance_entries, last_harvested_date
+                ):
+                    action_rows.append(
+                        {
+                            "Action Month": last_harvested_date.strftime("%B %Y"),
+                            "Action Date": last_harvested_date.strftime("%Y-%m-%d"),
+                            "Type": self._select_month_provenance_action_type(
+                                provenance_entries, last_harvested_date
+                            )
+                            or "Harvested",
+                            "Title": display_name,
+                            "ID": self._clean_value(row_dict.get("ID", "")),
+                            "Identifier": self._clean_value(row_dict.get("Identifier", "")),
+                            "Code": self._clean_value(row_dict.get("Code", "")),
+                            "Harvest Workflow": workflow_name,
+                            "Details": self._select_month_provenance_note(
+                                provenance_entries, last_harvested_date
+                            ),
+                            "Report Href": "",
+                            "Public Report Href": "",
+                        }
+                    )
 
-            for provenance_entry in provenance_entries:
-                provenance_date = self._extract_dated_entry_date(provenance_entry)
-                if provenance_date is None:
-                    continue
-                action_rows.append(
-                    {
-                        "Action Month": provenance_date.strftime("%B %Y"),
-                        "Action Date": provenance_date.strftime("%Y-%m-%d"),
-                        "Type": self._extract_provenance_action_type(provenance_entry) or "Reviewed",
-                        "Title": display_name,
-                        "ID": self._clean_value(row_dict.get("ID", "")),
-                        "Identifier": self._clean_value(row_dict.get("Identifier", "")),
-                        "Code": self._clean_value(row_dict.get("Code", "")),
-                        "Harvest Workflow": workflow_name,
-                        "Details": self._extract_provenance_details(provenance_entry),
-                    }
-                )
+                for provenance_entry in provenance_entries:
+                    provenance_date = self._extract_dated_entry_date(provenance_entry)
+                    if provenance_date is None:
+                        continue
+                    action_rows.append(
+                        {
+                            "Action Month": provenance_date.strftime("%B %Y"),
+                            "Action Date": provenance_date.strftime("%Y-%m-%d"),
+                            "Type": self._extract_provenance_action_type(provenance_entry) or "Reviewed",
+                            "Title": display_name,
+                            "ID": self._clean_value(row_dict.get("ID", "")),
+                            "Identifier": self._clean_value(row_dict.get("Identifier", "")),
+                            "Code": self._clean_value(row_dict.get("Code", "")),
+                            "Harvest Workflow": workflow_name,
+                            "Details": self._extract_provenance_details(provenance_entry),
+                            "Report Href": "",
+                            "Public Report Href": "",
+                        }
+                    )
 
         if not action_rows:
             return pd.DataFrame(columns=retrospective_columns)
@@ -1890,7 +1935,7 @@ class HarvestTaskDashboardJob:
         month_values = retrospective_df.get("Action Month", pd.Series(dtype=str))
         return {
             "total": int(len(retrospective_df)),
-            "harvested": int((action_types == "Harvested").sum()),
+            "harvested": int(action_types.isin(["Harvested", "Harvest", "harvest"]).sum()),
             "reviewed": int((action_types == "Reviewed").sum()),
             "months": int(month_values[month_values.astype(str).str.len() > 0].nunique()),
         }
@@ -2030,7 +2075,7 @@ class HarvestTaskDashboardJob:
                 html_parts.extend(
                     [
                         "          <tr>",
-                        f"            <td data-label=\"Record\">{self._render_task_cell(row, public=public)}</td>",
+                        f"            <td data-label=\"Record\">{self._render_retrospective_record_cell(row, public=public)}</td>",
                         f"            <td data-label=\"Action\">{self._render_retrospective_action_cell(row)}</td>",
                         f"            <td data-label=\"Workflow\"><code>{escape(self._clean_value(row.get('Harvest Workflow', '')) or 'unspecified')}</code></td>",
                         f"            <td data-label=\"Details\">{self._render_retrospective_details_cell(row)}</td>",
@@ -2331,6 +2376,22 @@ class HarvestTaskDashboardJob:
             f"<span>{escape(action_date)}</span></div>"
         )
 
+    def _render_retrospective_record_cell(
+        self,
+        row: pd.Series | dict[str, Any],
+        public: bool = False,
+    ) -> str:
+        report_href = self._clean_value(
+            row.get("Public Report Href", "") if public else row.get("Report Href", "")
+        )
+        if report_href:
+            display_name = escape(self._build_display_name(row))
+            return (
+                f'<div class="task-name"><a href="{escape(report_href, quote=True)}">'
+                f"{display_name}</a></div>"
+            )
+        return self._render_task_cell(row, public=public)
+
     def _render_retrospective_details_cell(self, row: pd.Series | dict[str, Any]) -> str:
         details = self._clean_value(row.get("Details", "")) or "Not provided"
         if not details or details == "Not provided":
@@ -2368,9 +2429,28 @@ class HarvestTaskDashboardJob:
             return '<span class="detail-meta">Not available</span>'
         return escape(value)
 
+    def _render_arcgis_report_status_cell(self, row: pd.Series | dict[str, Any]) -> str:
+        run_status = self._clean_value(row.get("Harvest Run", "")) or "unknown"
+        run_message = self._clean_value(row.get("Harvest Message", ""))
+        pill_class = (
+            "run-pill--error"
+            if self._is_arcgis_report_error(row)
+            else "run-pill--success" if run_status.lower() == "success" else "run-pill--unknown"
+        )
+        parts = [
+            f'<span class="run-pill {pill_class}">{escape(run_status)}</span>',
+        ]
+        if run_message and self._is_arcgis_report_error(row):
+            parts.append(f'<div class="detail-meta">{escape(run_message)}</div>')
+        return "".join(parts)
+
+    def _is_arcgis_report_error(self, row: pd.Series | dict[str, Any]) -> bool:
+        return self._clean_value(row.get("Harvest Run", "")).lower() == "error"
+
     def _retrospective_pill_class(self, action_type: str) -> str:
         pill_classes = {
             "Harvested": "status-pill--harvested",
+            "Harvest": "status-pill--harvested",
             "Reviewed": "status-pill--reviewed",
             "harvest": "status-pill--harvested",
             "review": "status-pill--reviewed",
@@ -3502,7 +3582,7 @@ class HarvestTaskDashboardJob:
         working_df = harvest_df.copy()
         self._ensure_columns(
             working_df,
-            ["Code", "Identifier", "ID", *ARCGIS_REPORT_NUMBER_COLUMNS],
+            ["Code", "Identifier", "ID", *ARCGIS_REPORT_NUMBER_COLUMNS, *ARCGIS_REPORT_STATUS_COLUMNS],
         )
         report_df = self._load_latest_arcgis_report()
         if report_df.empty:
@@ -3513,7 +3593,7 @@ class HarvestTaskDashboardJob:
             metrics = self._arcgis_report_metrics_for_row(row, report_lookup)
             if not metrics:
                 continue
-            for column in ARCGIS_REPORT_NUMBER_COLUMNS:
+            for column in (*ARCGIS_REPORT_NUMBER_COLUMNS, *ARCGIS_REPORT_STATUS_COLUMNS):
                 working_df.at[index, column] = metrics.get(column, "")
         return working_df
 
@@ -3529,7 +3609,7 @@ class HarvestTaskDashboardJob:
         report_df = self._load_csv(report_path)
         self._ensure_columns(
             report_df,
-            ["Code", "Identifier", *ARCGIS_REPORT_NUMBER_COLUMNS],
+            ["Code", "Identifier", *ARCGIS_REPORT_NUMBER_COLUMNS, *ARCGIS_REPORT_STATUS_COLUMNS],
         )
         report_df = report_df.loc[
             report_df["Code"].map(self._clean_value).str.upper() != "TOTAL"
@@ -3540,17 +3620,9 @@ class HarvestTaskDashboardJob:
     def _arcgis_report_totals(self, harvest_df: pd.DataFrame) -> dict[str, str]:
         report_path = self._latest_arcgis_report_path()
         if report_path is not None:
-            report_df = self._load_csv(report_path)
-            self._ensure_columns(report_df, ["Code", *ARCGIS_REPORT_NUMBER_COLUMNS])
-            total_rows = report_df.loc[
-                report_df["Code"].map(self._clean_value).str.upper() == "TOTAL"
-            ]
-            if not total_rows.empty:
-                total_row = total_rows.iloc[-1]
-                return {
-                    column: self._clean_value(total_row.get(column, ""))
-                    for column in ARCGIS_REPORT_NUMBER_COLUMNS
-                }
+            totals = self._arcgis_report_totals_for_path(report_path)
+            if any(totals.values()):
+                return totals
 
         totals: dict[str, str] = {}
         for column in ARCGIS_REPORT_NUMBER_COLUMNS:
@@ -3559,8 +3631,14 @@ class HarvestTaskDashboardJob:
         return totals
 
     def _latest_arcgis_report_path(self) -> Path | None:
-        if not self.arcgis_reports_dir.exists():
+        candidates = self._arcgis_report_paths()
+        if not candidates:
             return None
+        return max(candidates, key=lambda item: (item[0], item[1].name))[1]
+
+    def _arcgis_report_paths(self) -> list[tuple[pd.Timestamp, Path]]:
+        if not self.arcgis_reports_dir.exists():
+            return []
 
         candidates: list[tuple[pd.Timestamp, Path]] = []
         for report_path in self.arcgis_reports_dir.glob("*_arcgis_report.csv"):
@@ -3571,10 +3649,43 @@ class HarvestTaskDashboardJob:
             if pd.isna(report_date):
                 continue
             candidates.append((report_date, report_path))
+        return sorted(candidates, key=lambda item: (item[0], item[1].name), reverse=True)
 
-        if not candidates:
-            return None
-        return max(candidates, key=lambda item: (item[0], item[1].name))[1]
+    def _arcgis_report_totals_for_path(self, report_path: Path) -> dict[str, str]:
+        report_df = self._load_csv(report_path)
+        self._ensure_columns(report_df, ["Code", *ARCGIS_REPORT_NUMBER_COLUMNS])
+        total_rows = report_df.loc[
+            report_df["Code"].map(self._clean_value).str.upper() == "TOTAL"
+        ]
+        if not total_rows.empty:
+            total_row = total_rows.iloc[-1]
+            return {
+                column: self._clean_value(total_row.get(column, ""))
+                for column in ARCGIS_REPORT_NUMBER_COLUMNS
+            }
+
+        non_total_rows = report_df.loc[
+            report_df["Code"].map(self._clean_value).str.upper() != "TOTAL"
+        ]
+        totals: dict[str, str] = {}
+        for column in ARCGIS_REPORT_NUMBER_COLUMNS:
+            values = pd.to_numeric(non_total_rows.get(column, pd.Series(dtype=str)), errors="coerce")
+            totals[column] = str(int(values.sum())) if values.notna().any() else ""
+        return totals
+
+    def _arcgis_report_totals_details(self, totals: dict[str, str]) -> str:
+        return "; ".join(
+            f"{column}: {self._clean_value(totals.get(column, '')) or 'Not available'}"
+            for column in ARCGIS_REPORT_NUMBER_COLUMNS
+        )
+
+    def _arcgis_report_href(self, report_date: str, public: bool = False) -> str:
+        workflow_slug = self._slugify("py_arcgis_hub")
+        return (
+            f"/reports/{report_date}_{self.output_dashboard_html.stem}-{workflow_slug}"
+            f"{PUBLIC_REPORT_SUFFIX if public else ''}"
+            f"{self.output_dashboard_html.suffix}"
+        )
 
     def _latest_arcgis_report_date(self) -> str:
         report_path = self._latest_arcgis_report_path()
@@ -3591,7 +3702,7 @@ class HarvestTaskDashboardJob:
         for _, row in report_df.iterrows():
             metrics = {
                 column: self._clean_value(row.get(column, ""))
-                for column in ARCGIS_REPORT_NUMBER_COLUMNS
+                for column in (*ARCGIS_REPORT_NUMBER_COLUMNS, *ARCGIS_REPORT_STATUS_COLUMNS)
             }
             for key in self._arcgis_report_match_keys(row):
                 lookup.setdefault(key, metrics)

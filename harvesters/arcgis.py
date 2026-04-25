@@ -51,53 +51,57 @@ class ArcGISHarvester(BaseHarvester):
 
         with open(self.workflow_input_path, newline='', encoding='utf-8-sig') as f:
             reader = csv.DictReader(f)
-            for harvest_record in reader:
-                hub_defaults = match_hub_defaults(harvest_record, self._hub_metadata_lookup)
-                website_id = first_non_empty(
-                    hub_defaults.get("ID", ""),
-                    hub_defaults.get("Code", ""),
-                    harvest_record.get("Code", ""),
-                    harvest_record.get("Identifier", ""),
-                    harvest_record.get("ID", ""),
-                )
-                endpoint_url = harvest_record.get('Endpoint URL', '')
-                try:
-                    resp = requests.get(endpoint_url, timeout=30)
-                    resp.raise_for_status()
-                    json_api = resp.json()
-                except Exception as e:
-                    self._harvest_report_rows.append(
-                        build_harvest_report_run_row(
-                            harvest_record,
-                            "error",
-                            f"[ArcGIS] Error fetching {website_id}: {e}",
-                            0,
-                        )
-                    )
-                    yield f"[ArcGIS] Error fetching {website_id}: {e}"
-                    continue
+            harvest_records = list(reader)
 
-                hub_title = first_non_empty(
-                    hub_defaults.get("Title", ""),
-                    harvest_record.get("Title", ""),
-                )
-                datasets = json_api.get("dataset", [])
-                total_found = len(datasets) if isinstance(datasets, list) else 0
-                message = f"[ArcGIS] Fetched {website_id} — {hub_title or 'No Title'}"
+        validate_unique_arcgis_endpoint_codes(harvest_records)
+
+        for harvest_record in harvest_records:
+            hub_defaults = match_hub_defaults(harvest_record, self._hub_metadata_lookup)
+            website_id = first_non_empty(
+                hub_defaults.get("ID", ""),
+                hub_defaults.get("Code", ""),
+                harvest_record.get("Code", ""),
+                harvest_record.get("Identifier", ""),
+                harvest_record.get("ID", ""),
+            )
+            endpoint_url = harvest_record.get('Endpoint URL', '')
+            try:
+                resp = requests.get(endpoint_url, timeout=30)
+                resp.raise_for_status()
+                json_api = resp.json()
+            except Exception as e:
                 self._harvest_report_rows.append(
                     build_harvest_report_run_row(
                         harvest_record,
-                        "success",
-                        message,
-                        total_found,
+                        "error",
+                        f"[ArcGIS] Error fetching {website_id}: {e}",
+                        0,
                     )
                 )
-                yield message
-                yield {
-                    "workflow": harvest_record,
-                    "hub_defaults": hub_defaults,
-                    "fetched_catalog": json_api,
-                }
+                yield f"[ArcGIS] Error fetching {website_id}: {e}"
+                continue
+
+            hub_title = first_non_empty(
+                hub_defaults.get("Title", ""),
+                harvest_record.get("Title", ""),
+            )
+            datasets = json_api.get("dataset", [])
+            total_found = len(datasets) if isinstance(datasets, list) else 0
+            message = f"[ArcGIS] Fetched {website_id} — {hub_title or 'No Title'}"
+            self._harvest_report_rows.append(
+                build_harvest_report_run_row(
+                    harvest_record,
+                    "success",
+                    message,
+                    total_found,
+                )
+            )
+            yield message
+            yield {
+                "workflow": harvest_record,
+                "hub_defaults": hub_defaults,
+                "fetched_catalog": json_api,
+            }
 
     
     def flatten(self, harvested_records):
@@ -255,6 +259,43 @@ def lookup_keys_for_row(row: dict) -> list[str]:
             seen.add(key)
             ordered_keys.append(key)
     return ordered_keys
+
+
+def normalize_endpoint_url(value: str) -> str:
+    # Normalize endpoint URLs enough to catch duplicate ArcGIS harvest targets.
+    return str(value or "").strip().lower().rstrip("/")
+
+
+def validate_unique_arcgis_endpoint_codes(harvest_records: list[dict]) -> None:
+    # Stop before fetching when one ArcGIS endpoint is assigned to multiple harvest codes.
+    endpoint_rows: dict[str, list[dict]] = {}
+    for row in harvest_records:
+        endpoint_url = normalize_endpoint_url(row.get("Endpoint URL", ""))
+        if not endpoint_url or endpoint_url == "none":
+            continue
+        endpoint_rows.setdefault(endpoint_url, []).append(row)
+
+    duplicate_messages = []
+    for endpoint_url, rows in endpoint_rows.items():
+        codes = {
+            first_non_empty(row.get("Code", ""), row.get("Identifier", ""), row.get("ID", ""))
+            for row in rows
+        }
+        codes.discard("")
+        if len(codes) <= 1:
+            continue
+        labels = "; ".join(
+            f"{first_non_empty(row.get('Code', ''), row.get('Identifier', ''), row.get('ID', ''))}"
+            f" ({row.get('Title', '')})"
+            for row in rows
+        )
+        duplicate_messages.append(f"{endpoint_url}: {labels}")
+
+    if duplicate_messages:
+        raise ValueError(
+            "[ArcGIS] Duplicate Endpoint URL assigned to multiple harvest codes: "
+            + " | ".join(duplicate_messages)
+        )
 
 
 def load_hub_metadata_lookup(hub_metadata_path: str) -> dict[str, dict]:
@@ -531,6 +572,7 @@ def arcgis_apply_website_defaults(df: pd.DataFrame) -> pd.DataFrame:
     df["Is Part Of"] = first_non_empty_columns("ID", "Code")
     df["Code"] = first_non_empty_columns("Code", "ID")
     df["Publisher"] = website_df.get("Title", "")
+    df["Provider"] = website_df.get("Provider", "")
     df["Spatial Coverage"] = website_df.get("Spatial Coverage", "")
     df["default_bbox"] = website_df.get("Bounding Box", "")
     df["Member Of"] = website_df.get("Member Of", "")

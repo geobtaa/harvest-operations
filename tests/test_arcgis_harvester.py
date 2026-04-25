@@ -3,6 +3,7 @@ import time
 from unittest.mock import patch
 
 import pandas as pd
+import pytest
 
 from harvesters.arcgis import (
     ArcGISHarvester,
@@ -306,10 +307,10 @@ def test_arcgis_harvester_reads_workflow_inputs_and_metadata_defaults(tmp_path) 
     metadata_csv.write_text(
         "\n".join(
             [
-                "Title,Creator,Publisher,Subject,Spatial Coverage,Bounding Box,Member Of,ID,Identifier,Code",
-                'Open Data Minneapolis,,Minnesota--Minneapolis,Municipal government records,Minnesota--Minneapolis|Minnesota,"-93.329,44.890,-93.194,45.051",ba5cc745-21c5-4ae9-954b-72dd8db6815a,05c-01,https://opendata.minneapolismn.gov,05c-01',
-                'Holmes County GIS Open Data Portal,,Ohio--Holmes County,County government records,Ohio--Holmes County|Ohio,"-82.221,40.444,-81.649,40.668",ba5cc745-21c5-4ae9-954b-72dd8db6815a,11b-39075,https://holmes-county-gis-holmesgis.hub.arcgis.com,11b-39075',
-                'Jefferson County Washington Open Data Site,,Washington (State)--Jefferson County,County government records,Washington (State)--Jefferson County|Washington (State),"-124.720,47.520,-122.600,48.370",ba5cc745-21c5-4ae9-954b-72dd8db6815a,16b-53031,https://gisdata-jeffcowa.opendata.arcgis.com,16b-53031',
+                "Title,Creator,Publisher,Provider,Subject,Spatial Coverage,Bounding Box,Member Of,ID,Identifier,Code",
+                'Open Data Minneapolis,,Minnesota--Minneapolis,University of Minnesota,Municipal government records,Minnesota--Minneapolis|Minnesota,"-93.329,44.890,-93.194,45.051",ba5cc745-21c5-4ae9-954b-72dd8db6815a,05c-01,https://opendata.minneapolismn.gov,05c-01',
+                'Holmes County GIS Open Data Portal,,Ohio--Holmes County,,County government records,Ohio--Holmes County|Ohio,"-82.221,40.444,-81.649,40.668",ba5cc745-21c5-4ae9-954b-72dd8db6815a,11b-39075,https://holmes-county-gis-holmesgis.hub.arcgis.com,11b-39075',
+                'Jefferson County Washington Open Data Site,,Washington (State)--Jefferson County,,County government records,Washington (State)--Jefferson County|Washington (State),"-124.720,47.520,-122.600,48.370",ba5cc745-21c5-4ae9-954b-72dd8db6815a,16b-53031,https://gisdata-jeffcowa.opendata.arcgis.com,16b-53031',
             ]
         ),
         encoding="utf-8",
@@ -424,6 +425,7 @@ def test_arcgis_harvester_reads_workflow_inputs_and_metadata_defaults(tmp_path) 
     assert street_row["Is Part Of"] == "05c-01"
     assert street_row["Code"] == "05c-01"
     assert street_row["Publisher"] == "Open Data Minneapolis"
+    assert street_row["Provider"] == "University of Minnesota"
     assert street_row["Endpoint Description"] == "DCAT API"
     assert street_row["Accrual Periodicity"] == "Weekly"
     assert street_row["Provenance"] == (
@@ -438,3 +440,36 @@ def test_arcgis_harvester_reads_workflow_inputs_and_metadata_defaults(tmp_path) 
     assert minneapolis_record["Provenance"] == "2026-03-28 / harvest"
     assert minneapolis_record["Harvest Workflow"] == "py_arcgis_hub"
     assert minneapolis_record["Last Harvested"] == today
+
+
+def test_arcgis_harvester_rejects_duplicate_endpoints_for_different_codes(tmp_path) -> None:
+    workflow_csv = tmp_path / "py-arcgis-hub.csv"
+    metadata_csv = tmp_path / "arcHub_metadata.csv"
+
+    workflow_csv.write_text(
+        "\n".join(
+            [
+                "Title,Endpoint URL,ID,Identifier,Code",
+                "Harvest record for One,https://example.org/api/feed/dcat-us/1.1.json,harvest_01,01,01",
+                "Harvest record for Two,https://example.org/api/feed/dcat-us/1.1.json,harvest_02,02,02",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    metadata_csv.write_text("Title,ID,Identifier,Code\n", encoding="utf-8")
+
+    harvester = ArcGISHarvester(
+        {
+            "input_csv": str(workflow_csv),
+            "hub_metadata_csv": str(metadata_csv),
+            "output_primary_csv": "outputs/arcgis_primary.csv",
+            "output_distributions_csv": "outputs/arcgis_distributions.csv",
+            "output_report_csv": "outputs/arcgis_report.csv",
+        }
+    )
+
+    with patch("requests.get") as mock_get:
+        with pytest.raises(ValueError, match="Duplicate Endpoint URL"):
+            list(harvester.fetch())
+
+    mock_get.assert_not_called()

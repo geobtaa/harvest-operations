@@ -155,7 +155,8 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
             {
                 "Code": "27d-01",
                 "Identifier": "site-3",
-                "Harvest Run": "success",
+                "Harvest Run": "error",
+                "Harvest Message": "[ArcGIS] Failed site-3 - timeout",
                 "Total Records Found": "21",
                 "New Records": "5",
                 "Unpublished Records": "2",
@@ -163,7 +164,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
             {
                 "Code": "TOTAL",
                 "Identifier": "",
-                "Harvest Run": "success: 2; error: 0",
+                "Harvest Run": "success: 1; error: 1",
                 "Total Records Found": "39",
                 "New Records": "9",
                 "Unpublished Records": "2",
@@ -408,10 +409,21 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Geology Index" not in due_dashboard_html
     assert "Harvest Task Retrospective" in retrospective_dashboard_html
     assert "Get Latest Source CSVs" not in retrospective_dashboard_html
+    assert "ArcGIS Hubs Harvest Report - 2026-03-30" in retrospective_dashboard_html
+    assert ">Harvest</span>" in retrospective_dashboard_html
+    assert 'href="/reports/2026-03-30_harvest-task-dashboard-py-arcgis-hub.html"' in (
+        retrospective_dashboard_html
+    )
+    assert "Total Records Found: 39; New Records: 9; Unpublished Records: 2" in (
+        retrospective_dashboard_html
+    )
+    assert 'href="/reports/2026-03-30_harvest-task-dashboard-py-arcgis-hub-public.html"' in (
+        public_retrospective_dashboard_html
+    )
     assert "Scan ArcGIS Hubs" not in dashboard_html
     assert "py_arcgis_hub" not in dashboard_html
     assert "Scan ArcGIS Hubs" not in due_dashboard_html
-    assert "py_arcgis_hub" not in retrospective_dashboard_html
+    assert "py_arcgis_hub" in retrospective_dashboard_html
 
     assert set(dedicated_dashboard_outputs) == {"py_arcgis_hub"}
     assert set(public_dedicated_dashboard_outputs) == {"py_arcgis_hub"}
@@ -441,14 +453,20 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     )
     assert arcgis_dashboard_output_html == arcgis_dashboard_html
     assert public_arcgis_dashboard_output_html == public_arcgis_dashboard_html
-    assert "ArcGIS Hubs Harvest Overview" in arcgis_dashboard_html
+    assert "ArcGIS Hubs Harvest Report - 2026-03-30" in arcgis_dashboard_html
     assert "Get Latest Source CSVs" not in arcgis_dashboard_html
-    assert "Last time the process was run" in arcgis_dashboard_html
+    assert "Harvest report date" in arcgis_dashboard_html
     assert '<strong class="status-value">2026-03-30</strong>' in arcgis_dashboard_html
-    assert "Currently Harvested ArcGIS Hubs" in arcgis_dashboard_html
+    assert "ArcGIS Hub Harvest Results" in arcgis_dashboard_html
+    assert "Last Harvested" not in arcgis_dashboard_html
     assert "Total Records Found" in arcgis_dashboard_html
     assert "New Records" in arcgis_dashboard_html
     assert "Unpublished Records" in arcgis_dashboard_html
+    assert "Harvest Run" in arcgis_dashboard_html
+    assert 'class="report-error"' in arcgis_dashboard_html
+    assert '<span class="run-pill run-pill--error">error</span>' in arcgis_dashboard_html
+    assert "[ArcGIS] Failed site-3 - timeout" in arcgis_dashboard_html
+    assert "[ArcGIS] Fetched" not in arcgis_dashboard_html
     assert "Endpoint" not in arcgis_dashboard_html
     assert "18" in arcgis_dashboard_html
     assert "21" in arcgis_dashboard_html
@@ -918,6 +936,7 @@ def test_harvest_task_dashboard_generates_retrospective_report_with_month_groupi
                 outputs_dir / "harvest-task-dashboard-retrospective.html"
             ),
             "output_workflow_dir": str(outputs_dir / "harvest-workflow-inputs"),
+            "arcgis_reports_dir": str(outputs_dir),
             "today": "2026-04-15",
         }
     )
@@ -956,9 +975,9 @@ def test_harvest_task_dashboard_generates_retrospective_report_with_month_groupi
     assert "2026-04-10" not in retrospective_dashboard_html
     assert "2026-03-15" not in retrospective_dashboard_html
     assert "Harvest Task Retrospective" in retrospective_view_html
-    assert "ArcGIS Hubs Harvest Overview" in arcgis_retrospective_html
-    assert "Last time the process was run" in arcgis_retrospective_html
-    assert "Currently Harvested ArcGIS Hubs" in arcgis_retrospective_html
+    assert "ArcGIS Hubs Harvest Report - Unknown date" in arcgis_retrospective_html
+    assert "Harvest report date" in arcgis_retrospective_html
+    assert "ArcGIS Hub Harvest Results" in arcgis_retrospective_html
     assert "No ArcGIS Hub harvest records were found in the input file." in arcgis_retrospective_html
 
 
