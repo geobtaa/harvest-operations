@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 import os
+from pathlib import Path
 import yaml
 
 from harvesters.arcgis import ArcGISHarvester
@@ -103,6 +104,16 @@ async def view_harvest_task_dashboard(
             workflow=workflow,
         )
     )
+
+
+@router.get("/reports/{filename:path}")
+async def view_report_file(filename: str):
+    report_path = Path("reports", filename)
+    reports_root = Path("reports").resolve()
+    resolved_report_path = report_path.resolve()
+    if reports_root not in resolved_report_path.parents or not resolved_report_path.is_file():
+        raise HTTPException(status_code=404, detail="Report not found")
+    return FileResponse(resolved_report_path)
 
 
 @router.get("/jobs/harvest-task-dashboard/workflow-queue")

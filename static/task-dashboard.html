@@ -26,8 +26,7 @@
       color: var(--ink);
       background: linear-gradient(180deg, #f7fafc 0%, var(--bg) 100%);
     }
-    button,
-    .report-link {
+    button {
       padding: 0.7rem 1.2rem;
       font-size: 1rem;
       cursor: pointer;
@@ -42,14 +41,9 @@
       gap: 0.35rem;
       transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
     }
-    button:hover,
-    .report-link:hover {
+    button:hover {
       transform: translateY(-1px);
       box-shadow: 0 10px 20px rgba(31, 111, 178, 0.14);
-    }
-    button.secondary {
-      background: #fff;
-      color: var(--accent);
     }
     h1 {
       margin-bottom: 0.5rem;
@@ -74,8 +68,7 @@
       border-radius: 14px;
       box-shadow: 0 12px 30px rgba(23, 50, 77, 0.06);
     }
-    .source-box,
-    .report-box {
+    .source-box {
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 14px;
@@ -83,10 +76,6 @@
       margin: 1rem 0 1.5rem;
       box-shadow: 0 12px 30px rgba(23, 50, 77, 0.06);
     }
-    .report-box {
-      background: linear-gradient(135deg, var(--panel) 0%, var(--accent-soft) 100%);
-    }
-    .report-box h2,
     .source-box h2 {
       margin-top: 0;
       margin-bottom: 0.5rem;
@@ -100,10 +89,24 @@
       border-radius: 6px;
     }
     .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
       margin: 1.25rem 0 1rem;
+    }
+    .report-columns {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin: 1rem 0 1.5rem;
+    }
+    .report-columns h2 {
+      font-size: 1rem;
+      margin: 0 0 0.35rem;
+    }
+    .report-columns ul {
+      margin: 0;
+      padding-left: 1.25rem;
+    }
+    .report-columns li {
+      margin: 0.35rem 0;
     }
     .report-meta {
       margin-top: 0.9rem;
@@ -148,6 +151,9 @@
       color: var(--muted);
     }
     @media (max-width: 760px) {
+      .report-columns {
+        grid-template-columns: minmax(0, 1fr);
+      }
       .workflow-table,
       .workflow-table thead,
       .workflow-table tbody,
@@ -183,25 +189,16 @@
   <h1>Harvest Task Dashboard</h1>
 
   <p>
-    This job reads <code>inputs/harvest-records.csv</code> and <code>reference_data/websites.csv</code>,
-    calculates due dates from <code>Last Harvested</code> and <code>Accrual Periodicity</code>,
-    enriches tasks with matching website metadata, and writes per-workflow harvest input CSVs.
+    Download the latest source CSVs, then generate the dashboard files.
   </p>
 
   <p>
-    Use <strong>Generate Dashboard Files & Prepare Inputs</strong> after replacing the source CSVs. This writes the report
-    outputs into <code>reports/</code> and prepares <code>inputs/harvest-workflow-inputs/</code>
-    by splitting <code>harvest-records.csv</code> by <code>Harvest Workflow</code>.
-  </p>
-
-  <p>
-    The workflow queue below identifies harvest jobs that are due now or within the next month
-    and links to the matching static harvester page when one exists.
+    After the dashboard runs, use the report links below to review current harvest tasks.
   </p>
 
   <div class="source-box">
     <h2>Get Latest Source CSVs</h2>
-    <p>Download the newest files before running the dashboard, then save them with these names:</p>
+    <p>Download both CSVs before running the dashboard:</p>
     <ul>
       <li><a href="https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=draft&f%5Bgbl_resourceClass_sm%5D%5B%5D=Series" target="_blank" rel="noreferrer"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>
       <li><a href="https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites" target="_blank" rel="noreferrer"><code>websites.csv</code></a> -> save as <code>reference_data/websites.csv</code></li>
@@ -210,114 +207,41 @@
 
   <div class="actions">
     <button onclick="runDashboardJob()">Generate Dashboard Files & Prepare Inputs</button>
-    <button class="secondary" onclick="loadWorkflowQueue()">Refresh Workflow Queue</button>
-    <a
-      id="full-report-link"
-      class="report-link"
-      href="/jobs/harvest-task-dashboard/view"
-      target="_blank"
-      rel="noreferrer"
-      onclick="refreshReportLinks()"
-    >
-      Open Full Report
-    </a>
-    <a
-      id="records-report-link"
-      class="report-link secondary"
-      href="/jobs/harvest-task-dashboard/view?report=records"
-      target="_blank"
-      rel="noreferrer"
-      onclick="refreshReportLinks()"
-    >
-      Open Harvest Records
-    </a>
-    <a
-      id="institutions-report-link"
-      class="report-link secondary"
-      href="/jobs/harvest-task-dashboard/view?report=institutions"
-      target="_blank"
-      rel="noreferrer"
-      onclick="refreshReportLinks()"
-    >
-      Open By-Institution Report
-    </a>
-    <a
-      id="map-collections-report-link"
-      class="report-link secondary"
-      href="/jobs/harvest-task-dashboard/view?report=map-collections"
-      target="_blank"
-      rel="noreferrer"
-      onclick="refreshReportLinks()"
-    >
-      Open Map Collections Report
-    </a>
-    <a
-      id="standalone-report-link"
-      class="report-link secondary"
-      href="/jobs/harvest-task-dashboard/view?report=standalone"
-      target="_blank"
-      rel="noreferrer"
-      onclick="refreshReportLinks()"
-    >
-      Open Standalone Websites Report
-    </a>
-    <a
-      id="due-report-link"
-      class="report-link secondary"
-      href="/jobs/harvest-task-dashboard/view?report=due"
-      target="_blank"
-      rel="noreferrer"
-      onclick="refreshReportLinks()"
-    >
-      Open Due-Only Report
-    </a>
-    <a
-      id="retrospective-report-link"
-      class="report-link secondary"
-      href="/jobs/harvest-task-dashboard/view?report=retrospective"
-      target="_blank"
-      rel="noreferrer"
-      onclick="refreshReportLinks()"
-    >
-      Open Retrospective Report
-    </a>
-    <a
-      id="arcgis-hub-report-link"
-      class="report-link secondary"
-      href="/jobs/harvest-task-dashboard/view?workflow=py_arcgis_hub"
-      target="_blank"
-      rel="noreferrer"
-      onclick="refreshReportLinks()"
-    >
-      Open ArcGIS Hub Report
-    </a>
-    <button class="secondary" onclick="refreshReportLinks()">Refresh Report Links</button>
+  </div>
+
+  <div class="report-columns">
+    <section>
+      <h2>Triage</h2>
+      <ul>
+        <li><a id="due-report-link" href="/jobs/harvest-task-dashboard/view?report=due" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Due-only tasks</a></li>
+        <li><a id="full-report-link" href="/jobs/harvest-task-dashboard/view" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">All harvest records</a></li>
+      </ul>
+    </section>
+    <section>
+      <h2>Reports</h2>
+      <ul>
+        <li><a id="retrospective-report-link" href="/jobs/harvest-task-dashboard/view?report=retrospective" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Retrospective report</a></li>
+        <li><a id="arcgis-hub-report-link" href="/jobs/harvest-task-dashboard/view?workflow=py_arcgis_hub" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">ArcGIS Hub report</a></li>
+      </ul>
+    </section>
+    <section>
+      <h2>Lists</h2>
+      <ul>
+        <li><a id="records-report-link" href="/jobs/harvest-task-dashboard/view?report=records" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Harvest records by Accrual Periodicity</a></li>
+        <li><a id="institutions-report-link" href="/jobs/harvest-task-dashboard/view?report=institutions" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">By institution</a></li>
+        <li><a id="map-collections-report-link" href="/jobs/harvest-task-dashboard/view?report=map-collections" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Map collections only</a></li>
+        <li><a id="standalone-report-link" href="/jobs/harvest-task-dashboard/view?report=standalone" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Standalone websites</a></li>
+      </ul>
+    </section>
   </div>
 
   <div class="source-box">
     <h2>Workflow Queue</h2>
     <p class="muted">
-      Harvest jobs due now or within the next month are grouped by workflow. Generate the dashboard
-      files first when source CSVs have changed so the workflow input CSVs are current.
+      Generate the dashboard files after downloading new CSVs, then review the upcoming harvest jobs here.
     </p>
     <div id="workflow-summary" class="muted">Loading workflow queue...</div>
     <div id="workflow-queue" class="workflow-grid"></div>
-  </div>
-
-  <div class="report-box">
-    <h2>Dashboard Reports</h2>
-    <p>
-      Open the general dashboard, compact harvest-record list, institution-grouped list, map-collections list, standalone-website institution view, due-only view, retrospective view, or the dedicated <code>py_arcgis_hub</code> workflow view in a new tab after updating the source CSVs or running the job.
-      All links always target the latest dashboard render from FastAPI.
-    </p>
-    <p class="report-meta">Full report URL: <code id="full-report-url">/jobs/harvest-task-dashboard/view</code></p>
-    <p class="report-meta">Harvest records URL: <code id="records-report-url">/jobs/harvest-task-dashboard/view?report=records</code></p>
-    <p class="report-meta">By institution URL: <code id="institutions-report-url">/jobs/harvest-task-dashboard/view?report=institutions</code></p>
-    <p class="report-meta">Map collections URL: <code id="map-collections-report-url">/jobs/harvest-task-dashboard/view?report=map-collections</code></p>
-    <p class="report-meta">Standalone websites URL: <code id="standalone-report-url">/jobs/harvest-task-dashboard/view?report=standalone</code></p>
-    <p class="report-meta">Due-only report URL: <code id="due-report-url">/jobs/harvest-task-dashboard/view?report=due</code></p>
-    <p class="report-meta">Retrospective report URL: <code id="retrospective-report-url">/jobs/harvest-task-dashboard/view?report=retrospective</code></p>
-    <p class="report-meta">ArcGIS Hub report URL: <code id="arcgis-hub-report-url">/jobs/harvest-task-dashboard/view?workflow=py_arcgis_hub</code></p>
   </div>
 
   <div id="status"></div>
@@ -456,14 +380,6 @@
       document.getElementById("due-report-link").href = dueUrl;
       document.getElementById("retrospective-report-link").href = retrospectiveUrl;
       document.getElementById("arcgis-hub-report-link").href = arcgisHubUrl;
-      document.getElementById("full-report-url").textContent = fullUrl;
-      document.getElementById("records-report-url").textContent = recordsUrl;
-      document.getElementById("institutions-report-url").textContent = institutionsUrl;
-      document.getElementById("map-collections-report-url").textContent = mapCollectionsUrl;
-      document.getElementById("standalone-report-url").textContent = standaloneUrl;
-      document.getElementById("due-report-url").textContent = dueUrl;
-      document.getElementById("retrospective-report-url").textContent = retrospectiveUrl;
-      document.getElementById("arcgis-hub-report-url").textContent = arcgisHubUrl;
       return true;
     }
 

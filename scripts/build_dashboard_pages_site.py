@@ -551,7 +551,11 @@ def _extract_html_title(report_path: Path) -> str:
 
 def _workflow_report_label(workflow_title: str, workflow_slug: str) -> str:
     if workflow_title:
-        normalized_title = re.sub(r"\s+Harvest Overview\s*$", "", workflow_title).strip()
+        normalized_title = re.sub(
+            r"\s+Harvest (?:Overview|Report)(?:\s+-\s+\d{4}-\d{2}-\d{2})?\s*$",
+            "",
+            workflow_title,
+        ).strip()
         if normalized_title:
             return normalized_title
     return workflow_slug.replace("-", " ").title()
@@ -559,8 +563,8 @@ def _workflow_report_label(workflow_title: str, workflow_slug: str) -> str:
 
 def _workflow_report_description(workflow_slug: str) -> str:
     if workflow_slug == ARCGIS_WORKFLOW_SLUG:
-        return "Dedicated workflow overview with latest ArcGIS harvest count columns."
-    return "Dedicated workflow overview."
+        return "Dedicated workflow harvest report with latest ArcGIS count columns."
+    return "Dedicated workflow report."
 
 
 def _ordered_reports(reports: dict[str, DashboardReport]) -> list[DashboardReport]:
