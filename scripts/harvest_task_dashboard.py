@@ -1948,7 +1948,6 @@ class HarvestTaskDashboardJob:
         public: bool = False,
     ) -> str:
         retrospective_df = self._build_retrospective_dataframe(harvest_df)
-        summary = self._build_retrospective_summary(retrospective_df)
 
         html_parts = [
             "<!DOCTYPE html>",
@@ -1967,10 +1966,14 @@ class HarvestTaskDashboardJob:
             "      --bg: #eef3f8;",
             "      --accent: #1f6fb2;",
             "      --accent-soft: #dcecff;",
-            "      --harvested: #b42318;",
-            "      --harvested-soft: #fee4e2;",
-            "      --reviewed: #0f766e;",
-            "      --reviewed-soft: #d8f3ee;",
+            "      --action-harvest: #854d0e;",
+            "      --action-harvest-soft: #fef3c7;",
+            "      --action-review: #0f766e;",
+            "      --action-review-soft: #d8f3ee;",
+            "      --action-ingest: #1d4ed8;",
+            "      --action-ingest-soft: #dbeafe;",
+            "      --action-other: #6d28d9;",
+            "      --action-other-soft: #ede9fe;",
             "    }",
             "    * { box-sizing: border-box; }",
             "    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: \"Segoe UI\", sans-serif; line-height: 1.35; color: var(--ink); background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%); }",
@@ -1978,11 +1981,6 @@ class HarvestTaskDashboardJob:
             "    h1 { margin-bottom: 0.4rem; }",
             "    h2 { margin-bottom: 0.9rem; }",
             "    a { color: var(--accent); }",
-            "    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin: 1.25rem 0 1.5rem; }",
-            "    .card { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--accent); border-radius: 14px; padding: 0.8rem 0.9rem; box-shadow: 0 12px 30px rgba(23, 50, 77, 0.06); }",
-            "    .card strong { display: block; margin-top: 0.2rem; font-size: 1.5rem; }",
-            "    .card.card--harvested { border-top-color: var(--harvested); }",
-            "    .card.card--reviewed { border-top-color: var(--reviewed); }",
             "    .month-section { margin-top: 1.6rem; }",
             "    .month-block { margin: 0.9rem 0 1.15rem; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
             "    .month-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.75rem 0.95rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }",
@@ -1997,8 +1995,10 @@ class HarvestTaskDashboardJob:
             "    .task-meta code, .muted code { background: #edf1f5; padding: 0.08rem 0.32rem; border-radius: 6px; }",
             "    .date-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; font-weight: 700; }",
             "    .status-pill { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }",
-            "    .status-pill--harvested { color: var(--harvested); background: var(--harvested-soft); }",
-            "    .status-pill--reviewed { color: var(--reviewed); background: var(--reviewed-soft); }",
+            "    .status-pill--harvest { color: var(--action-harvest); background: var(--action-harvest-soft); }",
+            "    .status-pill--review { color: var(--action-review); background: var(--action-review-soft); }",
+            "    .status-pill--ingest { color: var(--action-ingest); background: var(--action-ingest-soft); }",
+            "    .status-pill--other { color: var(--action-other); background: var(--action-other-soft); }",
             "    .muted { color: var(--muted); }",
             "    code { background: var(--panel-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }",
             "    .source-box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 1rem; margin: 1rem 0 1.4rem; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
@@ -2016,29 +2016,6 @@ class HarvestTaskDashboardJob:
                     "  <p class=\"muted\">This list shows recorded harvest tasks over time, organized by source and date. It is not a complete history and may only reflect the most recent task for a source.</p>",
                 ]
             )
-
-        html_parts.extend(
-            [
-                "  <div class=\"summary\">",
-                "    <div class=\"card\">",
-                "      <span>Total Actions</span>",
-                f"      <strong>{summary['total']}</strong>",
-                "    </div>",
-                "    <div class=\"card card--harvested\">",
-                "      <span>Harvested</span>",
-                f"      <strong>{summary['harvested']}</strong>",
-                "    </div>",
-                "    <div class=\"card card--reviewed\">",
-                "      <span>Reviewed</span>",
-                f"      <strong>{summary['reviewed']}</strong>",
-                "    </div>",
-                "    <div class=\"card\">",
-                "      <span>Months</span>",
-                f"      <strong>{summary['months']}</strong>",
-                "    </div>",
-                "  </div>",
-            ]
-        )
 
         if retrospective_df.empty:
             html_parts.extend(
@@ -2448,15 +2425,16 @@ class HarvestTaskDashboardJob:
         return self._clean_value(row.get("Harvest Run", "")).lower() == "error"
 
     def _retrospective_pill_class(self, action_type: str) -> str:
+        normalized_action_type = action_type.strip().lower()
         pill_classes = {
-            "Harvested": "status-pill--harvested",
-            "Harvest": "status-pill--harvested",
-            "Reviewed": "status-pill--reviewed",
-            "harvest": "status-pill--harvested",
-            "review": "status-pill--reviewed",
-            "reviewed": "status-pill--reviewed",
+            "harvest": "status-pill--harvest",
+            "harvested": "status-pill--harvest",
+            "review": "status-pill--review",
+            "reviewed": "status-pill--review",
+            "ingest": "status-pill--ingest",
+            "ingested": "status-pill--ingest",
         }
-        return pill_classes.get(action_type, "status-pill--reviewed")
+        return pill_classes.get(normalized_action_type, "status-pill--other")
 
     def _render_task_cell(self, row: pd.Series | dict[str, Any], public: bool = False) -> str:
         display_name = escape(self._build_display_name(row))

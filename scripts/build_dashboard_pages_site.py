@@ -10,10 +10,20 @@ import shutil
 
 
 SITE_TITLE = "Harvest Task Dashboard Reports"
+DEDICATED_WORKFLOW_PREFIX = "harvest-task-dashboard-"
+PUBLIC_REPORT_SUFFIX = "-public"
+ARCGIS_WORKFLOW_SLUG = "py-arcgis-hub"
 STANDARD_REPORT_TYPES = {
+    "full": {
+        "suffix": "harvest-task-dashboard.html",
+        "label": "All harvest records",
+        "description": "Complete harvest task dashboard.",
+        "latest_href": "latest/all-harvest-records/",
+        "archive_segment": "all-harvest-records",
+    },
     "records": {
         "suffix": "harvest-task-dashboard-records.html",
-        "label": "Harvest records",
+        "label": "Harvest records by Accrual Periodicity",
         "description": "Compact harvest-record list grouped by accrual periodicity.",
         "latest_href": "latest/",
         "archive_segment": "",
@@ -27,7 +37,7 @@ STANDARD_REPORT_TYPES = {
     },
     "map-collections": {
         "suffix": "harvest-task-dashboard-map-collections.html",
-        "label": "Map collections",
+        "label": "Map collections only",
         "description": "Harvest-record list filtered to Subject=Maps and grouped by institution.",
         "latest_href": "latest/map-collections/",
         "archive_segment": "map-collections",
@@ -41,7 +51,7 @@ STANDARD_REPORT_TYPES = {
     },
     "due": {
         "suffix": "harvest-task-dashboard-due.html",
-        "label": "Due now",
+        "label": "Due-only tasks",
         "description": "Only tasks that are currently due.",
         "latest_href": "latest/due/",
         "archive_segment": "due",
@@ -55,16 +65,19 @@ STANDARD_REPORT_TYPES = {
     },
 }
 STANDARD_REPORT_ORDER = (
+    "due",
+    "full",
+    "retrospective",
     "records",
     "institutions",
     "map-collections",
     "standalone",
-    "due",
-    "retrospective",
 )
-DEDICATED_WORKFLOW_PREFIX = "harvest-task-dashboard-"
-PUBLIC_REPORT_SUFFIX = "-public"
-ARCGIS_WORKFLOW_SLUG = "py-arcgis-hub"
+REPORT_COLUMN_GROUPS = (
+    ("Triage", ("due", "full")),
+    ("Reports", ("retrospective", f"workflow:{ARCGIS_WORKFLOW_SLUG}")),
+    ("Lists", ("records", "institutions", "map-collections", "standalone")),
+)
 
 
 @dataclass(frozen=True)
@@ -181,17 +194,11 @@ def write_index_page(
     latest_date = next(iter(reports_by_date))
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-    latest_cards = []
-    for report in _ordered_reports(latest_reports):
-        latest_cards.append(
-            f"""
-      <article class="card">
-        <p class="eyebrow">Latest {escape(report.label)}</p>
-        <h2><a href="{escape(report.latest_href)}">{escape(report.date)}</a></h2>
-        <p>{escape(report.description)}</p>
-      </article>
-"""
-        )
+    latest_report_columns = _render_report_columns(
+        latest_reports,
+        href_attr="latest_href",
+        link_text="label",
+    )
 
     archive_rows = []
     for date, reports in reports_by_date.items():
@@ -241,7 +248,6 @@ def write_index_page(
     h1, h2, p {{ margin-top: 0; }}
     a {{ color: var(--accent); }}
     .hero,
-    .card,
     .archive {{
       background: var(--panel);
       border: 1px solid var(--line);
@@ -262,17 +268,22 @@ def write_index_page(
       letter-spacing: 0.05em;
       font-weight: 700;
     }}
-    .cards {{
+    .report-columns {{
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.25rem;
       margin-bottom: 1.5rem;
     }}
-    .card {{
-      padding: 1.2rem;
+    .report-columns h2 {{
+      font-size: 1rem;
+      margin-bottom: 0.35rem;
     }}
-    .card h2 {{
-      margin-bottom: 0.4rem;
+    .report-columns ul {{
+      margin: 0;
+      padding-left: 1.25rem;
+    }}
+    .report-columns li {{
+      margin: 0.35rem 0;
     }}
     .archive {{
       overflow: hidden;
@@ -306,6 +317,9 @@ def write_index_page(
       main {{
         padding: 1.25rem 0.75rem 2rem;
       }}
+      .report-columns {{
+        grid-template-columns: minmax(0, 1fr);
+      }}
       th,
       td {{
         padding: 0.75rem;
@@ -323,8 +337,8 @@ def write_index_page(
       <p><a href="archive/">Browse the archive index</a></p>
     </section>
 
-    <section class="cards">
-{''.join(latest_cards)}
+    <section class="report-columns" aria-label="Latest reports">
+{latest_report_columns}
     </section>
 
     <section class="archive">
@@ -550,6 +564,8 @@ def _extract_html_title(report_path: Path) -> str:
 
 
 def _workflow_report_label(workflow_title: str, workflow_slug: str) -> str:
+    if workflow_slug == ARCGIS_WORKFLOW_SLUG:
+        return "ArcGIS Hub report"
     if workflow_title:
         normalized_title = re.sub(
             r"\s+Harvest (?:Overview|Report)(?:\s+-\s+\d{4}-\d{2}-\d{2})?\s*$",
@@ -569,6 +585,37 @@ def _workflow_report_description(workflow_slug: str) -> str:
 
 def _ordered_reports(reports: dict[str, DashboardReport]) -> list[DashboardReport]:
     return sorted(reports.values(), key=lambda report: report.sort_order())
+
+
+def _render_report_columns(
+    reports: dict[str, DashboardReport],
+    *,
+    href_attr: str,
+    link_text: str,
+) -> str:
+    columns = []
+    for heading, report_keys in REPORT_COLUMN_GROUPS:
+        links = []
+        for report_key in report_keys:
+            report = reports.get(report_key)
+            if report is None:
+                continue
+            href = getattr(report, href_attr)
+            text = getattr(report, link_text)
+            links.append(f'<li><a href="{escape(href)}">{escape(text)}</a></li>')
+        if not links:
+            continue
+        columns.append(
+            f"""
+      <section>
+        <h2>{escape(heading)}</h2>
+        <ul>
+          {''.join(links)}
+        </ul>
+      </section>
+"""
+        )
+    return "".join(columns)
 
 
 if __name__ == "__main__":
