@@ -125,17 +125,17 @@ def test_run_build_uploads_emits_distribution_add_and_delete_files(tmp_path):
     assert summary["changed_distribution_ids"] == {"shared-id"}
 
     primary_upload = pd.read_csv(
-        tmp_path / f"{today}_{source}_primary_upload.csv",
+        tmp_path / "to_upload" / f"{today}_{source}_primary_upload.csv",
         dtype=str,
         keep_default_na=False,
     ).fillna("")
     dist_new_upload = pd.read_csv(
-        tmp_path / f"{today}_{source}_distributions_new.csv",
+        tmp_path / "to_upload" / f"{today}_{source}_distributions_new.csv",
         dtype=str,
         keep_default_na=False,
     ).fillna("")
     dist_delete_upload = pd.read_csv(
-        tmp_path / f"{today}_{source}_distributions_delete.csv",
+        tmp_path / "to_upload" / f"{today}_{source}_distributions_delete.csv",
         dtype=str,
         keep_default_na=False,
     ).fillna("")

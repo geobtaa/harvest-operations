@@ -14,6 +14,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     websites_path = tmp_path / "websites.csv"
     code_schema_map_path = tmp_path / "code-schema-map.csv"
     outputs_dir = tmp_path / "outputs"
+    outputs_dir.mkdir()
 
     pd.DataFrame(
         [
@@ -26,6 +27,8 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
                 "Subject": "Maps",
                 "Last Harvested": "2026-02-15",
                 "Accrual Periodicity": "monthly",
+                "Created At": "2026-01-01 10:00:00 -0500",
+                "Updated At": "2026-03-01 10:00:00 -0500",
             },
             {
                 "ID": "task-1b",
@@ -119,6 +122,54 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
         "05,University of Minnesota\n",
         encoding="utf-8",
     )
+    pd.DataFrame(
+        [
+            {
+                "Code": "27d-01",
+                "Identifier": "site-1",
+                "Harvest Run": "success",
+                "Total Records Found": "12",
+                "New Records": "3",
+                "Unpublished Records": "1",
+            },
+            {
+                "Code": "27d-02",
+                "Identifier": "site-3",
+                "Harvest Run": "success",
+                "Total Records Found": "9",
+                "New Records": "0",
+                "Unpublished Records": "2",
+            },
+        ]
+    ).to_csv(outputs_dir / "2026-03-29_arcgis_report.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "Code": "27d-01",
+                "Identifier": "site-1",
+                "Harvest Run": "success",
+                "Total Records Found": "18",
+                "New Records": "4",
+                "Unpublished Records": "0",
+            },
+            {
+                "Code": "27d-01",
+                "Identifier": "site-3",
+                "Harvest Run": "success",
+                "Total Records Found": "21",
+                "New Records": "5",
+                "Unpublished Records": "2",
+            },
+            {
+                "Code": "TOTAL",
+                "Identifier": "",
+                "Harvest Run": "success: 2; error: 0",
+                "Total Records Found": "39",
+                "New Records": "9",
+                "Unpublished Records": "2",
+            },
+        ]
+    ).to_csv(outputs_dir / "2026-03-30_arcgis_report.csv", index=False)
 
     job = HarvestTaskDashboardJob(
         {
@@ -133,6 +184,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
                 outputs_dir / "harvest-task-dashboard-retrospective.html"
             ),
             "output_workflow_dir": str(outputs_dir / "harvest-workflow-inputs"),
+            "arcgis_reports_dir": str(outputs_dir),
             "issue_repositories": [
                 {
                     "name": "harvest-operations",
@@ -219,6 +271,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
         report_type="retrospective",
         workflow="py_arcgis_hub",
     )
+    workflow_queue = job.build_workflow_queue()
 
     arcgis_task = task_df.loc[task_df["ID"] == "py_arcgis_hub"].iloc[0]
     socrata_task = task_df.loc[task_df["ID"] == "py_socrata"].iloc[0]
@@ -254,9 +307,18 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "template=harvest-task.md" in dashboard_html
     assert "Create issue" in dashboard_html
     assert "Get Latest Source CSVs" in dashboard_html
+    assert "f%5Bb1g_publication_state_s%5D%5B%5D=draft" in dashboard_html
+    assert "Workflow Run Queue" in dashboard_html
+    assert "Open ArcGIS Harvester" in dashboard_html
+    assert "/static/arcgis.html" in dashboard_html
+    assert "Open Socrata Harvester" in dashboard_html
+    assert "/static/socrata.html" in dashboard_html
+    assert "Open PASDA Harvester" in dashboard_html
+    assert "within the next month" in dashboard_html
     assert "Create issue" not in public_dashboard_html
     assert "Create issue" not in public_due_dashboard_html
     assert "Get Latest Source CSVs" not in public_dashboard_html
+    assert "Workflow Run Queue" not in public_dashboard_html
     assert "https://geo.btaa.org/admin/documents/site-5/edit" not in public_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2227d-01%22" in public_arcgis_dashboard_html
@@ -271,6 +333,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert public_institution_dashboard_html == public_institution_view_html
     assert map_collections_dashboard_html == map_collections_view_html
     assert public_map_collections_dashboard_html == public_map_collections_view_html
+    assert "Harvest Task Retrospective" in public_retrospective_dashboard_html
     assert "County Parcels" not in records_dashboard_html
     assert "Scan Socrata Sites" not in records_dashboard_html
     assert "py_socrata" not in records_dashboard_html
@@ -381,8 +444,22 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "ArcGIS Hubs Harvest Overview" in arcgis_dashboard_html
     assert "Get Latest Source CSVs" not in arcgis_dashboard_html
     assert "Last time the process was run" in arcgis_dashboard_html
-    assert "2026-02-20" in arcgis_dashboard_html
+    assert '<strong class="status-value">2026-03-30</strong>' in arcgis_dashboard_html
     assert "Currently Harvested ArcGIS Hubs" in arcgis_dashboard_html
+    assert "Total Records Found" in arcgis_dashboard_html
+    assert "New Records" in arcgis_dashboard_html
+    assert "Unpublished Records" in arcgis_dashboard_html
+    assert "Endpoint" not in arcgis_dashboard_html
+    assert "18" in arcgis_dashboard_html
+    assert "21" in arcgis_dashboard_html
+    assert "<th scope=\"row\">Total</th>" in arcgis_dashboard_html
+    assert '<td class="number-cell" data-label="Total Records Found">39</td>' in (
+        arcgis_dashboard_html
+    )
+    assert '<td class="number-cell" data-label="New Records">9</td>' in arcgis_dashboard_html
+    assert '<td class="number-cell" data-label="Unpublished Records">2</td>' in (
+        arcgis_dashboard_html
+    )
     assert "County Parcels" in arcgis_dashboard_html
     assert "Road Centerlines" in arcgis_dashboard_html
     assert "Scan Socrata Sites" not in arcgis_dashboard_html
@@ -390,6 +467,32 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
 
     assert arcgis_due_dashboard_html == arcgis_dashboard_html
     assert arcgis_retrospective_html == arcgis_dashboard_html
+
+    assert workflow_queue["harvest_queue_count"] == 3
+    assert workflow_queue["harvest_due_count"] == 2
+    assert workflow_queue["review_due_count"] == 0
+    assert workflow_queue["queue_end_date"] == "2026-04-30"
+    assert [workflow["workflow"] for workflow in workflow_queue["workflows"]] == [
+        "py_arcgis_hub",
+        "py_socrata",
+        "py_pasda",
+    ]
+    assert workflow_queue["workflows"][0]["static_page_url"] == "/static/arcgis.html"
+    assert workflow_queue["workflows"][0]["queue_count"] == 1
+    assert workflow_queue["workflows"][0]["due_now_count"] == 1
+    assert workflow_queue["workflows"][0]["workflow_input_csv"].endswith(
+        "harvest-workflow-inputs/py-arcgis-hub.csv"
+    )
+    assert workflow_queue["workflows"][1]["static_page_url"] == "/static/socrata.html"
+    assert workflow_queue["workflows"][2]["static_page_url"] == "/static/pasda.html"
+    assert workflow_queue["workflows"][2]["next_due_date"] == "2026-04-05"
+    assert workflow_queue["workflows"][2]["due_now_count"] == 0
+    assert workflow_queue["source_downloads"][0]["url"].endswith(
+        "f%5Bgbl_resourceClass_sm%5D%5B%5D=Series"
+    )
+    assert workflow_queue["source_downloads"][1]["url"].endswith(
+        "f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites"
+    )
 
     workflow_inputs = results["workflow_inputs"]
     assert set(workflow_inputs) == {"py_arcgis_hub", "py_pasda", "py_socrata"}
@@ -408,6 +511,10 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert set(socrata_workflow_df["ID"]) == {"task-2", "task-2b"}
     assert "Identifier" in arcgis_workflow_df.columns
     assert "Name" not in arcgis_workflow_df.columns
+    assert "Created At" not in arcgis_workflow_df.columns
+    assert "Updated At" not in arcgis_workflow_df.columns
+    assert "Created At" not in pasda_workflow_df.columns
+    assert "Updated At" not in socrata_workflow_df.columns
 
 
 def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: Path) -> None:

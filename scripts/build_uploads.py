@@ -8,7 +8,7 @@ from typing import Optional
 import pandas as pd
 
 
-DEFAULT_SOURCE = "ogmWisc"
+DEFAULT_SOURCE = "arcgis"
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_OUTPUTS_DIR = SCRIPT_DIR.parent / "outputs"
 
@@ -59,6 +59,33 @@ def find_file_for_date(
         if candidate_date == target_date:
             return path
     return None
+
+
+def dated_file_info(source: str, suffix: str, path: Path) -> tuple[date, Path]:
+    pattern = build_filename_regex(source, suffix)
+    match = pattern.match(path.name)
+    if not match:
+        raise SystemExit(
+            f"Expected {path.name} to match YYYY-MM-DD_{source}_{suffix}.csv"
+        )
+
+    iso_date = match.group(1).replace("_", "-")
+    return date.fromisoformat(iso_date), path
+
+
+def most_recent_file_before(
+    candidates: list[tuple[date, Path]],
+    current_path: Path,
+) -> Optional[tuple[date, Path]]:
+    current_path = current_path.resolve()
+    prior_candidates = [
+        (candidate_date, path)
+        for candidate_date, path in candidates
+        if path.resolve() != current_path
+    ]
+    if not prior_candidates:
+        return None
+    return prior_candidates[-1]
 
 
 def load_table_norm(
@@ -238,7 +265,11 @@ def build_distribution_delta_files(
     return add_df, delete_df, changed_ids
 
 
-def run_build_uploads(source: str, outputs_dir: Path) -> dict[str, object]:
+def run_build_uploads(
+    source: str,
+    outputs_dir: Path,
+    upload_dir: Optional[Path] = None,
+) -> dict[str, object]:
     primary_pattern = build_filename_regex(source, "primary")
     dist_pattern = build_filename_regex(source, "distributions")
 
@@ -303,10 +334,109 @@ def run_build_uploads(source: str, outputs_dir: Path) -> dict[str, object]:
     print(f"Distribution rows to delete: {len(dist_delete_df)}")
     print(f"Records with distribution changes: {len(changed_distribution_ids)}")
 
+    upload_dir = upload_dir or outputs_dir / "to_upload"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
     today_str = date.today().isoformat()
-    primary_out_path = outputs_dir / f"{today_str}_{source}_primary_upload.csv"
-    dist_new_out_path = outputs_dir / f"{today_str}_{source}_distributions_new.csv"
-    dist_delete_out_path = outputs_dir / f"{today_str}_{source}_distributions_delete.csv"
+    primary_out_path = upload_dir / f"{today_str}_{source}_primary_upload.csv"
+    dist_new_out_path = upload_dir / f"{today_str}_{source}_distributions_new.csv"
+    dist_delete_out_path = upload_dir / f"{today_str}_{source}_distributions_delete.csv"
+
+    primary_upload_df.to_csv(primary_out_path, index=False, encoding="utf-8")
+    dist_new_df.to_csv(dist_new_out_path, index=False, encoding="utf-8")
+    dist_delete_df.to_csv(dist_delete_out_path, index=False, encoding="utf-8")
+
+    print(f"Wrote {len(primary_upload_df)} rows to {primary_out_path}")
+    print(f"Wrote {len(dist_new_df)} rows to {dist_new_out_path}")
+    print(f"Wrote {len(dist_delete_df)} rows to {dist_delete_out_path}")
+
+    return {
+        "source": source,
+        "new_primary_path": new_primary_path,
+        "old_primary_path": old_primary_path,
+        "new_dist_path": new_dist_path,
+        "old_dist_path": old_dist_path,
+        "primary_upload_path": primary_out_path,
+        "dist_new_path": dist_new_out_path,
+        "dist_delete_path": dist_delete_out_path,
+        "new_count": len(new_only_df),
+        "retired_count": len(old_only_df),
+        "distribution_new_count": len(dist_new_df),
+        "distribution_delete_count": len(dist_delete_df),
+        "changed_distribution_ids": changed_distribution_ids,
+    }
+
+
+def run_build_uploads_for_current(
+    source: str,
+    outputs_dir: Path,
+    new_primary_path: Path,
+    new_dist_path: Path,
+    upload_dir: Optional[Path] = None,
+) -> dict[str, object]:
+    primary_pattern = build_filename_regex(source, "primary")
+    dist_pattern = build_filename_regex(source, "distributions")
+
+    new_date, new_primary_path = dated_file_info(source, "primary", new_primary_path)
+    _, new_dist_path = dated_file_info(source, "distributions", new_dist_path)
+
+    primary_candidates = discover_dated_files(outputs_dir, primary_pattern)
+    old_item = most_recent_file_before(primary_candidates, new_primary_path)
+    if old_item is None:
+        raise SystemExit(
+            f"No prior {source} primary CSV found in {outputs_dir}; skipping upload deltas."
+        )
+
+    old_date, old_primary_path = old_item
+
+    print(f"Newest primary:         {new_primary_path.name}")
+    print(f"Previous primary:       {old_primary_path.name}")
+
+    new_df = load_primary_csv_norm(new_primary_path)
+    old_df = load_primary_csv_norm(old_primary_path)
+    primary_upload_df, new_only_df, old_only_df = build_primary_upload(new_df, old_df)
+
+    print(f"New additions: {len(new_only_df)}")
+    print(f"To retire:     {len(old_only_df)}")
+
+    dist_candidates = discover_dated_files(outputs_dir, dist_pattern)
+    old_dist_path = find_file_for_date(dist_candidates, old_date)
+
+    print(f"Matched new distributions: {new_dist_path.name}")
+    if old_dist_path is None:
+        print(
+            "Matched old distributions: (none found for previous run; "
+            "same-ID distribution changes will be skipped)"
+        )
+    else:
+        print(f"Matched old distributions: {old_dist_path.name}")
+
+    new_dist_df = load_distribution_csv_norm(new_dist_path)
+    old_dist_df = load_distribution_csv_norm(old_dist_path) if old_dist_path else None
+
+    new_ids = set(new_only_df["ID"].astype(str).str.strip())
+    shared_ids = set(new_df["ID"].astype(str).str.strip()).intersection(
+        old_df["ID"].astype(str).str.strip()
+    )
+
+    dist_new_df, dist_delete_df, changed_distribution_ids = build_distribution_delta_files(
+        new_dist_df,
+        old_dist_df,
+        new_ids=new_ids,
+        shared_ids=shared_ids,
+    )
+
+    print(f"Distribution rows to add:    {len(dist_new_df)}")
+    print(f"Distribution rows to delete: {len(dist_delete_df)}")
+    print(f"Records with distribution changes: {len(changed_distribution_ids)}")
+
+    upload_dir = upload_dir or outputs_dir / "to_upload"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    today_str = date.today().isoformat()
+    primary_out_path = upload_dir / f"{today_str}_{source}_primary_upload.csv"
+    dist_new_out_path = upload_dir / f"{today_str}_{source}_distributions_new.csv"
+    dist_delete_out_path = upload_dir / f"{today_str}_{source}_distributions_delete.csv"
 
     primary_upload_df.to_csv(primary_out_path, index=False, encoding="utf-8")
     dist_new_df.to_csv(dist_new_out_path, index=False, encoding="utf-8")
@@ -352,12 +482,19 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_OUTPUTS_DIR,
         help=f"Directory containing dated harvest outputs. Default: {DEFAULT_OUTPUTS_DIR}",
     )
+    parser.add_argument(
+        "--upload-dir",
+        type=Path,
+        default=None,
+        help="Directory for upload CSVs. Default: <outputs-dir>/to_upload",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    run_build_uploads(args.source, args.outputs_dir.resolve())
+    upload_dir = args.upload_dir.resolve() if args.upload_dir else None
+    run_build_uploads(args.source, args.outputs_dir.resolve(), upload_dir)
 
 
 if __name__ == "__main__":

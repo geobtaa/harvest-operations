@@ -109,6 +109,9 @@ def test_base_harvester_can_build_upload_deltas_as_final_step(tmp_path, monkeypa
     ).harvest_pipeline()
 
     assert first_results["upload_summary"]["status"] == "skipped"
+    assert first_results["upload_summary"]["reason"] == (
+        "No prior dated primary output found for 'sample'; skipping upload deltas."
+    )
 
     outputs_dir = tmp_path / "outputs"
     Path(first_results["primary_csv"]).rename(outputs_dir / "2026-03-25_sample_primary.csv")
@@ -130,6 +133,9 @@ def test_base_harvester_can_build_upload_deltas_as_final_step(tmp_path, monkeypa
     assert upload_summary["distribution_new_count"] == 2
     assert upload_summary["distribution_delete_count"] == 1
     assert upload_summary["changed_distribution_ids"] == ["shared-id"]
+    assert Path(upload_summary["primary_upload_csv"]).parent == outputs_dir / "to_upload"
+    assert Path(upload_summary["distributions_new_csv"]).parent == outputs_dir / "to_upload"
+    assert Path(upload_summary["distributions_delete_csv"]).parent == outputs_dir / "to_upload"
 
     primary_upload = pd.read_csv(
         upload_summary["primary_upload_csv"],

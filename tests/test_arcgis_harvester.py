@@ -1,7 +1,14 @@
 from pathlib import Path
+import time
 from unittest.mock import patch
 
-from harvesters.arcgis import ArcGISHarvester
+import pandas as pd
+
+from harvesters.arcgis import (
+    ArcGISHarvester,
+    arcgis_clean_creator_values,
+    write_arcgis_harvest_report,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,12 +29,14 @@ class FakeResponse:
 def _config() -> dict:
     return {
         "input_csv": str(FIXTURE_CSV),
+        "hub_metadata_csv": "reference_data/websites.csv",
         "output_primary_csv": "outputs/arcgis_primary.csv",
         "output_distributions_csv": "outputs/arcgis_distributions.csv",
+        "output_report_csv": "outputs/arcgis_report.csv",
     }
 
 
-def test_arcgis_harvester_processes_fixture_hubs_and_appends_hub_status_rows() -> None:
+def test_arcgis_harvester_processes_fixture_hubs_and_appends_harvest_record_rows() -> None:
     harvester = ArcGISHarvester(_config())
 
     payload_by_url = {
@@ -155,12 +164,128 @@ def test_arcgis_harvester_processes_fixture_hubs_and_appends_hub_status_rows() -
     assert parcels_row["Bounding Box"] == "-124.720,47.520,-122.600,48.370"
     assert parcels_row["Resource Type"] == "Polygon data"
 
-    hub_rows = df.loc[df["Resource Class"] == "Websites"].copy()
+    harvest_record_rows = df.loc[df["Resource Class"] == "Websites"].copy()
+    today = time.strftime("%Y-%m-%d")
 
-    assert len(hub_rows) == 3
-    assert set(hub_rows["ID"]) == {"05c-01", "11b-39075", "16b-53031"}
-    assert set(hub_rows["Is Harvested"]) == {"True"}
-    assert all(hub_rows["Last Harvested"].astype(str).str.match(r"\d{4}-\d{2}-\d{2}"))
+    assert len(harvest_record_rows) == 3
+    assert set(harvest_record_rows["ID"]) == {"05c-01", "11b-39075", "16b-53031"}
+    assert set(harvest_record_rows["Last Harvested"]) == {today}
+
+
+def test_arcgis_harvester_enables_build_uploads_by_default() -> None:
+    harvester = ArcGISHarvester(_config())
+    assert harvester.config["build_uploads"] is True
+
+
+def test_arcgis_harvester_allows_build_uploads_to_be_disabled() -> None:
+    config = _config()
+    config["build_uploads"] = False
+
+    harvester = ArcGISHarvester(config)
+    assert harvester.config["build_uploads"] is False
+
+
+def test_arcgis_harvester_writes_harvest_report_with_counts(tmp_path, monkeypatch) -> None:
+    outputs_dir = tmp_path / "outputs"
+    outputs_dir.mkdir()
+    old_primary = outputs_dir / "2026-04-01_arcgis_primary.csv"
+    current_primary = outputs_dir / "2026-04-25_arcgis_primary.csv"
+
+    pd.DataFrame(
+        [
+            {"ID": "old-shared", "Is Part Of": "05c-01", "Resource Class": "Web services"},
+            {"ID": "old-retired", "Is Part Of": "05c-01", "Resource Class": "Web services"},
+            {"ID": "harvest_05c-01", "Is Part Of": "", "Resource Class": "Websites"},
+        ]
+    ).to_csv(old_primary, index=False)
+    pd.DataFrame(
+        [
+            {"ID": "old-shared", "Is Part Of": "05c-01", "Resource Class": "Web services"},
+            {"ID": "new-road", "Is Part Of": "05c-01", "Resource Class": "Web services"},
+            {"ID": "new-imagery", "Is Part Of": "11b-39075", "Resource Class": "Web services"},
+            {"ID": "harvest_05c-01", "Is Part Of": "", "Resource Class": "Websites"},
+        ]
+    ).to_csv(current_primary, index=False)
+
+    monkeypatch.chdir(tmp_path)
+    report_path = write_arcgis_harvest_report(
+        [
+            {
+                "Code": "05c-01",
+                "Title": "Harvest record one",
+                "Identifier": "https://example.org/one",
+                "Harvest Run": "success",
+                "Harvest Message": "Fetched 05c-01",
+                "Total Records Found": 2,
+            },
+            {
+                "Code": "11b-39075",
+                "Title": "Harvest record two",
+                "Identifier": "https://example.org/two",
+                "Harvest Run": "error",
+                "Harvest Message": "Fetch failed",
+                "Total Records Found": 0,
+            },
+        ],
+        str(current_primary),
+        "outputs/arcgis_primary.csv",
+        "outputs/arcgis_report.csv",
+    )
+
+    report_df = pd.read_csv(report_path, dtype=str).fillna("")
+    first_row = report_df.loc[report_df["Code"] == "05c-01"].iloc[0]
+    second_row = report_df.loc[report_df["Code"] == "11b-39075"].iloc[0]
+    total_row = report_df.loc[report_df["Code"] == "TOTAL"].iloc[0]
+
+    assert first_row["New Records"] == "1"
+    assert first_row["Unpublished Records"] == "1"
+    assert second_row["New Records"] == "1"
+    assert second_row["Unpublished Records"] == "0"
+    assert total_row["Harvest Run"] == "success: 1; error: 1"
+    assert total_row["Total Records Found"] == "2"
+    assert total_row["New Records"] == "2"
+    assert total_row["Unpublished Records"] == "1"
+
+
+def test_arcgis_harvester_omits_created_and_updated_at_from_primary_output(tmp_path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    harvester = ArcGISHarvester(
+        {
+            "input_csv": str(FIXTURE_CSV),
+            "hub_metadata_csv": str(ROOT / "reference_data" / "websites.csv"),
+            "output_primary_csv": "outputs/arcgis_primary.csv",
+            "output_distributions_csv": "outputs/arcgis_distributions.csv",
+            "output_report_csv": "outputs/arcgis_report.csv",
+            "build_uploads": False,
+        }
+    )
+    harvester.distribution_types = []
+    primary_df = pd.DataFrame(
+        [
+            {
+                "ID": "sample-id",
+                "Title": "Sample",
+                "Access Rights": "Public",
+                "Resource Class": "Web services",
+                "Created At": "2026-01-01",
+                "Updated At": "2026-01-02",
+            }
+        ]
+    )
+
+    results = harvester.write_outputs(primary_df)
+    written_df = pd.read_csv(results["primary_csv"], dtype=str).fillna("")
+
+    assert "Created At" not in written_df.columns
+    assert "Updated At" not in written_df.columns
+
+
+def test_arcgis_clean_creator_values_blanks_template_placeholders() -> None:
+    df = pd.DataFrame({"Creator": ["{{source}}", "{{ Source }}", "City GIS"]})
+
+    cleaned_df = arcgis_clean_creator_values(df)
+
+    assert cleaned_df["Creator"].tolist() == ["", "", "City GIS"]
 
 
 def test_arcgis_harvester_reads_workflow_inputs_and_metadata_defaults(tmp_path) -> None:
@@ -170,10 +295,10 @@ def test_arcgis_harvester_reads_workflow_inputs_and_metadata_defaults(tmp_path) 
     workflow_csv.write_text(
         "\n".join(
             [
-                "Title,Provenance,Endpoint URL,Endpoint Description,Is Harvested,Last Harvested,Accrual Method,Accrual Periodicity,Harvest Workflow,ID,Identifier,Code,Tags,Admin Note",
-                "Harvest record for Open Data Minneapolis,2026-03-28 / harvest,https://opendata.minneapolismn.gov/api/feed/dcat-us/1.1.json,DCAT API,,2026-03-28,Automated retrieval,Weekly,py_arcgis_hub,harvest_05c-01,05c-01,05c-01,,",
-                "Harvest record for Holmes County GIS Open Data Portal,2026-03-22 / harvest,https://holmes-county-gis-holmesgis.hub.arcgis.com/api/feed/dcat-us/1.1.json,DCAT API,,2026-03-22,Automated retrieval,Weekly,py_arcgis_hub,harvest_11b-39075,11b-39075,11b-39075,,",
-                "Harvest record for Jefferson County Washington Open Data Site,2026-03-28 / harvest,https://gisdata-jeffcowa.opendata.arcgis.com/api/feed/dcat-us/1.1.json,DCAT API,,2026-03-28,Automated retrieval,Weekly,py_arcgis_hub,harvest_16b-53031,16b-53031,16b-53031,,",
+                "Title,Provenance,Publication State,Website Platform,Endpoint URL,Endpoint Description,Is Harvested,Last Harvested,Accrual Method,Accrual Periodicity,Harvest Workflow,Resource Class,Resource Type,Access Rights,ID,Identifier,Code,Tags,Admin Note",
+                "Harvest record for Open Data Minneapolis,2026-03-28 / harvest,published,ArcGIS Hub,https://opendata.minneapolismn.gov/api/feed/dcat-us/1.1.json,DCAT API,,2026-03-28,Automated retrieval,Weekly,py_arcgis_hub,Websites,Data portals,Public,harvest_05c-01,05c-01,05c-01,,",
+                "Harvest record for Holmes County GIS Open Data Portal,2026-03-22 / harvest,published,ArcGIS Hub,https://holmes-county-gis-holmesgis.hub.arcgis.com/api/feed/dcat-us/1.1.json,DCAT API,,2026-03-22,Automated retrieval,Weekly,py_arcgis_hub,Websites,Data portals,Public,harvest_11b-39075,11b-39075,11b-39075,,",
+                "Harvest record for Jefferson County Washington Open Data Site,2026-03-28 / harvest,published,ArcGIS Hub,https://gisdata-jeffcowa.opendata.arcgis.com/api/feed/dcat-us/1.1.json,DCAT API,,2026-03-28,Automated retrieval,Weekly,py_arcgis_hub,Websites,Data portals,Public,harvest_16b-53031,16b-53031,16b-53031,,",
             ]
         ),
         encoding="utf-8",
@@ -196,6 +321,7 @@ def test_arcgis_harvester_reads_workflow_inputs_and_metadata_defaults(tmp_path) 
             "hub_metadata_csv": str(metadata_csv),
             "output_primary_csv": "outputs/arcgis_primary.csv",
             "output_distributions_csv": "outputs/arcgis_distributions.csv",
+            "output_report_csv": "outputs/arcgis_report.csv",
         }
     )
 
@@ -292,17 +418,23 @@ def test_arcgis_harvester_reads_workflow_inputs_and_metadata_defaults(tmp_path) 
     df = harvester.validate(df)
 
     street_row = df.loc[df["ID"] == "roads123_2"].iloc[0]
-    minneapolis_hub = df.loc[df["ID"] == "05c-01"].iloc[0]
+    minneapolis_record = df.loc[df["ID"] == "harvest_05c-01"].iloc[0]
+    today = time.strftime("%Y-%m-%d")
 
     assert street_row["Is Part Of"] == "05c-01"
     assert street_row["Code"] == "05c-01"
     assert street_row["Publisher"] == "Open Data Minneapolis"
     assert street_row["Endpoint Description"] == "DCAT API"
     assert street_row["Accrual Periodicity"] == "Weekly"
+    assert street_row["Provenance"] == (
+        f"The metadata for this resource was last retrieved from "
+        f"Open Data Minneapolis ArcGIS Hub on {today}."
+    )
 
-    assert minneapolis_hub["Title"] == "Open Data Minneapolis"
-    assert minneapolis_hub["Resource Class"] == "Websites"
-    assert minneapolis_hub["Resource Type"] == "Data portals"
-    assert minneapolis_hub["Endpoint URL"] == "https://opendata.minneapolismn.gov/api/feed/dcat-us/1.1.json"
-    assert minneapolis_hub["Provenance"] == "2026-03-28 / harvest"
-    assert minneapolis_hub["Harvest Workflow"] == "py_arcgis_hub"
+    assert minneapolis_record["Title"] == "Harvest record for Open Data Minneapolis"
+    assert minneapolis_record["Resource Class"] == "Websites"
+    assert minneapolis_record["Resource Type"] == "Data portals"
+    assert minneapolis_record["Endpoint URL"] == "https://opendata.minneapolismn.gov/api/feed/dcat-us/1.1.json"
+    assert minneapolis_record["Provenance"] == "2026-03-28 / harvest"
+    assert minneapolis_record["Harvest Workflow"] == "py_arcgis_hub"
+    assert minneapolis_record["Last Harvested"] == today

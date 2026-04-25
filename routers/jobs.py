@@ -3,8 +3,6 @@ from fastapi.responses import HTMLResponse
 import os
 import yaml
 
-from utils.file_io import load_local_schema
-
 from harvesters.arcgis import ArcGISHarvester
 from harvesters.ckan import CkanHarvester
 from harvesters.socrata import SocrataHarvester
@@ -105,3 +103,17 @@ async def view_harvest_task_dashboard(
             workflow=workflow,
         )
     )
+
+
+@router.get("/jobs/harvest-task-dashboard/workflow-queue")
+async def harvest_task_dashboard_workflow_queue():
+    job_cfg = load_job_config("harvest-task-dashboard")
+    dashboard_job = HarvestTaskDashboardJob(job_cfg)
+    try:
+        return dashboard_job.build_workflow_queue()
+    except FileNotFoundError as exc:
+        missing_file = exc.filename or str(exc)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing dashboard input file: {missing_file}",
+        ) from exc
