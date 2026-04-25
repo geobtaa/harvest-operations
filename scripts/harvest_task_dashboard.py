@@ -100,6 +100,7 @@ DEFAULT_GEO_API_TIMEOUT_SECONDS = 10
 GEO_API_FACET_PAGE_SIZE = 100
 OTHER_INSTITUTION_LABEL = "Other"
 DEFAULT_ARCGIS_REPORTS_DIR = "outputs"
+DEFAULT_PUBLIC_DASHBOARD_SITE_BASE_PATH = "/harvest-operations"
 ARCGIS_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_arcgis_report\.csv$")
 ARCGIS_REPORT_NUMBER_COLUMNS = (
     "Total Records Found",
@@ -193,6 +194,15 @@ class HarvestTaskDashboardJob:
         )
         self.arcgis_reports_dir = Path(
             config.get("arcgis_reports_dir", DEFAULT_ARCGIS_REPORTS_DIR)
+        )
+        self.public_dashboard_site_base_path = (
+            self._clean_value(
+                config.get(
+                    "public_dashboard_site_base_path",
+                    DEFAULT_PUBLIC_DASHBOARD_SITE_BASE_PATH,
+                )
+            ).rstrip("/")
+            or DEFAULT_PUBLIC_DASHBOARD_SITE_BASE_PATH
         )
         self.issue_repositories = config.get("issue_repositories", [])
         configured_dedicated_workflows = config.get(
@@ -3659,9 +3669,13 @@ class HarvestTaskDashboardJob:
 
     def _arcgis_report_href(self, report_date: str, public: bool = False) -> str:
         workflow_slug = self._slugify("py_arcgis_hub")
+        if public:
+            return (
+                f"{self.public_dashboard_site_base_path}/{report_date}"
+                f"/workflows/{workflow_slug}/"
+            )
         return (
             f"/reports/{report_date}_{self.output_dashboard_html.stem}-{workflow_slug}"
-            f"{PUBLIC_REPORT_SUFFIX if public else ''}"
             f"{self.output_dashboard_html.suffix}"
         )
 
