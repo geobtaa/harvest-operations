@@ -918,7 +918,7 @@ def test_harvest_task_dashboard_generates_retrospective_report_with_month_groupi
                 "Identifier": "retro-2",
                 "Harvest Workflow": "template_json",
                 "Last Harvested": "2026-04-10",
-                "Provenance": "2026-04-12 / harvest",
+                "Provenance": "2026-04-12 / harvest|2026-04-13 / ingest",
             },
         ]
     ).to_csv(harvest_records_path, index=False)
@@ -955,15 +955,26 @@ def test_harvest_task_dashboard_generates_retrospective_report_with_month_groupi
     assert "Harvest Task Retrospective" in retrospective_dashboard_html
     assert "April 2026" in retrospective_dashboard_html
     assert "March 2026" in retrospective_dashboard_html
-    assert "Total Actions" in retrospective_dashboard_html
-    assert "<strong>4</strong>" in retrospective_dashboard_html
-    assert "3 actions" in retrospective_dashboard_html
+    assert "Total Actions" not in retrospective_dashboard_html
+    assert "Harvested</span>" not in retrospective_dashboard_html
+    assert "Reviewed</span>" not in retrospective_dashboard_html
+    assert "Months</span>" not in retrospective_dashboard_html
+    assert "4 actions" in retrospective_dashboard_html
     assert "1 action" in retrospective_dashboard_html
     assert "2026-04-12" in retrospective_dashboard_html
     assert "2026-03-20" in retrospective_dashboard_html
     assert ">review</span>" in retrospective_dashboard_html
     assert ">harvest</span>" in retrospective_dashboard_html
+    assert ">ingest</span>" in retrospective_dashboard_html
     assert ">augment</span>" in retrospective_dashboard_html
+    assert ".status-pill--harvest { color: var(--action-harvest); background: var(--action-harvest-soft); }" in retrospective_dashboard_html
+    assert ".status-pill--review { color: var(--action-review); background: var(--action-review-soft); }" in retrospective_dashboard_html
+    assert ".status-pill--ingest { color: var(--action-ingest); background: var(--action-ingest-soft); }" in retrospective_dashboard_html
+    assert ".status-pill--other { color: var(--action-other); background: var(--action-other-soft); }" in retrospective_dashboard_html
+    assert 'class="status-pill status-pill--harvest">harvest</span>' in retrospective_dashboard_html
+    assert 'class="status-pill status-pill--review">review</span>' in retrospective_dashboard_html
+    assert 'class="status-pill status-pill--ingest">ingest</span>' in retrospective_dashboard_html
+    assert 'class="status-pill status-pill--other">augment</span>' in retrospective_dashboard_html
     assert ">completed</div>" in retrospective_dashboard_html
     assert ">added 365, retired 1</div>" in retrospective_dashboard_html
     assert "harvest / added 365, retired 1" not in retrospective_dashboard_html

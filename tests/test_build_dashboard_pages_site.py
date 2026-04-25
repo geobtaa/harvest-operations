@@ -71,6 +71,7 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
     archive_html = output_dir.joinpath("archive/index.html").read_text(encoding="utf-8")
 
     assert "2026-04-01" in index_html
+    assert 'href="latest/all-harvest-records/"' in index_html
     assert 'href="latest/"' in index_html
     assert 'href="latest/institutions/"' in index_html
     assert 'href="latest/map-collections/"' in index_html
@@ -78,20 +79,34 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
     assert 'href="latest/due/"' in index_html
     assert 'href="latest/retrospective/"' in index_html
     assert 'href="latest/workflows/py-arcgis-hub/"' in index_html
-    assert "ArcGIS Hubs" in index_html
-    assert "latest ArcGIS count columns" in index_html
+    assert "<h2>Triage</h2>" in index_html
+    assert "<h2>Reports</h2>" in index_html
+    assert "<h2>Lists</h2>" in index_html
+    assert "All harvest records" in index_html
+    assert "Due-only tasks" in index_html
+    assert "Harvest records by Accrual Periodicity" in index_html
+    assert "Map collections only" in index_html
+    assert "ArcGIS Hub report" in index_html
+    assert 'href="2026-04-01/all-harvest-records/"' in index_html
     assert 'href="2026-03-30/"' in index_html
     assert 'href="2026-04-01/institutions/"' in index_html
     assert 'href="2026-04-01/map-collections/"' in index_html
     assert 'href="2026-04-01/standalone-websites/"' in index_html
     assert 'href="2026-04-01/retrospective/"' in index_html
     assert 'href="2026-04-01/workflows/py-arcgis-hub/"' in index_html
+    assert 'href="../2026-04-01/all-harvest-records/"' in archive_html
     assert 'href="../2026-04-01/institutions/"' in archive_html
     assert 'href="../2026-04-01/map-collections/"' in archive_html
     assert 'href="../2026-04-01/standalone-websites/"' in archive_html
     assert 'href="../2026-04-01/retrospective/"' in archive_html
     assert 'href="../2026-04-01/workflows/py-arcgis-hub/"' in archive_html
 
+    assert (
+        output_dir.joinpath("latest/all-harvest-records/index.html").read_text(
+            encoding="utf-8"
+        )
+        == "<html><body>full-public-2026-04-01</body></html>"
+    )
     assert (
         output_dir.joinpath("latest/index.html").read_text(encoding="utf-8")
         == "<html><body>records-public-2026-04-01</body></html>"
@@ -122,6 +137,12 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
         )
         == "<html><head><title>ArcGIS Hubs Harvest Report - 2026-04-01</title></head>"
         "<body>workflow-public-2026-04-01</body></html>"
+    )
+    assert (
+        output_dir.joinpath("2026-04-01/all-harvest-records/index.html").read_text(
+            encoding="utf-8"
+        )
+        == "<html><body>full-public-2026-04-01</body></html>"
     )
     assert (
         output_dir.joinpath("2026-03-30/index.html").read_text(encoding="utf-8")
