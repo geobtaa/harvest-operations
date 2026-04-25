@@ -417,7 +417,10 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Total Records Found: 39; New Records: 9; Unpublished Records: 2" in (
         retrospective_dashboard_html
     )
-    assert 'href="/reports/2026-03-30_harvest-task-dashboard-py-arcgis-hub-public.html"' in (
+    assert 'href="/harvest-operations/2026-03-30/workflows/py-arcgis-hub/"' in (
+        public_retrospective_dashboard_html
+    )
+    assert "/reports/2026-03-30_harvest-task-dashboard-py-arcgis-hub-public.html" not in (
         public_retrospective_dashboard_html
     )
     assert "Scan ArcGIS Hubs" not in dashboard_html
