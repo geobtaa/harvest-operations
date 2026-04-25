@@ -79,6 +79,7 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
     assert 'href="latest/retrospective/"' in index_html
     assert 'href="latest/workflows/py-arcgis-hub/"' in index_html
     assert "ArcGIS Hubs" in index_html
+    assert "latest ArcGIS harvest count columns" in index_html
     assert 'href="2026-03-30/"' in index_html
     assert 'href="2026-04-01/institutions/"' in index_html
     assert 'href="2026-04-01/map-collections/"' in index_html

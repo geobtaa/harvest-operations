@@ -16,9 +16,9 @@ This is especially useful for `ogmWisc`, where the source metadata may keep the 
 
 For a source like `ogmWisc`, the script writes:
 
-* `outputs/YYYY-MM-DD_ogmWisc_primary_upload.csv`
-* `outputs/YYYY-MM-DD_ogmWisc_distributions_new.csv`
-* `outputs/YYYY-MM-DD_ogmWisc_distributions_delete.csv`
+* `outputs/to_upload/YYYY-MM-DD_ogmWisc_primary_upload.csv`
+* `outputs/to_upload/YYYY-MM-DD_ogmWisc_distributions_new.csv`
+* `outputs/to_upload/YYYY-MM-DD_ogmWisc_distributions_delete.csv`
 
 ## What the script compares
 

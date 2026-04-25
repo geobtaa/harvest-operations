@@ -151,6 +151,7 @@ async def run_arcgis_harvester(test_run: bool = Query(default=False)):
 
     temp_input_path = None
     test_run_message = ""
+    upload_message = ""
     if test_run:
         temp_input_path, selected_count = create_arcgis_test_input_csv(config["input_csv"])
         config = {**config, "input_csv": temp_input_path}
@@ -158,7 +159,7 @@ async def run_arcgis_harvester(test_run: bool = Query(default=False)):
 
     try:
         harvester = ArcGISHarvester(config)
-        harvester.load_schema()
+        harvester.load_reference_data()
 
         records = harvester.fetch()
         parsed = harvester.parse(records)
@@ -169,7 +170,22 @@ async def run_arcgis_harvester(test_run: bool = Query(default=False)):
         df = harvester.add_provenance(df)
         df = harvester.clean(df)
         harvester.validate(df)
-        harvester.write_outputs(df)
+        results = harvester.write_outputs(df)
+        upload_summary = harvester.build_uploads(results)
+        if upload_summary is not None:
+            results["upload_summary"] = upload_summary
+            if upload_summary.get("status") == "created":
+                upload_message = (
+                    "<p>Built upload files: "
+                    f"{upload_summary['primary_upload_csv']}, "
+                    f"{upload_summary['distributions_new_csv']}, "
+                    f"{upload_summary['distributions_delete_csv']}.</p>"
+                )
+            else:
+                upload_message = (
+                    "<p>Upload files not built: "
+                    f"{upload_summary.get('reason', 'No reason provided.')}.</p>"
+                )
     finally:
         if temp_input_path and os.path.exists(temp_input_path):
             os.unlink(temp_input_path)
@@ -180,6 +196,7 @@ async def run_arcgis_harvester(test_run: bool = Query(default=False)):
           <body>
             <h2>Harvester completed!</h2>
             {test_run_message}
+            {upload_message}
             <p>Check the output folder for results.</p>
             <p><a href="/static/arcgis.html">Back</a></p>
           </body>
@@ -230,7 +247,22 @@ async def run_arcgis_stream(test_run: bool = Query(default=False)):
             df = harvester.add_provenance(df)
             df = harvester.clean(df)
             harvester.validate(df)
-            harvester.write_outputs(df)
+            results = harvester.write_outputs(df)
+            upload_summary = harvester.build_uploads(results)
+            if upload_summary is not None:
+                results["upload_summary"] = upload_summary
+                if upload_summary.get("status") == "created":
+                    yield (
+                        "data: Built upload files: "
+                        f"{upload_summary['primary_upload_csv']}, "
+                        f"{upload_summary['distributions_new_csv']}, "
+                        f"{upload_summary['distributions_delete_csv']}.\n\n"
+                    )
+                else:
+                    yield (
+                        "data: Upload files not built: "
+                        f"{upload_summary.get('reason', 'No reason provided.')}.\n\n"
+                    )
 
             yield f"data: Harvester complete! Check the output folder.\n\n"
             yield "data: DONE\n\n"

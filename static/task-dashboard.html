@@ -15,6 +15,7 @@
       --accent: #1f6fb2;
       --accent-soft: #dcecff;
       --success: #0f766e;
+      --danger: #b42318;
     }
     body {
       font-family: "Segoe UI", sans-serif;
@@ -59,7 +60,7 @@
       color: var(--success);
     }
     #status[data-state="error"] {
-      color: #b42318;
+      color: var(--danger);
     }
     #status[data-state="running"] {
       color: var(--accent);
@@ -108,39 +109,108 @@
       margin-top: 0.9rem;
       color: var(--muted);
     }
+    .workflow-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: minmax(0, 1fr);
+      margin: 1rem 0 1.5rem;
+    }
+    .workflow-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.94rem;
+    }
+    .workflow-table th,
+    .workflow-table td {
+      padding: 0.65rem 0.7rem;
+      text-align: left;
+      vertical-align: top;
+      border-top: 1px solid var(--line);
+    }
+    .workflow-table thead th {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: var(--panel-soft);
+    }
+    .workflow-table tbody tr:nth-child(even) {
+      background: #fbfdff;
+    }
+    .inline-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .empty-state {
+      margin: 0;
+      color: var(--muted);
+    }
+    @media (max-width: 760px) {
+      .workflow-table,
+      .workflow-table thead,
+      .workflow-table tbody,
+      .workflow-table th,
+      .workflow-table td,
+      .workflow-table tr {
+        display: block;
+      }
+      .workflow-table thead {
+        display: none;
+      }
+      .workflow-table tbody tr {
+        padding: 0.55rem 0.65rem;
+        border-top: 1px solid var(--line);
+      }
+      .workflow-table td {
+        border-top: 0;
+        padding: 0.22rem 0;
+      }
+      .workflow-table td::before {
+        content: attr(data-label);
+        display: block;
+        color: var(--muted);
+        font-size: 0.74rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+    }
   </style>
 </head>
 <body>
   <h1>Harvest Task Dashboard</h1>
 
   <p>
-    This job reads <code>inputs/harvest-records.csv</code> and <code>inputs/websites.csv</code>,
+    This job reads <code>inputs/harvest-records.csv</code> and <code>reference_data/websites.csv</code>,
     calculates due dates from <code>Last Harvested</code> and <code>Accrual Periodicity</code>,
-    enriches tasks with matching website metadata, and writes per-workflow website input CSVs.
+    enriches tasks with matching website metadata, and writes per-workflow harvest input CSVs.
   </p>
 
   <p>
-    Use <strong>Generate Dashboard Files</strong> to write the CSV and HTML outputs into
-    <code>reports/</code>. Workflow input splits are written to <code>inputs/</code>.
-    The general dashboard excludes <code>py_arcgis_hub</code>, which now has its own dedicated combined workflow view rendered from the current inputs.
+    Use <strong>Generate Dashboard Files & Prepare Inputs</strong> after replacing the source CSVs. This writes the report
+    outputs into <code>reports/</code> and prepares <code>inputs/harvest-workflow-inputs/</code>
+    by splitting <code>harvest-records.csv</code> by <code>Harvest Workflow</code>.
   </p>
 
   <p>
-    Each task row in the report includes an issue button that opens a prefilled GitHub issue
-    using the <code>harvest-task</code> template for the configured target repository.
+    The workflow queue below identifies harvest jobs that are due now or within the next month
+    and links to the matching static harvester page when one exists.
   </p>
 
   <div class="source-box">
     <h2>Get Latest Source CSVs</h2>
-    <p>Download the newest files before running the dashboard, then save them into <code>inputs/</code> with these names:</p>
+    <p>Download the newest files before running the dashboard, then save them with these names:</p>
     <ul>
-      <li><a href="https://geo.btaa.org/admin/documents?f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc" target="_blank" rel="noreferrer"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>
-      <li><a href="https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc" target="_blank" rel="noreferrer"><code>websites.csv</code></a> -> save as <code>inputs/websites.csv</code></li>
+      <li><a href="https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=draft&f%5Bgbl_resourceClass_sm%5D%5B%5D=Series" target="_blank" rel="noreferrer"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>
+      <li><a href="https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites" target="_blank" rel="noreferrer"><code>websites.csv</code></a> -> save as <code>reference_data/websites.csv</code></li>
     </ul>
   </div>
 
   <div class="actions">
-    <button onclick="runDashboardJob()">Generate Dashboard Files</button>
+    <button onclick="runDashboardJob()">Generate Dashboard Files & Prepare Inputs</button>
+    <button class="secondary" onclick="loadWorkflowQueue()">Refresh Workflow Queue</button>
     <a
       id="full-report-link"
       class="report-link"
@@ -224,8 +294,18 @@
     <button class="secondary" onclick="refreshReportLinks()">Refresh Report Links</button>
   </div>
 
+  <div class="source-box">
+    <h2>Workflow Queue</h2>
+    <p class="muted">
+      Harvest jobs due now or within the next month are grouped by workflow. Generate the dashboard
+      files first when source CSVs have changed so the workflow input CSVs are current.
+    </p>
+    <div id="workflow-summary" class="muted">Loading workflow queue...</div>
+    <div id="workflow-queue" class="workflow-grid"></div>
+  </div>
+
   <div class="report-box">
-    <h2>Standalone Report</h2>
+    <h2>Dashboard Reports</h2>
     <p>
       Open the general dashboard, compact harvest-record list, institution-grouped list, map-collections list, standalone-website institution view, due-only view, retrospective view, or the dedicated <code>py_arcgis_hub</code> workflow view in a new tab after updating the source CSVs or running the job.
       All links always target the latest dashboard render from FastAPI.
@@ -249,7 +329,7 @@
       const output = document.getElementById("output");
 
       status.dataset.state = "running";
-      status.textContent = "Running harvest task dashboard job...";
+      status.textContent = "Generating dashboard files and preparing workflow inputs...";
       output.textContent = "";
 
       try {
@@ -261,14 +341,101 @@
         }
 
         status.dataset.state = "success";
-        status.textContent = "Dashboard files generated.";
+        status.textContent = "Dashboard files generated and workflow inputs prepared.";
         output.textContent = JSON.stringify(data, null, 2);
         refreshReportLinks();
+        loadWorkflowQueue();
       } catch (error) {
         status.dataset.state = "error";
         status.textContent = "Dashboard job failed.";
         output.textContent = error.message;
       }
+    }
+
+    async function loadWorkflowQueue() {
+      const summary = document.getElementById("workflow-summary");
+      const queue = document.getElementById("workflow-queue");
+
+      summary.textContent = "Loading workflow queue...";
+      queue.innerHTML = "";
+
+      try {
+        const response = await fetch("/jobs/harvest-task-dashboard/workflow-queue");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Workflow queue unavailable.");
+        }
+
+        renderWorkflowQueue(data);
+      } catch (error) {
+        summary.textContent = error.message;
+        queue.innerHTML = "";
+      }
+    }
+
+    function renderWorkflowQueue(data) {
+      const summary = document.getElementById("workflow-summary");
+      const queue = document.getElementById("workflow-queue");
+      const workflows = data.workflows || [];
+      const harvestCount = data.harvest_queue_count ?? data.harvest_due_count ?? 0;
+      const dueNowCount = data.harvest_due_count || 0;
+      const reviewCount = data.review_due_count || 0;
+      const queueEndDate = data.queue_end_date || "the next month";
+
+      summary.textContent = `${harvestCount} harvest task${harvestCount === 1 ? "" : "s"} due by ${queueEndDate} across ${workflows.length} workflow${workflows.length === 1 ? "" : "s"}. ${dueNowCount} due now. ${reviewCount} review task${reviewCount === 1 ? "" : "s"} due.`;
+
+      if (!workflows.length) {
+        queue.innerHTML = '<p class="empty-state">No harvest jobs are due within the next month.</p>';
+        return;
+      }
+
+      const rows = workflows.map((workflow) => {
+        const pageLink = workflow.static_page_url
+          ? `<a class="action-link" href="${escapeAttribute(workflow.static_page_url)}" target="_blank" rel="noreferrer">Open ${escapeHtml(workflow.static_page_label || workflow.label)}</a>`
+          : '<span class="muted">No static page configured</span>';
+        const queueCount = workflow.queue_count ?? workflow.due_count ?? 0;
+        const dueNow = workflow.due_now_count || 0;
+        const queueLabel = `${queueCount} task${queueCount === 1 ? "" : "s"}`;
+
+        return `
+          <tr>
+            <td data-label="Workflow"><strong>${escapeHtml(workflow.label || workflow.workflow)}</strong><div class="report-meta"><code>${escapeHtml(workflow.workflow)}</code></div></td>
+            <td data-label="Queued Tasks">${escapeHtml(queueLabel)}<div class="report-meta">${escapeHtml(dueNow)} due now</div></td>
+            <td data-label="Next Due">${escapeHtml(workflow.next_due_date || "Unknown")}</td>
+            <td data-label="Prepared Input"><code>${escapeHtml(workflow.workflow_input_csv || "")}</code></td>
+            <td data-label="Harvester Page">${pageLink}</td>
+          </tr>
+        `;
+      }).join("");
+
+      queue.innerHTML = `
+        <table class="workflow-table">
+          <thead>
+            <tr>
+              <th>Workflow</th>
+              <th>Queued Tasks</th>
+              <th>Next Due</th>
+              <th>Prepared Input</th>
+              <th>Harvester Page</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function escapeAttribute(value) {
+      return escapeHtml(value).replaceAll("`", "&#96;");
     }
 
     function refreshReportLinks() {
@@ -301,6 +468,7 @@
     }
 
     refreshReportLinks();
+    loadWorkflowQueue();
   </script>
 </body>
 </html>

@@ -6,7 +6,8 @@ import pandas as pd
 from scripts.build_uploads import (
     build_filename_regex,
     discover_dated_files,
-    run_build_uploads,
+    most_recent_file_before,
+    run_build_uploads_for_current,
 )
 from utils.field_order import PRIMARY_FIELD_ORDER  
 from utils.output_naming import infer_upload_source_prefix
@@ -166,8 +167,8 @@ class BaseHarvester:
 
     def build_uploads(self, results: dict) -> dict | None:
         """
-        Optionally build upload delta files by comparing the two most recent
-        dated outputs for this harvester's configured source prefix.
+        Optionally build upload delta files by comparing the current output
+        against the most recent prior output for this harvester's source prefix.
         """
         if not self.config.get("build_uploads"):
             return None
@@ -185,6 +186,15 @@ class BaseHarvester:
                 "reason": "build_uploads requires a primary_csv result from write_outputs().",
             }
 
+        distributions_csv = results.get("distributions_csv")
+        if not distributions_csv:
+            return {
+                "status": "skipped",
+                "reason": "build_uploads requires a distributions_csv result from write_outputs().",
+            }
+
+        primary_path = Path(primary_csv).resolve()
+        distributions_path = Path(distributions_csv).resolve()
         outputs_dir = Path(primary_csv).resolve().parent
         source = infer_upload_source_prefix(self.config.get("output_primary_csv", ""))
         primary_candidates = discover_dated_files(
@@ -192,16 +202,22 @@ class BaseHarvester:
             build_filename_regex(source, "primary"),
         )
 
-        if len(primary_candidates) < 2:
+        if most_recent_file_before(primary_candidates, primary_path) is None:
             return {
                 "status": "skipped",
                 "reason": (
-                    f"Need at least two dated primary outputs for '{source}' before "
-                    "building upload deltas."
+                    f"No prior dated primary output found for '{source}'; "
+                    "skipping upload deltas."
                 ),
             }
 
-        summary = run_build_uploads(source, outputs_dir)
+        summary = run_build_uploads_for_current(
+            source,
+            outputs_dir,
+            primary_path,
+            distributions_path,
+            outputs_dir / "to_upload",
+        )
         return {
             "status": "created",
             "source": source,

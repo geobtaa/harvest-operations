@@ -29,9 +29,65 @@ CONSOLIDATED_WORKFLOW_TITLES = {
     "py_socrata": "Scan Socrata Sites",
 }
 
+SOURCE_HARVEST_RECORDS_EXPORT_URL = (
+    "https://geo.btaa.org/admin/documents?"
+    "f%5Bb1g_publication_state_s%5D%5B%5D=draft&"
+    "f%5Bgbl_resourceClass_sm%5D%5B%5D=Series"
+)
+SOURCE_WEBSITES_EXPORT_URL = (
+    "https://geo.btaa.org/admin/documents?"
+    "f%5Bb1g_publication_state_s%5D%5B%5D=published&"
+    "f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites"
+)
+DEFAULT_HARVEST_RECORDS_CSV = "inputs/harvest-records.csv"
+DEFAULT_WEBSITES_CSV = "reference_data/websites.csv"
+
 HARVEST_RECORD_LINKS = {
     "py_arcgis_hub": "https://geo.btaa.org/admin/documents?f%5Bb1g_harvestWorkflow_s%5D%5B%5D=py_arcgis_hub&f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc",
     "py_socrata": "https://geo.btaa.org/admin/documents?f%5Bb1g_websitePlatform_s%5D%5B%5D=Socrata&f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc",
+}
+
+HARVEST_WORKFLOW_STATIC_PAGES = {
+    "py_arcgis_hub": {
+        "label": "ArcGIS Harvester",
+        "url": "/static/arcgis.html",
+    },
+    "py_chicago_luna": {
+        "label": "Chicago Luna Harvester",
+        "url": "/static/chicago-luna.html",
+    },
+    "py_hdx": {
+        "label": "HDX Harvester",
+        "url": "/static/hdx.html",
+    },
+    "py_isgs": {
+        "label": "ISGS Harvester",
+        "url": "/static/isgs.html",
+    },
+    "py_oai_qdc": {
+        "label": "OAI QDC Harvester",
+        "url": "/static/oai-qdc.html",
+    },
+    "py_ogm_aardvark": {
+        "label": "OpenGeoMetadata Aardvark Harvester",
+        "url": "/static/ogm-aardvark.html",
+    },
+    "py_ogm_wisc": {
+        "label": "OpenGeoMetadata Wisconsin Harvester",
+        "url": "/static/ogmWisc.html",
+    },
+    "py_ogmwisc": {
+        "label": "OpenGeoMetadata Wisconsin Harvester",
+        "url": "/static/ogmWisc.html",
+    },
+    "py_pasda": {
+        "label": "PASDA Harvester",
+        "url": "/static/pasda.html",
+    },
+    "py_socrata": {
+        "label": "Socrata Harvester",
+        "url": "/static/socrata.html",
+    },
 }
 
 DEFAULT_DEDICATED_WORKFLOW_VIEWS = ("py_arcgis_hub",)
@@ -43,13 +99,22 @@ DEFAULT_GEO_API_FACET_URL = ""
 DEFAULT_GEO_API_TIMEOUT_SECONDS = 10
 GEO_API_FACET_PAGE_SIZE = 100
 OTHER_INSTITUTION_LABEL = "Other"
+DEFAULT_ARCGIS_REPORTS_DIR = "outputs"
+ARCGIS_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_arcgis_report\.csv$")
+ARCGIS_REPORT_NUMBER_COLUMNS = (
+    "Total Records Found",
+    "New Records",
+    "Unpublished Records",
+)
 
 
 class HarvestTaskDashboardJob:
     def __init__(self, config: dict[str, Any]):
         self.config = config
-        self.harvest_records_path = Path(config.get("harvest_records_csv", "inputs/harvest-records.csv"))
-        self.websites_path = Path(config.get("websites_csv", "inputs/websites.csv"))
+        self.harvest_records_path = Path(
+            config.get("harvest_records_csv", DEFAULT_HARVEST_RECORDS_CSV)
+        )
+        self.websites_path = Path(config.get("websites_csv", DEFAULT_WEBSITES_CSV))
         configured_standalone_websites_path = self._clean_value(
             config.get("standalone_websites_csv", "")
         )
@@ -125,6 +190,9 @@ class HarvestTaskDashboardJob:
         self.output_workflow_dir = Path(
             config.get("output_workflow_dir", "inputs/harvest-workflow-inputs")
         )
+        self.arcgis_reports_dir = Path(
+            config.get("arcgis_reports_dir", DEFAULT_ARCGIS_REPORTS_DIR)
+        )
         self.issue_repositories = config.get("issue_repositories", [])
         configured_dedicated_workflows = config.get(
             "dedicated_workflow_views",
@@ -161,6 +229,7 @@ class HarvestTaskDashboardJob:
         self._geoportal_code_count_cache: dict[str, int] = {}
         self._geoportal_code_counts_loaded = False
         self._geoportal_code_counts_available = False
+        self._latest_arcgis_report_cache: pd.DataFrame | None = None
 
     def harvest_pipeline(self) -> dict[str, Any]:
         harvest_df = self._load_csv(self.harvest_records_path)
@@ -177,12 +246,14 @@ class HarvestTaskDashboardJob:
             main_task_df,
             report_title=self._report_title(),
             include_source_download_box=True,
+            workflow_queue_df=task_df,
         )
         public_dashboard_html = self._render_dashboard_html(
             main_task_df,
             report_title=self._report_title(),
             public=True,
             include_source_download_box=True,
+            workflow_queue_df=task_df,
         )
         due_dashboard_html = self._render_dashboard_html(
             self._filter_due_only_tasks(main_task_df),
@@ -420,7 +491,30 @@ class HarvestTaskDashboardJob:
             embedded=embedded,
             report_title=self._report_title(workflow=scoped_workflow),
             public=public,
+            workflow_queue_df=(
+                self._filter_task_view(task_df, scoped_workflow)
+                if scoped_workflow
+                else task_df
+            ),
         )
+
+    def build_workflow_queue(self) -> dict[str, Any]:
+        harvest_df = self._load_csv(self.harvest_records_path)
+        websites_df = self._load_csv(self.websites_path)
+        task_df = self._build_task_dataframe(harvest_df, websites_df)
+        workflows = self._build_workflow_run_queue(task_df)
+
+        return {
+            "status": "ready",
+            "today": self.today.strftime("%Y-%m-%d"),
+            "queue_end_date": self._workflow_queue_end_date().strftime("%Y-%m-%d"),
+            "source_downloads": self._source_download_items(),
+            "workflow_inputs_dir": str(self.output_workflow_dir),
+            "harvest_queue_count": sum(row["queue_count"] for row in workflows),
+            "harvest_due_count": sum(row["due_now_count"] for row in workflows),
+            "review_due_count": self._due_review_count(task_df),
+            "workflows": workflows,
+        }
 
     def _load_csv(self, path: Path) -> pd.DataFrame:
         df = pd.read_csv(path, dtype=str).fillna("")
@@ -627,7 +721,10 @@ class HarvestTaskDashboardJob:
         ).groupby("Harvest Workflow", dropna=False):
             workflow_slug = self._slugify(workflow_name or "unspecified")
             output_path = output_dir / f"{workflow_slug}.csv"
-            workflow_group.to_csv(
+            workflow_group.drop(
+                columns=["Created At", "Updated At"],
+                errors="ignore",
+            ).to_csv(
                 output_path,
                 index=False,
                 encoding="utf-8",
@@ -678,6 +775,208 @@ class HarvestTaskDashboardJob:
             "scheduled": int((due_status == "Scheduled").sum()),
             "no_schedule": int((due_status == "No Schedule").sum()),
         }
+
+    def _source_download_items(self) -> list[dict[str, str]]:
+        return [
+            {
+                "label": "harvest-records.csv",
+                "url": SOURCE_HARVEST_RECORDS_EXPORT_URL,
+                "save_as": str(self.harvest_records_path),
+            },
+            {
+                "label": "websites.csv",
+                "url": SOURCE_WEBSITES_EXPORT_URL,
+                "save_as": str(self.websites_path),
+            },
+        ]
+
+    def _render_source_download_box(self) -> str:
+        item_lines = []
+        for item in self._source_download_items():
+            item_lines.append(
+                "      <li>"
+                f"<a href=\"{escape(item['url'], quote=True)}\" target=\"_blank\" "
+                f"rel=\"noreferrer\"><code>{escape(item['label'])}</code></a> "
+                f"-> save as <code>{escape(item['save_as'])}</code>"
+                "</li>"
+            )
+
+        return "\n".join(
+            [
+                "  <div class=\"source-box\">",
+                "    <h2>Get Latest Source CSVs</h2>",
+                "    <p>Download the newest files before running the dashboard, then save them with these names:</p>",
+                "    <ul>",
+                *item_lines,
+                "    </ul>",
+                "    <p class=\"muted\">Generate Dashboard Files prepares per-workflow CSVs in <code>inputs/harvest-workflow-inputs/</code>.</p>",
+                "  </div>",
+            ]
+        )
+
+    def _build_workflow_run_queue(self, task_df: pd.DataFrame) -> list[dict[str, Any]]:
+        if task_df.empty:
+            return []
+
+        working_df = task_df.copy()
+        self._ensure_columns(
+            working_df,
+            [
+                "Effective Harvest Workflow",
+                "Due Date",
+                "Due Status",
+                "Accrual Periodicity",
+                "Tag",
+                "Tags",
+            ],
+        )
+        periodicity_values = working_df["Accrual Periodicity"]
+        irregular_mask = periodicity_values.map(self._normalize_periodicity) == "irregular"
+        pending_harvest_mask = working_df.apply(self._has_pending_harvest_tag, axis=1)
+        due_dates = pd.to_datetime(working_df["Due Date"], errors="coerce")
+        harvest_run_mask = (
+            ((~irregular_mask) | pending_harvest_mask)
+            & due_dates.notna()
+            & (due_dates <= self._workflow_queue_end_date())
+        )
+        harvest_run_df = working_df.loc[harvest_run_mask].copy()
+        if harvest_run_df.empty:
+            return []
+
+        queue_rows: list[dict[str, Any]] = []
+        for workflow_name, workflow_group in harvest_run_df.groupby(
+            "Effective Harvest Workflow",
+            dropna=False,
+        ):
+            cleaned_workflow = self._clean_value(workflow_name) or "unspecified"
+            static_page = self._workflow_static_page_info(cleaned_workflow)
+            due_dates = sorted(
+                {
+                    cleaned_date
+                    for due_date in workflow_group.get("Due Date", pd.Series(dtype=str)).tolist()
+                    if (cleaned_date := self._clean_value(due_date))
+                }
+            )
+            queue_rows.append(
+                {
+                    "workflow": cleaned_workflow,
+                    "label": static_page.get(
+                        "label",
+                        self._workflow_view_label(cleaned_workflow),
+                    ),
+                    "queue_count": int(len(workflow_group)),
+                    "due_count": int(len(workflow_group)),
+                    "due_now_count": int((workflow_group["Due Status"] == "Due").sum()),
+                    "next_due_date": due_dates[0] if due_dates else "",
+                    "static_page_label": static_page.get("label", ""),
+                    "static_page_url": static_page.get("url", ""),
+                    "workflow_input_csv": str(
+                        self.output_workflow_dir / f"{self._slugify(cleaned_workflow)}.csv"
+                    ),
+                }
+            )
+
+        return sorted(
+            queue_rows,
+            key=lambda row: (
+                row["next_due_date"] or "9999-99-99",
+                row["label"].lower(),
+                row["workflow"],
+            ),
+        )
+
+    def _due_review_count(self, task_df: pd.DataFrame) -> int:
+        if task_df.empty:
+            return 0
+
+        working_df = task_df.copy()
+        self._ensure_columns(working_df, ["Review Status"])
+        return int((working_df["Review Status"] == "Due").sum())
+
+    def _workflow_queue_end_date(self) -> pd.Timestamp:
+        return (self.today + pd.DateOffset(months=1)).normalize()
+
+    def _workflow_static_page_info(self, workflow: str) -> dict[str, str]:
+        return HARVEST_WORKFLOW_STATIC_PAGES.get(self._clean_value(workflow), {})
+
+    def _render_workflow_run_queue_html(self, task_df: pd.DataFrame) -> str:
+        queue_rows = self._build_workflow_run_queue(task_df)
+        review_due_count = self._due_review_count(task_df)
+        if not queue_rows:
+            review_note = (
+                f" {review_due_count} review task{'s are' if review_due_count != 1 else ' is'} due."
+                if review_due_count
+                else ""
+            )
+            return "\n".join(
+                [
+                    "  <section class=\"workflow-run-queue\">",
+                    "    <div class=\"workflow-run-header\">",
+                    "      <h2>Workflow Run Queue</h2>",
+                    "    </div>",
+                    "    <p class=\"muted\">No harvest jobs are due within the next month."
+                    f"{escape(review_note)}</p>",
+                    "  </section>",
+                ]
+            )
+
+        table_rows = []
+        for row in queue_rows:
+            static_page_url = self._clean_value(row.get("static_page_url", ""))
+            static_page_label = self._clean_value(row.get("static_page_label", ""))
+            if static_page_url:
+                action_html = (
+                    f"<a class=\"action-link\" href=\"{escape(static_page_url, quote=True)}\" "
+                    f"target=\"_blank\" rel=\"noreferrer\">Open {escape(static_page_label)}</a>"
+                )
+            else:
+                action_html = "<span class=\"muted\">No static page configured</span>"
+
+            queue_count = int(row.get("queue_count", row.get("due_count", 0)))
+            due_now_count = int(row.get("due_now_count", 0))
+            queue_label = f"{queue_count} task{'s' if queue_count != 1 else ''}"
+            due_now_label = f"{due_now_count} due now"
+            table_rows.append(
+                "        <tr>"
+                f"<td data-label=\"Workflow\"><strong>{escape(row['label'])}</strong></td>"
+                f"<td data-label=\"Queued Tasks\">{escape(queue_label)}<div class=\"timing-meta\">{escape(due_now_label)}</div></td>"
+                f"<td data-label=\"Next Due\">{escape(row['next_due_date'] or 'Unknown')}</td>"
+                f"<td data-label=\"Prepared Input\"><code>{escape(row['workflow_input_csv'])}</code></td>"
+                f"<td class=\"actions\" data-label=\"Harvester Page\">{action_html}</td>"
+                "</tr>"
+            )
+
+        review_note = (
+            f" {review_due_count} review task{'s are' if review_due_count != 1 else ' is'} also due."
+            if review_due_count
+            else ""
+        )
+        return "\n".join(
+            [
+                "  <section class=\"workflow-run-queue\">",
+                "    <div class=\"workflow-run-header\">",
+                "      <h2>Workflow Run Queue</h2>",
+                f"      <div class=\"workflow-meta\">{len(queue_rows)} workflow{'s' if len(queue_rows) != 1 else ''}</div>",
+                "    </div>",
+                "    <p class=\"muted\">Harvest jobs due now or within the next month, grouped by workflow."
+                f"{escape(review_note)}</p>",
+                "    <table>",
+                "      <thead>",
+                "        <tr>",
+                "          <th>Workflow</th>",
+                "          <th>Queued Tasks</th>",
+                "          <th>Next Due</th>",
+                "          <th>Prepared Input</th>",
+                "          <th class=\"actions\">Harvester Page</th>",
+                "        </tr>",
+                "      </thead>",
+                "      <tbody>",
+                *table_rows,
+                "      </tbody>",
+                "    </table>",
+                "  </section>",
+            ]
+        )
 
     def _build_record_list_dataframe(self, harvest_df: pd.DataFrame) -> pd.DataFrame:
         record_columns = [
@@ -1115,8 +1414,14 @@ class HarvestTaskDashboardJob:
     ) -> str:
         workflow_name = self._clean_value(workflow) or "unspecified"
         workflow_label = self._workflow_view_label(workflow_name)
-        last_run = self._latest_harvest_date(harvest_df)
-        current_records = self._prepare_workflow_record_view(harvest_df)
+        last_run = (
+            self._latest_arcgis_report_date()
+            if workflow_name == "py_arcgis_hub"
+            else self._latest_harvest_date(harvest_df)
+        )
+        current_records = self._prepare_harvest_record_view(harvest_df)
+        if workflow_name == "py_arcgis_hub":
+            current_records = self._attach_arcgis_report_numbers(current_records)
 
         html_parts = [
             "<!DOCTYPE html>",
@@ -1161,10 +1466,11 @@ class HarvestTaskDashboardJob:
             "    th { background: #f9fbfd; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }",
             "    tbody tr:last-child td { border-bottom: none; }",
             "    tbody tr:nth-child(even) { background: #fbfdff; }",
+            "    tfoot th, tfoot td { background: #f1f6fb; border-top: 2px solid var(--line-strong); font-weight: 700; }",
             "    .task-name { font-weight: 700; margin-bottom: 0.2rem; }",
             "    .task-meta, .detail-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }",
             "    .task-meta code, .detail-meta code { background: #edf1f5; padding: 0.08rem 0.32rem; border-radius: 6px; }",
-            "    .endpoint-link { display: inline-flex; align-items: center; gap: 0.35rem; }",
+            "    .number-cell { text-align: right; white-space: nowrap; }",
             "    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .section-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } }",
             "  </style>",
             "</head>",
@@ -1219,7 +1525,9 @@ class HarvestTaskDashboardJob:
                 "        <tr>",
                 "          <th>Harvest Record</th>",
                 "          <th>Last Harvested</th>",
-                "          <th>Endpoint</th>",
+                "          <th class=\"number-cell\">Total Records Found</th>",
+                "          <th class=\"number-cell\">New Records</th>",
+                "          <th class=\"number-cell\">Unpublished Records</th>",
                 "        </tr>",
                 "      </thead>",
                 "      <tbody>",
@@ -1231,13 +1539,24 @@ class HarvestTaskDashboardJob:
                     "        <tr>",
                     f"          <td data-label=\"Harvest Record\">{self._render_task_cell(row, public=public)}</td>",
                     f"          <td data-label=\"Last Harvested\">{self._render_workflow_last_harvested_cell(row)}</td>",
-                    f"          <td data-label=\"Endpoint\">{self._render_endpoint_cell(row)}</td>",
+                    f"          <td class=\"number-cell\" data-label=\"Total Records Found\">{self._render_arcgis_report_number_cell(row, 'Total Records Found')}</td>",
+                    f"          <td class=\"number-cell\" data-label=\"New Records\">{self._render_arcgis_report_number_cell(row, 'New Records')}</td>",
+                    f"          <td class=\"number-cell\" data-label=\"Unpublished Records\">{self._render_arcgis_report_number_cell(row, 'Unpublished Records')}</td>",
                     "        </tr>",
                 ]
             )
         html_parts.extend(
             [
                 "      </tbody>",
+                "      <tfoot>",
+                "        <tr>",
+                "          <th scope=\"row\">Total</th>",
+                "          <td></td>",
+                f"          <td class=\"number-cell\" data-label=\"Total Records Found\">{self._render_arcgis_report_number_cell(self._arcgis_report_totals(current_records), 'Total Records Found')}</td>",
+                f"          <td class=\"number-cell\" data-label=\"New Records\">{self._render_arcgis_report_number_cell(self._arcgis_report_totals(current_records), 'New Records')}</td>",
+                f"          <td class=\"number-cell\" data-label=\"Unpublished Records\">{self._render_arcgis_report_number_cell(self._arcgis_report_totals(current_records), 'Unpublished Records')}</td>",
+                "        </tr>",
+                "      </tfoot>",
                 "    </table>",
                 "  </section>",
                 "</body>",
@@ -1737,6 +2056,7 @@ class HarvestTaskDashboardJob:
         report_title: str = "Harvest Task Dashboard",
         public: bool = False,
         include_source_download_box: bool = False,
+        workflow_queue_df: pd.DataFrame | None = None,
     ) -> str:
         summary = self._build_summary(task_df)
         sections = self._build_dashboard_sections(task_df)
@@ -1792,6 +2112,10 @@ class HarvestTaskDashboardJob:
             "    .workflow-block { margin: 0.9rem 0 1.15rem; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
             "    .workflow-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.75rem 0.95rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }",
             "    .workflow-meta { color: var(--muted); font-size: 0.82rem; }",
+            "    .workflow-run-queue { margin: 1rem 0 1.5rem; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
+            "    .workflow-run-queue > p { padding: 0 1rem 1rem; }",
+            "    .workflow-run-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }",
+            "    .workflow-run-header h2 { margin-bottom: 0; }",
             "    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }",
             "    th, td { padding: 0.55rem 0.7rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }",
             "    th { background: #f9fbfd; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }",
@@ -1844,16 +2168,11 @@ class HarvestTaskDashboardJob:
                 ]
             )
             if not public and include_source_download_box:
-                html_parts[ -2:-2 ] = [
-                    "  <div class=\"source-box\">",
-                    "    <h2>Get Latest Source CSVs</h2>",
-                    "    <p>Download the newest files before running the dashboard, then save them into <code>inputs/</code> with these names:</p>",
-                    "    <ul>",
-                    "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>",
-                    "      <li><a href=\"https://geo.btaa.org/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&rows=20&sort=score+desc\" target=\"_blank\" rel=\"noreferrer\"><code>websites.csv</code></a> -> save as <code>inputs/websites.csv</code></li>",
-                    "    </ul>",
-                    "  </div>",
-                ]
+                html_parts[-2:-2] = [self._render_source_download_box()]
+
+            if not public:
+                queue_source_df = workflow_queue_df if workflow_queue_df is not None else task_df
+                html_parts[-1:-1] = [self._render_workflow_run_queue_html(queue_source_df)]
 
         summary_cards = [
             ("Total Tasks", summary["total"], ""),
@@ -2020,11 +2339,7 @@ class HarvestTaskDashboardJob:
 
     def _render_workflow_last_harvested_cell(self, row: pd.Series | dict[str, Any]) -> str:
         last_harvested = self._clean_value(row.get("Last Harvested", "")) or "Not yet harvested"
-        updated_at = self._clean_value(row.get("Updated At", ""))
-        detail_lines = [f"<div>{escape(last_harvested)}</div>"]
-        if updated_at:
-            detail_lines.append(f'<div class="detail-meta">Updated: {escape(updated_at)}</div>')
-        return "".join(detail_lines)
+        return f"<div>{escape(last_harvested)}</div>"
 
     def _render_endpoint_cell(self, row: pd.Series | dict[str, Any]) -> str:
         endpoint_url = self._clean_value(row.get("Endpoint URL", ""))
@@ -2042,6 +2357,16 @@ class HarvestTaskDashboardJob:
         if metadata:
             parts.append(f'<div class="detail-meta">{escape(metadata)}</div>')
         return "".join(parts)
+
+    def _render_arcgis_report_number_cell(
+        self,
+        row: pd.Series | dict[str, Any],
+        column: str,
+    ) -> str:
+        value = self._clean_value(row.get(column, ""))
+        if not value:
+            return '<span class="detail-meta">Not available</span>'
+        return escape(value)
 
     def _retrospective_pill_class(self, action_type: str) -> str:
         pill_classes = {
@@ -3152,7 +3477,7 @@ class HarvestTaskDashboardJob:
             return ""
         return last_harvested.max().strftime("%Y-%m-%d")
 
-    def _prepare_workflow_record_view(self, harvest_df: pd.DataFrame) -> pd.DataFrame:
+    def _prepare_harvest_record_view(self, harvest_df: pd.DataFrame) -> pd.DataFrame:
         if harvest_df.empty:
             return harvest_df.copy()
 
@@ -3172,6 +3497,123 @@ class HarvestTaskDashboardJob:
             na_position="last",
         ).reset_index(drop=True)
         return working_df.drop(columns=["__last_harvested_sort", "__display_name"])
+
+    def _attach_arcgis_report_numbers(self, harvest_df: pd.DataFrame) -> pd.DataFrame:
+        working_df = harvest_df.copy()
+        self._ensure_columns(
+            working_df,
+            ["Code", "Identifier", "ID", *ARCGIS_REPORT_NUMBER_COLUMNS],
+        )
+        report_df = self._load_latest_arcgis_report()
+        if report_df.empty:
+            return working_df
+
+        report_lookup = self._arcgis_report_lookup(report_df)
+        for index, row in working_df.iterrows():
+            metrics = self._arcgis_report_metrics_for_row(row, report_lookup)
+            if not metrics:
+                continue
+            for column in ARCGIS_REPORT_NUMBER_COLUMNS:
+                working_df.at[index, column] = metrics.get(column, "")
+        return working_df
+
+    def _load_latest_arcgis_report(self) -> pd.DataFrame:
+        if self._latest_arcgis_report_cache is not None:
+            return self._latest_arcgis_report_cache.copy()
+
+        report_path = self._latest_arcgis_report_path()
+        if report_path is None:
+            self._latest_arcgis_report_cache = pd.DataFrame()
+            return self._latest_arcgis_report_cache.copy()
+
+        report_df = self._load_csv(report_path)
+        self._ensure_columns(
+            report_df,
+            ["Code", "Identifier", *ARCGIS_REPORT_NUMBER_COLUMNS],
+        )
+        report_df = report_df.loc[
+            report_df["Code"].map(self._clean_value).str.upper() != "TOTAL"
+        ].copy()
+        self._latest_arcgis_report_cache = report_df
+        return report_df.copy()
+
+    def _arcgis_report_totals(self, harvest_df: pd.DataFrame) -> dict[str, str]:
+        report_path = self._latest_arcgis_report_path()
+        if report_path is not None:
+            report_df = self._load_csv(report_path)
+            self._ensure_columns(report_df, ["Code", *ARCGIS_REPORT_NUMBER_COLUMNS])
+            total_rows = report_df.loc[
+                report_df["Code"].map(self._clean_value).str.upper() == "TOTAL"
+            ]
+            if not total_rows.empty:
+                total_row = total_rows.iloc[-1]
+                return {
+                    column: self._clean_value(total_row.get(column, ""))
+                    for column in ARCGIS_REPORT_NUMBER_COLUMNS
+                }
+
+        totals: dict[str, str] = {}
+        for column in ARCGIS_REPORT_NUMBER_COLUMNS:
+            values = pd.to_numeric(harvest_df.get(column, pd.Series(dtype=str)), errors="coerce")
+            totals[column] = str(int(values.sum())) if values.notna().any() else ""
+        return totals
+
+    def _latest_arcgis_report_path(self) -> Path | None:
+        if not self.arcgis_reports_dir.exists():
+            return None
+
+        candidates: list[tuple[pd.Timestamp, Path]] = []
+        for report_path in self.arcgis_reports_dir.glob("*_arcgis_report.csv"):
+            match = ARCGIS_REPORT_FILENAME_PATTERN.match(report_path.name)
+            if match is None:
+                continue
+            report_date = pd.to_datetime(match.group(1), errors="coerce")
+            if pd.isna(report_date):
+                continue
+            candidates.append((report_date, report_path))
+
+        if not candidates:
+            return None
+        return max(candidates, key=lambda item: (item[0], item[1].name))[1]
+
+    def _latest_arcgis_report_date(self) -> str:
+        report_path = self._latest_arcgis_report_path()
+        if report_path is None:
+            return ""
+
+        match = ARCGIS_REPORT_FILENAME_PATTERN.match(report_path.name)
+        if match is None:
+            return ""
+        return match.group(1)
+
+    def _arcgis_report_lookup(self, report_df: pd.DataFrame) -> dict[str, dict[str, str]]:
+        lookup: dict[str, dict[str, str]] = {}
+        for _, row in report_df.iterrows():
+            metrics = {
+                column: self._clean_value(row.get(column, ""))
+                for column in ARCGIS_REPORT_NUMBER_COLUMNS
+            }
+            for key in self._arcgis_report_match_keys(row):
+                lookup.setdefault(key, metrics)
+        return lookup
+
+    def _arcgis_report_metrics_for_row(
+        self,
+        row: pd.Series | dict[str, Any],
+        report_lookup: dict[str, dict[str, str]],
+    ) -> dict[str, str] | None:
+        for key in self._arcgis_report_match_keys(row):
+            if key in report_lookup:
+                return report_lookup[key]
+        return None
+
+    def _arcgis_report_match_keys(self, row: pd.Series | dict[str, Any]) -> list[str]:
+        keys = [
+            self._clean_value(row.get("Identifier", "")),
+            self._clean_value(row.get("ID", "")).removeprefix("harvest_"),
+            self._clean_value(row.get("Code", "")),
+        ]
+        return [key for key in dict.fromkeys(keys) if key]
 
     def _report_title(self, report_type: str = "full", workflow: str = "") -> str:
         workflow_name = self._clean_value(workflow)
@@ -3209,8 +3651,8 @@ class HarvestTaskDashboardJob:
 
 if __name__ == "__main__":
     default_config = {
-        "harvest_records_csv": "inputs/harvest-records.csv",
-        "websites_csv": "inputs/websites.csv",
+        "harvest_records_csv": DEFAULT_HARVEST_RECORDS_CSV,
+        "websites_csv": DEFAULT_WEBSITES_CSV,
         "standalone_websites_csv": "inputs/standalone-websites.csv",
         "geoportal_api_facet_url": "https://lib-btaageoapi-dev-app-01.oit.umn.edu/api/v1/search/facets/b1g_code_s",
         "output_tasks_csv": "reports/harvest-task-dashboard.csv",

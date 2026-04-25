@@ -64,6 +64,7 @@ STANDARD_REPORT_ORDER = (
 )
 DEDICATED_WORKFLOW_PREFIX = "harvest-task-dashboard-"
 PUBLIC_REPORT_SUFFIX = "-public"
+ARCGIS_WORKFLOW_SLUG = "py-arcgis-hub"
 
 
 @dataclass(frozen=True)
@@ -534,7 +535,7 @@ def _collect_dedicated_workflow_report(
         report_key=f"workflow:{workflow_slug}",
         source_path=report_path,
         label=workflow_label,
-        description="Dedicated workflow overview.",
+        description=_workflow_report_description(workflow_slug),
         latest_href=f"latest/workflows/{workflow_slug}/",
         archive_href=f"{date}/workflows/{workflow_slug}/",
     )
@@ -554,6 +555,12 @@ def _workflow_report_label(workflow_title: str, workflow_slug: str) -> str:
         if normalized_title:
             return normalized_title
     return workflow_slug.replace("-", " ").title()
+
+
+def _workflow_report_description(workflow_slug: str) -> str:
+    if workflow_slug == ARCGIS_WORKFLOW_SLUG:
+        return "Dedicated workflow overview with latest ArcGIS harvest count columns."
+    return "Dedicated workflow overview."
 
 
 def _ordered_reports(reports: dict[str, DashboardReport]) -> list[DashboardReport]:
