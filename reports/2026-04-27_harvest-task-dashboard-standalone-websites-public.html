@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Standalone Websites by Institution</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17324d;
+      --muted: #5b6b7d;
+      --line: #d7e1ec;
+      --panel: #ffffff;
+      --panel-soft: #f6f9fc;
+      --bg: #eef3f8;
+      --accent: #1f6fb2;
+      --reviews: #0f766e;
+      --reviews-soft: #d8f3ee;
+      --due: #b42318;
+      --due-soft: #fee4e2;
+      --scheduled: #b76e00;
+      --scheduled-soft: #fff1d6;
+      --no-schedule: #667085;
+      --no-schedule-soft: #edf1f5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 1.5rem auto; max-width: 1100px; padding: 0 1rem 2.5rem; font-family: "Segoe UI", sans-serif; line-height: 1.35; color: var(--ink); background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%); }
+    h1, h2, p { margin-top: 0; }
+    a { color: var(--accent); }
+    .muted { color: var(--muted); }
+    code { background: var(--panel-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .source-box, .periodicity-section { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }
+    .source-box { padding: 1rem; margin: 1rem 0 1.4rem; }
+    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }
+    .periodicity-section { overflow: hidden; margin-top: 1rem; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }
+    .section-meta { color: var(--muted); font-size: 0.82rem; }
+    .toc-box { padding: 1rem; margin: 1rem 0 1.4rem; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }
+    .toc-box ul { columns: 2; column-gap: 2rem; margin: 0.75rem 0 0; padding-left: 1.15rem; }
+    .toc-box li { break-inside: avoid; margin-bottom: 0.35rem; }
+    .header-actions { display: flex; flex-wrap: wrap; gap: 0.55rem; margin: 1rem 0 1.2rem; }
+    .record-list { display: grid; gap: 0; }
+    .record-item { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr); gap: 1rem; padding: 0.85rem 1rem; border-top: 1px solid var(--line); }
+    .record-item:first-child { border-top: none; }
+    .task-name { font-weight: 700; margin-bottom: 0.2rem; }
+    .task-meta, .timing-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }
+    .task-meta code, .timing-meta code { background: var(--no-schedule-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .record-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.55rem; }
+    .action-link { display: inline-flex; align-items: center; padding: 0.34rem 0.62rem; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: var(--accent); background: #fff; font-size: 0.84rem; font-weight: 600; }
+    .action-link:hover { background: #e8f2fd; border-color: #c3d7ed; }
+    .date-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; font-weight: 700; }
+    .status-pill { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .status-pill--reviews { color: var(--reviews); background: var(--reviews-soft); }
+    .status-pill--due { color: var(--due); background: var(--due-soft); }
+    .status-pill--scheduled { color: var(--scheduled); background: var(--scheduled-soft); }
+    .status-pill--no-schedule { color: var(--no-schedule); background: var(--no-schedule-soft); }
+    @media (max-width: 760px) { body { padding: 0 0.7rem 2rem; } .toc-box ul { columns: 1; } .record-item { grid-template-columns: 1fr; gap: 0.45rem; } .section-header { align-items: flex-start; flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <h1>Standalone Websites by Institution</h1>
+  <p class="muted">This view lists standalone website records that are not harvested, grouped by institution code prefix derived from the record ID, with unmatched IDs collected under Other.</p>
+  <nav class="toc-box" aria-labelledby="institution-toc-heading">
+    <h2 id="institution-toc-heading">Table of Contents</h2>
+    <p class="muted">Jump directly to an institution section.</p>
+    <ul>
+      <li><a href="#indiana-university">Indiana University</a></li>
+      <li><a href="#university-of-illinois-urbana-campaign">University of Illinois Urbana-Campaign</a></li>
+      <li><a href="#university-of-iowa">University of Iowa</a></li>
+      <li><a href="#university-of-maryland">University of Maryland</a></li>
+      <li><a href="#university-of-minnesota">University of Minnesota</a></li>
+      <li><a href="#michigan-state-university">Michigan State University</a></li>
+      <li><a href="#university-of-michigan">University of Michigan</a></li>
+      <li><a href="#pennsylvania-state-university">Pennsylvania State University</a></li>
+      <li><a href="#purdue-university">Purdue University</a></li>
+      <li><a href="#university-of-wisconsin-madison">University of Wisconsin-Madison</a></li>
+      <li><a href="#the-ohio-state-university">The Ohio State University</a></li>
+      <li><a href="#university-of-chicago">University of Chicago</a></li>
+      <li><a href="#university-of-nebraska-lincoln">University of Nebraska-Lincoln</a></li>
+      <li><a href="#other">Other</a></li>
+    </ul>
+  </nav>
+  <section class="periodicity-section" id="indiana-university">
+    <div class="section-header">
+      <h2>Indiana University</h2>
+      <div class="section-meta">1 record</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Indiana Spatial Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/01d-02" target="_blank" rel="noreferrer"><code>01d-02</code></a></div></div>
+        <div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-illinois-urbana-campaign">
+    <div class="section-header">
+      <h2>University of Illinois Urbana-Campaign</h2>
+      <div class="section-meta">5 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Adams County, Illinois GIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/02b-17001" target="_blank" rel="noreferrer"><code>02b-17001</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Kendall County GIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/02b-17093" target="_blank" rel="noreferrer"><code>02b-17093</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Mason County, Department of Assessment</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/02b-17125" target="_blank" rel="noreferrer"><code>02b-17125</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Travel Midwest</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/02a-05" target="_blank" rel="noreferrer"><code>02a-05</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Will County Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/02b-17197" target="_blank" rel="noreferrer"><code>02b-17197</code></a></div></div>
+        <div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-iowa">
+    <div class="section-header">
+      <h2>University of Iowa</h2>
+      <div class="section-meta">5 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Cass County GIS Downloadable Files</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/03b-19029" target="_blank" rel="noreferrer"><code>03b-19029</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">City of Waterloo&#x27;s Mapping and GIS Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/03c-04" target="_blank" rel="noreferrer"><code>03c-04</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Dallas County Data Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/03b-19049" target="_blank" rel="noreferrer"><code>03b-19049</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Interactive map of coal mines in Iowa</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/03a-01-001" target="_blank" rel="noreferrer"><code>03a-01-001</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Scott County GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/03b-19163" target="_blank" rel="noreferrer"><code>03b-19163</code></a></div></div>
+        <div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-maryland">
+    <div class="section-header">
+      <h2>University of Maryland</h2>
+      <div class="section-meta">5 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Calvert County GIS, Historic Maps, Topos</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/04b-24009-2" target="_blank" rel="noreferrer"><code>04b-24009-2</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">City of Frederick GIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/04c-04" target="_blank" rel="noreferrer"><code>04c-04</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Data Downloads - Montgomery Planning</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/04f-02" target="_blank" rel="noreferrer"><code>04f-02</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Prince George&#x27;s County GIS Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/04f-03" target="_blank" rel="noreferrer"><code>04f-03</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">St. Mary&#x27;s County GIS Downloadable Layers</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/04b-24037" target="_blank" rel="noreferrer"><code>04b-24037</code></a></div></div>
+        <div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-minnesota">
+    <div class="section-header">
+      <h2>University of Minnesota</h2>
+      <div class="section-meta">11 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Anoka County GIS Data Downloads</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/05b-27003" target="_blank" rel="noreferrer"><code>05b-27003</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Becker County GIS Data Downloads</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/05b-27005" target="_blank" rel="noreferrer"><code>05b-27005</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Benton County GIS Data Downloads</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/05b-27009" target="_blank" rel="noreferrer"><code>05b-27009</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Chisago County GIS Data Downloads</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/05b-27025" target="_blank" rel="noreferrer"><code>05b-27025</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Clearwater County GIS Data Downloads</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/05b-27029" target="_blank" rel="noreferrer"><code>05b-27029</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Earthstat</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/05d-08" target="_blank" rel="noreferrer"><code>05d-08</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Mapping Prejudice</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/05d-12" target="_blank" rel="noreferrer"><code>05d-12</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">McLeod County GIS Data Downloads</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/05b-27085" target="_blank" rel="noreferrer"><code>05b-27085</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Mille Lacs County GIS Data Files</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/05b-27095" target="_blank" rel="noreferrer"><code>05b-27095</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Minnesota Historical Aerial Photographs Online (MHAPO), 1920-2000</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/05d-09" target="_blank" rel="noreferrer"><code>05d-09</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Olmsted County GIS Services</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/05b-27109" target="_blank" rel="noreferrer"><code>05b-27109</code></a></div></div>
+        <div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="michigan-state-university">
+    <div class="section-header">
+      <h2>Michigan State University</h2>
+      <div class="section-meta">1 record</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Kent County Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/06b-26081" target="_blank" rel="noreferrer"><code>06b-26081</code></a></div></div>
+        <div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-michigan">
+    <div class="section-header">
+      <h2>University of Michigan</h2>
+      <div class="section-meta">2 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Ann Arbor Data Catalog</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/07c-02" target="_blank" rel="noreferrer"><code>07c-02</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">ICPSR (Inter-university Consortium for Political and Social Research)</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/07d-03" target="_blank" rel="noreferrer"><code>07d-03</code></a></div></div>
+        <div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="pennsylvania-state-university">
+    <div class="section-header">
+      <h2>Pennsylvania State University</h2>
+      <div class="section-meta">2 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">OpenDataPhilly</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/08c-01" target="_blank" rel="noreferrer"><code>08c-01</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Susquehanna River Basin Commission</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/08f-02" target="_blank" rel="noreferrer"><code>08f-02</code></a></div></div>
+        <div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="purdue-university">
+    <div class="section-header">
+      <h2>Purdue University</h2>
+      <div class="section-meta">2 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Indiana Statewide LiDAR: 2011-2013</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/09a-02" target="_blank" rel="noreferrer"><code>09a-02</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Indiana Statewide LiDAR: 2016-2020</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/09a-03" target="_blank" rel="noreferrer"><code>09a-03</code></a></div></div>
+        <div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-wisconsin-madison">
+    <div class="section-header">
+      <h2>University of Wisconsin-Madison</h2>
+      <div class="section-meta">21 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Bayfield County GIS Data Access</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55007" target="_blank" rel="noreferrer"><code>10b-55007</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Brown County GIS Downloads</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55009" target="_blank" rel="noreferrer"><code>10b-55009</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Buffalo County, Wisconsin, Map Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55011" target="_blank" rel="noreferrer"><code>10b-55011</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">City Maps of Hudson, WI</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10c-02" target="_blank" rel="noreferrer"><code>10c-02</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Douglas County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55031" target="_blank" rel="noreferrer"><code>10b-55031</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Fond du Lac County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55039" target="_blank" rel="noreferrer"><code>10b-55039</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Grant County Web Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55043" target="_blank" rel="noreferrer"><code>10b-55043</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Green County Downloadable GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55045" target="_blank" rel="noreferrer"><code>10b-55045</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Lafayette County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55065" target="_blank" rel="noreferrer"><code>10b-55065</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Land Information of Sauk County, WI</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55111-01" target="_blank" rel="noreferrer"><code>10b-55111-01</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Lincoln County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55069" target="_blank" rel="noreferrer"><code>10b-55069</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Marathon County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55073" target="_blank" rel="noreferrer"><code>10b-55073</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Oneida County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55085" target="_blank" rel="noreferrer"><code>10b-55085</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Polk County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55095" target="_blank" rel="noreferrer"><code>10b-55095</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Portage County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55097" target="_blank" rel="noreferrer"><code>10b-55097</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Sheboygan County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55117" target="_blank" rel="noreferrer"><code>10b-55117</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Trempealeau County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55121" target="_blank" rel="noreferrer"><code>10b-55121</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Vilas County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55125" target="_blank" rel="noreferrer"><code>10b-55125</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Walworth County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55127" target="_blank" rel="noreferrer"><code>10b-55127</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Washburn County GIS Download</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10b-55129" target="_blank" rel="noreferrer"><code>10b-55129</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Wisconsin Coastal Atlas</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/10d-02" target="_blank" rel="noreferrer"><code>10d-02</code></a></div></div>
+        <div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="the-ohio-state-university">
+    <div class="section-header">
+      <h2>The Ohio State University</h2>
+      <div class="section-meta">27 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Allen County GIS Data Download Page</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39003" target="_blank" rel="noreferrer"><code>11b-39003</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Auglaize County, Ohio GIS Open Data Downloads</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39011" target="_blank" rel="noreferrer"><code>11b-39011</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Cincinnati Area Geographic Information Systems (CAGIS) File Downloads</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11c-01-2" target="_blank" rel="noreferrer"><code>11c-01-2</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Data Downloads for Coshocton County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39031" target="_blank" rel="noreferrer"><code>11b-39031</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Data Downloads for Ottawa County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39123" target="_blank" rel="noreferrer"><code>11b-39123</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Data/Downloads for Belmont County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39013" target="_blank" rel="noreferrer"><code>11b-39013</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Defiance County GIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39039" target="_blank" rel="noreferrer"><code>11b-39039</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Download GIS Data for Clermont County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39025" target="_blank" rel="noreferrer"><code>11b-39025</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Downloadable Files from Knox County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39083" target="_blank" rel="noreferrer"><code>11b-39083</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Downloadable Maps and Data for Hocking County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39073" target="_blank" rel="noreferrer"><code>11b-39073</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Downloads for Crawford County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39033" target="_blank" rel="noreferrer"><code>11b-39033</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Enterprise GIS Data Download Page for Morrow County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39117" target="_blank" rel="noreferrer"><code>11b-39117</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">GIS Data Download for Lake County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39085-01" target="_blank" rel="noreferrer"><code>11b-39085-01</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">GIS Data Downloads for Fairfield County Auditor&#x27;s Office, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39045" target="_blank" rel="noreferrer"><code>11b-39045</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">GIS Data Downloads for Medina County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39103" target="_blank" rel="noreferrer"><code>11b-39103</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">GIS Data Downloads for Portage County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39133" target="_blank" rel="noreferrer"><code>11b-39133</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">GIS Data Downloads for Preble County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39135" target="_blank" rel="noreferrer"><code>11b-39135</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">GIS Downloads for Licking County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39089" target="_blank" rel="noreferrer"><code>11b-39089</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">GIS Shapefiles for Franklin County Auditor, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39049-02" target="_blank" rel="noreferrer"><code>11b-39049-02</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">GeoDataBase Files Downloads for Montgomery County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39113" target="_blank" rel="noreferrer"><code>11b-39113</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Holmes County Public GIS Downloads</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39075-01" target="_blank" rel="noreferrer"><code>11b-39075-01</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Ohio Public Utilities Commission Maps and GIS Data Directory</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11a-02" target="_blank" rel="noreferrer"><code>11a-02</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Ohio Spatial Data Infrastructure Downloads</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11a-03" target="_blank" rel="noreferrer"><code>11a-03</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Public FTP for Mahoning County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39099" target="_blank" rel="noreferrer"><code>11b-39099</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Spatial Data for Brown County, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39015" target="_blank" rel="noreferrer"><code>11b-39015</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Tuscarawas County, Ohio GIS Office</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39157" target="_blank" rel="noreferrer"><code>11b-39157</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Union County GIS Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/11b-39159" target="_blank" rel="noreferrer"><code>11b-39159</code></a></div></div>
+        <div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-chicago">
+    <div class="section-header">
+      <h2>University of Chicago</h2>
+      <div class="section-meta">1 record</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">GeoDa Data and Lab</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/12d-05" target="_blank" rel="noreferrer"><code>12d-05</code></a></div></div>
+        <div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="university-of-nebraska-lincoln">
+    <div class="section-header">
+      <h2>University of Nebraska-Lincoln</h2>
+      <div class="section-meta">1 record</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">Natural Resources Data Bank</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/13a-02" target="_blank" rel="noreferrer"><code>13a-02</code></a></div></div>
+        <div></div>
+      </article>
+    </div>
+  </section>
+  <section class="periodicity-section" id="other">
+    <div class="section-header">
+      <h2>Other</h2>
+      <div class="section-meta">34 records</div>
+    </div>
+    <div class="record-list">
+      <article class="record-item">
+        <div><div class="task-name">ARC Research, Evaluations, Maps, and Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/99-1600" target="_blank" rel="noreferrer"><code>99-1600</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Anti-Eviction Mapping Project</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/1da01b9b-4bfb-48fc-8444-ef61cab82bef" target="_blank" rel="noreferrer"><code>1da01b9b-4bfb-48fc-8444-ef61cab82bef</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">ArcGIS Living Atlas of the World</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/99-1200" target="_blank" rel="noreferrer"><code>99-1200</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Atlas of Rural and Small-Town America</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/ac7f7a77-0be2-4d8c-a78a-681fea737855" target="_blank" rel="noreferrer"><code>ac7f7a77-0be2-4d8c-a78a-681fea737855</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">COVID-19 Housing Protection Legislation &amp; Housing Justice Action</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/cb23008b-695c-471f-a916-84da0fd6af17" target="_blank" rel="noreferrer"><code>cb23008b-695c-471f-a916-84da0fd6af17</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Census Bureau</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/99-1300" target="_blank" rel="noreferrer"><code>99-1300</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Census Data (ArcGIS Living Atlas of the World)</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/99-1200-001" target="_blank" rel="noreferrer"><code>99-1200-001</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Dartmouth Atlas Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/77d-0003" target="_blank" rel="noreferrer"><code>77d-0003</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Diversity Data Kids</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/1000f-0004" target="_blank" rel="noreferrer"><code>1000f-0004</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Electing the House of Representatives</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/1ec6931a-c772-46a7-a969-b1120e3fad27" target="_blank" rel="noreferrer"><code>1ec6931a-c772-46a7-a969-b1120e3fad27</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Election Data: Iowa</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/sos_iowa_gov_elections" target="_blank" rel="noreferrer"><code>sos_iowa_gov_elections</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Eyes on Russia Map</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/584c4cdf-a8df-4c8c-88c7-5a4281ace41b" target="_blank" rel="noreferrer"><code>584c4cdf-a8df-4c8c-88c7-5a4281ace41b</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Great Lakes Alliance for Remote Sensing (GLARS)</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/77d-0002" target="_blank" rel="noreferrer"><code>77d-0002</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Harvest record for standalone websites</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/harvest_standalone_websites" target="_blank" rel="noreferrer"><code>harvest_standalone_websites</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">IUCN Red List of Threatened Species</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/99-1500" target="_blank" rel="noreferrer"><code>99-1500</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">International Conflict Research</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/55d-0001" target="_blank" rel="noreferrer"><code>55d-0001</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Iowa Parcel Geospatial Data; How to Add and Filter Data from the Statewide Parcel Data Server in QGIS</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/c8996c0d-278b-4006-ad68-40009e0217e2" target="_blank" rel="noreferrer"><code>c8996c0d-278b-4006-ad68-40009e0217e2</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Mapping Inequality: Redlining in New Deal America</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/d0177da4-b07c-4cee-ad3a-33279bf3473a" target="_blank" rel="noreferrer"><code>d0177da4-b07c-4cee-ad3a-33279bf3473a</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Mapping Police Violence Dashboard</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/8794fb01-04a7-43ee-84a4-739dd27a9a9b" target="_blank" rel="noreferrer"><code>8794fb01-04a7-43ee-84a4-739dd27a9a9b</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Morrill Reckoning</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/4979dd07507f4155bb92689860dd5089" target="_blank" rel="noreferrer"><code>4979dd07507f4155bb92689860dd5089</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">NREL Geospatial Data Science Data and Tools</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/1000f-0003" target="_blank" rel="noreferrer"><code>1000f-0003</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">National Crimes: A New National Data Set of Lynchings in the United States, 1883 to 1941</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/fca819ea-17eb-4990-b5d4-7601d194b373" target="_blank" rel="noreferrer"><code>fca819ea-17eb-4990-b5d4-7601d194b373</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Native Land Digital</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/native-land-ca-interactive-map" target="_blank" rel="noreferrer"><code>native-land-ca-interactive-map</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">OpenIndexMaps of the Mississippi River ArcGIS Online Story Map</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/1414-0000001" target="_blank" rel="noreferrer"><code>1414-0000001</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">PLSS Records [Hoover Hills region, Indiana]</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/13960-t8wb2dg4f" target="_blank" rel="noreferrer"><code>13960-t8wb2dg4f</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Photogrammar: The FSA-OWI Photographic Collection, 1935-1944</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/e940e47d-fe2a-4cff-a471-40b203a0c714" target="_blank" rel="noreferrer"><code>e940e47d-fe2a-4cff-a471-40b203a0c714</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Redistricting Data Hub</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/7c1c20e3-9a8a-4902-b7de-9062ea2f50c7" target="_blank" rel="noreferrer"><code>7c1c20e3-9a8a-4902-b7de-9062ea2f50c7</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">SARS-ANI</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/99-1700" target="_blank" rel="noreferrer"><code>99-1700</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">The California Police Scorecard</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/c278cacd0-b757-46be-be0e-2e98cd7ba5f5" target="_blank" rel="noreferrer"><code>c278cacd0-b757-46be-be0e-2e98cd7ba5f5</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">The Missing Link</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/f11a86e58f134873beba16424190c4c3" target="_blank" rel="noreferrer"><code>f11a86e58f134873beba16424190c4c3</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">The Stanford Open Policing Project</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/stanford-c945fd39-976f-470b-8e4a-fdc8a7863b74" target="_blank" rel="noreferrer"><code>stanford-c945fd39-976f-470b-8e4a-fdc8a7863b74</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Ukraine Data Explorer</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/038652fd-39b1-4578-9f3e-ef9253af8cb3" target="_blank" rel="noreferrer"><code>038652fd-39b1-4578-9f3e-ef9253af8cb3</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">WHAIFinder (Wisconsin Historic Aerial Imagery Finder)</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/5F3EEF4C-D1EA-4AC8-A2C5-774D21E78D46" target="_blank" rel="noreferrer"><code>5F3EEF4C-D1EA-4AC8-A2C5-774D21E78D46</code></a></div></div>
+        <div></div>
+      </article>
+      <article class="record-item">
+        <div><div class="task-name">Web Map of 4G LTE Coverage as of May 15, 2021 (AT&amp;T Mobility, T-Mobile, UScellular, Verizon)</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/catalog/6c1b2e73d9d749cdb7bc88a0d1bdd25b" target="_blank" rel="noreferrer"><code>6c1b2e73d9d749cdb7bc88a0d1bdd25b</code></a></div></div>
+        <div></div>
+      </article>
+    </div>
+  </section>
+</body>
+</html>

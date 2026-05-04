@@ -358,7 +358,13 @@ def write_arcgis_harvest_report(
 ) -> str:
     # Write a per-harvest-record report with current, new, and unpublished counts.
     today = time.strftime("%Y-%m-%d")
-    report_path = Path("outputs") / f"{today}_{Path(configured_report_csv).name}"
+    configured_report_path = Path(configured_report_csv)
+    report_dir = (
+        configured_report_path.parent
+        if configured_report_path.parent != Path(".")
+        else Path("reports/arcgis")
+    )
+    report_path = report_dir / f"{today}_{configured_report_path.name}"
     report_df = build_arcgis_harvest_report_dataframe(
         report_rows,
         Path(current_primary_csv),

@@ -9,6 +9,7 @@ output_dashboard_html: reports/harvest-task-dashboard.html
 output_due_dashboard_html: reports/harvest-task-dashboard-due.html
 output_retrospective_dashboard_html: reports/harvest-task-dashboard-retrospective.html
 output_workflow_dir: inputs/harvest-workflow-inputs
+arcgis_reports_dir: reports/arcgis
 dedicated_workflow_views:
   - py_arcgis_hub
 issue_repositories:

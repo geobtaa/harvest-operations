@@ -4,4 +4,4 @@ input_csv: inputs/harvest-workflow-inputs/py-arcgis-hub.csv
 hub_metadata_csv: reference_data/websites.csv
 output_primary_csv: outputs/arcgis_primary.csv
 output_distributions_csv: outputs/arcgis_distributions.csv
-output_report_csv: outputs/arcgis_report.csv
+output_report_csv: reports/arcgis/arcgis_report.csv

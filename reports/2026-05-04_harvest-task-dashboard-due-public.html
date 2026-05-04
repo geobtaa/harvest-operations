@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Harvest Tasks Due Now</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17324d;
+      --muted: #5b6b7d;
+      --line: #d7e1ec;
+      --line-strong: #bfd0e2;
+      --panel: #ffffff;
+      --panel-soft: #f6f9fc;
+      --bg: #eef3f8;
+      --accent: #1f6fb2;
+      --accent-soft: #dcecff;
+      --reviews: #0f766e;
+      --reviews-soft: #d8f3ee;
+      --due: #b42318;
+      --due-soft: #fee4e2;
+      --scheduled: #b76e00;
+      --scheduled-soft: #fff1d6;
+      --no-schedule: #667085;
+      --no-schedule-soft: #edf1f5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: "Segoe UI", sans-serif; line-height: 1.35; color: var(--ink); background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 0.4rem; }
+    h2 { margin-bottom: 0.9rem; }
+    h3 { margin-bottom: 0; font-size: 1rem; }
+    a { color: var(--accent); }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin: 1.25rem 0 1.5rem; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--accent); border-radius: 14px; padding: 0.8rem 0.9rem; box-shadow: 0 12px 30px rgba(23, 50, 77, 0.06); }
+    .card strong { display: block; margin-top: 0.2rem; font-size: 1.5rem; }
+    .card.card--reviews { border-top-color: var(--reviews); }
+    .card.card--due { border-top-color: var(--due); }
+    .card.card--scheduled { border-top-color: var(--scheduled); }
+    .card.card--no-schedule { border-top-color: var(--no-schedule); }
+    .due-section { margin-top: 1.6rem; }
+    .section-header { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.8rem; }
+    .section-pill { display: inline-flex; align-items: center; padding: 0.25rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.02em; }
+    .section-pill--reviews { color: var(--reviews); background: var(--reviews-soft); }
+    .section-pill--due { color: var(--due); background: var(--due-soft); }
+    .section-pill--scheduled { color: var(--scheduled); background: var(--scheduled-soft); }
+    .section-pill--no-schedule { color: var(--no-schedule); background: var(--no-schedule-soft); }
+    .workflow-block { margin: 0.9rem 0 1.15rem; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }
+    .workflow-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.75rem 0.95rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }
+    .workflow-meta { color: var(--muted); font-size: 0.82rem; }
+    .workflow-run-queue { margin: 1rem 0 1.5rem; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }
+    .workflow-run-queue > p { padding: 0 1rem 1rem; }
+    .workflow-run-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }
+    .workflow-run-header h2 { margin-bottom: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { padding: 0.55rem 0.7rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+    th { background: #f9fbfd; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:nth-child(even) { background: #fbfdff; }
+    .task-name { font-weight: 700; margin-bottom: 0.2rem; }
+    .task-meta, .timing-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }
+    .task-meta code, .timing-meta code, .muted code { background: var(--no-schedule-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .date-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; font-weight: 700; }
+    .status-pill { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .status-pill--reviews { color: var(--reviews); background: var(--reviews-soft); }
+    .status-pill--due { color: var(--due); background: var(--due-soft); }
+    .status-pill--scheduled { color: var(--scheduled); background: var(--scheduled-soft); }
+    .status-pill--no-schedule { color: var(--no-schedule); background: var(--no-schedule-soft); }
+    .website-name { font-weight: 600; }
+    .muted { color: var(--muted); }
+    code { background: var(--panel-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .actions { min-width: 170px; }
+    .action-link { display: inline-flex; align-items: center; margin: 0.1rem 0.3rem 0.1rem 0; padding: 0.34rem 0.62rem; border: 1px solid var(--line-strong); border-radius: 999px; text-decoration: none; color: var(--accent); background: #fff; font-size: 0.84rem; font-weight: 600; }
+    .action-link:hover { background: var(--accent-soft); border-color: var(--accent-soft); }
+    .source-box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 1rem; margin: 1rem 0 1.4rem; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }
+    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }
+    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .workflow-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } .actions { min-width: 0; padding-top: 0.25rem; } }
+  </style>
+</head>
+<body>
+  <h1>Harvest Tasks Due Now</h1>
+  <p class="muted">This view lists harvest and review tasks that are currently due.</p>
+  <p class="muted">Attached GitHub issues are shown when a task already has one.</p>
+  <div class="summary">
+    <div class="card">
+      <span>Total Tasks</span>
+      <strong>40</strong>
+    </div>
+    <div class="card card--reviews">
+      <span>Reviews due</span>
+      <strong>30</strong>
+    </div>
+    <div class="card card--due">
+      <span>Harvests due</span>
+      <strong>10</strong>
+    </div>
+  </div>
+  <section class="due-section section-pill--due">
+    <div class="section-header">
+      <h2>To be harvested (10)</h2>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>curation_datasets</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Urban Base Layers - Minneapolis</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22b1g_27_43000%22" target="_blank" rel="noreferrer"><code>b1g_27_43000</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2012-01-01</span></div><div class="timing-meta">Last harvested: 2011-01-01</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_ckan</h3>
+        <div class="workflow-meta">2 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Ann Arbor Data Catalog</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2207c-02%22" target="_blank" rel="noreferrer"><code>07c-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2026-05-04</span></div><div class="timing-meta">Last harvested: Not yet harvested</div><div class="timing-meta">Periodicity: Quarterly</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for City of Milwaukee Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210c-01%22" target="_blank" rel="noreferrer"><code>10c-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2026-05-04</span></div><div class="timing-meta">Last harvested: Not yet harvested</div><div class="timing-meta">Periodicity: Quarterly</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_hdx</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Humanitarian Data Exchange</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2299-1400%22" target="_blank" rel="noreferrer"><code>99-1400</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2026-04-30</span></div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Monthly</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_mncommons_ckan</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Minnesota Geospatial Commons</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205a-01%22" target="_blank" rel="noreferrer"><code>05a-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2026-04-16</span></div><div class="timing-meta">Last harvested: 2026-03-16</div><div class="timing-meta">Periodicity: Monthly</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_oaipmh</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for University of Iowa Digital Library: Atlases and Maps</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2203d-01%22" target="_blank" rel="noreferrer"><code>03d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2026-04-10</span></div><div class="timing-meta">Last harvested: 2025-09-16</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/16" target="_blank" rel="noreferrer">Open issue #16</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_pasda</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for PASDA: The Pennsylvania Geospatial Data Clearinghouse</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208a-01%22" target="_blank" rel="noreferrer"><code>08a-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2026-06-30</span></div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Quarterly</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_socrata</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Scan Socrata Sites</div><div class="task-meta">Geoportal link: <code>Not provided</code></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2026-04-30</span></div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Monthly</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>template_children</h3>
+        <div class="workflow-meta">2 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for SimplyAnalytics</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22999-0004%22" target="_blank" rel="noreferrer"><code>999-0004</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2021-11-18</span></div><div class="timing-meta">Last harvested: 2020-11-18</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for PolicyMap</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22999-0003%22" target="_blank" rel="noreferrer"><code>999-0003</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2022-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Annual</div></td>
+            <td class="actions" data-label="Actions"><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/8" target="_blank" rel="noreferrer">Open issue #8</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="due-section section-pill--reviews">
+    <div class="section-header">
+      <h2>To be reviewed (30)</h2>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_arcgis_online</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Hoosier Resilience Index: Indiana</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2201d-04%22" target="_blank" rel="noreferrer"><code>01d-04</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2022-10-21</span></div><div class="timing-meta">Last harvested: 2021-10-21</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_mods</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Michigan State University Libraries Maps</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2206d-01%22" target="_blank" rel="noreferrer"><code>06d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2026-05-04</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>py_oaipmh</h3>
+        <div class="workflow-meta">3 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for University of Maryland Digital Collections</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204d-01%22" target="_blank" rel="noreferrer"><code>04d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Maps of New Jersey</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2214d-01%22" target="_blank" rel="noreferrer"><code>14d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2024-08-17</span></div><div class="timing-meta">Last harvested: 2022-08-17</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Northwestern University Digital Collections</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2215d-01%22" target="_blank" rel="noreferrer"><code>15d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2025-02-28</span></div><div class="timing-meta">Last harvested: 2024-02-28</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>template_children</h3>
+        <div class="workflow-meta">11 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for University of Minnesota Digital Conservancy DRUM</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-03%22" target="_blank" rel="noreferrer"><code>05d-03</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2022-04-26</span></div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Social Explorer</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22999-0001%22" target="_blank" rel="noreferrer"><code>999-0001</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2022-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Purdue Campus Maps: West Lafayette, Indiana, 1890-2014</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2209d-02%22" target="_blank" rel="noreferrer"><code>09d-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2022-05-07</span></div><div class="timing-meta">Last harvested: 2021-05-07</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Minnesota Geological Survey County Atlas Series</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-04%22" target="_blank" rel="noreferrer"><code>05d-04</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-26</span></div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Digital Sanborn Maps (Black &amp; White) [All States] {1867-1970}</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22999-0011%22" target="_blank" rel="noreferrer"><code>999-0011</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Fire Insurance Maps Online (FIMo) [All States]</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22999-0010%22" target="_blank" rel="noreferrer"><code>999-0010</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Iowa parcels</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2203d-06%22" target="_blank" rel="noreferrer"><code>03d-06</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2024-01-01</span></div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for standalone resources</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%22r00_01%22" target="_blank" rel="noreferrer"><code>r00_01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2024-01-01</span></div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Dividing the City: Race-Restrictive Covenants in St. Louis and St. Louis County</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2203d-02%22" target="_blank" rel="noreferrer"><code>03d-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2025-05-11</span></div><div class="timing-meta">Last harvested: 2023-05-11</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Wabash River Historical Maps and Imagery</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2209d-01%22" target="_blank" rel="noreferrer"><code>09d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2026-05-04</span></div><div class="timing-meta">Last harvested: 2021-05-07</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for National Historical Geographic Information System (NHGIS)</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-10%22" target="_blank" rel="noreferrer"><code>05d-10</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2026-05-04</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>template_csv</h3>
+        <div class="workflow-meta">13 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Polar Geospatial Center</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-06%22" target="_blank" rel="noreferrer"><code>05d-06</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2022-04-26</span></div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Clark Library Scanned Maps</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2207d-01%22" target="_blank" rel="noreferrer"><code>07d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-16</span></div><div class="timing-meta">Last harvested: 2021-04-16</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Donald W. Hamer Center for Maps and Geospatial Information Digital Map Drawer of Penn State Rare Maps</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208d-01%22" target="_blank" rel="noreferrer"><code>08d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Early Modern Maps of the Americas</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212d-02%22" target="_blank" rel="noreferrer"><code>12d-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Sanborn Maps: Pennsylvania, 1884-1938</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2208d-02%22" target="_blank" rel="noreferrer"><code>08d-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Social Scientists Map Chicago Collection</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212d-01%22" target="_blank" rel="noreferrer"><code>12d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Minnesota Natural Resource Atlas</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-11%22" target="_blank" rel="noreferrer"><code>05d-11</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-05-20</span></div><div class="timing-meta">Last harvested: 2022-05-20</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for University of Iowa Campus Map Features</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2203d-04%22" target="_blank" rel="noreferrer"><code>03d-04</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2023-09-25</span></div><div class="timing-meta">Last harvested: 2021-09-25</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Geology Library and Map Room: The Ohio State University</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211d-02%22" target="_blank" rel="noreferrer"><code>11d-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2024-06-10</span></div><div class="timing-meta">Last harvested: 2022-06-10</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Center for Ancient Middle Eastern Landscapes, Institute for the Study of Ancient Cultures, University of Chicago</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212d-04%22" target="_blank" rel="noreferrer"><code>12d-04</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2025-01-01</span></div><div class="timing-meta">Last harvested: 2024-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for Indiana Sanborn Maps</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2201d-05%22" target="_blank" rel="noreferrer"><code>01d-05</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2025-03-07</span></div><div class="timing-meta">Last harvested: 2024-03-07</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for New Jersey Farmland Preservation Program Maps</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2214a-03%22" target="_blank" rel="noreferrer"><code>14a-03</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2025-03-13</span></div><div class="timing-meta">Last harvested: 2023-03-13</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for GeoDa Data and Lab</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212d-05%22" target="_blank" rel="noreferrer"><code>12d-05</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2026-03-01</span></div><div class="timing-meta">Last harvested: 2024-03-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>template_json</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Harvest record for University of Maryland: U.S. Government Information, Maps, &amp; GIS Services</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204d-02%22" target="_blank" rel="noreferrer"><code>04d-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--reviews">Review Due</span><span>2025-01-01</span></div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
+            <td class="actions" data-label="Actions"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</body>
+</html>
