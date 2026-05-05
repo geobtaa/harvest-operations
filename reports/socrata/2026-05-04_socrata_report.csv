@@ -1,0 +1,10 @@
+Code,Title,Identifier,Harvest Run,Harvest Message,Total Records Found,New Records,Unpublished Records
+01c-01,"Harvest record for City of Bloomington, Indiana Open Data Portal",01c-01,success,"[Socrata] Fetched 01c-01 — City of Bloomington, Indiana Open Data Portal",278,0,0
+12c-01,Harvest record for City of Chicago Data Portal,12c-01,success,[Socrata] Fetched 12c-01 — City of Chicago Data Portal,1108,0,0
+12b-17031-2,Harvest record for Cook County Open Data,12b-17031-2,success,[Socrata] Fetched 12b-17031-2 — Cook County Open Data,621,0,0
+04b-24027,Howard County Open Data,04b-24027,success,[Socrata] Fetched 04b-24027 — Howard County Open Data,582,0,0
+02b-17117,Macoupin Data,02b-17117,success,[Socrata] Fetched 02b-17117 — Macoupin Data,46,0,0
+11c-01,"Open Data Cincinnati, Ohio",11c-01,success,"[Socrata] Fetched 11c-01 — Open Data Cincinnati, Ohio",155,0,0
+04b-24033,Prince George's County Open Data Portal,04b-24033,success,[Socrata] Fetched 04b-24033 — Prince George's County Open Data Portal,68,0,0
+02a-03,State of Illinois Data Portal,02a-03,success,[Socrata] Fetched 02a-03 — State of Illinois Data Portal,392,0,0
+TOTAL,,,success: 8; error: 0,,3250,0,0

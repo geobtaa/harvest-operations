@@ -22,6 +22,73 @@ def read_csv_rows(csv_path: str) -> list[dict]:
         return list(csv.DictReader(handle))
 
 
+def required_config_path(config: dict, key: str, source_label: str = "Harvester") -> str:
+    """Read a required path from harvester config without embedding path defaults in code."""
+    value = str(config.get(key, "")).strip()
+    if not value:
+        raise ValueError(f"[{source_label}] Missing required config value: {key}")
+    return value
+
+
+def normalize_lookup_key(value: str) -> str:
+    """Normalize row identifiers so workflow records and website defaults can be matched."""
+    return str(value or "").strip().lower()
+
+
+def lookup_keys_for_row(row: dict) -> list[str]:
+    """Generate candidate lookup keys from the row's code, identifier, and id values."""
+    keys = []
+    for raw_value in (
+        row.get("Code", ""),
+        row.get("Identifier", ""),
+        row.get("ID", ""),
+    ):
+        normalized = normalize_lookup_key(raw_value)
+        if not normalized:
+            continue
+        keys.append(normalized)
+        if normalized.startswith("harvest_"):
+            keys.append(normalized.removeprefix("harvest_"))
+
+    seen = set()
+    ordered_keys = []
+    for key in keys:
+        if key not in seen:
+            seen.add(key)
+            ordered_keys.append(key)
+    return ordered_keys
+
+
+def load_metadata_lookup(metadata_path: str) -> dict[str, dict]:
+    """Build a metadata lookup keyed by known row identifiers."""
+    lookup = {}
+    for row in read_csv_rows(metadata_path):
+        for key in lookup_keys_for_row(row):
+            lookup[key] = row
+    return lookup
+
+
+def match_metadata_defaults(source_record: dict, metadata_lookup: dict[str, dict]) -> dict:
+    """Retrieve the metadata defaults row that corresponds to a workflow record."""
+    for key in lookup_keys_for_row(source_record):
+        matched_row = metadata_lookup.get(key)
+        if matched_row:
+            return matched_row.copy()
+    return {}
+
+
+def build_updated_harvest_record_rows(workflow_input_path: str, today: str):
+    """Append workflow input rows as-is, updating only Last Harvested for this run."""
+    import pandas as pd
+
+    harvest_record_df = pd.DataFrame(read_csv_rows(workflow_input_path))
+    if harvest_record_df.empty:
+        return harvest_record_df
+
+    harvest_record_df["Last Harvested"] = today
+    return harvest_record_df
+
+
 def resolve_dated_path(configured_path: str) -> str:
     """Resolve a dated path template, falling back to the latest matching file."""
     configured_path = str(configured_path or "").strip()

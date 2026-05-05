@@ -171,6 +171,34 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
             },
         ]
     ).to_csv(outputs_dir / "2026-03-30_arcgis_report.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "Code": "07a-01",
+                "Identifier": "site-2",
+                "Harvest Run": "success",
+                "Total Records Found": "7",
+                "New Records": "2",
+                "Unpublished Records": "0",
+            },
+            {
+                "Code": "99z-01",
+                "Identifier": "site-4",
+                "Harvest Run": "success",
+                "Total Records Found": "11",
+                "New Records": "1",
+                "Unpublished Records": "1",
+            },
+            {
+                "Code": "TOTAL",
+                "Identifier": "",
+                "Harvest Run": "success: 2; error: 0",
+                "Total Records Found": "18",
+                "New Records": "3",
+                "Unpublished Records": "1",
+            },
+        ]
+    ).to_csv(outputs_dir / "2026-03-30_socrata_report.csv", index=False)
 
     job = HarvestTaskDashboardJob(
         {
@@ -186,6 +214,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
             ),
             "output_workflow_dir": str(outputs_dir / "harvest-workflow-inputs"),
             "arcgis_reports_dir": str(outputs_dir),
+            "socrata_reports_dir": str(outputs_dir),
             "issue_repositories": [
                 {
                     "name": "harvest-operations",
@@ -247,11 +276,19 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     arcgis_dashboard_output_html = Path(
         dedicated_dashboard_outputs["py_arcgis_hub"]
     ).read_text(encoding="utf-8")
+    socrata_dashboard_output_html = Path(
+        dedicated_dashboard_outputs["py_socrata"]
+    ).read_text(encoding="utf-8")
     public_arcgis_dashboard_output_html = Path(
         public_dedicated_dashboard_outputs["py_arcgis_hub"]
     ).read_text(encoding="utf-8")
+    public_socrata_dashboard_output_html = Path(
+        public_dedicated_dashboard_outputs["py_socrata"]
+    ).read_text(encoding="utf-8")
     arcgis_dashboard_html = job.render_dashboard_view(workflow="py_arcgis_hub")
     public_arcgis_dashboard_html = job.render_dashboard_view(workflow="py_arcgis_hub", public=True)
+    socrata_dashboard_html = job.render_dashboard_view(workflow="py_socrata")
+    public_socrata_dashboard_html = job.render_dashboard_view(workflow="py_socrata", public=True)
     records_view_html = job.render_dashboard_view(report_type="records")
     public_records_view_html = job.render_dashboard_view(report_type="records", public=True)
     institution_view_html = job.render_dashboard_view(report_type="institutions")
@@ -271,6 +308,10 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     arcgis_retrospective_html = job.render_dashboard_view(
         report_type="retrospective",
         workflow="py_arcgis_hub",
+    )
+    socrata_retrospective_html = job.render_dashboard_view(
+        report_type="retrospective",
+        workflow="py_socrata",
     )
     workflow_queue = job.build_workflow_queue()
 
@@ -297,12 +338,12 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert geology_index["Due Status"] == "No Schedule"
 
     assert "2026-03-30" in dashboard_html
-    assert "Scan Socrata Sites" in dashboard_html
-    assert "To be harvested (2)" in dashboard_html
+    assert "Scan Socrata Sites" not in dashboard_html
+    assert "To be harvested (1)" in dashboard_html
     assert "To be reviewed (1)" in dashboard_html
     assert "Geology Index" in dashboard_html
-    assert "py_socrata" in dashboard_html
-    assert "https://geo.btaa.org/admin/documents?f%5Bb1g_websitePlatform_s%5D%5B%5D=Socrata&amp;f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&amp;rows=20&amp;sort=score+desc" in dashboard_html
+    assert "py_socrata" not in dashboard_html
+    assert "https://geo.btaa.org/admin/documents?f%5Bb1g_websitePlatform_s%5D%5B%5D=Socrata&amp;f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&amp;rows=20&amp;sort=score+desc" not in dashboard_html
     assert "https://geo.btaa.org/admin/documents/site-5/edit" in dashboard_html
     assert "https://github.com/geobtaa/harvest-operations/issues/new" in dashboard_html
     assert "template=harvest-task.md" in dashboard_html
@@ -348,8 +389,9 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "https://geo.btaa.org/admin/documents/site-5/edit" not in records_dashboard_html
     assert "Create issue" not in records_dashboard_html
     assert "Get Latest Source CSVs" not in records_dashboard_html
-    assert records_dashboard_html.index("Parcel Fabric") < records_dashboard_html.index("Transit Stops")
-    assert records_dashboard_html.index("Transit Stops") < records_dashboard_html.index("Building Permits")
+    assert records_dashboard_html.index("Parcel Fabric") < records_dashboard_html.index("Geology Index")
+    assert "Transit Stops" not in records_dashboard_html
+    assert "Building Permits" not in records_dashboard_html
     assert "Harvest Records by Institution" in institution_dashboard_html
     assert "Get Latest Source CSVs" not in institution_dashboard_html
     assert "Table of Contents" in institution_dashboard_html
@@ -404,20 +446,30 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Harvests due" in due_dashboard_html
     assert "Scheduled" not in due_dashboard_html
     assert "No Schedule" not in due_dashboard_html
-    assert "Scan Socrata Sites" in due_dashboard_html
+    assert "Scan Socrata Sites" not in due_dashboard_html
     assert "Parcel Fabric" not in due_dashboard_html
     assert "Geology Index" not in due_dashboard_html
     assert "Harvest Task Retrospective" in retrospective_dashboard_html
     assert "Get Latest Source CSVs" not in retrospective_dashboard_html
     assert "ArcGIS Hubs Harvest Report - 2026-03-30" in retrospective_dashboard_html
+    assert "Socrata Harvest Report - 2026-03-30" in retrospective_dashboard_html
     assert ">Harvest</span>" in retrospective_dashboard_html
     assert 'href="/reports/2026-03-30_harvest-task-dashboard-py-arcgis-hub.html"' in (
+        retrospective_dashboard_html
+    )
+    assert 'href="/reports/2026-03-30_harvest-task-dashboard-py-socrata.html"' in (
         retrospective_dashboard_html
     )
     assert "Total Records Found: 39; New Records: 9; Unpublished Records: 2" in (
         retrospective_dashboard_html
     )
+    assert "Total Records Found: 18; New Records: 3; Unpublished Records: 1" in (
+        retrospective_dashboard_html
+    )
     assert 'href="/harvest-operations/2026-03-30/workflows/py-arcgis-hub/"' in (
+        public_retrospective_dashboard_html
+    )
+    assert 'href="/harvest-operations/2026-03-30/workflows/py-socrata/"' in (
         public_retrospective_dashboard_html
     )
     assert "/reports/2026-03-30_harvest-task-dashboard-py-arcgis-hub-public.html" not in (
@@ -426,12 +478,17 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Scan ArcGIS Hubs" not in dashboard_html
     assert "py_arcgis_hub" not in dashboard_html
     assert "Scan ArcGIS Hubs" not in due_dashboard_html
+    assert "Scan Socrata Sites" not in due_dashboard_html
     assert "py_arcgis_hub" in retrospective_dashboard_html
+    assert "py_socrata" in retrospective_dashboard_html
 
-    assert set(dedicated_dashboard_outputs) == {"py_arcgis_hub"}
-    assert set(public_dedicated_dashboard_outputs) == {"py_arcgis_hub"}
+    assert set(dedicated_dashboard_outputs) == {"py_arcgis_hub", "py_socrata"}
+    assert set(public_dedicated_dashboard_outputs) == {"py_arcgis_hub", "py_socrata"}
     assert Path(dedicated_dashboard_outputs["py_arcgis_hub"]).name == (
         "2026-03-30_harvest-task-dashboard-py-arcgis-hub.html"
+    )
+    assert Path(dedicated_dashboard_outputs["py_socrata"]).name == (
+        "2026-03-30_harvest-task-dashboard-py-socrata.html"
     )
     assert Path(results["records_dashboard_html"]).name == (
         "2026-03-30_harvest-task-dashboard-records.html"
@@ -454,8 +511,13 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert Path(public_dedicated_dashboard_outputs["py_arcgis_hub"]).name == (
         "2026-03-30_harvest-task-dashboard-py-arcgis-hub-public.html"
     )
+    assert Path(public_dedicated_dashboard_outputs["py_socrata"]).name == (
+        "2026-03-30_harvest-task-dashboard-py-socrata-public.html"
+    )
     assert arcgis_dashboard_output_html == arcgis_dashboard_html
     assert public_arcgis_dashboard_output_html == public_arcgis_dashboard_html
+    assert socrata_dashboard_output_html == socrata_dashboard_html
+    assert public_socrata_dashboard_output_html == public_socrata_dashboard_html
     assert "ArcGIS Hubs Harvest Report - 2026-03-30" in arcgis_dashboard_html
     assert "Get Latest Source CSVs" not in arcgis_dashboard_html
     assert "Harvest report date" in arcgis_dashboard_html
@@ -485,9 +547,22 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Road Centerlines" in arcgis_dashboard_html
     assert "Scan Socrata Sites" not in arcgis_dashboard_html
     assert "https://example.com/arcgis" not in arcgis_dashboard_html
+    assert "Socrata Harvest Report - 2026-03-30" in socrata_dashboard_html
+    assert "Socrata Harvest Results" in socrata_dashboard_html
+    assert "Transit Stops" in socrata_dashboard_html
+    assert "Building Permits" in socrata_dashboard_html
+    assert '<td class="number-cell" data-label="Total Records Found">18</td>' in (
+        socrata_dashboard_html
+    )
+    assert '<td class="number-cell" data-label="New Records">3</td>' in socrata_dashboard_html
+    assert '<td class="number-cell" data-label="Unpublished Records">1</td>' in (
+        socrata_dashboard_html
+    )
+    assert "County Parcels" not in socrata_dashboard_html
 
     assert arcgis_due_dashboard_html == arcgis_dashboard_html
     assert arcgis_retrospective_html == arcgis_dashboard_html
+    assert socrata_retrospective_html == socrata_dashboard_html
 
     assert workflow_queue["harvest_queue_count"] == 3
     assert workflow_queue["harvest_due_count"] == 2

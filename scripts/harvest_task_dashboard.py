@@ -90,7 +90,7 @@ HARVEST_WORKFLOW_STATIC_PAGES = {
     },
 }
 
-DEFAULT_DEDICATED_WORKFLOW_VIEWS = ("py_arcgis_hub",)
+DEFAULT_DEDICATED_WORKFLOW_VIEWS = ("py_arcgis_hub", "py_socrata")
 ISSUE_TASK_MARKER_PREFIX = "harvest-task-key"
 DEFAULT_STANDALONE_ISSUE_TEMPLATE = "standalone-website.md"
 PUBLIC_REPORT_SUFFIX = "-public"
@@ -100,14 +100,32 @@ DEFAULT_GEO_API_TIMEOUT_SECONDS = 10
 GEO_API_FACET_PAGE_SIZE = 100
 OTHER_INSTITUTION_LABEL = "Other"
 DEFAULT_ARCGIS_REPORTS_DIR = "reports/arcgis"
+DEFAULT_SOCRATA_REPORTS_DIR = "reports/socrata"
 DEFAULT_PUBLIC_DASHBOARD_SITE_BASE_PATH = "/harvest-operations"
 ARCGIS_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_arcgis_report\.csv$")
+SOCRATA_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_socrata_report\.csv$")
 ARCGIS_REPORT_NUMBER_COLUMNS = (
     "Total Records Found",
     "New Records",
     "Unpublished Records",
 )
 ARCGIS_REPORT_STATUS_COLUMNS = ("Harvest Run", "Harvest Message")
+HARVEST_REPORT_WORKFLOW_CONFIG = {
+    "py_arcgis_hub": {
+        "title": "ArcGIS Hubs Harvest Report",
+        "results_heading": "ArcGIS Hub Harvest Results",
+        "current_heading": "Currently Harvested ArcGIS Hubs",
+        "empty_message": "No ArcGIS Hub harvest records were found in the input file.",
+        "description": "This report summarizes the ArcGIS Hub harvest run for the date shown below.",
+    },
+    "py_socrata": {
+        "title": "Socrata Harvest Report",
+        "results_heading": "Socrata Harvest Results",
+        "current_heading": "Currently Harvested Socrata Sites",
+        "empty_message": "No Socrata harvest records were found in the input file.",
+        "description": "This report summarizes the Socrata harvest run for the date shown below.",
+    },
+}
 
 
 class HarvestTaskDashboardJob:
@@ -195,6 +213,9 @@ class HarvestTaskDashboardJob:
         self.arcgis_reports_dir = Path(
             config.get("arcgis_reports_dir", DEFAULT_ARCGIS_REPORTS_DIR)
         )
+        self.socrata_reports_dir = Path(
+            config.get("socrata_reports_dir", DEFAULT_SOCRATA_REPORTS_DIR)
+        )
         self.public_dashboard_site_base_path = (
             self._clean_value(
                 config.get(
@@ -241,6 +262,7 @@ class HarvestTaskDashboardJob:
         self._geoportal_code_counts_loaded = False
         self._geoportal_code_counts_available = False
         self._latest_arcgis_report_cache: pd.DataFrame | None = None
+        self._latest_socrata_report_cache: pd.DataFrame | None = None
 
     def harvest_pipeline(self) -> dict[str, Any]:
         harvest_df = self._load_csv(self.harvest_records_path)
@@ -1425,21 +1447,25 @@ class HarvestTaskDashboardJob:
     ) -> str:
         workflow_name = self._clean_value(workflow) or "unspecified"
         workflow_label = self._workflow_view_label(workflow_name)
-        is_arcgis_report = workflow_name == "py_arcgis_hub"
+        is_harvest_report = self._is_harvest_report_workflow(workflow_name)
         last_run = (
-            self._latest_arcgis_report_date()
-            if is_arcgis_report
+            self._latest_harvest_report_date(workflow_name)
+            if is_harvest_report
             else self._latest_harvest_date(harvest_df)
         )
         page_title = (
-            f"{workflow_label} Harvest Report - {last_run or 'Unknown date'}"
-            if is_arcgis_report
+            f"{self._harvest_report_title(workflow_name)} - {last_run or 'Unknown date'}"
+            if is_harvest_report
             else f"{workflow_label} Harvest Overview"
         )
         current_records = self._prepare_harvest_record_view(harvest_df)
-        if is_arcgis_report:
-            current_records = self._attach_arcgis_report_numbers(current_records)
-        report_totals = self._arcgis_report_totals(current_records) if is_arcgis_report else {}
+        if is_harvest_report:
+            current_records = self._attach_harvest_report_numbers(current_records, workflow_name)
+        report_totals = (
+            self._harvest_report_totals(current_records, workflow_name)
+            if is_harvest_report
+            else {}
+        )
 
         html_parts = [
             "<!DOCTYPE html>",
@@ -1504,11 +1530,11 @@ class HarvestTaskDashboardJob:
 
         if not embedded:
             subtitle = (
-                "This report summarizes the ArcGIS Hub harvest run for the date shown below."
-                if is_arcgis_report
+                self._harvest_report_description(workflow_name)
+                if is_harvest_report
                 else (
                     f"Generated from <code>{escape(str(self.harvest_records_path))}</code>. "
-                    "This view combines the current workflow status with the active ArcGIS Hub harvest record list."
+                    f"This view combines the current workflow status with the active {escape(workflow_label)} harvest record list."
                 )
             )
             html_parts.extend(
@@ -1521,12 +1547,12 @@ class HarvestTaskDashboardJob:
         html_parts.extend(
             [
                 "  <div class=\"status-box\">",
-                f"    <span class=\"status-label\">{'Harvest report date' if is_arcgis_report else 'Last time the process was run'}</span>",
+                f"    <span class=\"status-label\">{'Harvest report date' if is_harvest_report else 'Last time the process was run'}</span>",
                 f"    <strong class=\"status-value\">{escape(last_run or 'Unknown')}</strong>",
                 "  </div>",
                 "  <section class=\"section-box\">",
                 "    <div class=\"section-header\">",
-                f"      <h2>{'ArcGIS Hub Harvest Results' if is_arcgis_report else 'Currently Harvested ArcGIS Hubs'}</h2>",
+                f"      <h2>{escape(self._harvest_report_results_heading(workflow_name) if is_harvest_report else self._current_harvest_heading(workflow_name))}</h2>",
                 f"      <div class=\"section-meta\">{len(current_records)} record{'s' if len(current_records) != 1 else ''}</div>",
                 "    </div>",
             ]
@@ -1535,7 +1561,7 @@ class HarvestTaskDashboardJob:
         if current_records.empty:
             html_parts.extend(
                 [
-                    "    <div style=\"padding: 1rem;\">No ArcGIS Hub harvest records were found in the input file.</div>",
+                    f"    <div style=\"padding: 1rem;\">{escape(self._harvest_report_empty_message(workflow_name))}</div>",
                     "  </section>",
                     "</body>",
                     "</html>",
@@ -1559,15 +1585,15 @@ class HarvestTaskDashboardJob:
             ]
         )
         for _, row in current_records.iterrows():
-            row_class = ' class="report-error"' if self._is_arcgis_report_error(row) else ""
+            row_class = ' class="report-error"' if self._is_harvest_report_error(row) else ""
             html_parts.extend(
                 [
                     f"        <tr{row_class}>",
                     f"          <td data-label=\"Harvest Record\">{self._render_task_cell(row, public=public)}</td>",
-                    f"          <td data-label=\"Harvest Run\">{self._render_arcgis_report_status_cell(row)}</td>",
-                    f"          <td class=\"number-cell\" data-label=\"Total Records Found\">{self._render_arcgis_report_number_cell(row, 'Total Records Found')}</td>",
-                    f"          <td class=\"number-cell\" data-label=\"New Records\">{self._render_arcgis_report_number_cell(row, 'New Records')}</td>",
-                    f"          <td class=\"number-cell\" data-label=\"Unpublished Records\">{self._render_arcgis_report_number_cell(row, 'Unpublished Records')}</td>",
+                    f"          <td data-label=\"Harvest Run\">{self._render_harvest_report_status_cell(row)}</td>",
+                    f"          <td class=\"number-cell\" data-label=\"Total Records Found\">{self._render_harvest_report_number_cell(row, 'Total Records Found')}</td>",
+                    f"          <td class=\"number-cell\" data-label=\"New Records\">{self._render_harvest_report_number_cell(row, 'New Records')}</td>",
+                    f"          <td class=\"number-cell\" data-label=\"Unpublished Records\">{self._render_harvest_report_number_cell(row, 'Unpublished Records')}</td>",
                     "        </tr>",
                 ]
             )
@@ -1578,9 +1604,9 @@ class HarvestTaskDashboardJob:
                 "        <tr>",
                 "          <th scope=\"row\">Total</th>",
                 "          <td></td>",
-                f"          <td class=\"number-cell\" data-label=\"Total Records Found\">{self._render_arcgis_report_number_cell(report_totals, 'Total Records Found')}</td>",
-                f"          <td class=\"number-cell\" data-label=\"New Records\">{self._render_arcgis_report_number_cell(report_totals, 'New Records')}</td>",
-                f"          <td class=\"number-cell\" data-label=\"Unpublished Records\">{self._render_arcgis_report_number_cell(report_totals, 'Unpublished Records')}</td>",
+                f"          <td class=\"number-cell\" data-label=\"Total Records Found\">{self._render_harvest_report_number_cell(report_totals, 'Total Records Found')}</td>",
+                f"          <td class=\"number-cell\" data-label=\"New Records\">{self._render_harvest_report_number_cell(report_totals, 'New Records')}</td>",
+                f"          <td class=\"number-cell\" data-label=\"Unpublished Records\">{self._render_harvest_report_number_cell(report_totals, 'Unpublished Records')}</td>",
                 "        </tr>",
                 "      </tfoot>",
                 "    </table>",
@@ -1823,23 +1849,29 @@ class HarvestTaskDashboardJob:
         return code_counts
 
     def _build_arcgis_retrospective_rows(self) -> list[dict[str, str]]:
+        return self._build_harvest_report_retrospective_rows("py_arcgis_hub")
+
+    def _build_harvest_report_retrospective_rows(self, workflow: str) -> list[dict[str, str]]:
+        workflow_name = self._clean_value(workflow)
         action_rows: list[dict[str, str]] = []
-        for report_date, report_path in self._arcgis_report_paths():
-            totals = self._arcgis_report_totals_for_path(report_path)
+        for report_date, report_path in self._harvest_report_paths(workflow_name):
+            totals = self._harvest_report_totals_for_path(report_path)
+            report_date_string = report_date.strftime("%Y-%m-%d")
             action_rows.append(
                 {
                     "Action Month": report_date.strftime("%B %Y"),
-                    "Action Date": report_date.strftime("%Y-%m-%d"),
+                    "Action Date": report_date_string,
                     "Type": "Harvest",
-                    "Title": f"ArcGIS Hubs Harvest Report - {report_date.strftime('%Y-%m-%d')}",
+                    "Title": f"{self._harvest_report_title(workflow_name)} - {report_date_string}",
                     "ID": "",
                     "Identifier": "",
                     "Code": "",
-                    "Harvest Workflow": "py_arcgis_hub",
-                    "Details": self._arcgis_report_totals_details(totals),
-                    "Report Href": self._arcgis_report_href(report_date.strftime("%Y-%m-%d")),
-                    "Public Report Href": self._arcgis_report_href(
-                        report_date.strftime("%Y-%m-%d"),
+                    "Harvest Workflow": workflow_name,
+                    "Details": self._harvest_report_totals_details(totals),
+                    "Report Href": self._harvest_report_href(workflow_name, report_date_string),
+                    "Public Report Href": self._harvest_report_href(
+                        workflow_name,
+                        report_date_string,
                         public=True,
                     ),
                 }
@@ -1861,7 +1893,9 @@ class HarvestTaskDashboardJob:
             "Public Report Href",
         ]
 
-        action_rows: list[dict[str, str]] = self._build_arcgis_retrospective_rows()
+        action_rows: list[dict[str, str]] = []
+        for workflow_name in HARVEST_REPORT_WORKFLOW_CONFIG:
+            action_rows.extend(self._build_harvest_report_retrospective_rows(workflow_name))
 
         if not harvest_df.empty:
             working_df = harvest_df.copy()
@@ -2411,27 +2445,40 @@ class HarvestTaskDashboardJob:
         row: pd.Series | dict[str, Any],
         column: str,
     ) -> str:
+        return self._render_harvest_report_number_cell(row, column)
+
+    def _render_harvest_report_number_cell(
+        self,
+        row: pd.Series | dict[str, Any],
+        column: str,
+    ) -> str:
         value = self._clean_value(row.get(column, ""))
         if not value:
             return '<span class="detail-meta">Not available</span>'
         return escape(value)
 
     def _render_arcgis_report_status_cell(self, row: pd.Series | dict[str, Any]) -> str:
+        return self._render_harvest_report_status_cell(row)
+
+    def _render_harvest_report_status_cell(self, row: pd.Series | dict[str, Any]) -> str:
         run_status = self._clean_value(row.get("Harvest Run", "")) or "unknown"
         run_message = self._clean_value(row.get("Harvest Message", ""))
         pill_class = (
             "run-pill--error"
-            if self._is_arcgis_report_error(row)
+            if self._is_harvest_report_error(row)
             else "run-pill--success" if run_status.lower() == "success" else "run-pill--unknown"
         )
         parts = [
             f'<span class="run-pill {pill_class}">{escape(run_status)}</span>',
         ]
-        if run_message and self._is_arcgis_report_error(row):
+        if run_message and self._is_harvest_report_error(row):
             parts.append(f'<div class="detail-meta">{escape(run_message)}</div>')
         return "".join(parts)
 
     def _is_arcgis_report_error(self, row: pd.Series | dict[str, Any]) -> bool:
+        return self._is_harvest_report_error(row)
+
+    def _is_harvest_report_error(self, row: pd.Series | dict[str, Any]) -> bool:
         return self._clean_value(row.get("Harvest Run", "")).lower() == "error"
 
     def _retrospective_pill_class(self, action_type: str) -> str:
@@ -3567,18 +3614,25 @@ class HarvestTaskDashboardJob:
         return working_df.drop(columns=["__last_harvested_sort", "__display_name"])
 
     def _attach_arcgis_report_numbers(self, harvest_df: pd.DataFrame) -> pd.DataFrame:
+        return self._attach_harvest_report_numbers(harvest_df, "py_arcgis_hub")
+
+    def _attach_harvest_report_numbers(
+        self,
+        harvest_df: pd.DataFrame,
+        workflow: str,
+    ) -> pd.DataFrame:
         working_df = harvest_df.copy()
         self._ensure_columns(
             working_df,
             ["Code", "Identifier", "ID", *ARCGIS_REPORT_NUMBER_COLUMNS, *ARCGIS_REPORT_STATUS_COLUMNS],
         )
-        report_df = self._load_latest_arcgis_report()
+        report_df = self._load_latest_harvest_report(workflow)
         if report_df.empty:
             return working_df
 
-        report_lookup = self._arcgis_report_lookup(report_df)
+        report_lookup = self._harvest_report_lookup(report_df)
         for index, row in working_df.iterrows():
-            metrics = self._arcgis_report_metrics_for_row(row, report_lookup)
+            metrics = self._harvest_report_metrics_for_row(row, report_lookup)
             if not metrics:
                 continue
             for column in (*ARCGIS_REPORT_NUMBER_COLUMNS, *ARCGIS_REPORT_STATUS_COLUMNS):
@@ -3586,13 +3640,20 @@ class HarvestTaskDashboardJob:
         return working_df
 
     def _load_latest_arcgis_report(self) -> pd.DataFrame:
-        if self._latest_arcgis_report_cache is not None:
-            return self._latest_arcgis_report_cache.copy()
+        return self._load_latest_harvest_report("py_arcgis_hub")
 
-        report_path = self._latest_arcgis_report_path()
-        if report_path is None:
-            self._latest_arcgis_report_cache = pd.DataFrame()
+    def _load_latest_harvest_report(self, workflow: str) -> pd.DataFrame:
+        workflow_name = self._clean_value(workflow)
+        if workflow_name == "py_arcgis_hub" and self._latest_arcgis_report_cache is not None:
             return self._latest_arcgis_report_cache.copy()
+        if workflow_name == "py_socrata" and self._latest_socrata_report_cache is not None:
+            return self._latest_socrata_report_cache.copy()
+
+        report_path = self._latest_harvest_report_path(workflow_name)
+        if report_path is None:
+            report_df = pd.DataFrame()
+            self._set_latest_harvest_report_cache(workflow_name, report_df)
+            return report_df.copy()
 
         report_df = self._load_csv(report_path)
         self._ensure_columns(
@@ -3602,13 +3663,27 @@ class HarvestTaskDashboardJob:
         report_df = report_df.loc[
             report_df["Code"].map(self._clean_value).str.upper() != "TOTAL"
         ].copy()
-        self._latest_arcgis_report_cache = report_df
+        self._set_latest_harvest_report_cache(workflow_name, report_df)
         return report_df.copy()
 
+    def _set_latest_harvest_report_cache(self, workflow: str, report_df: pd.DataFrame) -> None:
+        workflow_name = self._clean_value(workflow)
+        if workflow_name == "py_arcgis_hub":
+            self._latest_arcgis_report_cache = report_df
+        elif workflow_name == "py_socrata":
+            self._latest_socrata_report_cache = report_df
+
     def _arcgis_report_totals(self, harvest_df: pd.DataFrame) -> dict[str, str]:
-        report_path = self._latest_arcgis_report_path()
+        return self._harvest_report_totals(harvest_df, "py_arcgis_hub")
+
+    def _harvest_report_totals(
+        self,
+        harvest_df: pd.DataFrame,
+        workflow: str,
+    ) -> dict[str, str]:
+        report_path = self._latest_harvest_report_path(workflow)
         if report_path is not None:
-            totals = self._arcgis_report_totals_for_path(report_path)
+            totals = self._harvest_report_totals_for_path(report_path)
             if any(totals.values()):
                 return totals
 
@@ -3619,18 +3694,27 @@ class HarvestTaskDashboardJob:
         return totals
 
     def _latest_arcgis_report_path(self) -> Path | None:
-        candidates = self._arcgis_report_paths()
+        return self._latest_harvest_report_path("py_arcgis_hub")
+
+    def _latest_harvest_report_path(self, workflow: str) -> Path | None:
+        candidates = self._harvest_report_paths(workflow)
         if not candidates:
             return None
         return max(candidates, key=lambda item: (item[0], item[1].name))[1]
 
     def _arcgis_report_paths(self) -> list[tuple[pd.Timestamp, Path]]:
-        if not self.arcgis_reports_dir.exists():
+        return self._harvest_report_paths("py_arcgis_hub")
+
+    def _harvest_report_paths(self, workflow: str) -> list[tuple[pd.Timestamp, Path]]:
+        workflow_name = self._clean_value(workflow)
+        reports_dir = self._harvest_reports_dir(workflow_name)
+        filename_pattern = self._harvest_report_filename_pattern(workflow_name)
+        if reports_dir is None or filename_pattern is None or not reports_dir.exists():
             return []
 
         candidates: list[tuple[pd.Timestamp, Path]] = []
-        for report_path in self.arcgis_reports_dir.glob("*_arcgis_report.csv"):
-            match = ARCGIS_REPORT_FILENAME_PATTERN.match(report_path.name)
+        for report_path in reports_dir.glob("*.csv"):
+            match = filename_pattern.match(report_path.name)
             if match is None:
                 continue
             report_date = pd.to_datetime(match.group(1), errors="coerce")
@@ -3640,6 +3724,9 @@ class HarvestTaskDashboardJob:
         return sorted(candidates, key=lambda item: (item[0], item[1].name), reverse=True)
 
     def _arcgis_report_totals_for_path(self, report_path: Path) -> dict[str, str]:
+        return self._harvest_report_totals_for_path(report_path)
+
+    def _harvest_report_totals_for_path(self, report_path: Path) -> dict[str, str]:
         report_df = self._load_csv(report_path)
         self._ensure_columns(report_df, ["Code", *ARCGIS_REPORT_NUMBER_COLUMNS])
         total_rows = report_df.loc[
@@ -3662,13 +3749,19 @@ class HarvestTaskDashboardJob:
         return totals
 
     def _arcgis_report_totals_details(self, totals: dict[str, str]) -> str:
+        return self._harvest_report_totals_details(totals)
+
+    def _harvest_report_totals_details(self, totals: dict[str, str]) -> str:
         return "; ".join(
             f"{column}: {self._clean_value(totals.get(column, '')) or 'Not available'}"
             for column in ARCGIS_REPORT_NUMBER_COLUMNS
         )
 
     def _arcgis_report_href(self, report_date: str, public: bool = False) -> str:
-        workflow_slug = self._slugify("py_arcgis_hub")
+        return self._harvest_report_href("py_arcgis_hub", report_date, public=public)
+
+    def _harvest_report_href(self, workflow: str, report_date: str, public: bool = False) -> str:
+        workflow_slug = self._slugify(workflow)
         if public:
             return (
                 f"{self.public_dashboard_site_base_path}/{report_date}"
@@ -3680,23 +3773,29 @@ class HarvestTaskDashboardJob:
         )
 
     def _latest_arcgis_report_date(self) -> str:
-        report_path = self._latest_arcgis_report_path()
+        return self._latest_harvest_report_date("py_arcgis_hub")
+
+    def _latest_harvest_report_date(self, workflow: str) -> str:
+        report_path = self._latest_harvest_report_path(workflow)
         if report_path is None:
             return ""
 
-        match = ARCGIS_REPORT_FILENAME_PATTERN.match(report_path.name)
+        match = self._harvest_report_filename_pattern(workflow).match(report_path.name)
         if match is None:
             return ""
         return match.group(1)
 
     def _arcgis_report_lookup(self, report_df: pd.DataFrame) -> dict[str, dict[str, str]]:
+        return self._harvest_report_lookup(report_df)
+
+    def _harvest_report_lookup(self, report_df: pd.DataFrame) -> dict[str, dict[str, str]]:
         lookup: dict[str, dict[str, str]] = {}
         for _, row in report_df.iterrows():
             metrics = {
                 column: self._clean_value(row.get(column, ""))
                 for column in (*ARCGIS_REPORT_NUMBER_COLUMNS, *ARCGIS_REPORT_STATUS_COLUMNS)
             }
-            for key in self._arcgis_report_match_keys(row):
+            for key in self._harvest_report_match_keys(row):
                 lookup.setdefault(key, metrics)
         return lookup
 
@@ -3705,18 +3804,82 @@ class HarvestTaskDashboardJob:
         row: pd.Series | dict[str, Any],
         report_lookup: dict[str, dict[str, str]],
     ) -> dict[str, str] | None:
-        for key in self._arcgis_report_match_keys(row):
+        return self._harvest_report_metrics_for_row(row, report_lookup)
+
+    def _harvest_report_metrics_for_row(
+        self,
+        row: pd.Series | dict[str, Any],
+        report_lookup: dict[str, dict[str, str]],
+    ) -> dict[str, str] | None:
+        for key in self._harvest_report_match_keys(row):
             if key in report_lookup:
                 return report_lookup[key]
         return None
 
     def _arcgis_report_match_keys(self, row: pd.Series | dict[str, Any]) -> list[str]:
+        return self._harvest_report_match_keys(row)
+
+    def _harvest_report_match_keys(self, row: pd.Series | dict[str, Any]) -> list[str]:
         keys = [
             self._clean_value(row.get("Identifier", "")),
             self._clean_value(row.get("ID", "")).removeprefix("harvest_"),
             self._clean_value(row.get("Code", "")),
         ]
         return [key for key in dict.fromkeys(keys) if key]
+
+    def _is_harvest_report_workflow(self, workflow: str) -> bool:
+        return self._clean_value(workflow) in HARVEST_REPORT_WORKFLOW_CONFIG
+
+    def _harvest_report_title(self, workflow: str) -> str:
+        workflow_name = self._clean_value(workflow)
+        return HARVEST_REPORT_WORKFLOW_CONFIG.get(workflow_name, {}).get(
+            "title",
+            f"{self._workflow_view_label(workflow_name)} Harvest Report",
+        )
+
+    def _harvest_report_results_heading(self, workflow: str) -> str:
+        workflow_name = self._clean_value(workflow)
+        return HARVEST_REPORT_WORKFLOW_CONFIG.get(workflow_name, {}).get(
+            "results_heading",
+            f"{self._workflow_view_label(workflow_name)} Harvest Results",
+        )
+
+    def _current_harvest_heading(self, workflow: str) -> str:
+        workflow_name = self._clean_value(workflow)
+        return HARVEST_REPORT_WORKFLOW_CONFIG.get(workflow_name, {}).get(
+            "current_heading",
+            f"Currently Harvested {self._workflow_view_label(workflow_name)} Records",
+        )
+
+    def _harvest_report_empty_message(self, workflow: str) -> str:
+        workflow_name = self._clean_value(workflow)
+        return HARVEST_REPORT_WORKFLOW_CONFIG.get(workflow_name, {}).get(
+            "empty_message",
+            f"No {self._workflow_view_label(workflow_name)} harvest records were found in the input file.",
+        )
+
+    def _harvest_report_description(self, workflow: str) -> str:
+        workflow_name = self._clean_value(workflow)
+        return HARVEST_REPORT_WORKFLOW_CONFIG.get(workflow_name, {}).get(
+            "description",
+            f"This report summarizes the {self._workflow_view_label(workflow_name)} harvest run for the date shown below.",
+        )
+
+    def _harvest_reports_dir(self, workflow: str) -> Path | None:
+        workflow_name = self._clean_value(workflow)
+        if workflow_name == "py_arcgis_hub":
+            return self.arcgis_reports_dir
+        if workflow_name == "py_socrata":
+            return self.socrata_reports_dir
+        return None
+
+    def _harvest_report_filename_pattern(self, workflow: str) -> re.Pattern[str] | None:
+        workflow_name = self._clean_value(workflow)
+        if workflow_name == "py_arcgis_hub":
+            return ARCGIS_REPORT_FILENAME_PATTERN
+        if workflow_name == "py_socrata":
+            return SOCRATA_REPORT_FILENAME_PATTERN
+        return None
 
     def _report_title(self, report_type: str = "full", workflow: str = "") -> str:
         workflow_name = self._clean_value(workflow)
@@ -3761,7 +3924,8 @@ if __name__ == "__main__":
         "output_tasks_csv": "reports/harvest-task-dashboard.csv",
         "output_dashboard_html": "reports/harvest-task-dashboard.html",
         "output_workflow_dir": "inputs/harvest-workflow-inputs",
-        "dedicated_workflow_views": ["py_arcgis_hub"],
+        "socrata_reports_dir": DEFAULT_SOCRATA_REPORTS_DIR,
+        "dedicated_workflow_views": ["py_arcgis_hub", "py_socrata"],
         "issue_repositories": [
             {
                 "name": "harvest-operations",

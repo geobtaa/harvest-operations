@@ -2,7 +2,7 @@ from datetime import date
 
 import pandas as pd
 
-from scripts.build_uploads import build_distribution_delta_files, run_build_uploads
+from scripts.build_uploads import build_distribution_delta_files, build_primary_upload, run_build_uploads
 
 
 def test_build_distribution_delta_files_ignores_row_order():
@@ -34,6 +34,89 @@ def test_build_distribution_delta_files_ignores_row_order():
     assert add_df.empty
     assert delete_df.empty
     assert changed_ids == set()
+
+
+def test_build_primary_upload_includes_current_harvest_records_when_unchanged():
+    old_df = pd.DataFrame(
+        [
+            {
+                "ID": "shared-id",
+                "Title": "Shared Record",
+                "Resource Class": "Datasets",
+                "Last Harvested": "2026-04-01",
+            },
+            {
+                "ID": "harvest_site-1",
+                "Title": "Harvest record for Site 1",
+                "Resource Class": "Series",
+                "Last Harvested": "2026-04-01",
+            },
+        ]
+    )
+    new_df = pd.DataFrame(
+        [
+            {
+                "ID": "shared-id",
+                "Title": "Shared Record",
+                "Resource Class": "Datasets",
+                "Last Harvested": "2026-05-05",
+            },
+            {
+                "ID": "harvest_site-1",
+                "Title": "Harvest record for Site 1",
+                "Resource Class": "Series",
+                "Last Harvested": "2026-05-05",
+            },
+        ]
+    )
+
+    upload_df, new_only_df, old_only_df = build_primary_upload(new_df, old_df)
+
+    assert new_only_df.empty
+    assert old_only_df.empty
+    assert upload_df["ID"].tolist() == ["harvest_site-1"]
+    assert upload_df.loc[0, "Last Harvested"] == "2026-05-05"
+
+
+def test_build_primary_upload_excludes_unchanged_website_rows():
+    old_df = pd.DataFrame(
+        [
+            {
+                "ID": "website-1",
+                "Title": "Website Record",
+                "Resource Class": "Websites",
+                "Last Harvested": "2026-04-01",
+            },
+            {
+                "ID": "harvest_site-1",
+                "Title": "Harvest record for Site 1",
+                "Resource Class": "Series",
+                "Last Harvested": "2026-04-01",
+            },
+        ]
+    )
+    new_df = pd.DataFrame(
+        [
+            {
+                "ID": "website-1",
+                "Title": "Website Record",
+                "Resource Class": "Websites",
+                "Last Harvested": "2026-05-05",
+            },
+            {
+                "ID": "harvest_site-1",
+                "Title": "Harvest record for Site 1",
+                "Resource Class": "Series",
+                "Last Harvested": "2026-05-05",
+            },
+        ]
+    )
+
+    upload_df, new_only_df, old_only_df = build_primary_upload(new_df, old_df)
+
+    assert new_only_df.empty
+    assert old_only_df.empty
+    assert upload_df["ID"].tolist() == ["harvest_site-1"]
 
 
 def test_run_build_uploads_emits_distribution_add_and_delete_files(tmp_path):

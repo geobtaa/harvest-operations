@@ -222,6 +222,7 @@
       <ul>
         <li><a id="retrospective-report-link" href="/jobs/harvest-task-dashboard/view?report=retrospective" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Retrospective report</a></li>
         <li><a id="arcgis-hub-report-link" href="/jobs/harvest-task-dashboard/view?workflow=py_arcgis_hub" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">ArcGIS Hub report</a></li>
+        <li><a id="socrata-report-link" href="/jobs/harvest-task-dashboard/view?workflow=py_socrata" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Socrata report</a></li>
       </ul>
     </section>
     <section>
@@ -372,6 +373,7 @@
       const dueUrl = `/jobs/harvest-task-dashboard/view?report=due&ts=${timestamp}`;
       const retrospectiveUrl = `/jobs/harvest-task-dashboard/view?report=retrospective&ts=${timestamp}`;
       const arcgisHubUrl = `/jobs/harvest-task-dashboard/view?workflow=py_arcgis_hub&ts=${timestamp}`;
+      const socrataUrl = `/jobs/harvest-task-dashboard/view?workflow=py_socrata&ts=${timestamp}`;
       document.getElementById("full-report-link").href = fullUrl;
       document.getElementById("records-report-link").href = recordsUrl;
       document.getElementById("institutions-report-link").href = institutionsUrl;
@@ -380,6 +382,7 @@
       document.getElementById("due-report-link").href = dueUrl;
       document.getElementById("retrospective-report-link").href = retrospectiveUrl;
       document.getElementById("arcgis-hub-report-link").href = arcgisHubUrl;
+      document.getElementById("socrata-report-link").href = socrataUrl;
       return true;
     }
 

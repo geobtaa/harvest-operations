@@ -306,7 +306,22 @@ async def run_socrata_stream():
         df = harvester.add_provenance(df)
         df = harvester.clean(df)
         harvester.validate(df)
-        harvester.write_outputs(df)
+        results = harvester.write_outputs(df)
+        upload_summary = harvester.build_uploads(results)
+        if upload_summary is not None:
+            results["upload_summary"] = upload_summary
+            if upload_summary.get("status") == "created":
+                yield (
+                    "data: Built upload files: "
+                    f"{upload_summary['primary_upload_csv']}, "
+                    f"{upload_summary['distributions_new_csv']}, "
+                    f"{upload_summary['distributions_delete_csv']}.\n\n"
+                )
+            else:
+                yield (
+                    "data: Upload files not built: "
+                    f"{upload_summary.get('reason', 'No reason provided.')}.\n\n"
+                )
 
         yield f"data: Harvester complete! Check the output folder.\n\n"
         yield "data: DONE\n\n"

@@ -1,0 +1,151 @@
+name: Socrata Recurring Harvest Issue
+
+on:
+  issues:
+    types:
+      - closed
+
+# Easy-to-change workflow constants.
+env:
+  ISSUE_ASSIGNEE: cleorose
+  MARKER_LABEL: socrata-harvest
+  PROJECT_ORG: geobtaa
+  PROJECT_NUMBER: "4"
+  PROJECT_ITERATION_FIELD: Iteration
+
+# Serialize runs so two close events cannot create duplicate follow-up issues
+# at the same time. The script still performs its own open-issue check.
+concurrency:
+  group: socrata-recurring-harvest
+  cancel-in-progress: false
+
+jobs:
+  create-next-harvest-issue:
+    # Ignore pull requests and only continue when the closed issue carries the
+    # dedicated recurring-harvest label.
+    if: >
+      github.event.issue.pull_request == null &&
+      contains(github.event.issue.labels.*.name, 'socrata-harvest')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Create next recurring Socrata harvest issue
+        id: create_issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Centralized workflow constants for easy maintenance.
+            const MARKER_LABEL = process.env.MARKER_LABEL;
+            const ISSUE_LABELS = [
+              "harvest",
+              MARKER_LABEL,
+            ];
+            const ASSIGNEE = process.env.ISSUE_ASSIGNEE;
+
+            const due = new Date();
+            due.setUTCHours(0, 0, 0, 0);
+            const originalDay = due.getUTCDate();
+            due.setUTCDate(1);
+            due.setUTCMonth(due.getUTCMonth() + 1);
+            const lastDayOfTargetMonth = new Date(
+              Date.UTC(due.getUTCFullYear(), due.getUTCMonth() + 1, 0)
+            ).getUTCDate();
+            due.setUTCDate(Math.min(originalDay, lastDayOfTargetMonth));
+            const dueDate = due.toISOString().slice(0, 10);
+
+            const ISSUE_TITLE = `${dueDate} Socrata harvest`;
+            const ISSUE_BODY = [
+              "Complete the current Socrata harvest in the dashboard.",
+              "",
+              "## Harvest Details",
+              "",
+              `- Due date: ${dueDate}`,
+              "",
+              "## Notes",
+              "",
+              "- Add blockers, follow-up items, or exceptions here.",
+            ].join("\n");
+
+            const { owner, repo } = context.repo;
+            const closedIssueNumber = context.payload.issue.number;
+            core.setOutput("created", "false");
+
+            // Defensive duplicate guard: if any open issue already carries the
+            // recurring marker label, stop without creating another one.
+            const openIssues = await github.paginate(
+              github.rest.issues.listForRepo,
+              {
+                owner,
+                repo,
+                state: "open",
+                labels: MARKER_LABEL,
+                per_page: 100,
+              }
+            );
+
+            const existingRecurringIssue = openIssues.find(
+              (issue) => !issue.pull_request
+            );
+
+            if (existingRecurringIssue) {
+              core.info(
+                `Open recurring harvest issue #${existingRecurringIssue.number} already exists. Skipping creation.`
+              );
+              return;
+            }
+
+            const newIssue = await github.rest.issues.create({
+              owner,
+              repo,
+              title: ISSUE_TITLE,
+              body: ISSUE_BODY,
+              assignees: [ASSIGNEE],
+              labels: ISSUE_LABELS,
+            });
+
+            core.setOutput("created", "true");
+            core.setOutput("issue_body", ISSUE_BODY);
+            core.setOutput("issue_node_id", newIssue.data.node_id);
+            core.setOutput("issue_number", String(newIssue.data.number));
+            core.setOutput("due_date", dueDate);
+
+            core.notice(
+              `Closed recurring issue #${closedIssueNumber}; created replacement issue #${newIssue.data.number}.`
+            );
+
+      - name: Check secret configuration
+        id: preflight
+        if: steps.create_issue.outputs.created == 'true'
+        env:
+          GEOBTAA_PROJECTS_TOKEN: ${{ secrets.GEOBTAA_PROJECTS_TOKEN }}
+        run: |
+          if [ -z "$GEOBTAA_PROJECTS_TOKEN" ]; then
+            echo "::warning title=Missing GEOBTAA_PROJECTS_TOKEN::Add a repository secret named GEOBTAA_PROJECTS_TOKEN with organization Projects write access to add the recurring issue to the project and sync its iteration."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out repository
+        if: steps.create_issue.outputs.created == 'true' && steps.preflight.outputs.enabled == 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        if: steps.create_issue.outputs.created == 'true' && steps.preflight.outputs.enabled == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Add issue to project and set iteration
+        if: steps.create_issue.outputs.created == 'true' && steps.preflight.outputs.enabled == 'true'
+        env:
+          GEOBTAA_PROJECTS_TOKEN: ${{ secrets.GEOBTAA_PROJECTS_TOKEN }}
+          ISSUE_BODY: ${{ steps.create_issue.outputs.issue_body }}
+          ISSUE_NODE_ID: ${{ steps.create_issue.outputs.issue_node_id }}
+          PROJECT_ORG: ${{ env.PROJECT_ORG }}
+          PROJECT_NUMBER: ${{ env.PROJECT_NUMBER }}
+          PROJECT_ITERATION_FIELD: ${{ env.PROJECT_ITERATION_FIELD }}
+        run: python scripts/sync_issue_project_iteration.py

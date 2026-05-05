@@ -138,11 +138,13 @@ def build_primary_upload(
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     parts = []
 
-    websites = pd.DataFrame(columns=new_df.columns)
-    if "Resource Class" in new_df.columns:
-        websites = new_df[new_df["Resource Class"].str.lower() == "websites"].copy()
-        if not websites.empty:
-            parts.append(websites)
+    harvest_records = pd.DataFrame(columns=new_df.columns)
+    if "ID" in new_df.columns:
+        harvest_records = new_df[
+            new_df["ID"].astype(str).str.strip().str.startswith("harvest_")
+        ].copy()
+        if not harvest_records.empty:
+            parts.append(harvest_records)
 
     new_only = new_df.merge(
         old_df[["ID"]].drop_duplicates(),

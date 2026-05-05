@@ -13,6 +13,7 @@ SITE_TITLE = "Harvest Task Dashboard Reports"
 DEDICATED_WORKFLOW_PREFIX = "harvest-task-dashboard-"
 PUBLIC_REPORT_SUFFIX = "-public"
 ARCGIS_WORKFLOW_SLUG = "py-arcgis-hub"
+SOCRATA_WORKFLOW_SLUG = "py-socrata"
 STANDARD_REPORT_TYPES = {
     "full": {
         "suffix": "harvest-task-dashboard.html",
@@ -75,7 +76,7 @@ STANDARD_REPORT_ORDER = (
 )
 REPORT_COLUMN_GROUPS = (
     ("Triage", ("due", "full")),
-    ("Reports", ("retrospective", f"workflow:{ARCGIS_WORKFLOW_SLUG}")),
+    ("Reports", ("retrospective", f"workflow:{ARCGIS_WORKFLOW_SLUG}", f"workflow:{SOCRATA_WORKFLOW_SLUG}")),
     ("Lists", ("records", "institutions", "map-collections", "standalone")),
 )
 
@@ -566,6 +567,8 @@ def _extract_html_title(report_path: Path) -> str:
 def _workflow_report_label(workflow_title: str, workflow_slug: str) -> str:
     if workflow_slug == ARCGIS_WORKFLOW_SLUG:
         return "ArcGIS Hub report"
+    if workflow_slug == SOCRATA_WORKFLOW_SLUG:
+        return "Socrata report"
     if workflow_title:
         normalized_title = re.sub(
             r"\s+Harvest (?:Overview|Report)(?:\s+-\s+\d{4}-\d{2}-\d{2})?\s*$",
@@ -580,6 +583,8 @@ def _workflow_report_label(workflow_title: str, workflow_slug: str) -> str:
 def _workflow_report_description(workflow_slug: str) -> str:
     if workflow_slug == ARCGIS_WORKFLOW_SLUG:
         return "Dedicated workflow harvest report with latest ArcGIS count columns."
+    if workflow_slug == SOCRATA_WORKFLOW_SLUG:
+        return "Dedicated workflow harvest report with latest Socrata count columns."
     return "Dedicated workflow report."
 
 
