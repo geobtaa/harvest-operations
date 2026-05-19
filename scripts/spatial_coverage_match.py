@@ -35,6 +35,14 @@ REFERENCE_CONFIG = {
 
 OUTPUT_COLUMNS = ["Bounding Box", "Geometry", "GeoNames"]
 
+# Defaults used when running this script directly from an editor/debugger.
+DEFAULT_INPUT_CSV = Path("inputs/iowa-new.csv")
+DEFAULT_OUTPUT_CSV = None
+DEFAULT_LEVEL = "counties"
+DEFAULT_INCLUDE_LEVELS = ()
+DEFAULT_FALLBACK_LEVELS = ("states",)
+DEFAULT_SPATIAL_COLUMN = "Spatial Coverage"
+
 
 def normalize_name(value):
     if value is None:
@@ -244,11 +252,17 @@ def default_output_path(input_path, level):
     return input_path.with_name(f"{input_path.stem}_{level}_matched{input_path.suffix}")
 
 
-def process_csv(input_csv, output_csv, level, spatial_column, include_levels):
+def process_csv(input_csv, output_csv, level, spatial_column, include_levels, fallback_levels):
     repo_root = Path(__file__).resolve().parents[1]
     lookup_levels = tuple(dict.fromkeys([level, *include_levels]))
+    fallback_lookup_levels = tuple(dict.fromkeys(fallback_levels))
     reference_paths, bbox_map, geometry_map, geonames_map = load_reference_maps(
         lookup_levels, repo_root
+    )
+    fallback_reference_paths, fallback_bbox_map, fallback_geometry_map, fallback_geonames_map = (
+        load_reference_maps(fallback_lookup_levels, repo_root)
+        if fallback_lookup_levels
+        else ([], {}, {}, {})
     )
 
     with input_csv.open("r", encoding="utf-8-sig", newline="") as in_handle:
@@ -275,11 +289,33 @@ def process_csv(input_csv, output_csv, level, spatial_column, include_levels):
                 row_count += 1
                 spatial_value = row.get(spatial_field, "")
 
-                bbox_values = lookup_spatial_values(spatial_value, bbox_map, unmatched_names)
+                primary_unmatched_names = Counter()
+                bbox_values = lookup_spatial_values(
+                    spatial_value, bbox_map, primary_unmatched_names
+                )
+                if bbox_values:
+                    geometry_values = lookup_spatial_values(spatial_value, geometry_map, Counter())
+                    geonames_values = lookup_spatial_values(spatial_value, geonames_map, Counter())
+                else:
+                    fallback_unmatched_names = Counter()
+                    bbox_values = lookup_spatial_values(
+                        spatial_value, fallback_bbox_map, fallback_unmatched_names
+                    )
+                    geometry_values = lookup_spatial_values(
+                        spatial_value, fallback_geometry_map, Counter()
+                    )
+                    geonames_values = lookup_spatial_values(
+                        spatial_value, fallback_geonames_map, Counter()
+                    )
+                    unmatched_names.update(
+                        fallback_unmatched_names
+                        if fallback_lookup_levels
+                        else primary_unmatched_names
+                    )
+
                 derived_bbox = combine_bounding_boxes(bbox_values)
-                geometry_values = lookup_spatial_values(spatial_value, geometry_map, Counter())
                 derived_geometry = combine_geometries(geometry_values)
-                derived_geonames = lookup_spatial_values(spatial_value, geonames_map, Counter())
+                derived_geonames = geonames_values
 
                 row["Bounding Box"] = prefer_derived_value(derived_bbox, row.get("Bounding Box", ""))
                 row["Geometry"] = prefer_derived_value(derived_geometry, row.get("Geometry", ""))
@@ -294,7 +330,10 @@ def process_csv(input_csv, output_csv, level, spatial_column, include_levels):
     print(f"Output CSV: {output_csv}")
     print(f"Spatial column: {spatial_field}")
     print(f"Reference levels: {', '.join(lookup_levels)}")
-    print(f"Reference CSVs: {', '.join(str(path) for path in reference_paths)}")
+    if fallback_lookup_levels:
+        print(f"Fallback reference levels: {', '.join(fallback_lookup_levels)}")
+    all_reference_paths = [*reference_paths, *fallback_reference_paths]
+    print(f"Reference CSVs: {', '.join(str(path) for path in all_reference_paths)}")
     print(f"Rows processed: {row_count}")
     print(f"Rows with bounding box matches: {matched_rows}")
 
@@ -313,41 +352,74 @@ def parse_args():
             "and write Bounding Box, Geometry, and GeoNames columns."
         )
     )
-    parser.add_argument("input_csv", type=Path, help="Path to the source CSV.")
+    parser.add_argument(
+        "input_csv",
+        nargs="?",
+        type=Path,
+        default=DEFAULT_INPUT_CSV,
+        help=f"Path to the source CSV. Defaults to {DEFAULT_INPUT_CSV}.",
+    )
     parser.add_argument(
         "-o",
         "--output-csv",
         type=Path,
+        default=DEFAULT_OUTPUT_CSV,
         help="Path to the output CSV. Defaults to <input>_<level>_matched.csv.",
     )
     parser.add_argument(
         "--level",
-        required=True,
+        default=DEFAULT_LEVEL,
         choices=sorted(REFERENCE_CONFIG.keys()),
-        help="Reference geography to use for matching.",
+        help=f"Reference geography to use for matching. Defaults to {DEFAULT_LEVEL}.",
     )
     parser.add_argument(
         "--include-level",
         action="append",
         choices=sorted(REFERENCE_CONFIG.keys()),
-        default=[],
+        default=None,
         help=(
             "Additional reference geography to merge into the lookup. "
-            "Repeat to include more than one."
+            f"Repeat to include more than one. Defaults to {', '.join(DEFAULT_INCLUDE_LEVELS)}."
         ),
     )
     parser.add_argument(
         "--spatial-column",
-        default="Spatial Coverage",
+        default=DEFAULT_SPATIAL_COLUMN,
         help="Name of the spatial coverage column in the input CSV.",
+    )
+    parser.add_argument(
+        "--fallback-level",
+        action="append",
+        choices=sorted(REFERENCE_CONFIG.keys()),
+        default=None,
+        help=(
+            "Reference geography to use only when no primary match exists. "
+            f"Repeat to include more than one. Defaults to {', '.join(DEFAULT_FALLBACK_LEVELS)}."
+        ),
     )
     return parser.parse_args()
 
 
+def resolve_script_path(path):
+    if path.is_absolute():
+        return path
+
+    repo_root = Path(__file__).resolve().parents[1]
+    return repo_root / path
+
+
 def main():
     args = parse_args()
-    input_csv = args.input_csv.resolve()
-    output_csv = args.output_csv.resolve() if args.output_csv else default_output_path(input_csv, args.level)
+    input_csv = resolve_script_path(args.input_csv).resolve()
+    output_csv = (
+        resolve_script_path(args.output_csv).resolve()
+        if args.output_csv
+        else default_output_path(input_csv, args.level)
+    )
+    include_levels = args.include_level if args.include_level is not None else DEFAULT_INCLUDE_LEVELS
+    fallback_levels = (
+        args.fallback_level if args.fallback_level is not None else DEFAULT_FALLBACK_LEVELS
+    )
 
     if not input_csv.exists():
         raise FileNotFoundError(f"Input CSV not found: {input_csv}")
@@ -357,7 +429,8 @@ def main():
         output_csv=output_csv,
         level=args.level,
         spatial_column=args.spatial_column,
-        include_levels=args.include_level,
+        include_levels=include_levels,
+        fallback_levels=fallback_levels,
     )
 
 
