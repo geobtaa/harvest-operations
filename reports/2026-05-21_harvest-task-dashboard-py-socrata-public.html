@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Socrata Harvest Report - 2026-05-04</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17324d;
+      --muted: #5b6b7d;
+      --line: #d7e1ec;
+      --line-strong: #bfd0e2;
+      --panel: #ffffff;
+      --panel-soft: #f6f9fc;
+      --bg: #eef3f8;
+      --accent: #1f6fb2;
+      --accent-soft: #dcecff;
+      --success: #0f766e;
+      --success-soft: #d8f3ee;
+      --error: #b42318;
+      --error-soft: #fee4e2;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: "Segoe UI", sans-serif; line-height: 1.35; color: var(--ink); background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%); }
+    h1, h2, p { margin-top: 0; }
+    h1 { margin-bottom: 0.4rem; }
+    h2 { margin-bottom: 0.9rem; }
+    a { color: var(--accent); }
+    .muted { color: var(--muted); }
+    code { background: var(--panel-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .source-box, .status-box, .section-box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 1rem; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }
+    .source-box { margin: 1rem 0 1.4rem; }
+    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }
+    .status-box { margin: 1.25rem 0 1.4rem; background: linear-gradient(135deg, var(--panel) 0%, var(--success-soft) 100%); border-color: #b7e4d7; }
+    .status-label { color: var(--muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+    .status-value { display: block; margin-top: 0.35rem; font-size: 1.65rem; font-weight: 700; color: var(--success); }
+    .section-box { padding: 0; overflow: hidden; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }
+    .section-meta { color: var(--muted); font-size: 0.82rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+    th { background: #f9fbfd; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:nth-child(even) { background: #fbfdff; }
+    tbody tr.report-error { background: #fff7f6; }
+    tfoot th, tfoot td { background: #f1f6fb; border-top: 2px solid var(--line-strong); font-weight: 700; }
+    .task-name { font-weight: 700; margin-bottom: 0.2rem; }
+    .task-meta, .detail-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }
+    .task-meta code, .detail-meta code { background: #edf1f5; padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .run-pill { display: inline-flex; align-items: center; padding: 0.16rem 0.5rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .run-pill--success { color: var(--success); background: var(--success-soft); }
+    .run-pill--error { color: var(--error); background: var(--error-soft); }
+    .run-pill--unknown { color: var(--muted); background: var(--panel-soft); }
+    .number-cell { text-align: right; white-space: nowrap; }
+    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .section-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } }
+  </style>
+</head>
+<body>
+  <h1>Socrata Harvest Report - 2026-05-04</h1>
+  <p class="muted">This report summarizes the Socrata harvest run for the date shown below.</p>
+  <div class="status-box">
+    <span class="status-label">Harvest report date</span>
+    <strong class="status-value">2026-05-04</strong>
+  </div>
+  <section class="section-box">
+    <div class="section-header">
+      <h2>Socrata Harvest Results</h2>
+      <div class="section-meta">8 records</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Harvest Record</th>
+          <th>Harvest Run</th>
+          <th class="number-cell">Total Records Found</th>
+          <th class="number-cell">New Records</th>
+          <th class="number-cell">Unpublished Records</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Harvest record for City of Bloomington, Indiana Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2201c-01%22" target="_blank" rel="noreferrer"><code>01c-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">278</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Harvest record for City of Chicago Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212c-01%22" target="_blank" rel="noreferrer"><code>12c-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">1108</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Harvest record for Cook County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2212b-17031-2%22" target="_blank" rel="noreferrer"><code>12b-17031-2</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">621</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Howard County Open Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204b-24027%22" target="_blank" rel="noreferrer"><code>04b-24027</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">582</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Macoupin Data</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2202b-17117%22" target="_blank" rel="noreferrer"><code>02b-17117</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">46</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Open Data Cincinnati, Ohio</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2211c-01%22" target="_blank" rel="noreferrer"><code>11c-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">155</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Prince George&#x27;s County Open Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2204b-24033%22" target="_blank" rel="noreferrer"><code>04b-24033</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">68</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">State of Illinois Data Portal</div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2202a-03%22" target="_blank" rel="noreferrer"><code>02a-03</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">392</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row">Total</th>
+          <td></td>
+          <td class="number-cell" data-label="Total Records Found">3250</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+      </tfoot>
+    </table>
+  </section>
+</body>
+</html>
