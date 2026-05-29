@@ -1,8 +1,9 @@
+import asyncio
 import csv
 import os
 from pathlib import Path
 
-from main import create_arcgis_test_input_csv
+from main import app, create_arcgis_test_input_csv
 
 
 def test_create_arcgis_test_input_csv_writes_three_sampled_rows(tmp_path: Path) -> None:
@@ -44,3 +45,75 @@ def test_create_arcgis_test_input_csv_writes_three_sampled_rows(tmp_path: Path) 
     finally:
         if os.path.exists(temp_path):
             os.unlink(temp_path)
+
+
+def test_app_registers_hdx_download_stream_route() -> None:
+    assert any(route.path == "/run-hdx-download-stream" for route in app.routes)
+
+
+def test_hdx_stream_builds_upload_files(monkeypatch) -> None:
+    class FakeHdxHarvester:
+        def __init__(self, config):
+            self.config = config
+
+        def load_reference_data(self):
+            return None
+
+        def fetch(self):
+            return [{"id": "one"}]
+
+        def parse(self, raw):
+            return raw
+
+        def flatten(self, parsed):
+            return parsed
+
+        def build_dataframe(self, flat):
+            return flat
+
+        def derive_fields(self, df):
+            return df
+
+        def add_defaults(self, df):
+            return df
+
+        def add_provenance(self, df):
+            return df
+
+        def clean(self, df):
+            return df
+
+        def validate(self, df):
+            return df
+
+        def write_outputs(self, df):
+            return {
+                "primary_csv": "outputs/2026-05-29_hdx_primary.csv",
+                "distributions_csv": "outputs/2026-05-29_hdx_distributions.csv",
+            }
+
+        def build_uploads(self, results):
+            return {
+                "status": "created",
+                "primary_upload_csv": "outputs/to_upload/2026-05-29_hdx_primary_upload.csv",
+                "distributions_new_csv": "outputs/to_upload/2026-05-29_hdx_distributions_new.csv",
+                "distributions_delete_csv": "outputs/to_upload/2026-05-29_hdx_distributions_delete.csv",
+            }
+
+    import harvesters.hdx
+
+    monkeypatch.setattr(harvesters.hdx, "HdxHarvester", FakeHdxHarvester)
+
+    import main
+
+    async def collect_stream() -> str:
+        response = await main.run_hsx_stream()
+        chunks = []
+        async for chunk in response.body_iterator:
+            chunks.append(chunk.decode("utf-8") if isinstance(chunk, bytes) else chunk)
+        return "".join(chunks)
+
+    body = asyncio.run(collect_stream())
+
+    assert "Built upload files:" in body
+    assert "outputs/to_upload/2026-05-29_hdx_primary_upload.csv" in body

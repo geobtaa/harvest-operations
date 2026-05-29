@@ -2,6 +2,7 @@ import asyncio
 import csv
 import os
 import random
+import sys
 import tempfile
 
 from fastapi import FastAPI, HTTPException, Query
@@ -43,6 +44,11 @@ def resolve_config_path(path_value: str, config_path: str | None = None) -> str:
 def load_yaml_config(config_path: str) -> dict:
     with open(config_path, encoding="utf-8") as handle:
         return yaml.safe_load(handle) or {}
+
+
+def format_sse_message(message: str) -> str:
+    lines = str(message).splitlines() or [""]
+    return "".join(f"data: {line}\n" for line in lines) + "\n"
 
 
 def create_arcgis_test_input_csv(source_csv: str, sample_size: int = 3) -> tuple[str, int]:
@@ -384,10 +390,65 @@ async def run_hsx_stream():
         df = harvester.add_provenance(df)
         df = harvester.clean(df)
         harvester.validate(df)
-        harvester.write_outputs(df)
+        results = harvester.write_outputs(df)
+        upload_summary = harvester.build_uploads(results)
+        if upload_summary is not None:
+            results["upload_summary"] = upload_summary
+            if upload_summary.get("status") == "created":
+                yield (
+                    "data: Built upload files: "
+                    f"{upload_summary['primary_upload_csv']}, "
+                    f"{upload_summary['distributions_new_csv']}, "
+                    f"{upload_summary['distributions_delete_csv']}.\n\n"
+                )
+            else:
+                yield (
+                    "data: Upload files not built: "
+                    f"{upload_summary.get('reason', 'No reason provided.')}.\n\n"
+                )
 
         yield "data: HDX harvest complete. Check output folder.\n\n"
         yield "data: DONE\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@app.get("/run-hdx-download-stream")
+async def run_hdx_download_stream():
+    async def event_stream():
+        project_root = os.path.dirname(os.path.abspath(__file__))
+        script_path = os.path.join(project_root, "scripts", "hdx_download.py")
+
+        yield format_sse_message("Starting HDX metadata download...")
+        try:
+            process = await asyncio.create_subprocess_exec(
+                sys.executable,
+                "-u",
+                script_path,
+                cwd=project_root,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+        except Exception as exc:
+            yield format_sse_message(f"ERROR: Could not start hdx_download.py: {exc}")
+            yield format_sse_message("DONE")
+            return
+
+        if process.stdout is not None:
+            while True:
+                line = await process.stdout.readline()
+                if not line:
+                    break
+                yield format_sse_message(line.decode("utf-8", errors="replace").rstrip())
+
+        return_code = await process.wait()
+        if return_code == 0:
+            yield format_sse_message("HDX metadata download complete.")
+        else:
+            yield format_sse_message(
+                f"ERROR: hdx_download.py exited with status {return_code}."
+            )
+        yield format_sse_message("DONE")
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 

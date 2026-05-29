@@ -7,17 +7,22 @@
     body { font-family: sans-serif; margin: 2em; }
     h2, h3 { margin-top: 1.5em; }
     #upload-message { color: green; }
+    button { margin: 0.5em 0; }
+    pre { border: 1px solid #ccc; padding: 1em; margin-top: 1em; height: 240px; overflow: auto; }
   </style>
 </head>
 <body>
   <h1>HDX Harvester</h1>
+  <p id="upload-message"></p>
 
-    <h3>Step 1: Download the metadata</h3>
-    <p>This step involves a separate standalone script. Got to the scripts folder and run the file called hdx_download.py. This will add a large JSON file called hdx_geodata.json in the inputs folder</p>
+  <h3>Step 1: Download Metadata</h3>
+  <p>Run the HDX metadata download first. This creates <code>inputs/hdx_geodata.json</code>, which the harvester uses in Step 2.</p>
+  <button id="download-button" onclick="runDownload()">Download Metadata</button>
+  <pre id="download-output"></pre>
 
-    <h3>Step 2: Run Harvester</h3>
-  <button onclick="runHarvester()">Run Harvester</button>
-  <pre id="stream-output" style="border:1px solid #ccc; padding:1em; margin-top:1em; height:300px; overflow:auto;"></pre>
+  <h3>Step 2: Run Harvester</h3>
+  <button id="harvester-button" onclick="runHarvester()">Run Harvester</button>
+  <pre id="stream-output"></pre>
 
   <script>
     // Show success message if redirected with ?upload=success
@@ -26,26 +31,50 @@
         document.getElementById("upload-message").textContent = "Upload successful! File saved as HDX in the data folder.";
     }
 
-    // Streaming harvester output
-    function runHarvester() {
-    const output = document.getElementById("stream-output");
-    output.textContent = "Starting harvester...\n";
-    const eventSource = new EventSource("/run-hdx-stream");
+    function streamEndpoint(url, outputId, buttonId, startMessage, closedMessage) {
+      const output = document.getElementById(outputId);
+      const button = document.getElementById(buttonId);
+      output.textContent = startMessage + "\n";
+      button.disabled = true;
 
-    eventSource.onmessage = function (event) {
+      const eventSource = new EventSource(url);
+
+      eventSource.onmessage = function (event) {
         if (event.data === "DONE") {
-        // output.textContent += "Harvester completed successfully.\n";
-        eventSource.close();
-        } else {
+          eventSource.close();
+          button.disabled = false;
+          return;
+        }
         output.textContent += event.data + "\n";
         output.scrollTop = output.scrollHeight;
-        }
-    };
+      };
 
-    eventSource.onerror = function () {
-        output.textContent += "Stream closed. If the harvester did not complete, please check logs.\n";
+      eventSource.onerror = function () {
+        output.textContent += closedMessage + "\n";
         eventSource.close();
-    };
+        button.disabled = false;
+      };
+    }
+
+    function runDownload() {
+      streamEndpoint(
+        "/run-hdx-download-stream",
+        "download-output",
+        "download-button",
+        "Starting metadata download...",
+        "Stream closed. If the download did not complete, please check logs."
+      );
+    }
+
+    // Streaming harvester output
+    function runHarvester() {
+      streamEndpoint(
+        "/run-hdx-stream",
+        "stream-output",
+        "harvester-button",
+        "Starting harvester...",
+        "Stream closed. If the harvester did not complete, please check logs."
+      );
     }
   </script>
 </body>

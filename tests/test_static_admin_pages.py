@@ -17,3 +17,11 @@ def test_static_ogm_aardvark_page_runs_expected_job() -> None:
     assert "inputs/ogm_aardvark" in page_html
     assert "outputs/YYYY-MM-DD_ogm_aardvark_primary.csv" in page_html
     assert 'fetch("/jobs/ogm-aardvark/run"' in page_html
+
+
+def test_static_hdx_page_runs_metadata_download_from_browser() -> None:
+    page_html = (ROOT / "static" / "hdx.html").read_text(encoding="utf-8")
+
+    assert "Download Metadata" in page_html
+    assert "/run-hdx-download-stream" in page_html
+    assert "Got to the scripts folder" not in page_html

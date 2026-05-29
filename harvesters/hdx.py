@@ -15,6 +15,8 @@ from utils.temporal_fields import infer_temporal_coverage_from_title, create_dat
 
 class HdxHarvester(BaseHarvester):
     def __init__(self, config):
+        config = dict(config)
+        config.setdefault("build_uploads", True)
         super().__init__(config)
 
     # Add this updated method to your HdxHarvester class
@@ -177,6 +179,9 @@ class HdxHarvester(BaseHarvester):
     def write_outputs(self, primary_df, distributions_df=None):
         distributions_df = generate_secondary_table(primary_df.copy(), self.distribution_types)
         return super().write_outputs(primary_df, distributions_df)
+
+    def build_uploads(self, results: dict) -> dict | None:
+        return super().build_uploads(results)
     
 # --- HDX Specific Functions --- #
 
