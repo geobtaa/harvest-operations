@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CKAN Harvester</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    h2, h3 { margin-top: 1.5em; }
+  </style>
+</head>
+<body>
+  <h1>CKAN Harvester</h1>
+
+  <h2>Purpose</h2>
+  <p>This script scans a CKAN package search API and returns dataset metadata. It produces two CSV files:</p>
+  <ul>
+    <li>A Primary CSV containing all metadata except the link fields</li>
+    <li>A Distribution CSV with only the link fields (e.g., landing page, downloads, web services)</li>
+  </ul>
+
+  <h2>Inputs</h2>
+  <p>The CKAN harvester uses settings from <code>config/ckan.yaml</code>, including the base URL, package search endpoint, and metadata defaults.</p>
+
+  <h2>Outputs</h2>
+  <p>The harvester writes dated output files under <code>outputs/</code>:</p>
+  <ul>
+    <li><code>outputs/YYYY-MM-DD_ckan_primary.csv</code>: harvested dataset records.</li>
+    <li><code>outputs/YYYY-MM-DD_ckan_distributions.csv</code>: distribution links derived from the primary output.</li>
+    <li><code>reports/ckan/YYYY-MM-DD_ckan_report.csv</code>: per-site run status, record counts, and totals.</li>
+  </ul>
+
+  <h3>Run CKAN Harvester</h3>
+  <button onclick="runHarvester()">Run Harvester</button>
+  <pre id="stream-output" style="border:1px solid #ccc; padding:1em; margin-top:1em; height:300px; overflow:auto;"></pre>
+
+  <script>
+    // Streaming harvester output
+    function runHarvester() {
+      const output = document.getElementById("stream-output");
+      output.textContent = "Starting harvester...\n";
+      const eventSource = new EventSource("/run-ckan-stream");
+
+      eventSource.onmessage = function (event) {
+        if (event.data === "DONE") {
+          eventSource.close();
+        } else {
+          output.textContent += event.data + "\n";
+          output.scrollTop = output.scrollHeight;
+        }
+      };
+
+      eventSource.onerror = function () {
+        output.textContent += "Stream closed. If the harvester did not complete, please check logs.\n";
+        eventSource.close();
+      };
+    }
+  </script>
+</body>
+</html>

@@ -3,7 +3,17 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from scripts.harvest_task_dashboard import HarvestTaskDashboardJob
+from scripts.harvest_task_dashboard import (
+    HARVEST_WORKFLOW_STATIC_PAGES,
+    HarvestTaskDashboardJob,
+)
+
+
+def test_harvest_task_dashboard_links_ckan_workflow_to_static_page() -> None:
+    assert HARVEST_WORKFLOW_STATIC_PAGES["py_ckan"] == {
+        "label": "CKAN Harvester",
+        "url": "/static/ckan.html",
+    }
 
 
 def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
@@ -199,6 +209,26 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
             },
         ]
     ).to_csv(outputs_dir / "2026-03-30_socrata_report.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "Code": "07c-02",
+                "Identifier": "site-6",
+                "Harvest Run": "success",
+                "Total Records Found": "5",
+                "New Records": "2",
+                "Unpublished Records": "1",
+            },
+            {
+                "Code": "TOTAL",
+                "Identifier": "",
+                "Harvest Run": "success: 1; error: 0",
+                "Total Records Found": "5",
+                "New Records": "2",
+                "Unpublished Records": "1",
+            },
+        ]
+    ).to_csv(outputs_dir / "2026-03-30_ckan_report.csv", index=False)
 
     job = HarvestTaskDashboardJob(
         {
@@ -215,6 +245,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
             "output_workflow_dir": str(outputs_dir / "harvest-workflow-inputs"),
             "arcgis_reports_dir": str(outputs_dir),
             "socrata_reports_dir": str(outputs_dir),
+            "ckan_reports_dir": str(outputs_dir),
             "issue_repositories": [
                 {
                     "name": "harvest-operations",
@@ -453,6 +484,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Get Latest Source CSVs" not in retrospective_dashboard_html
     assert "ArcGIS Hubs Harvest Report - 2026-03-30" in retrospective_dashboard_html
     assert "Socrata Harvest Report - 2026-03-30" in retrospective_dashboard_html
+    assert "CKAN Harvest Report - 2026-03-30" in retrospective_dashboard_html
     assert ">Harvest</span>" in retrospective_dashboard_html
     assert 'href="/reports/2026-03-30_harvest-task-dashboard-py-arcgis-hub.html"' in (
         retrospective_dashboard_html
@@ -481,6 +513,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Scan Socrata Sites" not in due_dashboard_html
     assert "py_arcgis_hub" in retrospective_dashboard_html
     assert "py_socrata" in retrospective_dashboard_html
+    assert "py_ckan" in retrospective_dashboard_html
 
     assert set(dedicated_dashboard_outputs) == {"py_arcgis_hub", "py_socrata"}
     assert set(public_dedicated_dashboard_outputs) == {"py_arcgis_hub", "py_socrata"}

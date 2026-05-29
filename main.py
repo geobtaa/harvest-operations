@@ -334,6 +334,60 @@ async def run_socrata_stream():
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
+@app.get("/run-ckan-stream")
+async def run_ckan_stream():
+    from harvesters.ckan import CkanHarvester
+
+    async def event_stream():
+        config_path = "config/ckan.yaml"
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f)
+
+        harvester = CkanHarvester(config)
+        harvester.load_reference_data()
+
+        fetched_records = []
+        for item in harvester.fetch():
+            if isinstance(item, str):
+                yield format_sse_message(item)
+            else:
+                fetched_records.append(item)
+
+            await asyncio.sleep(0.1)
+
+        yield format_sse_message(
+            f"Finished fetching {len(fetched_records)} records. Now parsing..."
+        )
+        parsed = harvester.parse(fetched_records)
+        flat = harvester.flatten(parsed)
+        df = harvester.build_dataframe(flat)
+        df = harvester.derive_fields(df)
+        df = harvester.add_defaults(df)
+        df = harvester.add_provenance(df)
+        df = harvester.clean(df)
+        harvester.validate(df)
+        results = harvester.write_outputs(df)
+        upload_summary = harvester.build_uploads(results)
+        if upload_summary is not None:
+            results["upload_summary"] = upload_summary
+            if upload_summary.get("status") == "created":
+                yield format_sse_message(
+                    "Built upload files: "
+                    f"{upload_summary['primary_upload_csv']}, "
+                    f"{upload_summary['distributions_new_csv']}, "
+                    f"{upload_summary['distributions_delete_csv']}."
+                )
+            else:
+                yield format_sse_message(
+                    "Upload files not built: "
+                    f"{upload_summary.get('reason', 'No reason provided.')}."
+                )
+
+        yield format_sse_message("CKAN harvest complete. Check output folder.")
+        yield format_sse_message("DONE")
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
 @app.get("/run-pasda-stream")
 async def run_pasda_stream():
     from harvesters.pasda import PasdaHarvester

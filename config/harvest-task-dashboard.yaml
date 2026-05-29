@@ -11,9 +11,11 @@ output_retrospective_dashboard_html: reports/harvest-task-dashboard-retrospectiv
 output_workflow_dir: inputs/harvest-workflow-inputs
 arcgis_reports_dir: reports/arcgis
 socrata_reports_dir: reports/socrata
+ckan_reports_dir: reports/ckan
 dedicated_workflow_views:
   - py_arcgis_hub
   - py_socrata
+  - py_ckan
 issue_repositories:
   - name: harvest-operations
     repository: geobtaa/harvest-operations

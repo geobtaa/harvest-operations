@@ -25,3 +25,12 @@ def test_static_hdx_page_runs_metadata_download_from_browser() -> None:
     assert "Download Metadata" in page_html
     assert "/run-hdx-download-stream" in page_html
     assert "Got to the scripts folder" not in page_html
+
+
+def test_static_ckan_page_runs_stream_endpoint_from_browser() -> None:
+    index_html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+    page_html = (ROOT / "static" / "ckan.html").read_text(encoding="utf-8")
+
+    assert "/static/ckan.html" in index_html
+    assert "CKAN Harvester" in page_html
+    assert "/run-ckan-stream" in page_html

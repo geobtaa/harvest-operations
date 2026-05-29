@@ -56,6 +56,10 @@ HARVEST_WORKFLOW_STATIC_PAGES = {
         "label": "Chicago Luna Harvester",
         "url": "/static/chicago-luna.html",
     },
+    "py_ckan": {
+        "label": "CKAN Harvester",
+        "url": "/static/ckan.html",
+    },
     "py_hdx": {
         "label": "HDX Harvester",
         "url": "/static/hdx.html",
@@ -101,9 +105,11 @@ GEO_API_FACET_PAGE_SIZE = 100
 OTHER_INSTITUTION_LABEL = "Other"
 DEFAULT_ARCGIS_REPORTS_DIR = "reports/arcgis"
 DEFAULT_SOCRATA_REPORTS_DIR = "reports/socrata"
+DEFAULT_CKAN_REPORTS_DIR = "reports/ckan"
 DEFAULT_PUBLIC_DASHBOARD_SITE_BASE_PATH = "/harvest-operations"
 ARCGIS_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_arcgis_report\.csv$")
 SOCRATA_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_socrata_report\.csv$")
+CKAN_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_ckan_report\.csv$")
 ARCGIS_REPORT_NUMBER_COLUMNS = (
     "Total Records Found",
     "New Records",
@@ -124,6 +130,13 @@ HARVEST_REPORT_WORKFLOW_CONFIG = {
         "current_heading": "Currently Harvested Socrata Sites",
         "empty_message": "No Socrata harvest records were found in the input file.",
         "description": "This report summarizes the Socrata harvest run for the date shown below.",
+    },
+    "py_ckan": {
+        "title": "CKAN Harvest Report",
+        "results_heading": "CKAN Harvest Results",
+        "current_heading": "Currently Harvested CKAN Sites",
+        "empty_message": "No CKAN harvest records were found in the input file.",
+        "description": "This report summarizes the CKAN harvest run for the date shown below.",
     },
 }
 
@@ -216,6 +229,9 @@ class HarvestTaskDashboardJob:
         self.socrata_reports_dir = Path(
             config.get("socrata_reports_dir", DEFAULT_SOCRATA_REPORTS_DIR)
         )
+        self.ckan_reports_dir = Path(
+            config.get("ckan_reports_dir", DEFAULT_CKAN_REPORTS_DIR)
+        )
         self.public_dashboard_site_base_path = (
             self._clean_value(
                 config.get(
@@ -263,6 +279,7 @@ class HarvestTaskDashboardJob:
         self._geoportal_code_counts_available = False
         self._latest_arcgis_report_cache: pd.DataFrame | None = None
         self._latest_socrata_report_cache: pd.DataFrame | None = None
+        self._latest_ckan_report_cache: pd.DataFrame | None = None
 
     def harvest_pipeline(self) -> dict[str, Any]:
         harvest_df = self._load_csv(self.harvest_records_path)
@@ -3648,6 +3665,8 @@ class HarvestTaskDashboardJob:
             return self._latest_arcgis_report_cache.copy()
         if workflow_name == "py_socrata" and self._latest_socrata_report_cache is not None:
             return self._latest_socrata_report_cache.copy()
+        if workflow_name == "py_ckan" and self._latest_ckan_report_cache is not None:
+            return self._latest_ckan_report_cache.copy()
 
         report_path = self._latest_harvest_report_path(workflow_name)
         if report_path is None:
@@ -3672,6 +3691,8 @@ class HarvestTaskDashboardJob:
             self._latest_arcgis_report_cache = report_df
         elif workflow_name == "py_socrata":
             self._latest_socrata_report_cache = report_df
+        elif workflow_name == "py_ckan":
+            self._latest_ckan_report_cache = report_df
 
     def _arcgis_report_totals(self, harvest_df: pd.DataFrame) -> dict[str, str]:
         return self._harvest_report_totals(harvest_df, "py_arcgis_hub")
@@ -3871,6 +3892,8 @@ class HarvestTaskDashboardJob:
             return self.arcgis_reports_dir
         if workflow_name == "py_socrata":
             return self.socrata_reports_dir
+        if workflow_name == "py_ckan":
+            return self.ckan_reports_dir
         return None
 
     def _harvest_report_filename_pattern(self, workflow: str) -> re.Pattern[str] | None:
@@ -3879,6 +3902,8 @@ class HarvestTaskDashboardJob:
             return ARCGIS_REPORT_FILENAME_PATTERN
         if workflow_name == "py_socrata":
             return SOCRATA_REPORT_FILENAME_PATTERN
+        if workflow_name == "py_ckan":
+            return CKAN_REPORT_FILENAME_PATTERN
         return None
 
     def _report_title(self, report_type: str = "full", workflow: str = "") -> str:

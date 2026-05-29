@@ -51,6 +51,10 @@ def test_app_registers_hdx_download_stream_route() -> None:
     assert any(route.path == "/run-hdx-download-stream" for route in app.routes)
 
 
+def test_app_registers_ckan_stream_route() -> None:
+    assert any(route.path == "/run-ckan-stream" for route in app.routes)
+
+
 def test_hdx_stream_builds_upload_files(monkeypatch) -> None:
     class FakeHdxHarvester:
         def __init__(self, config):
