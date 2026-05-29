@@ -16,6 +16,92 @@ def test_harvest_task_dashboard_links_ckan_workflow_to_static_page() -> None:
     }
 
 
+def test_workflow_queue_consolidates_ckan_as_monthly_process(tmp_path: Path) -> None:
+    harvest_records_path = tmp_path / "harvest-records.csv"
+    websites_path = tmp_path / "websites.csv"
+    reports_dir = tmp_path / "reports"
+    reports_dir.mkdir()
+
+    pd.DataFrame(
+        [
+            {
+                "ID": "harvest_07c-02",
+                "Title": "Harvest record for Ann Arbor Data Catalog",
+                "Identifier": "07c-02",
+                "Harvest Workflow": "py_ckan",
+                "Last Harvested": "",
+                "Accrual Periodicity": "Quarterly",
+                "Tags": "queue:pending_updates",
+            },
+            {
+                "ID": "harvest_08f-01",
+                "Title": "Harvest record for Western Pennsylvania Regional Data Center Open Data",
+                "Identifier": "08f-01",
+                "Harvest Workflow": "py_ckan",
+                "Last Harvested": "2026-03-31",
+                "Accrual Periodicity": "Quarterly",
+                "Tags": "",
+            },
+            {
+                "ID": "harvest_10c-01",
+                "Title": "Harvest record for City of Milwaukee Open Data",
+                "Identifier": "10c-01",
+                "Harvest Workflow": "py_ckan",
+                "Last Harvested": "",
+                "Accrual Periodicity": "Quarterly",
+                "Tags": "queue:pending_harvest",
+            },
+        ]
+    ).to_csv(harvest_records_path, index=False)
+    pd.DataFrame(
+        [
+            {"ID": "07c-02", "Title": "Ann Arbor Data Catalog", "Harvest Workflow": "py_ckan"},
+            {
+                "ID": "08f-01",
+                "Title": "Western Pennsylvania Regional Data Center Open Data",
+                "Harvest Workflow": "py_ckan",
+            },
+            {"ID": "10c-01", "Title": "Milwaukee Open Data", "Harvest Workflow": "py_ckan"},
+        ]
+    ).to_csv(websites_path, index=False)
+    pd.DataFrame(
+        [
+            {
+                "Code": "TOTAL",
+                "Identifier": "",
+                "Harvest Run": "success: 3; error: 0",
+                "Total Records Found": "42",
+            },
+        ]
+    ).to_csv(reports_dir / "2026-05-29_ckan_report.csv", index=False)
+
+    job = HarvestTaskDashboardJob(
+        {
+            "harvest_records_csv": str(harvest_records_path),
+            "websites_csv": str(websites_path),
+            "output_workflow_dir": str(tmp_path / "harvest-workflow-inputs"),
+            "ckan_reports_dir": str(reports_dir),
+            "today": "2026-05-29",
+        }
+    )
+
+    workflow_queue = job.build_workflow_queue()
+    ckan_workflows = [
+        workflow
+        for workflow in workflow_queue["workflows"]
+        if workflow["workflow"] == "py_ckan"
+    ]
+
+    assert len(ckan_workflows) == 1
+    assert ckan_workflows[0]["label"] == "CKAN Harvester"
+    assert ckan_workflows[0]["queue_count"] == 1
+    assert ckan_workflows[0]["due_now_count"] == 0
+    assert ckan_workflows[0]["next_due_date"] == "2026-06-29"
+    assert ckan_workflows[0]["workflow_input_csv"].endswith(
+        "harvest-workflow-inputs/py-ckan.csv"
+    )
+
+
 def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

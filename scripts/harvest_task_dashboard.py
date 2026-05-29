@@ -26,7 +26,12 @@ UNSCHEDULED_PERIODICITIES = {
 
 CONSOLIDATED_WORKFLOW_TITLES = {
     "py_arcgis_hub": "Scan ArcGIS Hubs",
+    "py_ckan": "Scan CKAN Sites",
     "py_socrata": "Scan Socrata Sites",
+}
+
+CONSOLIDATED_WORKFLOW_PERIODICITY_OVERRIDES = {
+    "py_ckan": "Monthly",
 }
 
 SOURCE_HARVEST_RECORDS_EXPORT_URL = (
@@ -719,12 +724,29 @@ class HarvestTaskDashboardJob:
             consolidated_row["Website Title"] = self._format_website_count_label(website_count)
             consolidated_row["Website ID"] = ""
             consolidated_row["Effective Harvest Workflow"] = workflow_name
-            consolidated_row["Due Date"] = self._select_due_date(group)
-            consolidated_row["Due Status"] = self._select_due_status(group)
             consolidated_row["Last Harvested"] = self._format_date_range(group["Last Harvested"].tolist())
             consolidated_row["Accrual Periodicity"] = self._format_unique_values(
                 group["Accrual Periodicity"].tolist()
             )
+            periodicity_override = CONSOLIDATED_WORKFLOW_PERIODICITY_OVERRIDES.get(workflow_name)
+            if periodicity_override:
+                latest_run_date = self._first_non_empty(
+                    self._latest_harvest_report_date(workflow_name),
+                    self._latest_harvest_date(group),
+                )
+                due_date = self._calculate_due_date(latest_run_date, periodicity_override)
+                consolidated_row["Last Harvested"] = latest_run_date
+                consolidated_row["Accrual Periodicity"] = periodicity_override
+                consolidated_row["Due Date"] = (
+                    due_date.strftime("%Y-%m-%d") if due_date is not None else ""
+                )
+                consolidated_row["Due Status"] = self._determine_due_status(
+                    due_date,
+                    periodicity_override,
+                )
+            else:
+                consolidated_row["Due Date"] = self._select_due_date(group)
+                consolidated_row["Due Status"] = self._select_due_status(group)
             consolidated_rows.append(consolidated_row)
 
         frames = remaining_frames.copy()
