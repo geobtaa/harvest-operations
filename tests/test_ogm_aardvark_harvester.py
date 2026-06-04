@@ -8,10 +8,17 @@ from harvesters.ogm_aardvark import OgmAardvarkHarvester
 
 ROOT = Path(__file__).resolve().parents[1]
 SAMPLE_FILES = [
-    ROOT / "inputs/ogm_aardvark/edu.uwm/metadata-aardvark/gmgs0000013_BL_Aardvark.json",
-    ROOT / "inputs/ogm_aardvark/edu.uwm/metadata-aardvark/gmgs000002n_BL_Aardvark.json",
-    ROOT / "inputs/ogm_aardvark/edu.uwm/metadata-aardvark/gmgsbg79drz_BL_Aardvark.json",
+    ROOT
+    / "inputs/edu.utexas/metadata-aardvark/utlmaps-225fea8d-1e1c-452f-8bb0-056028f2bd85.json",
+    ROOT / "inputs/edu.utexas/metadata-aardvark/utaustin_19326.json",
+    ROOT / "inputs/edu.utexas/metadata-aardvark/utaustin_19263.json",
 ]
+RESTRICTED_RECORD = {
+    "id": "restricted-record",
+    "dct_title_s": "Restricted Record",
+    "dct_accessRights_s": "Restricted",
+    "gbl_resourceClass_sm": ["Datasets"],
+}
 
 
 def _config(json_path: str) -> dict:
@@ -19,7 +26,7 @@ def _config(json_path: str) -> dict:
         "json_path": json_path,
         "output_primary_csv": "outputs/ogm_aardvark_primary.csv",
         "output_distributions_csv": "outputs/ogm_aardvark_distributions.csv",
-        "endpoint_url": "https://github.com/OpenGeoMetadata/edu.uwm",
+        "endpoint_url": "https://github.com/OpenGeoMetadata/edu.utexas",
         "endpoint_description": "GitHub",
         "website_platform": "GeoBlacklight",
         "accrual_method": "Automated retrieval",
@@ -29,22 +36,28 @@ def _config(json_path: str) -> dict:
 
 
 def _load_sample_records():
-    return [json.loads(path.read_text(encoding="utf-8")) for path in SAMPLE_FILES]
+    return [
+        json.loads(path.read_text(encoding="utf-8")) for path in SAMPLE_FILES
+    ] + [RESTRICTED_RECORD]
 
 
 def _copy_sample_tree(destination: Path) -> Path:
-    input_root = destination / "inputs" / "ogm_aardvark" / "edu.uwm" / "metadata-aardvark"
+    input_root = destination / "inputs" / "edu.utexas" / "metadata-aardvark"
     input_root.mkdir(parents=True, exist_ok=True)
 
     for sample_path in SAMPLE_FILES:
         target = input_root / sample_path.name
         target.write_text(sample_path.read_text(encoding="utf-8"), encoding="utf-8")
+    (input_root / "restricted-record.json").write_text(
+        json.dumps(RESTRICTED_RECORD),
+        encoding="utf-8",
+    )
 
-    return input_root.parent.parent
+    return input_root.parent
 
 
 def test_ogm_aardvark_maps_schema_fields_and_preserves_custom_fields():
-    harvester = OgmAardvarkHarvester(_config(str(ROOT / "inputs" / "ogm_aardvark")))
+    harvester = OgmAardvarkHarvester(_config(str(ROOT / "inputs" / "edu.utexas")))
     harvester.load_reference_data()
 
     df = harvester.build_dataframe(harvester.flatten(_load_sample_records()))
@@ -53,36 +66,50 @@ def test_ogm_aardvark_maps_schema_fields_and_preserves_custom_fields():
     df = harvester.add_provenance(df)
     df = harvester.clean(df)
 
-    regular_row = df.loc[df["ID"] == "ark:-77981-gmgs000002n"].iloc[0]
-    openindex_row = df.loc[df["ID"] == "ark:-77981-gmgs0000013"].iloc[0]
+    sanborn_row = df.loc[
+        df["ID"] == "utlmaps:225fea8d-1e1c-452f-8bb0-056028f2bd85"
+    ].iloc[0]
+    ams_row = df.loc[df["ID"] == "utaustin_19326"].iloc[0]
 
-    assert regular_row["Title"] == "Boundary Green County, Wisconsin 2002"
-    assert regular_row["Creator"] == "Legislative Technology Services Bureau"
-    assert regular_row["Theme"] == "Boundaries"
-    assert regular_row["Provider"] == "American Geographical Society Library – UWM Libraries"
-    assert regular_row["Identifier"] == "ark:/77981/gmgs000002n"
-    assert regular_row["Bounding Box"] == "-89.839,42.500,-89.366,42.858"
-    assert regular_row["Geometry"].startswith("POLYGON((")
-    assert regular_row["download"] == "https://geodata.uwm.edu/public/gmgs000002n/GreenCounty_Boundary_2002.zip"
-    assert regular_row["iso"] == "https://raw.githubusercontent.com/OpenGeoMetadata/edu.uwm/main/metadata-iso/gmgs000002n_ISO.xml"
+    assert (
+        sanborn_row["Title"]
+        == "Sanborn Fire Insurance Maps [Houston, Texas, 1907, Sheet 17]"
+    )
+    assert sanborn_row["Provider"] == "Texas"
+    assert sanborn_row["Identifier"] == "utlmaps:225fea8d-1e1c-452f-8bb0-056028f2bd85"
+    assert sanborn_row["Bounding Box"] == "-95.362,29.754,-95.357,29.759"
+    assert sanborn_row["Geometry"].startswith("POLYGON((")
+    assert sanborn_row["Date Range"] == "1907-1907"
+    assert (
+        sanborn_row["download"]
+        == "https://curio.lib.utexas.edu/geodata/raster/utlmaps-225fea8d-1e1c-452f-8bb0-056028f2bd85-cog.tif"
+    )
+    assert sanborn_row["download"] == sanborn_row["cog"]
+    assert (
+        sanborn_row["information"]
+        == "https://collections.lib.utexas.edu/catalog/utlmaps:225fea8d-1e1c-452f-8bb0-056028f2bd85"
+    )
 
-    assert openindex_row["Date Range"] == "1943-1943"
-    assert openindex_row["geo_json"] == "https://raw.githubusercontent.com/OpenIndexMaps/edu.uwm/main/665bA25000.geojson"
-    assert openindex_row["openindexmap"] == "https://raw.githubusercontent.com/OpenIndexMaps/edu.uwm/main/665bA25000.geojson"
+    assert ams_row["Date Range"] == "1943-1943"
+    assert (
+        ams_row["iso"]
+        == "https://curio.lib.utexas.edu/geodata/iso/utlmaps__ams__japan_l506__250k__6613121__zeni_su_52.xml"
+    )
 
-    assert "ark:-77981-gmgsbg79drz" not in set(df["ID"])
+    assert "restricted-record" not in set(df["ID"])
 
     assert set(df.columns[-3:]) == {
         "dct_references_s",
         "gbl_mdModified_dt",
         "gbl_mdVersion_s",
     }
-    assert regular_row["gbl_mdVersion_s"] == "Aardvark"
+    assert sanborn_row["gbl_mdVersion_s"] == "Aardvark"
 
 
 def test_ogm_aardvark_pipeline_writes_primary_and_distribution_outputs(tmp_path, monkeypatch):
     input_root = _copy_sample_tree(tmp_path)
     monkeypatch.chdir(tmp_path)
+    (tmp_path / "outputs").mkdir()
 
     harvester = OgmAardvarkHarvester(_config(str(input_root)))
     results = harvester.harvest_pipeline()
@@ -98,12 +125,15 @@ def test_ogm_aardvark_pipeline_writes_primary_and_distribution_outputs(tmp_path,
         keep_default_na=False,
     ).fillna("")
 
-    assert len(primary_df) == 2
+    assert len(primary_df) == 3
     assert set(primary_df["ID"]) == {
-        "ark:-77981-gmgs0000013",
-        "ark:-77981-gmgs000002n",
+        "utlmaps:225fea8d-1e1c-452f-8bb0-056028f2bd85",
+        "utaustin_19326",
+        "utaustin_19263",
     }
+    assert "restricted-record" not in set(primary_df["ID"])
     assert "download" not in primary_df.columns
+    assert "cog" not in primary_df.columns
     assert "dct_references_s" not in primary_df.columns
     assert "gbl_mdVersion_s" not in primary_df.columns
     assert "gbl_mdModified_dt" in primary_df.columns
@@ -111,17 +141,17 @@ def test_ogm_aardvark_pipeline_writes_primary_and_distribution_outputs(tmp_path,
     metadata_iso_rows = distributions_df.loc[
         distributions_df["reference_type"] == "metadata_iso"
     ]
-    openindex_rows = distributions_df.loc[
-        distributions_df["friendlier_id"] == "ark:-77981-gmgs0000013"
+    sanborn_rows = distributions_df.loc[
+        distributions_df["friendlier_id"]
+        == "utlmaps:225fea8d-1e1c-452f-8bb0-056028f2bd85"
     ]
 
-    assert len(metadata_iso_rows) == 1
-    assert "ark:-77981-gmgsbg79drz" not in set(distributions_df["friendlier_id"])
-    assert set(openindex_rows["reference_type"]) == {
+    assert len(metadata_iso_rows) == 2
+    assert "restricted-record" not in set(distributions_df["friendlier_id"])
+    assert set(sanborn_rows["reference_type"]) == {
+        "cog",
         "documentation_external",
         "download",
-        "geo_json",
-        "open_index_map",
     }
 
     download_labels = distributions_df.loc[
@@ -129,12 +159,15 @@ def test_ogm_aardvark_pipeline_writes_primary_and_distribution_outputs(tmp_path,
         ["friendlier_id", "label"],
     ]
     download_label_map = dict(download_labels.to_records(index=False))
-    assert download_label_map["ark:-77981-gmgs0000013"] == "GeoJSON"
-    assert download_label_map["ark:-77981-gmgs000002n"] == "Shapefile"
+    assert (
+        download_label_map["utlmaps:225fea8d-1e1c-452f-8bb0-056028f2bd85"]
+        == "GeoTIFF"
+    )
+    assert download_label_map["utaustin_19326"] == "GeoJPEG"
 
 
 def test_ogm_aardvark_derives_date_range_when_column_exists_but_row_value_is_missing():
-    harvester = OgmAardvarkHarvester(_config(str(ROOT / "inputs" / "ogm_aardvark")))
+    harvester = OgmAardvarkHarvester(_config(str(ROOT / "inputs" / "edu.utexas")))
     harvester.load_reference_data()
 
     records = [

@@ -1092,6 +1092,48 @@ def test_harvest_task_dashboard_routes_pending_harvest_rows_to_harvest_section(
     assert "2026-04-01" in due_dashboard_html
 
 
+def test_harvest_task_dashboard_marks_pending_harvest_rows_due_today() -> None:
+    job = HarvestTaskDashboardJob(
+        {
+            "harvest_records_csv": "unused-harvest-records.csv",
+            "websites_csv": "unused-websites.csv",
+            "today": "2026-06-04",
+        }
+    )
+    harvest_df = pd.DataFrame(
+        [
+            {
+                "ID": "task-pending-default",
+                "Title": "Pending Harvest Default",
+                "Harvest Workflow": "py_ogm_aardvark",
+                "Last Harvested": "",
+                "Accrual Periodicity": "Irregular",
+                "Tags": "queue:pending_harvest",
+            },
+            {
+                "ID": "task-pending-due-alias",
+                "Title": "Pending Harvest Due Alias",
+                "Harvest Workflow": "py_ogm_aardvark",
+                "Last Harvested": "",
+                "Accrual Periodicity": "Irregular",
+                "Tags": "queue:pending_harvest|due:2026-06-04|review:1y",
+            },
+        ]
+    )
+    websites_df = pd.DataFrame(columns=["ID", "Harvest Workflow"])
+
+    task_df = job._build_task_dataframe(harvest_df, websites_df)
+    pending_default = task_df.loc[task_df["ID"] == "task-pending-default"].iloc[0]
+    pending_due_alias = task_df.loc[task_df["ID"] == "task-pending-due-alias"].iloc[0]
+
+    assert pending_default["Due Date"] == "2026-06-04"
+    assert pending_default["Due Status"] == "Due"
+    assert pending_default["Days Until Due"] == "0"
+    assert pending_due_alias["Due Date"] == "2026-06-04"
+    assert pending_due_alias["Due Status"] == "Due"
+    assert pending_due_alias["Review Status"] == "No Review"
+
+
 def test_harvest_task_dashboard_generates_retrospective_report_with_month_grouping(
     tmp_path: Path,
 ) -> None:

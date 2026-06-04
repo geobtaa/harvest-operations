@@ -14,7 +14,7 @@ def test_static_index_links_to_ogm_aardvark_page() -> None:
 def test_static_ogm_aardvark_page_runs_expected_job() -> None:
     page_html = (ROOT / "static" / "ogm-aardvark.html").read_text(encoding="utf-8")
 
-    assert "inputs/ogm_aardvark" in page_html
+    assert "inputs/edu.utexas" in page_html
     assert "outputs/YYYY-MM-DD_ogm_aardvark_primary.csv" in page_html
     assert 'fetch("/jobs/ogm-aardvark/run"' in page_html
 

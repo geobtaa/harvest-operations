@@ -1079,8 +1079,11 @@ class HarvestTaskDashboardJob:
                 row_dict.get("Last Harvested", ""),
                 row_dict.get("Accrual Periodicity", ""),
             )
-            if self._has_pending_updates_tag(row_dict) or self._has_pending_harvest_tag(row_dict):
+            if self._has_pending_updates_tag(row_dict):
                 due_date = self.today
+            pending_harvest_due_date = self._pending_harvest_due_date(row_dict)
+            if pending_harvest_due_date is not None:
+                due_date = pending_harvest_due_date
             review_date = self._calculate_review_date(
                 row_dict.get("Last Harvested", ""),
                 row_dict.get("Accrual Periodicity", ""),
@@ -2818,14 +2821,14 @@ class HarvestTaskDashboardJob:
             return None
 
         for tag in self._extract_tag_values(row):
-            match = re.fullmatch(r"harvest_due:(\d{4}-\d{2}-\d{2})", tag)
+            match = re.fullmatch(r"(?:harvest_due|due):(\d{4}-\d{2}-\d{2})", tag)
             if not match:
                 continue
             due_date = pd.to_datetime(match.group(1), errors="coerce")
             if not pd.isna(due_date):
                 return due_date.normalize()
 
-        return None
+        return self.today
 
     def _review_interval_years(self, row: pd.Series | dict[str, Any] | None) -> int | None:
         if row is None:
