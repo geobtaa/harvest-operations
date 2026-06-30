@@ -1,5 +1,21 @@
 name: ogmWisc
 type: ogmWisc
+source_mode: local_json
 json_path: inputs/ogmWisc
 output_primary_csv: outputs/ogmWisc_primary.csv
 output_distributions_csv: outputs/ogmWisc_distributions.csv
+
+# GitHub full-repository alternative:
+# source_mode: github_tarball
+# github_owner: OpenGeoMetadata
+# github_repo: edu.wisc
+# github_ref: main
+
+# GitHub commit-delta alternative:
+# source_mode: github_commits
+# github_owner: OpenGeoMetadata
+# github_repo: edu.wisc
+# github_ref: main
+# github_recent_commits: 25
+# github_since: "2026-05-12T00:00:00Z"
+# github_token_env: GITHUB_TOKEN

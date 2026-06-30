@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse, HTMLResponse
+import csv
 import os
 from pathlib import Path
 import yaml
@@ -38,6 +39,21 @@ HARVESTER_REGISTRY = {
 router = APIRouter()
 
 
+OGM_GITHUB_JOB_IDS = {"ogmWisc", "ogm-aardvark"}
+OGM_GITHUB_ALLOWED_OVERRIDES = {
+    "source_mode",
+    "github_owner",
+    "github_repo",
+    "github_ref",
+    "github_branch",
+    "github_recent_commits",
+    "github_since",
+    "github_until",
+    "github_path",
+    "github_token_env",
+}
+
+
 def load_job_config(job_id: str) -> dict:
     config_path = os.path.join("config", f"{job_id}.yaml")
     if not os.path.exists(config_path):
@@ -45,6 +61,78 @@ def load_job_config(job_id: str) -> dict:
 
     with open(config_path, encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def load_ogm_repo_options(csv_path: str = "config/ogm-repos.csv") -> list[dict]:
+    if not os.path.exists(csv_path):
+        raise HTTPException(status_code=404, detail="OGM repository CSV not found")
+
+    repositories = []
+    with open(csv_path, newline="", encoding="utf-8-sig") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            repository = str(row.get("Repository", "")).strip()
+            if not repository:
+                continue
+
+            repositories.append(
+                {
+                    "repository": repository,
+                    "code": str(row.get("Code", "")).strip(),
+                    "member_of": str(row.get("Member Of", "")).strip(),
+                }
+            )
+
+    return repositories
+
+
+async def load_job_overrides(job_id: str, request: Request) -> dict:
+    if job_id not in OGM_GITHUB_JOB_IDS:
+        return {}
+
+    if request.headers.get("content-length") in (None, "0"):
+        return {}
+
+    try:
+        payload = await request.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Request body must be valid JSON.") from exc
+
+    if not payload:
+        return {}
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Request body must be a JSON object.")
+
+    unknown = sorted(set(payload) - OGM_GITHUB_ALLOWED_OVERRIDES)
+    if unknown:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported {job_id} option(s): {', '.join(unknown)}",
+        )
+
+    overrides = {key: value for key, value in payload.items() if value not in ("", None)}
+    source_mode = overrides.get("source_mode")
+    if source_mode and source_mode not in {"local_json", "github_tarball", "github_commits"}:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported {job_id} source_mode '{source_mode}'.",
+        )
+
+    if "github_recent_commits" in overrides:
+        try:
+            overrides["github_recent_commits"] = int(overrides["github_recent_commits"])
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=400,
+                detail="github_recent_commits must be a whole number.",
+            ) from exc
+        if overrides["github_recent_commits"] < 1:
+            raise HTTPException(
+                status_code=400,
+                detail="github_recent_commits must be at least 1.",
+            )
+
+    return overrides
 
 @router.get("/jobs")
 async def list_jobs():
@@ -64,13 +152,19 @@ async def list_jobs():
         })
     return jobs
 
+
+@router.get("/jobs/ogm-aardvark/repositories")
+async def list_ogm_aardvark_repositories():
+    return {"repositories": load_ogm_repo_options()}
+
 @router.post("/jobs/{job_id}/run")
-async def run_job(job_id: str):
+async def run_job(job_id: str, request: Request):
     """
     Run a harvesting job by ID, loading its configuration from the config/ folder.
     """
     # Load job configuration
     job_cfg = load_job_config(job_id)
+    job_cfg.update(await load_job_overrides(job_id, request))
 
     # Load schema and instantiate the correct harvester
     # schema = load_local_schema()
@@ -78,7 +172,10 @@ async def run_job(job_id: str):
 
     harvester_cls = HARVESTER_REGISTRY.get(harvester_type)
     if not harvester_cls:
-        raise HTTPException(status_code=400, detail=f"Unsupported harvester type '{harvester_type}'")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported harvester type '{harvester_type}'",
+        )
 
     harvester = harvester_cls(job_cfg)
 

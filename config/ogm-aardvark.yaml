@@ -1,11 +1,28 @@
 name: ogm_aardvark
 type: ogm_aardvark
-json_path: inputs/edu.utexas
+source_mode: github_tarball
 output_primary_csv: outputs/ogm_aardvark_primary.csv
 output_distributions_csv: outputs/ogm_aardvark_distributions.csv
-endpoint_url: https://github.com/OpenGeoMetadata/edu.utexas
+github_owner: OpenGeoMetadata
+github_ref: main
+github_token_env: GITHUB_TOKEN
+repo_defaults_csv: config/ogm-repos.csv
 endpoint_description: GitHub
 website_platform: GeoBlacklight
 accrual_method: Automated retrieval
 accrual_periodicity: Irregular
 harvest_workflow: py_ogm_aardvark
+
+# Browser and one-off runs should provide:
+# github_repo: edu.utexas
+# github_path: metadata-aardvark
+#
+# Other supported modes:
+# source_mode: local_json
+# json_path: inputs/example-repo
+# source_mode: github_commits
+#
+# For commit-delta runs, use either:
+# github_recent_commits: 4
+# or:
+# github_since: "2026-06-01T00:00:00Z"

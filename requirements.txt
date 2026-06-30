@@ -4,6 +4,7 @@ pydantic
 pyyaml
 requests
 pandas
+beautifulsoup4
 python-multipart
 playwright
 typing_extensions<4.15

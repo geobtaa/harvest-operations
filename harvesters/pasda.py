@@ -1,8 +1,4 @@
-# Standard library
-import re
 import time
-
-
 
 # Third-party
 import pandas as pd
@@ -20,6 +16,8 @@ from utils.title_formatter import title_wizard
 class PasdaHarvester(BaseHarvester):
 
     def __init__(self, config):
+        config = dict(config)
+        config.setdefault("build_uploads", True)
         super().__init__(config)
         self.counties_in_pennsylvania = []
         self.cities_in_pennsylvania = []
@@ -108,13 +106,13 @@ class PasdaHarvester(BaseHarvester):
         df = creator_match(df, state="Pennsylvania")
 
         return (
-            df.pipe(self.pasda_drop_incomplete)
-            .pipe(self.pasda_drop_federal)
-            .pipe(self.pasda_spatial_coverage)
-            .pipe(self.pasda_philadelphia_spatial)
-            .pipe(self.pasda_temporal_coverage)
-            .pipe(self.pasda_format_date_ranges)
-            .pipe(self.pasda_reformat_titles)
+            df.pipe(pasda_drop_incomplete)
+            .pipe(pasda_drop_federal)
+            .pipe(pasda_spatial_coverage)
+            .pipe(pasda_philadelphia_spatial)
+            .pipe(pasda_temporal_coverage)
+            .pipe(pasda_format_date_ranges)
+            .pipe(pasda_reformat_titles)
         )
 
    
@@ -158,124 +156,129 @@ class PasdaHarvester(BaseHarvester):
         distributions_df = generate_secondary_table(primary_df.copy(), self.distribution_types)
         return super().write_outputs(primary_df, distributions_df)
 
+    def build_uploads(self, results: dict) -> dict | None:
+        return super().build_uploads(results)
 
-    # ────── PASDA Custom Methods ──────
 
-    def pasda_drop_incomplete(self, df):
-        """
-        Drops rows missing required fields like 'ID' or 'Alternative Title'.
-        Logs how many were dropped.
-        """
-        before = len(df)
-        df = df[df['ID'].notna() & df['Alternative Title'].notna()].copy()
-        dropped = before - len(df)
-        if dropped > 0:
-            print(f"[PASDA] Dropped {dropped} records missing 'ID' or 'Alternative Title'.")
+# Custom functions for this harvester
+
+
+def pasda_drop_incomplete(df):
+    """
+    Drops rows missing required fields like 'ID' or 'Alternative Title'.
+    Logs how many were dropped.
+    """
+    before = len(df)
+    df = df[df['ID'].notna() & df['Alternative Title'].notna()].copy()
+    dropped = before - len(df)
+    if dropped > 0:
+        print(f"[PASDA] Dropped {dropped} records missing 'ID' or 'Alternative Title'.")
+    return df
+
+
+def pasda_drop_federal(df):
+    """
+    Drops datasets with federal sources.
+    """
+    federal = [
+        "United States Army Corps of Engineers USACE", "U S Geological Survey", "U S Fish and Wildlife Service",
+        "U S Environmental Protection Agency", "U S Department of Justice", "U S Department of Commerce",
+        "U S Department of Agriculture", "U S Census Bureau", "National Weather Service NOAA NWS",
+        "National Renewable Energy Laboratory NREL", "National Park Service", "National Geodetic Survey",
+        "National Aeronautics and Space Administration NASA", "Federal Emergency Management Agency"
+    ]
+
+    if df.empty or 'Creator' not in df.columns:
+        print("[PASDA] Skipping federal filter: 'Creator' column not found or DataFrame is empty.")
         return df
 
-    def pasda_drop_federal(self, df):
-        """
-        Drops datasets with federal sources.
-        """
-        
-        federal = [
-            "United States Army Corps of Engineers USACE", "U S Geological Survey", "U S Fish and Wildlife Service",
-            "U S Environmental Protection Agency", "U S Department of Justice", "U S Department of Commerce",
-            "U S Department of Agriculture", "U S Census Bureau", "National Weather Service NOAA NWS",
-            "National Renewable Energy Laboratory NREL", "National Park Service", "National Geodetic Survey",
-            "National Aeronautics and Space Administration NASA", "Federal Emergency Management Agency"
-        ]
+    return df[~df['Creator'].isin(federal)].reset_index(drop=True)
 
-        if df.empty or 'Creator' not in df.columns:
-            print("[PASDA] Skipping federal filter: 'Creator' column not found or DataFrame is empty.")
-            return df
 
-        return df[~df['Creator'].isin(federal)].reset_index(drop=True)
-    
-    def pasda_spatial_coverage(self, df):
-        """
-        Set spatial metadata fields:
-        - Derive 'Spatial Coverage' from 'Creator' using FAST format.
-        - Fill in missing 'Bounding Box', 'Geometry', and 'GeoNames' with Pennsylvania defaults.
-        """
+def pasda_spatial_coverage(df):
+    """
+    Set spatial metadata fields:
+    - Derive 'Spatial Coverage' from 'Creator' using FAST format.
+    - Fill in missing 'Bounding Box', 'Geometry', and 'GeoNames' with Pennsylvania defaults.
+    """
 
-        if df.empty or 'Creator' not in df.columns:
-            print("[PASDA] Skipping spatial metadata: 'Creator' column not found or DataFrame is empty.")
-            df['Spatial Coverage'] = ''
-            return df
-
-        # Step 1: Set Spatial Coverage
-        def format_coverage(creator):
-            if not isinstance(creator, str) or not creator.startswith("Pennsylvania--"):
-                return "Pennsylvania"
-            return f"{creator}|Pennsylvania"
-
-        df['Spatial Coverage'] = df['Creator'].apply(format_coverage)
-
-        # Step 2: Fill in missing spatial metadata
-        defaults = {
-            'Bounding Box': "-80.52,39.72,-74.69,42.27",
-            'Geometry': (
-                "MultiPolygon(((-75.6 39.8, -75.8 39.7, -80.5 39.7, -80.5 42.3, "
-                "-79.8 42.5, -79.8 42, -75.3 42, -75.1 41.8, -75 41.5, -74.7 41.4, "
-                "-75.1 41, -75.1 40.9, -75.2 40.7, -74.7 40.2, -75.1 39.9, -75.6 39.8)))"
-            ),
-            'GeoNames': "http://sws.geonames.org/6254927"
-        }
-
-        for column, default in defaults.items():
-            if column not in df.columns:
-                df[column] = default
-            else:
-                df[column] = df[column].replace("", default).fillna(default)
-
-        return df
-    
-    def pasda_temporal_coverage(self, df):
-        """
-        Adds a 'Temporal Coverage' column based on Title or Date Modified.
-        """
-        df["Temporal Coverage"] = df.apply(infer_temporal_coverage_from_title, axis=1)
-        return df
-    
-    def pasda_format_date_ranges(self, df):
-        """
-        Adds a 'Date Range' column based on 'Temporal Coverage', 'Date Modified', or 'Date Issued'.
-        """
-        df["Date Range"] = df.apply(
-            lambda row: create_date_range(row, row.get("Temporal Coverage", "")),
-            axis=1
-        )
+    if df.empty or 'Creator' not in df.columns:
+        print("[PASDA] Skipping spatial metadata: 'Creator' column not found or DataFrame is empty.")
+        df['Spatial Coverage'] = ''
         return df
 
-    def pasda_reformat_titles(self, df):
-        """
-        Updates the Title field using a formatting pipeline.
-        """
-        return title_wizard(df)
-       
-    def pasda_philadelphia_spatial(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        For rows with Creator == 'Pennsylvania--Philadelphia':
-        - set a precise Philadelphia Bounding Box
-        - clear Geometry and GeoNames (leave blank)
-        """
-        if df.empty or "Creator" not in df.columns:
-            return df
+    def format_coverage(creator):
+        if not isinstance(creator, str) or not creator.startswith("Pennsylvania--"):
+            return "Pennsylvania"
+        return f"{creator}|Pennsylvania"
 
-        philly_mask = df["Creator"] == "Pennsylvania--Philadelphia"
-        if not philly_mask.any():
-            return df
+    df['Spatial Coverage'] = df['Creator'].apply(format_coverage)
 
-        # Ensure columns exist
-        for col in ["Bounding Box", "Geometry", "GeoNames"]:
-            if col not in df.columns:
-                df[col] = ""
+    defaults = {
+        'Bounding Box': "-80.52,39.72,-74.69,42.27",
+        'Geometry': (
+            "MultiPolygon(((-75.6 39.8, -75.8 39.7, -80.5 39.7, -80.5 42.3, "
+            "-79.8 42.5, -79.8 42, -75.3 42, -75.1 41.8, -75 41.5, -74.7 41.4, "
+            "-75.1 41, -75.1 40.9, -75.2 40.7, -74.7 40.2, -75.1 39.9, -75.6 39.8)))"
+        ),
+        'GeoNames': "http://sws.geonames.org/6254927"
+    }
 
-        df.loc[philly_mask, "Bounding Box"] = "-75.280298,39.867005,-74.955832,40.13796"
-        df.loc[philly_mask, ["Geometry", "GeoNames"]] = ""  # clear statewide defaults
+    for column, default in defaults.items():
+        if column not in df.columns:
+            df[column] = default
+        else:
+            df[column] = df[column].replace("", default).fillna(default)
+
+    return df
+
+
+def pasda_temporal_coverage(df):
+    """
+    Adds a 'Temporal Coverage' column based on Title or Date Modified.
+    """
+    df["Temporal Coverage"] = df.apply(infer_temporal_coverage_from_title, axis=1)
+    return df
+
+
+def pasda_format_date_ranges(df):
+    """
+    Adds a 'Date Range' column based on 'Temporal Coverage', 'Date Modified', or 'Date Issued'.
+    """
+    df["Date Range"] = df.apply(
+        lambda row: create_date_range(row, row.get("Temporal Coverage", "")),
+        axis=1
+    )
+    return df
+
+
+def pasda_reformat_titles(df):
+    """
+    Updates the Title field using a formatting pipeline.
+    """
+    return title_wizard(df)
+
+
+def pasda_philadelphia_spatial(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    For rows with Creator == 'Pennsylvania--Philadelphia':
+    - set a precise Philadelphia Bounding Box
+    - clear Geometry and GeoNames (leave blank)
+    """
+    if df.empty or "Creator" not in df.columns:
         return df
 
+    philly_mask = df["Creator"] == "Pennsylvania--Philadelphia"
+    if not philly_mask.any():
+        return df
+
+    for col in ["Bounding Box", "Geometry", "GeoNames"]:
+        if col not in df.columns:
+            df[col] = ""
+
+    df.loc[philly_mask, "Bounding Box"] = "-75.280298,39.867005,-74.955832,40.13796"
+    df.loc[philly_mask, ["Geometry", "GeoNames"]] = ""
+    return df
 
 
 

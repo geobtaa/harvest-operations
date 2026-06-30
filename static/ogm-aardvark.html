@@ -4,38 +4,148 @@
   <meta charset="UTF-8" />
   <title>OGM Aardvark Harvester</title>
   <style>
+    :root {
+      --border: #cfd7df;
+      --ink: #18212b;
+      --muted: #5e6a76;
+      --panel: #f7f9fb;
+      --accent: #0b6bcb;
+      --accent-dark: #084f96;
+    }
+
     body {
-      font-family: sans-serif;
-      max-width: 720px;
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
       margin: 2rem auto;
+      max-width: 860px;
       padding: 1rem;
-      line-height: 1.6;
     }
+
     h1 {
-      font-size: 1.8rem;
-      margin-bottom: 0.5rem;
+      font-size: 1.85rem;
+      margin: 0 0 0.5rem;
     }
-    button {
-      padding: 0.65rem 1.2rem;
-      font-size: 1rem;
-      cursor: pointer;
+
+    p {
+      color: var(--muted);
+      margin: 0.4rem 0 1rem;
+    }
+
+    form {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: grid;
+      gap: 1rem;
       margin-top: 1.5rem;
-    }
-    #status {
-      margin-top: 1rem;
-      font-weight: bold;
-    }
-    pre {
-      border: 1px solid #ccc;
       padding: 1rem;
+    }
+
+    fieldset {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: grid;
+      gap: 0.85rem;
+      margin: 0;
+      padding: 1rem;
+    }
+
+    legend {
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 0 0.35rem;
+    }
+
+    label {
+      display: grid;
+      font-weight: 700;
+      gap: 0.3rem;
+    }
+
+    input,
+    select {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-sizing: border-box;
+      font: inherit;
+      min-height: 2.45rem;
+      padding: 0.45rem 0.6rem;
+      width: 100%;
+    }
+
+    .grid {
+      display: grid;
+      gap: 0.85rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .radio-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .radio-row label {
+      align-items: center;
+      display: flex;
+      font-weight: 600;
+      gap: 0.4rem;
+    }
+
+    .radio-row input {
+      min-height: 1rem;
+      width: auto;
+    }
+
+    button {
+      background: var(--accent);
+      border: 0;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      min-height: 2.65rem;
+      padding: 0.65rem 1.1rem;
+      width: fit-content;
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--accent-dark);
+    }
+
+    code {
+      background: #eef2f6;
+      border-radius: 4px;
+      color: var(--ink);
+      padding: 0.1rem 0.3rem;
+    }
+
+    #status {
+      font-weight: 700;
+      margin-top: 1rem;
+    }
+
+    pre {
+      background: #101820;
+      border-radius: 8px;
+      color: #e8eef5;
       margin-top: 1rem;
       min-height: 10rem;
+      overflow: auto;
+      padding: 1rem;
       white-space: pre-wrap;
     }
-    code {
-      background: #f4f4f4;
-      padding: 0.1rem 0.3rem;
-      border-radius: 4px;
+
+    .hidden {
+      display: none;
     }
   </style>
 </head>
@@ -43,33 +153,197 @@
   <h1>Transform OGM Aardvark Metadata</h1>
 
   <p>
-    This job reads nested JSON metadata files from <code>inputs/edu.utexas</code>,
-    maps matching fields directly to the GeoBTAA schema, preserves non-schema source
-    fields in the primary CSV, and writes a separate distribution CSV from
-    <code>dct_references_s</code>.
+    Harvest Aardvark JSON from any OpenGeoMetadata repository. Use a folder path
+    such as <code>metadata-aardvark</code> when the metadata lives below the repo root.
   </p>
 
-  <p><strong>Outputs:</strong></p>
-  <ul>
-    <li><code>outputs/YYYY-MM-DD_ogm_aardvark_primary.csv</code></li>
-    <li><code>outputs/YYYY-MM-DD_ogm_aardvark_distributions.csv</code></li>
-  </ul>
+  <form id="harvest-form">
+    <fieldset>
+      <legend>Source</legend>
+      <label>
+        Mode
+        <select id="source-mode" name="source_mode">
+          <option value="local_json">Local JSON folder</option>
+          <option value="github_tarball">GitHub tarball</option>
+          <option value="github_commits" selected>GitHub commits</option>
+        </select>
+      </label>
+    </fieldset>
 
-  <button onclick="runHarvest()">Run Harvester</button>
+    <fieldset id="github-fields">
+      <legend>GitHub Repository</legend>
+      <div class="grid">
+        <label>
+          Owner
+          <input id="github-owner" name="github_owner" value="OpenGeoMetadata" />
+        </label>
+        <label>
+          Repository
+          <select id="github-repo" name="github_repo">
+            <option value="">Loading repositories...</option>
+          </select>
+        </label>
+        <label>
+          Ref
+          <input id="github-ref" name="github_ref" value="main" />
+        </label>
+        <label>
+          Metadata folder
+          <input id="github-path" name="github_path" value="metadata-aardvark" />
+        </label>
+        <label>
+          Token env var
+          <input id="github-token-env" name="github_token_env" value="GITHUB_TOKEN" />
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset id="commit-fields">
+      <legend>Commit Selection</legend>
+      <div class="radio-row">
+        <label>
+          <input type="radio" name="commit-selection" value="recent" checked />
+          Last commits
+        </label>
+        <label>
+          <input type="radio" name="commit-selection" value="since" />
+          Since date
+        </label>
+      </div>
+      <div class="grid">
+        <label id="recent-commits-field">
+          Commit count
+          <input
+            id="github-recent-commits"
+            name="github_recent_commits"
+            type="number"
+            min="1"
+            step="1"
+            value="4"
+          />
+        </label>
+        <label id="since-field" class="hidden">
+          Since
+          <input
+            id="github-since-date"
+            name="github_since_date"
+            type="date"
+            value="2026-06-01"
+          />
+        </label>
+      </div>
+    </fieldset>
+
+    <button id="run-button" type="submit">Run Harvester</button>
+  </form>
+
   <div id="status"></div>
   <pre id="output"></pre>
 
   <script>
-    async function runHarvest() {
-      const status = document.getElementById("status");
-      const output = document.getElementById("output");
+    const form = document.getElementById("harvest-form");
+    const sourceMode = document.getElementById("source-mode");
+    const githubFields = document.getElementById("github-fields");
+    const githubRepo = document.getElementById("github-repo");
+    const commitFields = document.getElementById("commit-fields");
+    const recentCommitsField = document.getElementById("recent-commits-field");
+    const sinceField = document.getElementById("since-field");
+    const status = document.getElementById("status");
+    const output = document.getElementById("output");
+    const runButton = document.getElementById("run-button");
 
+    function selectedCommitMode() {
+      return document.querySelector("input[name='commit-selection']:checked").value;
+    }
+
+    function updateVisibility() {
+      const mode = sourceMode.value;
+      githubFields.classList.toggle("hidden", mode === "local_json");
+      commitFields.classList.toggle("hidden", mode !== "github_commits");
+
+      const commitMode = selectedCommitMode();
+      recentCommitsField.classList.toggle("hidden", commitMode !== "recent");
+      sinceField.classList.toggle("hidden", commitMode !== "since");
+    }
+
+    function buildPayload() {
+      const mode = sourceMode.value;
+      const payload = { source_mode: mode };
+
+      if (mode === "local_json") {
+        return payload;
+      }
+
+      payload.github_owner = document.getElementById("github-owner").value.trim();
+      payload.github_repo = githubRepo.value.trim();
+      if (!payload.github_repo) {
+        throw new Error("Select a repository before running the harvester.");
+      }
+      payload.github_ref = document.getElementById("github-ref").value.trim();
+      payload.github_path = document.getElementById("github-path").value.trim();
+      payload.github_token_env = document.getElementById("github-token-env").value.trim();
+
+      if (mode === "github_commits") {
+        if (selectedCommitMode() === "recent") {
+          payload.github_recent_commits = Number(
+            document.getElementById("github-recent-commits").value
+          );
+        } else {
+          const dateValue = document.getElementById("github-since-date").value;
+          payload.github_since = `${dateValue}T00:00:00Z`;
+        }
+      }
+
+      return payload;
+    }
+
+    async function loadRepositories() {
+      try {
+        const response = await fetch("/jobs/ogm-aardvark/repositories");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Could not load repositories.");
+        }
+
+        githubRepo.innerHTML = "";
+        data.repositories.forEach((repo) => {
+          const option = document.createElement("option");
+          option.value = repo.repository;
+          option.textContent = repo.code
+            ? `${repo.repository} (${repo.code})`
+            : repo.repository;
+          githubRepo.appendChild(option);
+        });
+
+        const texasOption = Array.from(githubRepo.options).find(
+          (option) => option.value === "edu.utexas"
+        );
+        if (texasOption) {
+          githubRepo.value = "edu.utexas";
+        }
+      } catch (error) {
+        githubRepo.innerHTML = "";
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "Repository list unavailable";
+        githubRepo.appendChild(option);
+        status.textContent = "Could not load repositories.";
+        output.textContent = error.message;
+      }
+    }
+
+    async function runHarvest(event) {
+      event.preventDefault();
       status.textContent = "Running ogm-aardvark job...";
       output.textContent = "";
+      runButton.disabled = true;
 
       try {
         const response = await fetch("/jobs/ogm-aardvark/run", {
-          method: "POST"
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(buildPayload())
         });
         const data = await response.json();
 
@@ -82,8 +356,18 @@
       } catch (error) {
         status.textContent = "Harvest failed.";
         output.textContent = error.message;
+      } finally {
+        runButton.disabled = false;
       }
     }
+
+    sourceMode.addEventListener("change", updateVisibility);
+    document.querySelectorAll("input[name='commit-selection']").forEach((input) => {
+      input.addEventListener("change", updateVisibility);
+    });
+    form.addEventListener("submit", runHarvest);
+    updateVisibility();
+    loadRepositories();
   </script>
 </body>
 </html>

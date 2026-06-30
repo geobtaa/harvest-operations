@@ -14,9 +14,30 @@ def test_static_index_links_to_ogm_aardvark_page() -> None:
 def test_static_ogm_aardvark_page_runs_expected_job() -> None:
     page_html = (ROOT / "static" / "ogm-aardvark.html").read_text(encoding="utf-8")
 
-    assert "inputs/edu.utexas" in page_html
-    assert "outputs/YYYY-MM-DD_ogm_aardvark_primary.csv" in page_html
     assert 'fetch("/jobs/ogm-aardvark/run"' in page_html
+    assert 'fetch("/jobs/ogm-aardvark/repositories")' in page_html
+    assert 'value="github_commits" selected' in page_html
+    assert 'name="github_repo"' in page_html
+    assert "Loading repositories..." in page_html
+    assert 'name="github_path"' in page_html
+    assert 'value="metadata-aardvark"' in page_html
+    assert 'name="github_recent_commits"' in page_html
+    assert 'value="4"' in page_html
+    assert 'name="github_since_date"' in page_html
+    assert 'value="2026-06-01"' in page_html
+    assert 'fetch("/jobs/ogm-aardvark/run"' in page_html
+
+
+def test_static_ogm_wisc_page_accepts_github_commit_options() -> None:
+    page_html = (ROOT / "static" / "ogmWisc.html").read_text(encoding="utf-8")
+
+    assert 'fetch("/jobs/ogmWisc/run"' in page_html
+    assert 'value="github_commits" selected' in page_html
+    assert 'name="github_recent_commits"' in page_html
+    assert 'value="4"' in page_html
+    assert 'name="github_since_date"' in page_html
+    assert 'value="2026-06-01"' in page_html
+    assert "payload.github_since" in page_html
 
 
 def test_static_hdx_page_runs_metadata_download_from_browser() -> None:
