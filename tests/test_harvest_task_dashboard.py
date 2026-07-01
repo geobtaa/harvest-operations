@@ -460,8 +460,10 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "To be reviewed (1)" in dashboard_html
     assert "Geology Index" in dashboard_html
     assert "py_socrata" not in dashboard_html
-    assert "https://geo.btaa.org/admin/documents?f%5Bb1g_websitePlatform_s%5D%5B%5D=Socrata&amp;f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&amp;rows=20&amp;sort=score+desc" not in dashboard_html
-    assert "https://geo.btaa.org/admin/documents/site-5/edit" in dashboard_html
+    assert "https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_websitePlatform_s%5D%5B%5D=Socrata&amp;f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&amp;rows=20&amp;sort=score+desc" not in dashboard_html
+    assert "https://geomg.lib.umn.edu/admin/documents/site-5/edit" in dashboard_html
+    assert "restricted-login-glyph" in dashboard_html
+    assert "🔒" in dashboard_html
     assert "https://github.com/geobtaa/harvest-operations/issues/new" in dashboard_html
     assert "template=harvest-task.md" in dashboard_html
     assert "Create issue" in dashboard_html
@@ -474,15 +476,16 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "/static/socrata.html" in dashboard_html
     assert "Open PASDA Harvester" in dashboard_html
     assert "within the next month" in dashboard_html
-    assert "Create issue" not in public_dashboard_html
-    assert "Create issue" not in public_due_dashboard_html
-    assert "Get Latest Source CSVs" not in public_dashboard_html
-    assert "Workflow Run Queue" not in public_dashboard_html
-    assert "https://geo.btaa.org/admin/documents/site-5/edit" not in public_dashboard_html
+    assert dashboard_html == public_dashboard_html
+    assert due_dashboard_html == public_due_dashboard_html
+    assert "Create issue" in public_dashboard_html
+    assert "Get Latest Source CSVs" in public_dashboard_html
+    assert "Workflow Run Queue" in public_dashboard_html
+    assert "https://geomg.lib.umn.edu/admin/documents/site-5/edit" in public_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2227d-01%22" in public_arcgis_dashboard_html
-    assert "https://geo.btaa.org/admin/documents/task-1/edit" not in public_arcgis_dashboard_html
-    assert "https://geo.btaa.org/admin/documents/site-1/edit" not in public_arcgis_dashboard_html
+    assert "https://geomg.lib.umn.edu/admin/documents/task-1/edit" in public_arcgis_dashboard_html
+    assert "https://geomg.lib.umn.edu/admin/documents/site-1/edit" in public_arcgis_dashboard_html
     assert "Reviews due" in dashboard_html
     assert "Harvests due" in dashboard_html
     assert "Harvest Records" in records_dashboard_html
@@ -503,7 +506,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Geology Index" in records_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in records_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_records_dashboard_html
-    assert "https://geo.btaa.org/admin/documents/site-5/edit" not in records_dashboard_html
+    assert "https://geomg.lib.umn.edu/admin/documents/site-5/edit" in records_dashboard_html
     assert "Create issue" not in records_dashboard_html
     assert "Get Latest Source CSVs" not in records_dashboard_html
     assert records_dashboard_html.index("Parcel Fabric") < records_dashboard_html.index("Geology Index")
@@ -530,9 +533,9 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Geoportal items: 3" in institution_dashboard_html
     assert "Geoportal items: Not available" in institution_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2227d-01%22" in institution_dashboard_html
-    assert "https://geo.btaa.org/admin/documents/task-1/edit" in institution_dashboard_html
+    assert "https://geomg.lib.umn.edu/admin/documents/task-1/edit" in institution_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_institution_dashboard_html
-    assert "https://geo.btaa.org/admin/documents/task-1/edit" not in public_institution_dashboard_html
+    assert "https://geomg.lib.umn.edu/admin/documents/task-1/edit" in public_institution_dashboard_html
     assert institution_dashboard_html.index("Transit Stops") < institution_dashboard_html.index("County Parcels")
     assert institution_dashboard_html.index("County Parcels") < institution_dashboard_html.index("Building Permits")
     assert "Map Collections" in map_collections_dashboard_html
@@ -549,11 +552,11 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Periodicity:" not in map_collections_dashboard_html
     assert "Geoportal items: 12" in map_collections_dashboard_html
     assert "Geoportal items: 3" in map_collections_dashboard_html
-    assert "https://geo.btaa.org/admin/documents/task-1/edit" in map_collections_dashboard_html
+    assert "https://geomg.lib.umn.edu/admin/documents/task-1/edit" in map_collections_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2227d-01%22" in (
         public_map_collections_dashboard_html
     )
-    assert "https://geo.btaa.org/admin/documents/task-1/edit" not in (
+    assert "https://geomg.lib.umn.edu/admin/documents/task-1/edit" in (
         public_map_collections_dashboard_html
     )
     assert fetch_calls == 1
@@ -572,10 +575,10 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Socrata Harvest Report - 2026-03-30" in retrospective_dashboard_html
     assert "CKAN Harvest Report - 2026-03-30" in retrospective_dashboard_html
     assert ">Harvest</span>" in retrospective_dashboard_html
-    assert 'href="/reports/2026-03-30_harvest-task-dashboard-py-arcgis-hub.html"' in (
+    assert 'href="/harvest-operations/2026-03-30/workflows/py-arcgis-hub/"' in (
         retrospective_dashboard_html
     )
-    assert 'href="/reports/2026-03-30_harvest-task-dashboard-py-socrata.html"' in (
+    assert 'href="/harvest-operations/2026-03-30/workflows/py-socrata/"' in (
         retrospective_dashboard_html
     )
     assert "Total Records Found: 39; New Records: 9; Unpublished Records: 2" in (
@@ -590,7 +593,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert 'href="/harvest-operations/2026-03-30/workflows/py-socrata/"' in (
         public_retrospective_dashboard_html
     )
-    assert "/reports/2026-03-30_harvest-task-dashboard-py-arcgis-hub-public.html" not in (
+    assert "/reports/2026-03-30_harvest-task-dashboard-py-arcgis-hub.html" not in (
         public_retrospective_dashboard_html
     )
     assert "Scan ArcGIS Hubs" not in dashboard_html
@@ -604,25 +607,25 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert set(dedicated_dashboard_outputs) == {"py_arcgis_hub", "py_socrata"}
     assert set(public_dedicated_dashboard_outputs) == {"py_arcgis_hub", "py_socrata"}
     assert Path(dedicated_dashboard_outputs["py_arcgis_hub"]).name == (
-        "2026-03-30_harvest-task-dashboard-py-arcgis-hub.html"
+        "2026-03-30_harvest-task-dashboard-py-arcgis-hub-public.html"
     )
     assert Path(dedicated_dashboard_outputs["py_socrata"]).name == (
-        "2026-03-30_harvest-task-dashboard-py-socrata.html"
+        "2026-03-30_harvest-task-dashboard-py-socrata-public.html"
     )
     assert Path(results["records_dashboard_html"]).name == (
-        "2026-03-30_harvest-task-dashboard-records.html"
+        "2026-03-30_harvest-task-dashboard-records-public.html"
     )
     assert Path(results["public_records_dashboard_html"]).name == (
         "2026-03-30_harvest-task-dashboard-records-public.html"
     )
     assert Path(results["institution_dashboard_html"]).name == (
-        "2026-03-30_harvest-task-dashboard-institutions.html"
+        "2026-03-30_harvest-task-dashboard-institutions-public.html"
     )
     assert Path(results["public_institution_dashboard_html"]).name == (
         "2026-03-30_harvest-task-dashboard-institutions-public.html"
     )
     assert Path(results["map_collections_dashboard_html"]).name == (
-        "2026-03-30_harvest-task-dashboard-map-collections.html"
+        "2026-03-30_harvest-task-dashboard-map-collections-public.html"
     )
     assert Path(results["public_map_collections_dashboard_html"]).name == (
         "2026-03-30_harvest-task-dashboard-map-collections-public.html"
@@ -735,15 +738,11 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
 def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: Path) -> None:
     harvest_records_path = tmp_path / "harvest-records.csv"
     websites_path = tmp_path / "websites.csv"
-    standalone_websites_path = tmp_path / "standalone-websites.csv"
     code_schema_map_path = tmp_path / "code-schema-map.csv"
     outputs_dir = tmp_path / "outputs"
 
     pd.DataFrame(columns=["ID", "Title", "Harvest Workflow"]).to_csv(
         harvest_records_path, index=False
-    )
-    pd.DataFrame(columns=["ID", "Name", "Harvest Workflow", "URL"]).to_csv(
-        websites_path, index=False
     )
     pd.DataFrame(
         [
@@ -751,19 +750,28 @@ def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: P
                 "ID": "05b-27003",
                 "Title": "Anoka County GIS Data Downloads",
                 "Code": "w00_01",
+                "Harvest Workflow": "",
             },
             {
                 "ID": "11b-39003",
                 "Title": "Allen County GIS Data Download Page",
                 "Code": "w00_01",
+                "Harvest Workflow": "",
             },
             {
                 "ID": "1000f-0004",
                 "Title": "Diversity Data Kids",
                 "Code": "w00_01",
+                "Harvest Workflow": "",
+            },
+            {
+                "ID": "05b-27004",
+                "Title": "Harvested Website",
+                "Code": "05b-01",
+                "Harvest Workflow": "py_arcgis_hub",
             },
         ]
-    ).to_csv(standalone_websites_path, index=False)
+    ).to_csv(websites_path, index=False)
 
     code_schema_map_path.write_text(
         "code_prefix,Related institution or source\n"
@@ -776,7 +784,6 @@ def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: P
         {
             "harvest_records_csv": str(harvest_records_path),
             "websites_csv": str(websites_path),
-            "standalone_websites_csv": str(standalone_websites_path),
             "code_schema_map_csv": str(code_schema_map_path),
             "output_tasks_csv": str(outputs_dir / "harvest-task-dashboard.csv"),
             "output_dashboard_html": str(outputs_dir / "harvest-task-dashboard.html"),
@@ -810,6 +817,7 @@ def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: P
 
     assert standalone_dashboard_html == standalone_view_html
     assert standalone_dashboard_html == standalone_alias_html
+    assert standalone_dashboard_html == public_standalone_dashboard_html
     assert "Standalone Websites by Institution" in standalone_dashboard_html
     assert "Get Latest Source CSVs" not in standalone_dashboard_html
     assert "Table of Contents" in standalone_dashboard_html
@@ -819,6 +827,7 @@ def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: P
     assert "Anoka County GIS Data Downloads" in standalone_dashboard_html
     assert "Allen County GIS Data Download Page" in standalone_dashboard_html
     assert "Diversity Data Kids" in standalone_dashboard_html
+    assert "Harvested Website" not in standalone_dashboard_html
     assert 'href="#university-of-minnesota"' in standalone_dashboard_html
     assert 'href="#the-ohio-state-university"' in standalone_dashboard_html
     assert 'href="#other"' in standalone_dashboard_html
@@ -833,16 +842,16 @@ def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: P
     assert "Create issue on GitHub for new website" in standalone_dashboard_html
     assert standalone_dashboard_html.count("Create issue</a>") == 3
     assert (
-        "https://geo.btaa.org/admin/documents?q=&amp;f%5Bb1g_code_s%5D%5B%5D=w00_01"
+        "https://geomg.lib.umn.edu/admin/documents?q=&amp;f%5Bb1g_code_s%5D%5B%5D=w00_01"
         not in standalone_dashboard_html
     )
-    assert "Create issue on GitHub for new website" not in public_standalone_dashboard_html
-    assert "Create issue</a>" not in public_standalone_dashboard_html
+    assert "Create issue on GitHub for new website" in public_standalone_dashboard_html
+    assert "Create issue</a>" in public_standalone_dashboard_html
     assert "<code>w00_01</code>" not in standalone_dashboard_html
     assert "Last harvested:" not in standalone_dashboard_html
     assert "Periodicity:" not in standalone_dashboard_html
     assert Path(results["standalone_dashboard_html"]).name == (
-        "2026-04-01_harvest-task-dashboard-standalone-websites.html"
+        "2026-04-01_harvest-task-dashboard-standalone-websites-public.html"
     )
     assert Path(results["public_standalone_dashboard_html"]).name == (
         "2026-04-01_harvest-task-dashboard-standalone-websites-public.html"
@@ -1342,8 +1351,8 @@ def test_harvest_task_dashboard_links_existing_issue_when_marker_matches(
     assert "https://github.com/geobtaa/harvest-operations/issues/123" in public_dashboard_html
     assert "Create issue" not in public_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2204a-01%22" in public_dashboard_html
-    assert "https://geo.btaa.org/admin/documents/harvest_ornl/edit" not in public_dashboard_html
-    assert "https://geo.btaa.org/admin/documents/04a-01/edit" not in public_dashboard_html
+    assert "https://geomg.lib.umn.edu/admin/documents/harvest_ornl/edit" in public_dashboard_html
+    assert "https://geomg.lib.umn.edu/admin/documents/04a-01/edit" in public_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2204a-01%22" in public_retrospective_html
-    assert "https://geo.btaa.org/admin/documents/harvest_ornl/edit" not in public_retrospective_html
+    assert "https://geomg.lib.umn.edu/admin/documents/harvest_ornl/edit" in public_retrospective_html
     assert public_view_html == public_dashboard_html

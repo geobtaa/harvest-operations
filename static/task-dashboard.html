@@ -83,6 +83,12 @@
     .muted {
       color: var(--muted);
     }
+    .restricted-login-glyph {
+      display: inline-block;
+      margin-left: 0.25rem;
+      font-size: 0.86em;
+      vertical-align: text-top;
+    }
     code {
       background: var(--panel-soft);
       padding: 0.1rem 0.35rem;
@@ -200,8 +206,8 @@
     <h2>Get Latest Source CSVs</h2>
     <p>Download both CSVs before running the dashboard:</p>
     <ul>
-      <li><a href="https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=draft&f%5Bgbl_resourceClass_sm%5D%5B%5D=Series" target="_blank" rel="noreferrer"><code>harvest-records.csv</code></a> -> save as <code>inputs/harvest-records.csv</code></li>
-      <li><a href="https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites" target="_blank" rel="noreferrer"><code>websites.csv</code></a> -> save as <code>reference_data/websites.csv</code></li>
+      <li><a href="https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=draft&f%5Bgbl_resourceClass_sm%5D%5B%5D=Series" target="_blank" rel="noreferrer"><code>harvest-records.csv</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span> -> save as <code>inputs/harvest-records.csv</code></li>
+      <li><a href="https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites" target="_blank" rel="noreferrer"><code>websites.csv</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span> -> save as <code>reference_data/websites.csv</code></li>
     </ul>
   </div>
 
@@ -214,7 +220,6 @@
       <h2>Triage</h2>
       <ul>
         <li><a id="due-report-link" href="/jobs/harvest-task-dashboard/view?report=due" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Due-only tasks</a></li>
-        <li><a id="full-report-link" href="/jobs/harvest-task-dashboard/view" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">All harvest records</a></li>
       </ul>
     </section>
     <section>
@@ -228,7 +233,6 @@
     <section>
       <h2>Lists</h2>
       <ul>
-        <li><a id="records-report-link" href="/jobs/harvest-task-dashboard/view?report=records" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Harvest records by Accrual Periodicity</a></li>
         <li><a id="institutions-report-link" href="/jobs/harvest-task-dashboard/view?report=institutions" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">By institution</a></li>
         <li><a id="map-collections-report-link" href="/jobs/harvest-task-dashboard/view?report=map-collections" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Map collections only</a></li>
         <li><a id="standalone-report-link" href="/jobs/harvest-task-dashboard/view?report=standalone" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Standalone websites</a></li>
@@ -365,8 +369,6 @@
 
     function refreshReportLinks() {
       const timestamp = Date.now();
-      const fullUrl = `/jobs/harvest-task-dashboard/view?ts=${timestamp}`;
-      const recordsUrl = `/jobs/harvest-task-dashboard/view?report=records&ts=${timestamp}`;
       const institutionsUrl = `/jobs/harvest-task-dashboard/view?report=institutions&ts=${timestamp}`;
       const mapCollectionsUrl = `/jobs/harvest-task-dashboard/view?report=map-collections&ts=${timestamp}`;
       const standaloneUrl = `/jobs/harvest-task-dashboard/view?report=standalone&ts=${timestamp}`;
@@ -374,8 +376,6 @@
       const retrospectiveUrl = `/jobs/harvest-task-dashboard/view?report=retrospective&ts=${timestamp}`;
       const arcgisHubUrl = `/jobs/harvest-task-dashboard/view?workflow=py_arcgis_hub&ts=${timestamp}`;
       const socrataUrl = `/jobs/harvest-task-dashboard/view?workflow=py_socrata&ts=${timestamp}`;
-      document.getElementById("full-report-link").href = fullUrl;
-      document.getElementById("records-report-link").href = recordsUrl;
       document.getElementById("institutions-report-link").href = institutionsUrl;
       document.getElementById("map-collections-report-link").href = mapCollectionsUrl;
       document.getElementById("standalone-report-link").href = standaloneUrl;

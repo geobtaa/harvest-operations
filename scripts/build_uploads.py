@@ -8,7 +8,7 @@ from typing import Optional
 import pandas as pd
 
 
-DEFAULT_SOURCE = "arcgis"
+DEFAULT_SOURCE = "isgs"
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_OUTPUTS_DIR = SCRIPT_DIR.parent / "outputs"
 

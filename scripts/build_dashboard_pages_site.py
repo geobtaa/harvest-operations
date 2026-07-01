@@ -15,20 +15,6 @@ PUBLIC_REPORT_SUFFIX = "-public"
 ARCGIS_WORKFLOW_SLUG = "py-arcgis-hub"
 SOCRATA_WORKFLOW_SLUG = "py-socrata"
 STANDARD_REPORT_TYPES = {
-    "full": {
-        "suffix": "harvest-task-dashboard.html",
-        "label": "All harvest records",
-        "description": "Complete harvest task dashboard.",
-        "latest_href": "latest/all-harvest-records/",
-        "archive_segment": "all-harvest-records",
-    },
-    "records": {
-        "suffix": "harvest-task-dashboard-records.html",
-        "label": "Harvest records by Accrual Periodicity",
-        "description": "Compact harvest-record list grouped by accrual periodicity.",
-        "latest_href": "latest/",
-        "archive_segment": "",
-    },
     "institutions": {
         "suffix": "harvest-task-dashboard-institutions.html",
         "label": "By institution",
@@ -67,17 +53,15 @@ STANDARD_REPORT_TYPES = {
 }
 STANDARD_REPORT_ORDER = (
     "due",
-    "full",
     "retrospective",
-    "records",
     "institutions",
     "map-collections",
     "standalone",
 )
 REPORT_COLUMN_GROUPS = (
-    ("Triage", ("due", "full")),
+    ("Triage", ("due",)),
     ("Reports", ("retrospective", f"workflow:{ARCGIS_WORKFLOW_SLUG}", f"workflow:{SOCRATA_WORKFLOW_SLUG}")),
-    ("Lists", ("records", "institutions", "map-collections", "standalone")),
+    ("Lists", ("institutions", "map-collections", "standalone")),
 )
 
 
@@ -106,6 +90,8 @@ def collect_reports(reports_dir: Path) -> dict[str, dict[str, DashboardReport]]:
 
         report_date, report_name = report_path.name.split("_", 1)
         report_name, is_public = _normalize_report_name(report_name)
+        if not is_public:
+            continue
         for report_type, report_config in STANDARD_REPORT_TYPES.items():
             if report_name != report_config["suffix"]:
                 continue

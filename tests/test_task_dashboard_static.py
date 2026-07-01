@@ -10,8 +10,8 @@ def test_task_dashboard_static_page_includes_map_collections_link() -> None:
     assert "<h2>Reports</h2>" in html
     assert "<h2>Lists</h2>" in html
     assert "Due-only tasks" in html
-    assert "All harvest records" in html
-    assert "Harvest records by Accrual Periodicity" in html
+    assert "All harvest records" not in html
+    assert "Harvest records by Accrual Periodicity" not in html
     assert "By institution" in html
     assert "Map collections only" in html
     assert 'class="report-link' not in html
