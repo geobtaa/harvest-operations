@@ -11,6 +11,7 @@ import pandas as pd
 import requests
 
 from harvesters.base import BaseHarvester
+from scripts.build_uploads import build_distribution_delta_files
 from utils.distribution_writer import generate_secondary_table
 from utils.field_order import PRIMARY_FIELD_ORDER
 from utils.resource_type_match import match_resource_type
@@ -29,6 +30,12 @@ COMMIT_DELETION_COLUMNS = [
     "status",
     "commit_sha",
     "commit_date",
+]
+DISTRIBUTION_DELTA_COLUMNS = [
+    "friendlier_id",
+    "reference_type",
+    "distribution_url",
+    "label",
 ]
 EMPTY_PRIMARY_COLUMNS = [
     "ID",
@@ -49,6 +56,7 @@ class OgmWiscHarvester(BaseHarvester):
         self.county_spatial_lookup = {}
         self.county_spatial_alias_lookup = {}
         self.deleted_github_files = []
+        self.previous_github_records = []
 
     def load_reference_data(self):
         """Load shared distribution metadata and county lookup data used by this harvester."""
@@ -69,8 +77,13 @@ class OgmWiscHarvester(BaseHarvester):
 
         if self.source_mode == "github_commits":
             session = build_github_session(self.config)
-            records, deleted_files = fetch_github_commit_json(self.config, session)
+            records, deleted_files, previous_records = fetch_github_commit_json(
+                self.config,
+                session,
+                include_previous=True,
+            )
             self.deleted_github_files = deleted_files
+            self.previous_github_records = previous_records
             return records
 
         raise ValueError(f"Unsupported ogmWisc source_mode: {self.source_mode}")
@@ -264,14 +277,16 @@ def fetch_github_tarball_json(config, session):
     return dataset
 
 
-def fetch_github_commit_json(config, session):
+def fetch_github_commit_json(config, session, include_previous=False):
     owner, repo = get_github_repo_config(config)
     records = []
     deleted_files = []
+    previous_records = []
     seen_paths = set()
 
     for commit in iter_selected_github_commits(config, session, owner, repo):
         detail = get_github_commit_detail(config, session, owner, repo, commit["sha"])
+        parent_ref = get_first_parent_sha(detail)
         commit_date = (
             detail.get("commit", {})
             .get("committer", {})
@@ -311,10 +326,24 @@ def fetch_github_commit_json(config, session):
             if record is not None:
                 records.append(record)
 
+            previous_record = fetch_previous_github_json_file(
+                config,
+                session,
+                owner,
+                repo,
+                previous_path or new_path,
+                parent_ref,
+                status,
+            )
+            if previous_record is not None:
+                previous_records.append(previous_record)
+
             seen_paths.add(new_path)
             if previous_path:
                 seen_paths.add(previous_path)
 
+    if include_previous:
+        return records, deleted_files, previous_records
     return records, deleted_files
 
 
@@ -396,6 +425,24 @@ def fetch_github_json_file(config, session, owner, repo, path, ref):
         return None
 
 
+def fetch_previous_github_json_file(config, session, owner, repo, path, ref, status):
+    if status not in {"modified", "renamed"}:
+        return None
+    if not ref or not is_json_path(path):
+        return None
+
+    try:
+        return fetch_github_json_file(config, session, owner, repo, path, ref)
+    except requests.HTTPError as exc:
+        logging.warning(
+            "[OGMWisc] Failed to fetch previous GitHub JSON at %s ref %s: %s",
+            path,
+            ref,
+            exc,
+        )
+        return None
+
+
 def github_get_json(session, url, timeout, params=None):
     response = session.get(url, params=params, timeout=timeout)
     response.raise_for_status()
@@ -422,6 +469,13 @@ def build_changed_file_event(changed_file, commit_sha, commit_date):
         "commit_sha": commit_sha,
         "commit_date": commit_date,
     }
+
+
+def get_first_parent_sha(commit_detail):
+    parents = commit_detail.get("parents", [])
+    if not parents:
+        return ""
+    return parents[0].get("sha", "")
 
 
 def is_json_path(path):
@@ -472,7 +526,9 @@ def flatten_ogm_wisc_records(harvested_metadata, uri_to_vars):
 def write_commit_delta_outputs(primary_df, distributions_df, harvester):
     today = time.strftime("%Y-%m-%d")
     output_dir = "outputs"
+    upload_dir = os.path.join(output_dir, "to_upload")
     os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(upload_dir, exist_ok=True)
 
     primary_filename = os.path.join(
         output_dir,
@@ -484,6 +540,14 @@ def write_commit_delta_outputs(primary_df, distributions_df, harvester):
         f"{commit_delta_basename(harvester.config['output_distributions_csv'], 'distributions')}",
     )
     deletions_filename = os.path.join(output_dir, f"{today}_ogmWisc_commit_deletions.csv")
+    distributions_new_filename = os.path.join(
+        upload_dir,
+        f"{today}_ogmWisc_distributions_new.csv",
+    )
+    distributions_delete_filename = os.path.join(
+        upload_dir,
+        f"{today}_ogmWisc_distributions_delete.csv",
+    )
 
     primary_out = primary_df.reindex(
         columns=[col for col in PRIMARY_FIELD_ORDER if col in primary_df.columns]
@@ -491,10 +555,14 @@ def write_commit_delta_outputs(primary_df, distributions_df, harvester):
     primary_out.to_csv(primary_filename, index=False, encoding="utf-8")
 
     if distributions_df.empty:
-        distributions_df = pd.DataFrame(
-            columns=["friendlier_id", "reference_type", "distribution_url", "label"]
-        )
+        distributions_df = empty_distribution_delta_df()
     distributions_df.to_csv(distributions_filename, index=False, encoding="utf-8")
+
+    dist_new_df, dist_delete_df, changed_distribution_ids = (
+        build_commit_distribution_delta_tables(distributions_df, harvester)
+    )
+    dist_new_df.to_csv(distributions_new_filename, index=False, encoding="utf-8")
+    dist_delete_df.to_csv(distributions_delete_filename, index=False, encoding="utf-8")
 
     deletions_df = pd.DataFrame(
         harvester.deleted_github_files,
@@ -505,10 +573,60 @@ def write_commit_delta_outputs(primary_df, distributions_df, harvester):
     return {
         "primary_csv": primary_filename,
         "distributions_csv": distributions_filename,
+        "distributions_new_csv": distributions_new_filename,
+        "distributions_delete_csv": distributions_delete_filename,
         "deleted_files_csv": deletions_filename,
         "processed_count": len(primary_df),
         "deleted_count": len(deletions_df),
+        "distribution_new_count": len(dist_new_df),
+        "distribution_delete_count": len(dist_delete_df),
+        "changed_distribution_ids": sorted(changed_distribution_ids),
     }
+
+
+def build_commit_distribution_delta_tables(current_distributions_df, harvester):
+    current_distributions_df = ensure_distribution_delta_columns(current_distributions_df)
+    previous_distributions_df = build_previous_commit_distributions(harvester)
+
+    current_ids = set(current_distributions_df["friendlier_id"].astype(str).str.strip())
+    previous_ids = set(previous_distributions_df["friendlier_id"].astype(str).str.strip())
+    new_ids = current_ids - previous_ids
+    shared_ids = current_ids.intersection(previous_ids)
+
+    return build_distribution_delta_files(
+        current_distributions_df,
+        previous_distributions_df,
+        new_ids=new_ids,
+        shared_ids=shared_ids,
+    )
+
+
+def build_previous_commit_distributions(harvester):
+    if not harvester.previous_github_records:
+        return empty_distribution_delta_df()
+
+    previous_flat = harvester.flatten(harvester.previous_github_records)
+    previous_primary_df = harvester.build_dataframe(previous_flat)
+    previous_distributions_df = generate_secondary_table(
+        previous_primary_df.copy(),
+        harvester.distribution_types,
+    )
+    return ensure_distribution_delta_columns(previous_distributions_df)
+
+
+def ensure_distribution_delta_columns(df):
+    if df is None or df.empty:
+        return empty_distribution_delta_df()
+
+    df = df.copy()
+    for column in DISTRIBUTION_DELTA_COLUMNS:
+        if column not in df.columns:
+            df[column] = ""
+    return df[DISTRIBUTION_DELTA_COLUMNS]
+
+
+def empty_distribution_delta_df():
+    return pd.DataFrame(columns=DISTRIBUTION_DELTA_COLUMNS)
 
 
 def commit_delta_basename(configured_path, output_kind):

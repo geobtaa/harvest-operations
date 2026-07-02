@@ -65,15 +65,17 @@ class FakeGithubSession:
 
     def get(self, url, params=None, timeout=None):
         self.calls.append({"url": url, "params": params, "timeout": timeout})
-        key = self._key(url)
+        key = self._key(url, params)
         response = self.responses[key]
         return response() if callable(response) else response
 
-    def _key(self, url):
+    def _key(self, url, params=None):
         if url.endswith("/commits"):
             return "commits"
         if "/contents/" in url:
-            return url.split("/contents/", 1)[1]
+            path = url.split("/contents/", 1)[1]
+            ref_key = (path, (params or {}).get("ref"))
+            return ref_key if ref_key in self.responses else path
         if "/commits/" in url:
             return url.rsplit("/", 1)[1]
         if "/tarball/" in url:
@@ -152,6 +154,47 @@ def test_fetch_github_commit_json_processes_changed_json_and_deleted_files():
     assert content_calls[1]["params"] == {"ref": "older-sha"}
 
 
+def test_fetch_github_commit_json_collects_previous_modified_records():
+    current_record = _record("changed-record", "Changed Record")
+    previous_record = _record("changed-record", "Changed Record")
+    previous_record["dct_references_s"] = json.dumps(
+        {"http://schema.org/downloadUrl": "https://example.com/old.zip"}
+    )
+    session = FakeGithubSession(
+        {
+            "commits": FakeResponse([{"sha": "change-sha"}]),
+            "change-sha": FakeResponse(
+                {
+                    "sha": "change-sha",
+                    "parents": [{"sha": "parent-sha"}],
+                    "commit": {"committer": {"date": "2026-06-30T12:00:00Z"}},
+                    "files": [
+                        {"filename": "metadata/changed-record.json", "status": "modified"},
+                    ],
+                }
+            ),
+            ("metadata/changed-record.json", "change-sha"): _content_response(
+                current_record
+            ),
+            ("metadata/changed-record.json", "parent-sha"): _content_response(
+                previous_record
+            ),
+        }
+    )
+
+    records, deleted_files, previous_records = fetch_github_commit_json(
+        _config(source_mode="github_commits", github_recent_commits=1),
+        session,
+        include_previous=True,
+    )
+
+    assert [record["layer_slug_s"] for record in records] == ["changed-record"]
+    assert deleted_files == []
+    assert [record["dct_references_s"] for record in previous_records] == [
+        previous_record["dct_references_s"]
+    ]
+
+
 def test_fetch_github_tarball_json_reads_json_members_only():
     session = FakeGithubSession(
         {
@@ -222,14 +265,87 @@ def test_commit_mode_writes_delta_outputs_and_deletion_manifest(tmp_path, monkey
     assert results["distributions_csv"].endswith(
         "_ogmWisc_commit_delta_distributions.csv"
     )
+    assert results["distributions_new_csv"].endswith(
+        "_ogmWisc_distributions_new.csv"
+    )
+    assert results["distributions_delete_csv"].endswith(
+        "_ogmWisc_distributions_delete.csv"
+    )
     assert results["deleted_files_csv"].endswith("_ogmWisc_commit_deletions.csv")
     assert results["processed_count"] == 1
     assert results["deleted_count"] == 1
+    assert results["distribution_new_count"] == 1
+    assert results["distribution_delete_count"] == 0
 
     primary_out = pd.read_csv(results["primary_csv"], dtype=str).fillna("")
     distribution_out = pd.read_csv(results["distributions_csv"], dtype=str).fillna("")
+    distributions_new_out = pd.read_csv(
+        results["distributions_new_csv"],
+        dtype=str,
+    ).fillna("")
+    distributions_delete_out = pd.read_csv(
+        results["distributions_delete_csv"],
+        dtype=str,
+    ).fillna("")
     deletions_out = pd.read_csv(results["deleted_files_csv"], dtype=str).fillna("")
 
     assert list(primary_out["ID"]) == ["new-record"]
     assert list(distribution_out["friendlier_id"]) == ["new-record"]
+    assert list(distributions_new_out["distribution_url"]) == [
+        "https://example.com/new-record.zip"
+    ]
+    assert distributions_delete_out.empty
     assert list(deletions_out["inferred_id"]) == ["deleted-record"]
+
+
+def test_commit_mode_writes_deleted_distribution_links(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    harvester = OgmWiscHarvester(_config(source_mode="github_commits"))
+    harvester.distribution_types = [
+        {
+            "key": "download",
+            "variables": ["download"],
+            "reference_uri": "http://schema.org/downloadUrl",
+        }
+    ]
+    previous_record = _record("changed-record", "Changed Record")
+    previous_record["dct_references_s"] = json.dumps(
+        {"http://schema.org/downloadUrl": "https://example.com/old.zip"}
+    )
+    harvester.previous_github_records = [previous_record]
+    primary_df = pd.DataFrame(
+        [
+            {
+                "ID": "changed-record",
+                "Title": "Changed Record",
+                "Access Rights": "Public",
+                "Resource Class": "Datasets",
+                "Bounding Box": "-90,44,-89,45",
+                "Date Range": "2020-2020",
+                "Format": "Shapefile",
+                "download": "https://example.com/new.zip",
+            }
+        ]
+    )
+
+    results = harvester.write_outputs(primary_df)
+
+    assert results["distribution_new_count"] == 1
+    assert results["distribution_delete_count"] == 1
+    assert results["changed_distribution_ids"] == ["changed-record"]
+
+    distributions_new_out = pd.read_csv(
+        results["distributions_new_csv"],
+        dtype=str,
+    ).fillna("")
+    distributions_delete_out = pd.read_csv(
+        results["distributions_delete_csv"],
+        dtype=str,
+    ).fillna("")
+
+    assert list(distributions_new_out["distribution_url"]) == [
+        "https://example.com/new.zip"
+    ]
+    assert list(distributions_delete_out["distribution_url"]) == [
+        "https://example.com/old.zip"
+    ]
