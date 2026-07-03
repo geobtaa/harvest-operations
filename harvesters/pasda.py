@@ -18,6 +18,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from harvesters.base import BaseHarvester
+from utils.derive_themes import derive_themes_from_keywords
 from utils.field_order import PRIMARY_FIELD_ORDER
 
 
@@ -94,7 +95,11 @@ class PasdaHarvester(BaseHarvester):
         config.setdefault("source_manifest", "metadata_directory")
         config.setdefault("cache_dir", "inputs/pasda/metadata_xml")
         config.setdefault("output_dir", "outputs/pasda")
+        config.setdefault("registry_dir", "registry")
+        config.setdefault("metadata_registry_path", "registry/pasda_metadata_registry.csv")
+        config.setdefault("normalized_registry_path", "registry/pasda_normalized_registry.jsonl")
         config.setdefault("incremental", True)
+        config.setdefault("use_registry", True)
         config.setdefault("sample_strategy", "first")
         config.setdefault("sample_seed", 42)
         config.setdefault("timeout", 30)
@@ -106,6 +111,8 @@ class PasdaHarvester(BaseHarvester):
         self.error_rows = []
         self.profile_summary = []
         self.spatial_data = pd.DataFrame()
+        self.metadata_registry = {}
+        self.normalized_registry = {}
 
     def load_reference_data(self):
         super().load_reference_data()
@@ -123,6 +130,13 @@ class PasdaHarvester(BaseHarvester):
             self.spatial_data = pd.DataFrame()
 
     def fetch(self):
+        if self.config.get("use_registry", True):
+            self.metadata_registry = load_pasda_metadata_registry(
+                self.config.get("metadata_registry_path")
+            )
+            self.normalized_registry = load_pasda_normalized_registry(
+                self.config.get("normalized_registry_path")
+            )
         session = build_pasda_session(self.config.get("user_agent", "harvest-operations"))
         metadata_base_url = self.config["metadata_base_url"]
         timeout = int(self.config.get("timeout", 30))
@@ -169,13 +183,19 @@ class PasdaHarvester(BaseHarvester):
         fetched_rows = []
         total_records = len(manifest_rows)
         for index, row in enumerate(manifest_rows, start=1):
-            fetched_row = fetch_and_cache_metadata_xml(
+            fetched_row = prepare_registry_metadata_row(
                 row,
-                session=session,
-                cache_dir=cache_dir,
-                timeout=timeout,
-                incremental=bool(self.config.get("incremental", True)),
+                metadata_registry=self.metadata_registry,
+                normalized_registry=self.normalized_registry,
             )
+            if fetched_row is None:
+                fetched_row = fetch_and_cache_metadata_xml(
+                    row,
+                    session=session,
+                    cache_dir=cache_dir,
+                    timeout=timeout,
+                    incremental=bool(self.config.get("incremental", True)),
+                )
             fetched_rows.append(fetched_row)
             print(
                 "[PASDA] "
@@ -193,7 +213,13 @@ class PasdaHarvester(BaseHarvester):
         error_rows = []
 
         for row in raw_data:
-            manifest_row, normalized_record = parse_pasda_manifest_row(row)
+            if row.get("xml_fetch_status") == "registry":
+                manifest_row, normalized_record = registry_pasda_manifest_row(
+                    row,
+                    normalized_registry=self.normalized_registry,
+                )
+            else:
+                manifest_row, normalized_record = parse_pasda_manifest_row(row)
             manifest_rows.append(manifest_row)
             normalized_records.append(normalized_record)
             if manifest_row.get("xml_fetch_status") == "failed" or manifest_row.get(
@@ -259,16 +285,30 @@ class PasdaHarvester(BaseHarvester):
         write_jsonl(normalized_jsonl_path, self.normalized_records)
         primary_df.to_csv(normalized_csv_path, index=False, encoding="utf-8")
         county_lookup = build_pasda_county_lookup(self.spatial_data)
-        aardvark_draft_df = pd.DataFrame(
-            build_pasda_aardvark_draft_records(
-                self.normalized_records,
-                county_lookup=county_lookup,
-            )
+        aardvark_draft_df = build_pasda_aardvark_draft_dataframe(
+            self.normalized_records,
+            county_lookup=county_lookup,
+            theme_map=self.theme_map,
         )
-        aardvark_draft_df = aardvark_draft_df.reindex(columns=PASDA_AARDVARK_DRAFT_FIELDS)
         aardvark_draft_df.to_csv(aardvark_draft_path, index=False, encoding="utf-8")
         write_csv_rows(errors_path, self.error_rows)
         write_csv_rows(profile_summary_path, self.profile_summary)
+        if self.config.get("use_registry", True):
+            metadata_registry_path = Path(self.config["metadata_registry_path"])
+            normalized_registry_path = Path(self.config["normalized_registry_path"])
+            metadata_registry_rows = build_pasda_metadata_registry_rows(
+                existing_registry=self.metadata_registry,
+                inventory_rows=self.inventory_rows,
+                manifest_rows=self.manifest_rows,
+                normalized_records=self.normalized_records,
+                seen_at=today,
+            )
+            normalized_registry_records = build_pasda_normalized_registry_records(
+                existing_registry=self.normalized_registry,
+                normalized_records=self.normalized_records,
+            )
+            write_csv_rows(metadata_registry_path, metadata_registry_rows)
+            write_jsonl(normalized_registry_path, normalized_registry_records)
 
         results = {
             "directory_inventory_csv": str(inventory_path),
@@ -279,6 +319,9 @@ class PasdaHarvester(BaseHarvester):
             "error_report_csv": str(errors_path),
             "profile_summary_csv": str(profile_summary_path),
         }
+        if self.config.get("use_registry", True):
+            results["metadata_registry_csv"] = self.config["metadata_registry_path"]
+            results["normalized_registry_jsonl"] = self.config["normalized_registry_path"]
         LOGGER.info("PASDA metadata-directory harvest outputs written: %s", results)
         return results
 
@@ -345,6 +388,26 @@ NORMALIZED_FIELDS = [
     "parse_error",
     "raw_xml_path",
     "xml_sha256",
+]
+
+PASDA_REGISTRY_VERSION = "1"
+PASDA_METADATA_REGISTRY_FIELDS = [
+    "metadata_filename",
+    "metadata_url",
+    "source_record_id",
+    "pasda_record_id",
+    "metadata_last_modified",
+    "metadata_size_bytes",
+    "xml_sha256",
+    "metadata_profile",
+    "metadata_profile_confidence",
+    "xml_fetch_status",
+    "xml_parse_status",
+    "parse_error",
+    "first_seen",
+    "last_seen",
+    "last_parsed",
+    "registry_version",
 ]
 
 
@@ -556,6 +619,249 @@ def mark_inventory_sample(
         marked_row["sample_strategy"] = sample_strategy if sample_index is not None else ""
         marked_rows.append(marked_row)
     return marked_rows
+
+
+def load_pasda_metadata_registry(path_value: str | Path | None) -> dict[str, dict[str, Any]]:
+    if not path_value:
+        return {}
+    path = Path(path_value or "")
+    if not path.exists():
+        return {}
+
+    rows = []
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        rows = [dict(row) for row in reader]
+    return {
+        clean_text(row.get("metadata_filename", "")): row
+        for row in rows
+        if clean_text(row.get("metadata_filename", ""))
+    }
+
+
+def load_pasda_normalized_registry(path_value: str | Path | None) -> dict[str, dict[str, Any]]:
+    if not path_value:
+        return {}
+    path = Path(path_value or "")
+    if not path.exists():
+        return {}
+
+    records = {}
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            filename = clean_text(record.get("metadata_filename", ""))
+            if filename:
+                records[filename] = record
+    return records
+
+
+def prepare_registry_metadata_row(
+    row: dict[str, Any],
+    metadata_registry: dict[str, dict[str, Any]],
+    normalized_registry: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    filename = clean_text(row.get("metadata_filename", ""))
+    metadata_entry = metadata_registry.get(filename)
+    normalized_record = normalized_registry.get(filename)
+    if not registry_entry_reusable(row, metadata_entry, normalized_record):
+        return None
+
+    prepared = dict(row)
+    prepared.update(
+        {
+            "xml_fetch_status": "registry",
+            "xml_parse_status": metadata_entry.get("xml_parse_status", ""),
+            "metadata_profile": metadata_entry.get("metadata_profile", ""),
+            "metadata_profile_confidence": metadata_entry.get("metadata_profile_confidence", ""),
+            "parse_error": metadata_entry.get("parse_error", ""),
+            "xml_sha256": metadata_entry.get("xml_sha256", ""),
+            "raw_xml_path": "",
+            "registry_reuse_status": "reused",
+            "registry_version": metadata_entry.get("registry_version", ""),
+        }
+    )
+    return prepared
+
+
+def registry_entry_reusable(
+    inventory_row: dict[str, Any],
+    metadata_entry: dict[str, Any] | None,
+    normalized_record: dict[str, Any] | None,
+) -> bool:
+    if not metadata_entry or not normalized_record:
+        return False
+    if metadata_entry.get("registry_version") != PASDA_REGISTRY_VERSION:
+        return False
+    if not clean_text(metadata_entry.get("xml_sha256", "")):
+        return False
+    if metadata_entry.get("xml_parse_status") not in {"parsed", "partial", "malformed"}:
+        return False
+    if clean_text(normalized_record.get("metadata_filename", "")) != clean_text(
+        inventory_row.get("metadata_filename", "")
+    ):
+        return False
+    if clean_text(normalized_record.get("xml_sha256", "")) != clean_text(
+        metadata_entry.get("xml_sha256", "")
+    ):
+        return False
+
+    listing_fields = ["metadata_last_modified", "metadata_size_bytes"]
+    comparable_fields = [
+        field
+        for field in listing_fields
+        if clean_text(inventory_row.get(field, "")) and clean_text(metadata_entry.get(field, ""))
+    ]
+    if not comparable_fields:
+        return False
+    return all(
+        clean_text(inventory_row.get(field, "")) == clean_text(metadata_entry.get(field, ""))
+        for field in comparable_fields
+    )
+
+
+def registry_pasda_manifest_row(
+    row: dict[str, Any],
+    normalized_registry: dict[str, dict[str, Any]],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    manifest_row = dict(row)
+    filename = clean_text(row.get("metadata_filename", ""))
+    normalized_record = dict(normalized_registry.get(filename, {}))
+    if not normalized_record:
+        manifest_row["xml_fetch_status"] = "failed"
+        manifest_row["xml_parse_status"] = "failed"
+        manifest_row["parse_error"] = "Registry normalized record was not found."
+        return manifest_row, empty_normalized_record(manifest_row)
+
+    for field in [
+        "metadata_filename",
+        "metadata_url",
+        "metadata_profile",
+        "metadata_profile_confidence",
+        "xml_parse_status",
+        "parse_error",
+        "xml_sha256",
+    ]:
+        manifest_row[field] = normalized_record.get(field, manifest_row.get(field, ""))
+    normalized_record["metadata_url"] = manifest_row.get("metadata_url", normalized_record.get("metadata_url", ""))
+    normalized_record["raw_xml_path"] = manifest_row.get("raw_xml_path", "")
+    normalized_record["registry_reuse_status"] = "reused"
+    manifest_row["registry_reuse_status"] = "reused"
+    return manifest_row, normalized_record
+
+
+def build_pasda_metadata_registry_rows(
+    existing_registry: dict[str, dict[str, Any]],
+    inventory_rows: list[dict[str, Any]],
+    manifest_rows: list[dict[str, Any]],
+    normalized_records: list[dict[str, Any]],
+    seen_at: str,
+) -> list[dict[str, Any]]:
+    rows_by_filename = {
+        filename: {field: clean_text(row.get(field, "")) for field in PASDA_METADATA_REGISTRY_FIELDS}
+        for filename, row in existing_registry.items()
+    }
+
+    for row in inventory_rows:
+        filename = clean_text(row.get("metadata_filename", ""))
+        if not filename:
+            continue
+        registry_row = rows_by_filename.setdefault(filename, empty_pasda_metadata_registry_row(filename))
+        if not registry_row.get("first_seen"):
+            registry_row["first_seen"] = seen_at
+        registry_row.update(
+            {
+                "metadata_filename": filename,
+                "metadata_url": clean_text(row.get("metadata_url", "")),
+                "source_record_id": clean_text(row.get("metadata_file_stem", "")),
+                "pasda_record_id": f"pasda-{clean_text(row.get('metadata_file_stem', ''))}",
+                "metadata_last_modified": clean_text(row.get("metadata_last_modified", "")),
+                "metadata_size_bytes": clean_text(row.get("metadata_size_bytes", "")),
+                "last_seen": seen_at,
+                "registry_version": registry_row.get("registry_version", PASDA_REGISTRY_VERSION),
+            }
+        )
+
+    normalized_by_filename = {
+        clean_text(record.get("metadata_filename", "")): record
+        for record in normalized_records
+        if clean_text(record.get("metadata_filename", ""))
+    }
+    for row in manifest_rows:
+        filename = clean_text(row.get("metadata_filename", ""))
+        if not filename:
+            continue
+        registry_row = rows_by_filename.setdefault(filename, empty_pasda_metadata_registry_row(filename))
+        normalized_record = normalized_by_filename.get(filename, {})
+        registry_row.update(
+            {
+                "metadata_filename": filename,
+                "metadata_url": clean_text(row.get("metadata_url", "")),
+                "source_record_id": clean_text(row.get("metadata_file_stem", ""))
+                or clean_text(normalized_record.get("source_record_id", "")),
+                "pasda_record_id": pasda_record_id_from_source(
+                    clean_text(row.get("metadata_file_stem", ""))
+                    or clean_text(normalized_record.get("source_record_id", ""))
+                ),
+                "metadata_last_modified": clean_text(row.get("metadata_last_modified", "")),
+                "metadata_size_bytes": clean_text(row.get("metadata_size_bytes", "")),
+                "xml_sha256": clean_text(row.get("xml_sha256", "")),
+                "metadata_profile": clean_text(row.get("metadata_profile", "")),
+                "metadata_profile_confidence": clean_text(row.get("metadata_profile_confidence", "")),
+                "xml_fetch_status": clean_text(row.get("xml_fetch_status", "")),
+                "xml_parse_status": clean_text(row.get("xml_parse_status", "")),
+                "parse_error": clean_text(row.get("parse_error", "")),
+                "last_seen": seen_at,
+                "registry_version": PASDA_REGISTRY_VERSION,
+            }
+        )
+        if row.get("xml_fetch_status") != "registry" and row.get("xml_parse_status") in {
+            "parsed",
+            "partial",
+            "malformed",
+        }:
+            registry_row["last_parsed"] = seen_at
+        if not registry_row.get("first_seen"):
+            registry_row["first_seen"] = seen_at
+
+    return [
+        {field: rows_by_filename[filename].get(field, "") for field in PASDA_METADATA_REGISTRY_FIELDS}
+        for filename in sorted(rows_by_filename)
+    ]
+
+
+def build_pasda_normalized_registry_records(
+    existing_registry: dict[str, dict[str, Any]],
+    normalized_records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    records_by_filename = {
+        filename: prepare_normalized_record_for_registry(record)
+        for filename, record in existing_registry.items()
+    }
+    for record in normalized_records:
+        filename = clean_text(record.get("metadata_filename", ""))
+        if filename:
+            records_by_filename[filename] = prepare_normalized_record_for_registry(record)
+    return [records_by_filename[filename] for filename in sorted(records_by_filename)]
+
+
+def empty_pasda_metadata_registry_row(filename: str) -> dict[str, str]:
+    row = {field: "" for field in PASDA_METADATA_REGISTRY_FIELDS}
+    row["metadata_filename"] = filename
+    return row
+
+
+def prepare_normalized_record_for_registry(record: dict[str, Any]) -> dict[str, Any]:
+    registry_record = dict(record)
+    registry_record["raw_xml_path"] = ""
+    registry_record["registry_version"] = PASDA_REGISTRY_VERSION
+    return registry_record
+
+
+def pasda_record_id_from_source(source_record_id: str) -> str:
+    return f"pasda-{source_record_id}" if source_record_id else ""
 
 
 def fetch_and_cache_metadata_xml(
@@ -1413,6 +1719,24 @@ def build_pasda_aardvark_draft_records(
         )
         for record in normalized_records
     ]
+
+
+def build_pasda_aardvark_draft_dataframe(
+    normalized_records: list[dict[str, Any]],
+    accession_date: str | None = None,
+    county_lookup: dict[str, Any] | None = None,
+    theme_map: dict[str, str] | None = None,
+) -> pd.DataFrame:
+    draft_df = pd.DataFrame(
+        build_pasda_aardvark_draft_records(
+            normalized_records,
+            accession_date=accession_date,
+            county_lookup=county_lookup,
+        )
+    )
+    if theme_map:
+        draft_df = derive_themes_from_keywords(draft_df, theme_map)
+    return draft_df.reindex(columns=PASDA_AARDVARK_DRAFT_FIELDS)
 
 
 def build_pasda_aardvark_draft_record(

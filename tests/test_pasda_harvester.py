@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import harvesters.pasda as pasda_module
@@ -5,6 +6,7 @@ import pandas as pd
 from harvesters.base import BaseHarvester
 from harvesters.pasda import (
     PasdaHarvester,
+    build_pasda_aardvark_draft_dataframe,
     build_pasda_aardvark_draft_records,
     build_pasda_county_lookup,
     detect_metadata_profile,
@@ -324,6 +326,100 @@ def test_fetch_creates_test_directories_and_honors_max_records(
     assert harvester.inventory_rows[1]["selected_for_download"] == "no"
 
 
+def test_fetch_and_parse_reuse_unchanged_metadata_registry(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    metadata_registry_path = tmp_path / "registry" / "pasda_metadata_registry.csv"
+    normalized_registry_path = tmp_path / "registry" / "pasda_normalized_registry.jsonl"
+    metadata_registry_path.parent.mkdir()
+    pd.DataFrame(
+        [
+            {
+                "metadata_filename": "one.xml",
+                "metadata_url": "https://www.pasda.psu.edu/metadata/one.xml",
+                "source_record_id": "one",
+                "pasda_record_id": "pasda-one",
+                "metadata_last_modified": "2024-01-01 10:00",
+                "metadata_size_bytes": "1024",
+                "xml_sha256": "abc123",
+                "metadata_profile": "fgdc_csdgm",
+                "metadata_profile_confidence": "high",
+                "xml_fetch_status": "fetched",
+                "xml_parse_status": "parsed",
+                "parse_error": "",
+                "first_seen": "2026-07-01",
+                "last_seen": "2026-07-01",
+                "last_parsed": "2026-07-01",
+                "registry_version": "1",
+            }
+        ]
+    ).to_csv(metadata_registry_path, index=False)
+    normalized_registry_path.write_text(
+        json.dumps(
+            {
+                "source_system": "PASDA",
+                "source_record_id": "one",
+                "metadata_filename": "one.xml",
+                "metadata_url": "https://www.pasda.psu.edu/metadata/one.xml",
+                "title": "Registry Title",
+                "metadata_profile": "fgdc_csdgm",
+                "metadata_profile_confidence": "high",
+                "xml_parse_status": "parsed",
+                "xml_sha256": "abc123",
+                "place_keywords": [],
+                "theme_keywords": [],
+                "iso_topic_categories": [],
+                "online_links": [],
+                "distribution_links": [],
+                "download_links_found_in_metadata": [],
+                "service_links_found_in_metadata": [],
+                "parse_warnings": [],
+                "registry_version": "1",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    class FakeResponse:
+        text = """
+        <pre>
+        <a href="one.xml">one.xml</a> 2024-01-01 10:00 1K
+        </pre>
+        """
+
+        def raise_for_status(self) -> None:
+            return None
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.metadata_get_count = 0
+
+        def get(self, url: str, timeout: int):
+            if url.endswith("/metadata/"):
+                return FakeResponse()
+            self.metadata_get_count += 1
+            raise AssertionError("Registry reuse should skip XML download.")
+
+    fake_session = FakeSession()
+    monkeypatch.setattr(pasda_module, "build_pasda_session", lambda user_agent: fake_session)
+
+    config = _config(tmp_path)
+    config["metadata_registry_path"] = str(metadata_registry_path)
+    config["normalized_registry_path"] = str(normalized_registry_path)
+
+    harvester = PasdaHarvester(config)
+    rows = harvester.fetch()
+    records = harvester.parse(rows)
+
+    assert fake_session.metadata_get_count == 0
+    assert rows[0]["xml_fetch_status"] == "registry"
+    assert rows[0]["registry_reuse_status"] == "reused"
+    assert records[0]["title"] == "Registry Title"
+    assert records[0]["registry_reuse_status"] == "reused"
+
+
 def test_mixed_sample_strategy_selects_across_inventory() -> None:
     rows = [{"metadata_filename": f"{index:02d}.xml"} for index in range(10)]
 
@@ -600,6 +696,39 @@ def test_pasda_aardvark_resource_class_identifies_imagery_records() -> None:
     assert rows[2]["Resource Class"] == "Imagery"
     assert rows[3]["Resource Class"] == "Imagery"
     assert rows[4]["Resource Class"] == "Datasets"
+
+
+def test_pasda_aardvark_draft_dataframe_derives_theme_from_keywords() -> None:
+    draft_df = build_pasda_aardvark_draft_dataframe(
+        [
+            {
+                "source_record_id": "roads",
+                "metadata_url": "https://www.pasda.psu.edu/metadata/roads.xml",
+                "title": "Road Centerlines",
+                "theme_keywords": ["roads", "transportation"],
+                "xml_parse_status": "parsed",
+                "metadata_profile": "fgdc_csdgm",
+            },
+            {
+                "source_record_id": "parcels",
+                "metadata_url": "https://www.pasda.psu.edu/metadata/parcels.xml",
+                "title": "County Parcels",
+                "theme_keywords": ["parcel", "planningCadastre"],
+                "xml_parse_status": "parsed",
+                "metadata_profile": "fgdc_csdgm",
+            },
+        ],
+        accession_date="2026-07-03",
+        theme_map={
+            "roads": "Transportation",
+            "transportation": "Transportation",
+            "parcel": "Property",
+            "planningcadastre": "Property",
+        },
+    )
+
+    assert draft_df.loc[0, "Theme"] == "Transportation"
+    assert draft_df.loc[1, "Theme"] == "Property"
 
 
 def test_pasda_aardvark_temporal_coverage_uses_readable_range_separator() -> None:

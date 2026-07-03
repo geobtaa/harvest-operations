@@ -6,6 +6,11 @@ source_manifest: metadata_directory
 cache_dir: inputs/pasda/metadata_xml
 output_dir: outputs/pasda
 incremental: true
+use_registry: true
+# These compact registries are intended to be Git-trackable recovery state.
+# The raw XML cache and dated outputs can remain local/disposable.
+metadata_registry_path: registry/pasda_metadata_registry.csv
+normalized_registry_path: registry/pasda_normalized_registry.jsonl
 # Optional: set sample_size to download and parse a subset after writing the full inventory.
 # sample_size: 250
 sample_strategy: mixed
