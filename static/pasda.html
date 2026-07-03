@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>PASDA Harvester</title>
+  <title>PASDA Portal Harvester</title>
   <style>
     body { font-family: sans-serif; margin: 2em; }
     h2, h3 { margin-top: 1.5em; }
@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-  <h1>PASDA Harvester</h1>
+  <h1>PASDA Portal Harvester</h1>
 
   <h2>Purpose</h2>
   <p>This script parses metadata from the PASDA search results page and produces two CSV files:</p>
@@ -28,15 +28,15 @@
   </p>
 
   <h2>Step 2: Run the PASDA Harvester</h2>
-  <button onclick="runHarvester()">Run Harvester</button>
+  <button onclick="runHarvester()">Run Portal Harvester</button>
   <pre id="stream-output" style="border:1px solid #ccc; padding:1em; margin-top:1em; height:300px; overflow:auto;"></pre>
 
   <script>
     // Streaming harvester output
     function runHarvester() {
       const output = document.getElementById("stream-output");
-      output.textContent = "Starting PASDA harvester...\n";
-      const eventSource = new EventSource("/run-pasda-stream");
+      output.textContent = "Starting PASDA portal harvester...\n";
+      const eventSource = new EventSource("/run-pasda-portal-stream");
 
       eventSource.onmessage = function (event) {
         if (event.data === "DONE") {

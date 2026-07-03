@@ -55,3 +55,10 @@ def test_static_ckan_page_runs_stream_endpoint_from_browser() -> None:
     assert "/static/ckan.html" in index_html
     assert "CKAN Harvester" in page_html
     assert "/run-ckan-stream" in page_html
+
+
+def test_static_pasda_page_runs_portal_stream_endpoint_from_browser() -> None:
+    page_html = (ROOT / "static" / "pasda.html").read_text(encoding="utf-8")
+
+    assert "PASDA Portal Harvester" in page_html
+    assert "/run-pasda-portal-stream" in page_html

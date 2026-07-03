@@ -400,9 +400,56 @@ async def run_pasda_stream():
         harvester = PasdaHarvester(config)
         harvester.load_reference_data()
 
-        yield "data: Starting PASDA harvest...\n\n"
+        yield "data: Starting PASDA metadata-directory harvest...\n\n"
+        raw_metadata = harvester.fetch()
+        yield "data: Built metadata manifest and cached XML files, now parsing...\n\n"
+
+        parsed = harvester.parse(raw_metadata)
+        flat = harvester.flatten(parsed)
+        df = harvester.build_dataframe(flat)
+        df = harvester.derive_fields(df)
+        df = harvester.add_defaults(df)
+        df = harvester.add_provenance(df)
+        df = harvester.clean(df)
+        harvester.validate(df)
+        results = harvester.write_outputs(df)
+        upload_summary = harvester.build_uploads(results)
+        if upload_summary is not None:
+            results["upload_summary"] = upload_summary
+            if upload_summary.get("status") == "created":
+                yield (
+                    "data: Built upload files: "
+                    f"{upload_summary['primary_upload_csv']}, "
+                    f"{upload_summary['distributions_new_csv']}, "
+                    f"{upload_summary['distributions_delete_csv']}.\n\n"
+                )
+            else:
+                yield (
+                    "data: Upload files not built: "
+                    f"{upload_summary.get('reason', 'No reason provided.')}.\n\n"
+                )
+
+        yield "data: PASDA harvest complete. Check output folder.\n\n"
+        yield "data: DONE\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@app.get("/run-pasda-portal-stream")
+async def run_pasda_portal_stream():
+    from harvesters.pasda_portal import PasdaPortalHarvester
+
+    async def event_stream():
+        config_path = "config/pasda-portal.yaml"
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f)
+
+        harvester = PasdaPortalHarvester(config)
+        harvester.load_reference_data()
+
+        yield "data: Starting PASDA portal harvest...\n\n"
         raw_html = harvester.fetch()
-        yield "data: Fetched HTML, now parsing...\n\n"
+        yield "data: Fetched saved PASDA portal HTML, now parsing...\n\n"
 
         parsed = harvester.parse(raw_html)
         flat = harvester.flatten(parsed)
@@ -429,7 +476,7 @@ async def run_pasda_stream():
                     f"{upload_summary.get('reason', 'No reason provided.')}.\n\n"
                 )
 
-        yield "data: PASDA harvest complete. Check output folder.\n\n"
+        yield "data: PASDA portal harvest complete. Check output folder.\n\n"
         yield "data: DONE\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")

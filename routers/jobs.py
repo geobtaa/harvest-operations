@@ -9,6 +9,7 @@ from harvesters.arcgis import ArcGISHarvester
 from harvesters.ckan import CkanHarvester
 from harvesters.socrata import SocrataHarvester
 from harvesters.pasda import PasdaHarvester
+from harvesters.pasda_portal import PasdaPortalHarvester
 from harvesters.ogm_aardvark import OgmAardvarkHarvester
 from harvesters.ogmWisc import OgmWiscHarvester
 from harvesters.hdx import HdxHarvester
@@ -24,6 +25,7 @@ HARVESTER_REGISTRY = {
     "ckan": CkanHarvester,
     "socrata": SocrataHarvester,
     "pasda": PasdaHarvester,
+    "pasda-portal": PasdaPortalHarvester,
     "ogm_aardvark": OgmAardvarkHarvester,
     "ogmWisc": OgmWiscHarvester,
     "hdx": HdxHarvester,
