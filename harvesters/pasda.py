@@ -2,9 +2,10 @@ import csv
 import hashlib
 import json
 import logging
+import random
 import re
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urljoin
@@ -17,9 +18,71 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from harvesters.base import BaseHarvester
+from utils.field_order import PRIMARY_FIELD_ORDER
 
 
 LOGGER = logging.getLogger(__name__)
+US_STATE_ABBREVIATIONS = {
+    "AL",
+    "AK",
+    "AZ",
+    "AR",
+    "CA",
+    "CO",
+    "CT",
+    "DE",
+    "DC",
+    "FL",
+    "GA",
+    "HI",
+    "ID",
+    "IL",
+    "IN",
+    "IA",
+    "KS",
+    "KY",
+    "LA",
+    "ME",
+    "MD",
+    "MA",
+    "MI",
+    "MN",
+    "MS",
+    "MO",
+    "MT",
+    "NE",
+    "NV",
+    "NH",
+    "NJ",
+    "NM",
+    "NY",
+    "NC",
+    "ND",
+    "OH",
+    "OK",
+    "OR",
+    "PA",
+    "RI",
+    "SC",
+    "SD",
+    "TN",
+    "TX",
+    "UT",
+    "VT",
+    "VA",
+    "WA",
+    "WV",
+    "WI",
+    "WY",
+}
+BROAD_PLACE_KEYS = {
+    "pa",
+    "pennsylvania",
+    "usa",
+    "united states",
+    "united states of america",
+    "u s",
+}
 
 
 class PasdaHarvester(BaseHarvester):
@@ -32,48 +95,95 @@ class PasdaHarvester(BaseHarvester):
         config.setdefault("cache_dir", "inputs/pasda/metadata_xml")
         config.setdefault("output_dir", "outputs/pasda")
         config.setdefault("incremental", True)
+        config.setdefault("sample_strategy", "first")
+        config.setdefault("sample_seed", 42)
         config.setdefault("timeout", 30)
         config.setdefault("user_agent", "harvest-operations PASDA metadata harvester")
         super().__init__(config)
+        self.inventory_rows = []
         self.manifest_rows = []
         self.normalized_records = []
         self.error_rows = []
         self.profile_summary = []
+        self.spatial_data = pd.DataFrame()
+
+    def load_reference_data(self):
+        super().load_reference_data()
+        spatial_counties_csv = self.config.get(
+            "spatial_counties_csv",
+            "reference_data/spatial_counties.csv",
+        )
+        try:
+            self.spatial_data = pd.read_csv(spatial_counties_csv, dtype=str).fillna("")
+        except FileNotFoundError:
+            print(
+                "[PASDA] Warning: spatial counties CSV not found at "
+                f"{spatial_counties_csv}. County spatial coverage normalization will be skipped."
+            )
+            self.spatial_data = pd.DataFrame()
 
     def fetch(self):
         session = build_pasda_session(self.config.get("user_agent", "harvest-operations"))
         metadata_base_url = self.config["metadata_base_url"]
         timeout = int(self.config.get("timeout", 30))
         harvested_at = utc_now()
+        cache_dir = Path(self.config["cache_dir"])
+        output_dir = Path(self.config["output_dir"])
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        output_dir.mkdir(parents=True, exist_ok=True)
 
+        print(f"[PASDA] Cache directory ready: {cache_dir}")
+        print(f"[PASDA] Output directory ready: {output_dir}")
+        print(f"[PASDA] Fetching metadata directory listing: {metadata_base_url}")
         LOGGER.info("Fetching PASDA metadata directory listing: %s", metadata_base_url)
         response = session.get(metadata_base_url, timeout=timeout)
         response.raise_for_status()
 
-        manifest_rows = parse_metadata_directory_listing(
+        inventory_rows = parse_metadata_directory_listing(
             response.text,
             metadata_base_url,
             harvested_at=harvested_at,
         )
-        max_records = self.config.get("max_records")
-        if max_records:
-            manifest_rows = manifest_rows[: int(max_records)]
+        sample_size = sample_size_from_config(self.config)
+        sample_strategy = sample_strategy_from_config(self.config)
+        manifest_rows = select_metadata_sample(
+            inventory_rows,
+            sample_size=sample_size,
+            sample_strategy=sample_strategy,
+            sample_seed=int(self.config.get("sample_seed", 42)),
+        )
+        self.inventory_rows = mark_inventory_sample(
+            inventory_rows,
+            manifest_rows,
+            sample_strategy=sample_strategy,
+        )
 
-        cache_dir = Path(self.config["cache_dir"])
-        cache_dir.mkdir(parents=True, exist_ok=True)
+        if sample_size:
+            print(
+                f"[PASDA] Found {len(inventory_rows)} XML links; "
+                f"selected {len(manifest_rows)} using '{sample_strategy}'."
+            )
+        else:
+            print(f"[PASDA] Found {len(inventory_rows)} XML links; downloading all records.")
 
         fetched_rows = []
-        for row in manifest_rows:
-            fetched_rows.append(
-                fetch_and_cache_metadata_xml(
-                    row,
-                    session=session,
-                    cache_dir=cache_dir,
-                    timeout=timeout,
-                    incremental=bool(self.config.get("incremental", True)),
-                )
+        total_records = len(manifest_rows)
+        for index, row in enumerate(manifest_rows, start=1):
+            fetched_row = fetch_and_cache_metadata_xml(
+                row,
+                session=session,
+                cache_dir=cache_dir,
+                timeout=timeout,
+                incremental=bool(self.config.get("incremental", True)),
+            )
+            fetched_rows.append(fetched_row)
+            print(
+                "[PASDA] "
+                f"{index}/{total_records} {fetched_row['metadata_filename']}: "
+                f"{fetched_row['xml_fetch_status']}"
             )
 
+        print(f"[PASDA] Prepared manifest with {len(fetched_rows)} XML records.")
         LOGGER.info("Prepared PASDA manifest with %s XML records", len(fetched_rows))
         return fetched_rows
 
@@ -136,22 +246,36 @@ class PasdaHarvester(BaseHarvester):
         output_dir = Path(self.config["output_dir"])
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        inventory_path = output_dir / f"{today}_pasda_directory_inventory.csv"
         manifest_path = output_dir / f"{today}_pasda_metadata_manifest.csv"
         normalized_jsonl_path = output_dir / f"{today}_pasda_normalized_records.jsonl"
         normalized_csv_path = output_dir / f"{today}_pasda_normalized_records.csv"
+        aardvark_draft_path = output_dir / f"{today}_pasda_aardvark_draft.csv"
         errors_path = output_dir / f"{today}_pasda_error_report.csv"
         profile_summary_path = output_dir / f"{today}_pasda_profile_summary.csv"
 
+        write_csv_rows(inventory_path, self.inventory_rows)
         write_csv_rows(manifest_path, self.manifest_rows)
         write_jsonl(normalized_jsonl_path, self.normalized_records)
         primary_df.to_csv(normalized_csv_path, index=False, encoding="utf-8")
+        county_lookup = build_pasda_county_lookup(self.spatial_data)
+        aardvark_draft_df = pd.DataFrame(
+            build_pasda_aardvark_draft_records(
+                self.normalized_records,
+                county_lookup=county_lookup,
+            )
+        )
+        aardvark_draft_df = aardvark_draft_df.reindex(columns=PASDA_AARDVARK_DRAFT_FIELDS)
+        aardvark_draft_df.to_csv(aardvark_draft_path, index=False, encoding="utf-8")
         write_csv_rows(errors_path, self.error_rows)
         write_csv_rows(profile_summary_path, self.profile_summary)
 
         results = {
+            "directory_inventory_csv": str(inventory_path),
             "manifest_csv": str(manifest_path),
             "normalized_jsonl": str(normalized_jsonl_path),
             "normalized_csv": str(normalized_csv_path),
+            "aardvark_draft_csv": str(aardvark_draft_path),
             "error_report_csv": str(errors_path),
             "profile_summary_csv": str(profile_summary_path),
         }
@@ -247,6 +371,32 @@ ARCGIS_TAGS = {
 
 SERVICE_URL_RE = re.compile(r"https?://[^\s\"'<>]+/(?:rest/services|services)/[^\s\"'<>]+", re.I)
 URL_RE = re.compile(r"https?://[^\s\"'<>]+", re.I)
+NONE_LIKE_VALUES = {"", "none", "none.", "n/a", "na", "not applicable", "no"}
+SPATIALREFERENCE_EPSG_LOOKUP = {
+    "gcs_north_american_1983": "4269",
+    "north_american_datum_of_1983": "4269",
+    "nad_83": "4269",
+    "gcs_wgs_1984": "4326",
+    "wgs_1984": "4326",
+    "d_wgs_1984": "4326",
+    "wgs84": "4326",
+    "wgs_1984_web_mercator_auxiliary_sphere": "3857",
+    "nad_1983_stateplane_pennsylvania_north_fips_3701_feet": "2271",
+    "nad_1983_stateplane_pennsylvania_south_fips_3702_feet": "2272",
+    "nad_1983_utm_zone_13n": "26913",
+    "nad_1983_utm_zone_17n": "26917",
+    "nad_1983_utm_zone_18n": "26918",
+    "usa_contiguous_albers_equal_area_conic": "5070",
+    "usa_contiguous_albers_equal_area_conic_usgs_version": "5070",
+}
+PASDA_AARDVARK_REVIEW_FIELDS = [
+    "pasda_xml_parse_status",
+    "pasda_raw_xml_path",
+    "pasda_review_flags",
+]
+PASDA_AARDVARK_DRAFT_FIELDS = [
+    field for field in PRIMARY_FIELD_ORDER if field != "Index Year"
+] + PASDA_AARDVARK_REVIEW_FIELDS
 
 
 def build_pasda_session(user_agent: str) -> requests.Session:
@@ -324,6 +474,88 @@ def parse_metadata_directory_listing(
         )
 
     return rows
+
+
+def sample_size_from_config(config: dict[str, Any]) -> int | None:
+    sample_size = config.get("sample_size")
+    if sample_size in ("", None):
+        sample_size = config.get("max_records")
+    if sample_size in ("", None):
+        return None
+
+    sample_size = int(sample_size)
+    if sample_size < 1:
+        raise ValueError("[PASDA] sample_size must be greater than zero.")
+    return sample_size
+
+
+def sample_strategy_from_config(config: dict[str, Any]) -> str:
+    if config.get("sample_size") in ("", None) and config.get("max_records") not in ("", None):
+        return "first"
+    return str(config.get("sample_strategy", "first")).strip().lower()
+
+
+def select_metadata_sample(
+    rows: list[dict[str, Any]],
+    sample_size: int | None = None,
+    sample_strategy: str = "first",
+    sample_seed: int = 42,
+) -> list[dict[str, Any]]:
+    if sample_size is None or sample_size >= len(rows):
+        return list(rows)
+
+    if sample_strategy == "first":
+        return list(rows[:sample_size])
+
+    if sample_strategy in {"mixed", "evenly_spaced"}:
+        return [rows[index] for index in evenly_spaced_indices(len(rows), sample_size)]
+
+    if sample_strategy == "random":
+        indices = sorted(random.Random(sample_seed).sample(range(len(rows)), sample_size))
+        return [rows[index] for index in indices]
+
+    raise ValueError(
+        "[PASDA] Unsupported sample_strategy. "
+        "Use one of: first, mixed, evenly_spaced, random."
+    )
+
+
+def evenly_spaced_indices(total_count: int, sample_size: int) -> list[int]:
+    if sample_size >= total_count:
+        return list(range(total_count))
+    if sample_size == 1:
+        return [0]
+
+    indices = {
+        round(index * (total_count - 1) / (sample_size - 1))
+        for index in range(sample_size)
+    }
+    if len(indices) < sample_size:
+        for index in range(total_count):
+            indices.add(index)
+            if len(indices) == sample_size:
+                break
+    return sorted(indices)
+
+
+def mark_inventory_sample(
+    inventory_rows: list[dict[str, Any]],
+    selected_rows: list[dict[str, Any]],
+    sample_strategy: str,
+) -> list[dict[str, Any]]:
+    selected_lookup = {
+        row.get("metadata_filename", ""): index
+        for index, row in enumerate(selected_rows, start=1)
+    }
+    marked_rows = []
+    for row in inventory_rows:
+        marked_row = dict(row)
+        sample_index = selected_lookup.get(row.get("metadata_filename", ""))
+        marked_row["selected_for_download"] = "yes" if sample_index is not None else "no"
+        marked_row["sample_index"] = sample_index or ""
+        marked_row["sample_strategy"] = sample_strategy if sample_index is not None else ""
+        marked_rows.append(marked_row)
+    return marked_rows
 
 
 def fetch_and_cache_metadata_xml(
@@ -540,7 +772,7 @@ def parse_fgdc_metadata(root: ET.Element, manifest_row: dict[str, Any]) -> dict[
             "east_bbox": first_text(root, ["idinfo/spdom/bounding/eastbc"]),
             "south_bbox": first_text(root, ["idinfo/spdom/bounding/southbc"]),
             "north_bbox": first_text(root, ["idinfo/spdom/bounding/northbc"]),
-            "spatial_reference": first_text(root, ["spref/horizsys/planar/mapproj/mapprojn"]),
+            "spatial_reference": fgdc_spatial_reference(root),
             "native_data_set_environment": first_text(root, ["eainfo/detailed/attr/attrdefs"]),
             "license_or_use_constraints": first_text(root, ["idinfo/useconst"]),
             "access_constraints": first_text(root, ["idinfo/accconst"]),
@@ -556,7 +788,7 @@ def parse_fgdc_metadata(root: ET.Element, manifest_row: dict[str, Any]) -> dict[
             "contact_org": first_text(root, ["idinfo/ptcontac/cntinfo/cntorgp/cntorg"]),
             "contact_person": first_text(root, ["idinfo/ptcontac/cntinfo/cntperp/cntper"]),
             "contact_email": first_text(root, ["idinfo/ptcontac/cntinfo/cntemail"]),
-            "data_format": first_text(root, ["distinfo/stdorder/digform/digtinfo/formname"]),
+            "data_format": fgdc_data_format(root),
         }
     )
     record["theme_keywords"] = all_text(root, "idinfo/keywords/theme/themekey")
@@ -567,6 +799,130 @@ def parse_fgdc_metadata(root: ET.Element, manifest_row: dict[str, Any]) -> dict[
     record["service_links_found_in_metadata"] = filter_service_links(record["online_links"])
     record["parse_warnings"] = missing_required_warnings(record, ["title"])
     return record
+
+
+def fgdc_data_format(root: ET.Element) -> str:
+    values = []
+    values.extend(values_for_local_names(root, {"formatName", "formname"}))
+    values.extend(
+        values_for_paths_by_local_name(
+            root,
+            [
+                ("distinfo", "stdorder", "digform", "digtinfo", "formname"),
+                ("distorFormat", "formatName"),
+                ("distFormat", "formatName"),
+            ],
+        )
+    )
+    values = [value for value in values if value.strip().lower() not in {"true", "false"}]
+    return "|".join(dedupe_list(values))
+
+
+def fgdc_spatial_reference(root: ET.Element) -> str:
+    evidence = {
+        "mapprojn": first_by_local_names(root, ["mapprojn"]),
+        "projcsn": first_by_local_names(root, ["projcsn"]),
+        "geogcsn": first_by_local_names(root, ["geogcsn"]),
+        "horizdn": first_by_local_names(root, ["horizdn"]),
+        "ellips": first_by_local_names(root, ["ellips"]),
+        "gridsysn": first_by_local_names(root, ["gridsysn"]),
+        "utmzone": first_by_local_names(root, ["utmzone"]),
+        "spcszone": first_by_local_names(root, ["spcszone"]),
+        "plandu": first_by_local_names(root, ["plandu"]),
+        "geogunit": first_by_local_names(root, ["geogunit"]),
+        "identCode": fgdc_first_ident_code(root),
+    }
+    epsg = fgdc_spatial_reference_epsg(evidence)
+    if epsg:
+        return f"https://spatialreference.org/ref/epsg/{epsg}/"
+    return fgdc_spatial_reference_description(evidence)
+
+
+def fgdc_first_ident_code(root: ET.Element) -> str:
+    for element in root.iter():
+        if local_name(element.tag) != "identCode":
+            continue
+        text_value = clean_text(" ".join(element.itertext()))
+        code_value = clean_text(element.attrib.get("code", ""))
+        for value in [text_value, code_value]:
+            if value and value != "0":
+                return value
+    return ""
+
+
+def fgdc_spatial_reference_epsg(evidence: dict[str, str]) -> str:
+    ident_code = clean_text(evidence.get("identCode", ""))
+    if re.fullmatch(r"\d{4,5}", ident_code) and ident_code != "0":
+        return ident_code
+
+    for key in ["projcsn", "mapprojn"]:
+        epsg = SPATIALREFERENCE_EPSG_LOOKUP.get(normalize_crs_key(evidence.get(key, "")))
+        if epsg:
+            return epsg
+
+    projected_evidence = any(
+        clean_text(evidence.get(key, ""))
+        for key in ["projcsn", "mapprojn", "gridsysn", "utmzone", "spcszone", "plandu"]
+    )
+    gridsysn = normalize_crs_key(evidence.get("gridsysn", ""))
+    datum = normalize_crs_key(evidence.get("horizdn", ""))
+    unit = normalize_crs_key(evidence.get("plandu", ""))
+    utmzone = clean_text(evidence.get("utmzone", ""))
+    spcszone = clean_text(evidence.get("spcszone", ""))
+
+    if gridsysn == "universal_transverse_mercator" and datum in {
+        "north_american_datum_of_1983",
+        "d_north_american_1983",
+        "nad_83",
+    }:
+        if utmzone in {"13", "17", "18"}:
+            return f"269{int(utmzone):02d}"
+
+    if spcszone in {"3701", "3702"}:
+        if unit in {"survey_feet", "foot_us", "foot_us", "feet", "foot"}:
+            return "2271" if spcszone == "3701" else "2272"
+        if unit in {"meters", "meter"}:
+            return "32128" if spcszone == "3701" else "32129"
+
+    if spcszone == "Pennsylvania, South":
+        return "2272" if unit in {"survey_feet", "foot_us", "feet", "foot"} else ""
+
+    if not projected_evidence:
+        for key in ["geogcsn", "horizdn"]:
+            epsg = SPATIALREFERENCE_EPSG_LOOKUP.get(normalize_crs_key(evidence.get(key, "")))
+            if epsg:
+                return epsg
+
+    return ""
+
+
+def fgdc_spatial_reference_description(evidence: dict[str, str]) -> str:
+    parts = []
+    labels = [
+        ("Projected CRS", evidence.get("projcsn", "") or evidence.get("mapprojn", "")),
+        ("Geographic CRS", evidence.get("geogcsn", "")),
+        ("Projection", evidence.get("mapprojn", "")),
+        ("Grid", evidence.get("gridsysn", "")),
+        ("UTM Zone", evidence.get("utmzone", "")),
+        ("State Plane Zone", evidence.get("spcszone", "")),
+        ("Datum", evidence.get("horizdn", "")),
+        ("Spheroid", evidence.get("ellips", "")),
+        ("Planar Units", evidence.get("plandu", "")),
+        ("Geographic Units", evidence.get("geogunit", "")),
+        ("Identifier", evidence.get("identCode", "")),
+    ]
+    for label, value in labels:
+        clean_value = clean_text(value)
+        if clean_value:
+            parts.append(f"{label}: {clean_value}")
+    return "; ".join(dedupe_list(parts))
+
+
+def normalize_crs_key(value: str) -> str:
+    clean_value = clean_text(value).lower()
+    clean_value = clean_value.replace("&", " and ")
+    clean_value = re.sub(r"[^a-z0-9]+", "_", clean_value)
+    return clean_value.strip("_")
 
 
 def parse_iso_19139_metadata(root: ET.Element, manifest_row: dict[str, Any]) -> dict[str, Any]:
@@ -852,7 +1208,7 @@ def sha256_bytes(content: bytes) -> str:
 
 
 def utc_now() -> str:
-    return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def local_name(tag: str) -> str:
@@ -1041,3 +1397,561 @@ def first_responsible_party_org(root: ET.Element, roles: set[str]) -> str:
         if role.lower() in role_lookup and org:
             return org
     return ""
+
+
+def build_pasda_aardvark_draft_records(
+    normalized_records: list[dict[str, Any]],
+    accession_date: str | None = None,
+    county_lookup: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    accession_date = accession_date or time.strftime("%Y-%m-%d")
+    return [
+        build_pasda_aardvark_draft_record(
+            record,
+            accession_date=accession_date,
+            county_lookup=county_lookup,
+        )
+        for record in normalized_records
+    ]
+
+
+def build_pasda_aardvark_draft_record(
+    record: dict[str, Any],
+    accession_date: str,
+    county_lookup: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    row = {field: "" for field in PASDA_AARDVARK_DRAFT_FIELDS}
+    review_flags = []
+    source_record_id = clean_text(record.get("source_record_id", ""))
+    metadata_url = clean_text(record.get("metadata_url", ""))
+    publication_date = normalize_pasda_date(record.get("publication_date", ""))
+    modified_date = normalize_pasda_date(record.get("modified", ""))
+    metadata_date = normalize_pasda_date(record.get("metadata_date", ""))
+    temporal_start = normalize_pasda_date(record.get("temporal_start", ""))
+    temporal_end = normalize_pasda_date(record.get("temporal_end", ""))
+    bbox, bbox_flag = pasda_bounding_box(record)
+    original_title = clean_text(record.get("title", ""))
+
+    if bbox_flag:
+        review_flags.append(bbox_flag)
+    if not record.get("title"):
+        review_flags.append("missing_title")
+    if not publication_date and not modified_date:
+        review_flags.append("missing_date")
+    if record.get("xml_parse_status") != "parsed":
+        review_flags.append(f"xml_parse_status_{record.get('xml_parse_status', 'unknown')}")
+    if not record.get("download_links_found_in_metadata"):
+        review_flags.append("no_download_link_in_metadata")
+
+    row.update(
+        {
+            "ID": f"pasda-{source_record_id}" if source_record_id else "",
+            "Code": "08a-01",
+            "Title": pasda_title(record, publication_date, modified_date, metadata_date),
+            "Alternative Title": pasda_alternative_title(record, original_title),
+            "Description": pasda_description(record),
+            "Language": "eng",
+            "Creator": clean_text(record.get("creator", "")),
+            "Publisher": "Pennsylvania Spatial Data Access (PASDA)",
+            "Resource Class": pasda_resource_class(record),
+            "Resource Type": pasda_resource_type(record),
+            "Keyword": pasda_keywords(record),
+            "Temporal Coverage": pasda_temporal_coverage_value(
+                temporal_start,
+                temporal_end,
+                publication_date,
+                modified_date,
+                metadata_date,
+            ),
+            "Date Issued": publication_date,
+            "Date Range": pasda_date_range(temporal_start, temporal_end, publication_date, modified_date),
+            "Spatial Coverage": pasda_spatial_coverage_value(record, county_lookup=county_lookup),
+            "Bounding Box": bbox,
+            "Coordinate Reference System": clean_text(record.get("spatial_reference", "")),
+            "Access Rights": "Public",
+            "Rights": pasda_rights(record),
+            "Format": pasda_format(record),
+            "Date Accessioned": accession_date,
+            "Publication State": "draft",
+            "Identifier": metadata_url,
+            "Provenance": pasda_provenance(record, accession_date=accession_date),
+            "Website Platform": "PASDA metadata directory",
+            "Accrual Method": "Automated retrieval",
+            "Harvest Workflow": "py_pasda_metadata_directory",
+            "Admin Note": pasda_admin_note(record),
+            "pasda_xml_parse_status": clean_text(record.get("xml_parse_status", "")),
+            "pasda_raw_xml_path": clean_text(record.get("raw_xml_path", "")),
+            "pasda_review_flags": "|".join(dedupe_list(review_flags)),
+        }
+    )
+    return row
+
+
+def pasda_description(record: dict[str, Any]) -> str:
+    values = [clean_text(record.get("abstract", ""))]
+    purpose = clean_text(record.get("purpose", ""))
+    if purpose and purpose not in values:
+        values.append(f"Purpose: {purpose}")
+    return "|".join(value for value in values if value)
+
+
+def pasda_title(
+    record: dict[str, Any],
+    publication_date: str = "",
+    modified_date: str = "",
+    metadata_date: str = "",
+) -> str:
+    title = format_pasda_title_dates(clean_text(record.get("title", "")))
+    if not title:
+        return ""
+
+    spatial_label = pasda_primary_spatial_label(record)
+    if spatial_label and not pasda_title_has_place_context(title, record, spatial_label):
+        title = f"{title} [{spatial_label}]"
+    return title
+
+
+def format_pasda_title_dates(title: str) -> str:
+    return re.sub(
+        r"(?<!\d)((?:19|20)\d{2})[_-]?(0[1-9]|1[0-2])(?!\d)",
+        r"\1-\2",
+        clean_text(title),
+    )
+
+
+def pasda_alternative_title(record: dict[str, Any], original_title: str) -> str:
+    return "|".join(
+        dedupe_list(
+            [
+                original_title,
+                clean_text(record.get("alternate_title", "")),
+            ]
+        )
+    )
+
+
+def pasda_primary_spatial_label(record: dict[str, Any]) -> str:
+    for value in pasda_place_keyword_candidates(record):
+        clean_value = clean_text(value)
+        if clean_value and normalize_title_place_key(clean_value) not in BROAD_PLACE_KEYS:
+            return clean_value
+
+    spatial_coverage = pasda_spatial_coverage_value(record)
+    if not spatial_coverage:
+        return ""
+    return clean_text(spatial_coverage.split("|", 1)[0])
+
+
+def pasda_title_has_place_context(
+    title: str,
+    record: dict[str, Any],
+    spatial_label: str,
+) -> bool:
+    title_key = normalize_title_place_key(title)
+    place_keys = [normalize_title_place_key(spatial_label)]
+    place_keys.extend(normalize_title_place_key(value) for value in pasda_place_keyword_candidates(record))
+    place_keys = [value for value in dedupe_list(place_keys) if len(value) >= 3]
+
+    for place_key in place_keys:
+        if place_key and place_key in title_key:
+            return True
+
+    return bool(
+        re.search(
+            r"\b(county|national forest|national monument|watershed|river|bay|creek|lake|"
+            r"city of|district of columbia|pennsylvania|colorado|virginia|maryland|"
+            r"tennessee|arizona|california|connecticut|netherlands|siberia)\b",
+            title,
+            re.I,
+        )
+    )
+
+
+def normalize_title_place_key(value: str) -> str:
+    clean_value = clean_text(value).lower()
+    clean_value = clean_value.replace("&", " and ")
+    clean_value = re.sub(r"\b(pa|usa|u s|u s a|us)\b", "", clean_value)
+    clean_value = re.sub(r"[^a-z0-9]+", " ", clean_value)
+    return re.sub(r"\s+", " ", clean_value).strip()
+
+
+def pasda_keywords(record: dict[str, Any]) -> str:
+    values = []
+    values.extend(ensure_list(record.get("theme_keywords")))
+    values.extend(pasda_place_keyword_candidates(record))
+    status = clean_text(record.get("status", ""))
+    if status:
+        values.append(status)
+    return "|".join(dedupe_list(values))
+
+
+def pasda_place_keyword_candidates(record: dict[str, Any]) -> list[str]:
+    values = []
+    for value in ensure_list(record.get("place_keywords")):
+        values.extend(split_pasda_place_keyword(value))
+    return dedupe_list(values)
+
+
+def split_pasda_place_keyword(value: str) -> list[str]:
+    clean_value = clean_text(value)
+    if not clean_value:
+        return []
+
+    parts = [clean_text(part) for part in clean_value.split(",") if clean_text(part)]
+    if len(parts) >= 3:
+        return parts
+    if len(parts) == 2 and parts[1].upper().replace(".", "") in US_STATE_ABBREVIATIONS:
+        return parts
+    return [clean_value]
+
+
+def pasda_spatial_coverage_value(
+    record: dict[str, Any],
+    county_lookup: dict[str, Any] | None = None,
+) -> str:
+    place_keywords = pasda_place_keyword_candidates(record)
+    county_values = pasda_pa_county_spatial_values(place_keywords, county_lookup)
+    values = []
+    if county_values:
+        values.extend(county_values)
+        values.append("Pennsylvania")
+    elif any(is_pasda_pennsylvania_keyword(value) for value in place_keywords):
+        values.append("Pennsylvania")
+    for value in place_keywords:
+        clean_value = clean_text(value)
+        if not clean_value:
+            continue
+        if is_pasda_pennsylvania_keyword(clean_value):
+            continue
+        matched_county = pasda_matches_pa_county(clean_value, county_lookup)
+        if matched_county and matched_county in county_values:
+            continue
+        if clean_value not in values:
+            values.append(clean_value)
+        if len(values) >= 6:
+            break
+    return "|".join(dedupe_list(values))
+
+
+def build_pasda_county_lookup(spatial_data: pd.DataFrame | None) -> dict[str, Any]:
+    if spatial_data is None or spatial_data.empty or "County" not in spatial_data.columns:
+        return {"pennsylvania_counties": {}, "state_names": set()}
+
+    counties = spatial_data["County"].dropna().astype(str)
+    state_names = set()
+    pennsylvania_counties = {}
+    for county_value in counties:
+        state, separator, county_name = county_value.partition("--")
+        if not separator:
+            continue
+        clean_state = clean_text(state)
+        clean_county_name = clean_text(county_name)
+        if clean_state:
+            state_names.add(normalize_pasda_place_key(clean_state))
+        if clean_state != "Pennsylvania" or not clean_county_name:
+            continue
+        for key in county_candidate_keys(clean_county_name):
+            pennsylvania_counties[key] = county_value
+    return {
+        "pennsylvania_counties": pennsylvania_counties,
+        "state_names": state_names,
+    }
+
+
+def pasda_pa_county_spatial_values(
+    place_keywords: list[str],
+    county_lookup: dict[str, Any] | None,
+) -> list[str]:
+    if not pasda_allow_pennsylvania_county_matches(place_keywords, county_lookup):
+        return []
+    values = []
+    for value in place_keywords:
+        county_value = pasda_matches_pa_county(value, county_lookup)
+        if county_value:
+            values.append(county_value)
+    return dedupe_list(values)
+
+
+def pasda_allow_pennsylvania_county_matches(
+    place_keywords: list[str],
+    county_lookup: dict[str, Any] | None,
+) -> bool:
+    if not county_lookup:
+        return False
+    if any(is_pasda_pennsylvania_keyword(value) for value in place_keywords):
+        return True
+    return not any(is_pasda_non_pennsylvania_state_context(value, county_lookup) for value in place_keywords)
+
+
+def pasda_matches_pa_county(
+    value: str,
+    county_lookup: dict[str, Any] | None,
+) -> str:
+    if not county_lookup:
+        return ""
+    pennsylvania_counties = county_lookup.get("pennsylvania_counties", {})
+    if not pennsylvania_counties:
+        return ""
+
+    for key in county_candidate_keys(value):
+        county_value = pennsylvania_counties.get(key)
+        if county_value:
+            return county_value
+    return ""
+
+
+def county_candidate_keys(value: str) -> list[str]:
+    clean_value = clean_text(value)
+    county_match = re.search(r"\b([A-Za-z][A-Za-z .'-]+ County)\b", clean_value)
+    values = [county_match.group(1)] if county_match else [clean_value]
+    keys = []
+    for candidate in values:
+        key = normalize_pasda_place_key(candidate)
+        if key:
+            keys.append(key)
+        if key.endswith(" county"):
+            keys.append(key.removesuffix(" county").strip())
+    return dedupe_list(keys)
+
+
+def is_pasda_pennsylvania_keyword(value: str) -> bool:
+    normalized = normalize_pasda_place_key(value)
+    return normalized == "pennsylvania" or bool(re.search(r"\bpa\b", clean_text(value), re.I))
+
+
+def is_pasda_non_pennsylvania_state_context(
+    value: str,
+    county_lookup: dict[str, Any],
+) -> bool:
+    normalized = normalize_pasda_place_key(value)
+    state_names = county_lookup.get("state_names", set())
+    for state_name in state_names:
+        if state_name == "pennsylvania":
+            continue
+        if normalized == state_name:
+            return True
+        if normalized.startswith(f"{state_name} "):
+            return True
+        if f" {state_name} " in f" {normalized} " and "," in clean_text(value):
+            return True
+    return False
+
+
+def normalize_pasda_place_key(value: str) -> str:
+    clean_value = clean_text(value).lower()
+    clean_value = clean_value.replace("&", " and ")
+    clean_value = re.sub(r"[^a-z0-9]+", " ", clean_value)
+    return re.sub(r"\s+", " ", clean_value).strip()
+
+
+def pasda_temporal_coverage_value(
+    start_date: str,
+    end_date: str,
+    publication_date: str = "",
+    modified_date: str = "",
+    metadata_date: str = "",
+) -> str:
+    if start_date and end_date:
+        if start_date == end_date:
+            return start_date
+        return f"{start_date} to {end_date}"
+    return start_date or end_date or publication_date or modified_date or metadata_date
+
+
+def pasda_index_year(*date_values: str) -> str:
+    for value in date_values:
+        year = first_year(value)
+        if year:
+            return year
+    return ""
+
+
+def pasda_date_range(*date_values: str) -> str:
+    years = [first_year(value) for value in date_values if first_year(value)]
+    if not years:
+        return ""
+    return f"{min(years)}-{max(years)}"
+
+
+def pasda_bounding_box(record: dict[str, Any]) -> tuple[str, str]:
+    values = [
+        record.get("west_bbox", ""),
+        record.get("south_bbox", ""),
+        record.get("east_bbox", ""),
+        record.get("north_bbox", ""),
+    ]
+    if not all(clean_text(value) for value in values):
+        return "", "missing_bbox"
+    try:
+        west, south, east, north = [float(value) for value in values]
+    except (TypeError, ValueError):
+        return "", "bad_bbox"
+
+    if not (-180 <= west <= 180 and -180 <= east <= 180 and -90 <= south <= 90 and -90 <= north <= 90):
+        return "", "bad_bbox"
+    if east < west or north < south:
+        return "", "bad_bbox"
+    return f"{west},{south},{east},{north}", ""
+
+
+def pasda_rights(record: dict[str, Any]) -> str:
+    values = [
+        record.get("license_or_use_constraints", ""),
+        record.get("use_constraints", ""),
+        record.get("access_constraints", ""),
+    ]
+    rights = []
+    for value in values:
+        clean_value = clean_text(value)
+        if clean_value.lower() not in NONE_LIKE_VALUES:
+            rights.append(clean_value)
+    return "|".join(dedupe_list(rights))
+
+
+def pasda_provenance(record: dict[str, Any], accession_date: str) -> str:
+    metadata_url = clean_text(record.get("metadata_url", ""))
+    lineage = clean_text(record.get("lineage", ""))
+    provenance = f"Harvested from {metadata_url} on {accession_date}."
+    if lineage:
+        provenance = f"{provenance} Pasda lineage text: {lineage}"
+    return provenance
+
+
+def pasda_admin_note(record: dict[str, Any]) -> str:
+    return f"PASDA metadata profile: {clean_text(record.get('metadata_profile', ''))}"
+
+
+def pasda_format(record: dict[str, Any]) -> str:
+    data_format = clean_text(record.get("data_format", ""))
+    source_scale = clean_text(record.get("source_scale", ""))
+    candidates = [data_format, source_scale]
+    for candidate in candidates:
+        normalized = normalize_pasda_format(candidate)
+        if normalized:
+            return normalized
+    return ""
+
+
+def normalize_pasda_format(value: str) -> str:
+    clean_value = clean_text(value)
+    normalized = clean_value.lower()
+    if not normalized:
+        return ""
+    if "shapefile" in normalized or "shape file" in normalized or "shape-file" in normalized:
+        return "Shapefile"
+    if "geotiff" in normalized or "geo tiff" in normalized:
+        return "GeoTIFF"
+    if "geodatabase" in normalized or "gdb" in normalized:
+        return "File Geodatabase"
+    if "arc/info export" in normalized or "arcinfo export" in normalized:
+        return "Arc/Info Export"
+    if "raster" in normalized:
+        return "Raster Dataset"
+    if "vector" in normalized or "feature class" in normalized:
+        return "Vector data"
+    if "html" in normalized:
+        return "HTML"
+    return clean_value
+
+
+def pasda_resource_class(record: dict[str, Any]) -> str:
+    if pasda_is_imagery_record(record):
+        return "Imagery"
+    return "Datasets"
+
+
+def pasda_is_imagery_record(record: dict[str, Any]) -> bool:
+    keyword_values = [
+        value
+        for value in ensure_list(record.get("theme_keywords"))
+        if normalize_pasda_match_text(value)
+        not in {"imagery", "imagerybasemapsearthcover", "base maps", "base map"}
+    ]
+    text = " ".join(
+        [
+            clean_text(record.get("title", "")),
+            clean_text(record.get("alternate_title", "")),
+            " ".join(keyword_values),
+        ]
+    )
+    normalized = normalize_pasda_match_text(text)
+
+    imagery_patterns = [
+        r"\bortho ?imagery\b",
+        r"\bortho ?image(?:s)?\b",
+        r"\bortho ?photo(?:s|graph|graphs|graphy)?\b",
+        r"\bdigital ortho ?photo(?:s|graph|graphs|graphy)?\b",
+        r"\baerial photo(?:s|graph|graphs|graphy)?\b",
+        r"\baerial image(?:s|ry)?\b",
+        r"\bnaip\b",
+        r"\bdoq\b",
+        r"\bdoqq\b",
+        r"\bsatellite image(?:s|ry)?\b",
+    ]
+    return any(re.search(pattern, normalized) for pattern in imagery_patterns)
+
+
+def pasda_resource_type(record: dict[str, Any]) -> str:
+    values = [
+        clean_text(record.get("source_scale", "")),
+        clean_text(record.get("data_format", "")),
+    ]
+    joined = " ".join(values).lower()
+    if "remote-sensing" in joined or "imagery" in joined:
+        return "Remote-sensing maps"
+    if "raster" in joined:
+        return "Raster data"
+    if "map" in joined:
+        return "Digital maps"
+    return ""
+
+
+def normalize_pasda_match_text(value: str) -> str:
+    clean_value = clean_text(value).lower()
+    clean_value = clean_value.replace("&", " and ")
+    clean_value = re.sub(r"[^a-z0-9]+", " ", clean_value)
+    return re.sub(r"\s+", " ", clean_value).strip()
+
+
+def normalize_pasda_date(value: Any) -> str:
+    clean_value = clean_text(str(value or ""))
+    if not clean_value:
+        return ""
+    if re.fullmatch(r"\d{8}", clean_value):
+        return f"{clean_value[:4]}-{clean_value[4:6]}-{clean_value[6:8]}"
+    if re.fullmatch(r"\d{6}", clean_value):
+        return f"{clean_value[:4]}-{clean_value[4:6]}"
+    if re.fullmatch(r"\d{4}", clean_value):
+        return clean_value
+    date_match = re.search(r"((?:19|20)\d{2})(?:[-/](\d{1,2}))?(?:[-/](\d{1,2}))?", clean_value)
+    if not date_match:
+        return ""
+    year, month, day = date_match.groups()
+    if month and day:
+        return f"{year}-{int(month):02d}-{int(day):02d}"
+    if month:
+        return f"{year}-{int(month):02d}"
+    return year
+
+
+def first_year(value: str) -> str:
+    match = re.search(r"(?:19|20)\d{2}", clean_text(value))
+    return match.group(0) if match else ""
+
+
+def ensure_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [clean_text(item) for item in value if clean_text(item)]
+    if isinstance(value, tuple | set):
+        return [clean_text(item) for item in value if clean_text(item)]
+    clean_value = clean_text(value)
+    if not clean_value:
+        return []
+    if clean_value.startswith("[") and clean_value.endswith("]"):
+        try:
+            parsed = json.loads(clean_value.replace("'", '"'))
+            if isinstance(parsed, list):
+                return [clean_text(item) for item in parsed if clean_text(item)]
+        except json.JSONDecodeError:
+            pass
+    return [part for part in (clean_text(part) for part in clean_value.split("|")) if part]

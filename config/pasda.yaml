@@ -6,5 +6,9 @@ source_manifest: metadata_directory
 cache_dir: inputs/pasda/metadata_xml
 output_dir: outputs/pasda
 incremental: true
+# Optional: set sample_size to download and parse a subset after writing the full inventory.
+# sample_size: 250
+sample_strategy: mixed
+sample_seed: 42
 timeout: 30
 user_agent: "harvest-operations PASDA metadata-directory harvester"
