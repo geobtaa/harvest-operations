@@ -1,0 +1,5 @@
+Code,Title,Identifier,Harvest Run,Harvest Message,Total Records Found,New Records,Unpublished Records
+07c-02,Harvest record for Ann Arbor Data Catalog,07c-02,success,[CKAN] Fetched 94 package records from 07c-02.,94,1,0
+08f-01,Harvest record for Western Pennsylvania Regional Data Center Open Data,08f-01,error,[CKAN] Error fetching 08f-01: 500 Server Error: Internal Server Error for url: https://www.wprdc.org/api/3/action/package_search?rows=100&start=0,0,0,370
+10c-01,Harvest record for City of Milwaukee Open Data,10c-01,success,[CKAN] Fetched 186 package records from 10c-01.,186,0,0
+TOTAL,,,success: 2; error: 1,,280,1,370
