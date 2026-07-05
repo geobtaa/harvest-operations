@@ -58,7 +58,26 @@ def test_static_ckan_page_runs_stream_endpoint_from_browser() -> None:
 
 
 def test_static_pasda_page_runs_portal_stream_endpoint_from_browser() -> None:
+    index_html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
     page_html = (ROOT / "static" / "pasda.html").read_text(encoding="utf-8")
 
+    assert "/static/pasda.html" in index_html
+    assert "PASDA Portal Harvester" in index_html
     assert "PASDA Portal Harvester" in page_html
     assert "/run-pasda-portal-stream" in page_html
+    assert "/run-pasda-stream" not in page_html
+
+
+def test_static_pasda_metadata_page_runs_metadata_directory_stream_endpoint() -> None:
+    index_html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+    page_html = (ROOT / "static" / "pasda-metadata.html").read_text(encoding="utf-8")
+
+    assert "/static/pasda-metadata.html" in index_html
+    assert "PASDA Metadata Directory Harvester" in index_html
+    assert "PASDA Metadata Directory Harvester" in page_html
+    assert "/run-pasda-stream" in page_html
+    assert "/run-pasda-portal-stream" not in page_html
+    assert "/static/pasda.html" in page_html
+    assert "This can take awhile to run" in page_html
+    assert "terminal-style messages" in page_html
+    assert "run-status" in page_html

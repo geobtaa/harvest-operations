@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PASDA Metadata Directory Harvester</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    h2 { margin-top: 1.5em; }
+    code { background: #f4f4f4; padding: 0.1em 0.3em; }
+    button { margin-top: 0.5em; }
+    .intro {
+      max-width: 820px;
+      line-height: 1.45;
+    }
+    .note {
+      background: #f7f7f7;
+      border-left: 4px solid #555;
+      margin: 1em 0;
+      padding: 0.8em 1em;
+      max-width: 820px;
+    }
+    .status {
+      display: inline-block;
+      margin-left: 0.75em;
+      color: #555;
+      font-weight: 600;
+    }
+    #stream-output {
+      border: 1px solid #ccc;
+      padding: 1em;
+      margin-top: 1em;
+      height: 360px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>PASDA Metadata Directory Harvester</h1>
+
+  <div class="intro">
+    <p>This runs the PASDA metadata-directory harvester using <code>config/pasda.yaml</code>. It reads the flat PASDA metadata XML directory, reuses unchanged cached XML when possible, re-downloads changed XML, builds download and GeoJSON inventories, matches metadata records to assets, and writes Aardvark, distribution, registry, and review CSVs.</p>
+    <p>This can take awhile to run. A full run may spend time listing PASDA download directories, checking thousands of XML files, deriving themes, and writing several output files.</p>
+  </div>
+
+  <div class="note">
+    Watch the log below for terminal-style messages. It will show inventory-building progress and each metadata XML filename as it is fetched, reused from the registry, or read from cache.
+  </div>
+
+  <h2>Run Harvest</h2>
+  <button id="run-button" onclick="runHarvester()">Run Metadata Directory Harvester</button>
+  <span id="run-status" class="status">Idle</span>
+  <h2>Live Log</h2>
+  <pre id="stream-output"></pre>
+
+  <h2>Outputs</h2>
+  <p>Regular outputs are written under <code>outputs/pasda</code>. The run also updates the compact PASDA registries under <code>registry</code>.</p>
+
+  <p>
+    Legacy portal page:
+    <a href="/static/pasda.html">PASDA Portal Harvester</a>
+  </p>
+
+  <script>
+    let eventSource = null;
+
+    function runHarvester() {
+      const output = document.getElementById("stream-output");
+      const status = document.getElementById("run-status");
+      const button = document.getElementById("run-button");
+
+      if (eventSource) {
+        eventSource.close();
+      }
+
+      output.textContent = "Connecting to PASDA metadata-directory harvester stream...\n";
+      status.textContent = "Running";
+      button.disabled = true;
+      eventSource = new EventSource("/run-pasda-stream");
+
+      eventSource.onmessage = function (event) {
+        if (event.data === "DONE") {
+          output.textContent += "PASDA metadata-directory harvester stream complete.\n";
+          output.scrollTop = output.scrollHeight;
+          status.textContent = "Complete";
+          button.disabled = false;
+          eventSource.close();
+          eventSource = null;
+        } else {
+          output.textContent += event.data + "\n";
+          output.scrollTop = output.scrollHeight;
+        }
+      };
+
+      eventSource.onerror = function () {
+        output.textContent += "Stream closed. The harvester did not complete, please check logs.\n";
+        output.scrollTop = output.scrollHeight;
+        status.textContent = "Stopped";
+        button.disabled = false;
+        eventSource.close();
+        eventSource = null;
+      };
+    }
+  </script>
+</body>
+</html>

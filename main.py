@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import csv
 import os
 import random
@@ -49,6 +50,25 @@ def load_yaml_config(config_path: str) -> dict:
 def format_sse_message(message: str) -> str:
     lines = str(message).splitlines() or [""]
     return "".join(f"data: {line}\n" for line in lines) + "\n"
+
+
+class QueueLogWriter:
+    def __init__(self, queue: asyncio.Queue, loop: asyncio.AbstractEventLoop):
+        self.queue = queue
+        self.loop = loop
+        self.buffer = ""
+
+    def write(self, text: str) -> int:
+        self.buffer += text
+        while "\n" in self.buffer:
+            line, self.buffer = self.buffer.split("\n", 1)
+            self.loop.call_soon_threadsafe(self.queue.put_nowait, line)
+        return len(text)
+
+    def flush(self) -> None:
+        if self.buffer:
+            self.loop.call_soon_threadsafe(self.queue.put_nowait, self.buffer)
+            self.buffer = ""
 
 
 def create_arcgis_test_input_csv(source_csv: str, sample_size: int = 3) -> tuple[str, int]:
@@ -270,7 +290,7 @@ async def run_arcgis_stream(test_run: bool = Query(default=False)):
                         f"{upload_summary.get('reason', 'No reason provided.')}.\n\n"
                     )
 
-            yield f"data: Harvester complete! Check the output folder.\n\n"
+            yield "data: Harvester complete! Check the output folder.\n\n"
             yield "data: DONE\n\n"
         finally:
             if temp_input_path and os.path.exists(temp_input_path):
@@ -329,7 +349,7 @@ async def run_socrata_stream():
                     f"{upload_summary.get('reason', 'No reason provided.')}.\n\n"
                 )
 
-        yield f"data: Harvester complete! Check the output folder.\n\n"
+        yield "data: Harvester complete! Check the output folder.\n\n"
         yield "data: DONE\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
@@ -393,44 +413,66 @@ async def run_pasda_stream():
     from harvesters.pasda import PasdaHarvester
 
     async def event_stream():
-        config_path = "config/pasda.yaml"
-        with open(config_path, "r") as f:
-            config = yaml.safe_load(f)
+        queue: asyncio.Queue = asyncio.Queue()
+        loop = asyncio.get_running_loop()
 
-        harvester = PasdaHarvester(config)
-        harvester.load_reference_data()
+        def run_harvest_with_streamed_logs():
+            writer = QueueLogWriter(queue, loop)
+            try:
+                with contextlib.redirect_stdout(writer), contextlib.redirect_stderr(writer):
+                    config_path = "config/pasda.yaml"
+                    with open(config_path, encoding="utf-8") as f:
+                        config = yaml.safe_load(f)
 
-        yield "data: Starting PASDA metadata-directory harvest...\n\n"
-        raw_metadata = harvester.fetch()
-        yield "data: Built metadata manifest and cached XML files, now parsing...\n\n"
+                    harvester = PasdaHarvester(config)
+                    harvester.load_reference_data()
 
-        parsed = harvester.parse(raw_metadata)
-        flat = harvester.flatten(parsed)
-        df = harvester.build_dataframe(flat)
-        df = harvester.derive_fields(df)
-        df = harvester.add_defaults(df)
-        df = harvester.add_provenance(df)
-        df = harvester.clean(df)
-        harvester.validate(df)
-        results = harvester.write_outputs(df)
-        upload_summary = harvester.build_uploads(results)
-        if upload_summary is not None:
-            results["upload_summary"] = upload_summary
-            if upload_summary.get("status") == "created":
-                yield (
-                    "data: Built upload files: "
-                    f"{upload_summary['primary_upload_csv']}, "
-                    f"{upload_summary['distributions_new_csv']}, "
-                    f"{upload_summary['distributions_delete_csv']}.\n\n"
-                )
-            else:
-                yield (
-                    "data: Upload files not built: "
-                    f"{upload_summary.get('reason', 'No reason provided.')}.\n\n"
-                )
+                    print("[PASDA] Starting PASDA metadata-directory harvest...")
+                    raw_metadata = harvester.fetch()
+                    print("[PASDA] Built metadata manifest and cached XML files, now parsing...")
 
-        yield "data: PASDA harvest complete. Check output folder.\n\n"
-        yield "data: DONE\n\n"
+                    parsed = harvester.parse(raw_metadata)
+                    flat = harvester.flatten(parsed)
+                    df = harvester.build_dataframe(flat)
+                    df = harvester.derive_fields(df)
+                    df = harvester.add_defaults(df)
+                    df = harvester.add_provenance(df)
+                    df = harvester.clean(df)
+                    harvester.validate(df)
+                    results = harvester.write_outputs(df)
+                    upload_summary = harvester.build_uploads(results)
+                    if upload_summary is not None:
+                        results["upload_summary"] = upload_summary
+                        if upload_summary.get("status") == "created":
+                            print(
+                                "[PASDA] Built upload files: "
+                                f"{upload_summary['primary_upload_csv']}, "
+                                f"{upload_summary['distributions_new_csv']}, "
+                                f"{upload_summary['distributions_delete_csv']}."
+                            )
+                        else:
+                            print(
+                                "[PASDA] Upload files not built: "
+                                f"{upload_summary.get('reason', 'No reason provided.')}."
+                            )
+                    for label, path in results.items():
+                        if isinstance(path, str):
+                            print(f"[PASDA] Output {label}: {path}")
+
+                    print("[PASDA] PASDA harvest complete. Check output folder.")
+            except Exception as exc:
+                print(f"[PASDA] ERROR: {exc}")
+            finally:
+                writer.flush()
+                loop.call_soon_threadsafe(queue.put_nowait, "DONE")
+
+        task = asyncio.create_task(asyncio.to_thread(run_harvest_with_streamed_logs))
+        while True:
+            message = await queue.get()
+            yield format_sse_message(message)
+            if message == "DONE":
+                break
+        await task
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -610,7 +652,7 @@ async def run_isgs_stream():
         harvester.validate(df)
         harvester.write_outputs(df)
 
-        yield f"data: Harvester complete! Check the output folder.\n\n"
+        yield "data: Harvester complete! Check the output folder.\n\n"
         yield "data: DONE\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")

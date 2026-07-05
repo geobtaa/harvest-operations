@@ -8,7 +8,7 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urljoin
+from urllib.parse import unquote, urljoin, urlparse
 from xml.etree import ElementTree as ET
 
 import pandas as pd
@@ -92,6 +92,7 @@ class PasdaHarvester(BaseHarvester):
         config.setdefault("build_uploads", True)
         config.setdefault("metadata_base_url", "https://www.pasda.psu.edu/metadata/")
         config.setdefault("download_base_url", "https://www.pasda.psu.edu/download/")
+        config.setdefault("json_base_url", "https://www.pasda.psu.edu/json/")
         config.setdefault("source_manifest", "metadata_directory")
         config.setdefault("cache_dir", "inputs/pasda/metadata_xml")
         config.setdefault("output_dir", "outputs/pasda")
@@ -100,6 +101,15 @@ class PasdaHarvester(BaseHarvester):
         config.setdefault("normalized_registry_path", "registry/pasda_normalized_registry.jsonl")
         config.setdefault("incremental", True)
         config.setdefault("use_registry", True)
+        config.setdefault("build_download_inventory", False)
+        config.setdefault("build_json_inventory", False)
+        config.setdefault("download_inventory_max_depth", 4)
+        config.setdefault("download_inventory_max_pages", 500)
+        config.setdefault("download_inventory_request_delay_seconds", 0)
+        config.setdefault("json_inventory_max_depth", 0)
+        config.setdefault("json_inventory_max_pages", 100)
+        config.setdefault("json_inventory_request_delay_seconds", 0)
+        config.setdefault("aardvark_ready_only", True)
         config.setdefault("sample_strategy", "first")
         config.setdefault("sample_seed", 42)
         config.setdefault("timeout", 30)
@@ -113,6 +123,8 @@ class PasdaHarvester(BaseHarvester):
         self.spatial_data = pd.DataFrame()
         self.metadata_registry = {}
         self.normalized_registry = {}
+        self.download_inventory_rows = []
+        self.json_inventory_rows = []
 
     def load_reference_data(self):
         super().load_reference_data()
@@ -180,6 +192,39 @@ class PasdaHarvester(BaseHarvester):
         else:
             print(f"[PASDA] Found {len(inventory_rows)} XML links; downloading all records.")
 
+        if self.config.get("build_download_inventory", False):
+            print(f"[PASDA] Building download inventory: {self.config['download_base_url']}")
+            self.download_inventory_rows = inventory_pasda_directory_tree(
+                session=session,
+                base_url=self.config["download_base_url"],
+                source_manifest="download_directory",
+                timeout=timeout,
+                harvested_at=harvested_at,
+                max_depth=int(self.config.get("download_inventory_max_depth", 4)),
+                max_pages=int(self.config.get("download_inventory_max_pages", 5000)),
+                request_delay_seconds=float(
+                    self.config.get("download_inventory_request_delay_seconds", 0) or 0
+                ),
+            )
+            print(f"[PASDA] Download inventory files found: {len(self.download_inventory_rows)}")
+
+        if self.config.get("build_json_inventory", False):
+            print(f"[PASDA] Building GeoJSON inventory: {self.config['json_base_url']}")
+            self.json_inventory_rows = inventory_pasda_directory_tree(
+                session=session,
+                base_url=self.config["json_base_url"],
+                source_manifest="json_directory",
+                timeout=timeout,
+                harvested_at=harvested_at,
+                max_depth=int(self.config.get("json_inventory_max_depth", 0)),
+                max_pages=int(self.config.get("json_inventory_max_pages", 100)),
+                file_extensions={".geojson", ".json"},
+                request_delay_seconds=float(
+                    self.config.get("json_inventory_request_delay_seconds", 0) or 0
+                ),
+            )
+            print(f"[PASDA] GeoJSON inventory files found: {len(self.json_inventory_rows)}")
+
         fetched_rows = []
         total_records = len(manifest_rows)
         for index, row in enumerate(manifest_rows, start=1):
@@ -195,6 +240,9 @@ class PasdaHarvester(BaseHarvester):
                     cache_dir=cache_dir,
                     timeout=timeout,
                     incremental=bool(self.config.get("incremental", True)),
+                    metadata_registry_entry=self.metadata_registry.get(
+                        clean_text(row.get("metadata_filename", ""))
+                    ),
                 )
             fetched_rows.append(fetched_row)
             print(
@@ -272,25 +320,90 @@ class PasdaHarvester(BaseHarvester):
         output_dir = Path(self.config["output_dir"])
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        inventory_path = output_dir / f"{today}_pasda_directory_inventory.csv"
-        manifest_path = output_dir / f"{today}_pasda_metadata_manifest.csv"
-        normalized_jsonl_path = output_dir / f"{today}_pasda_normalized_records.jsonl"
-        normalized_csv_path = output_dir / f"{today}_pasda_normalized_records.csv"
-        aardvark_draft_path = output_dir / f"{today}_pasda_aardvark_draft.csv"
-        errors_path = output_dir / f"{today}_pasda_error_report.csv"
-        profile_summary_path = output_dir / f"{today}_pasda_profile_summary.csv"
+        inventory_dir = output_dir / "inventory"
+        normalized_dir = output_dir / "normalized"
+        upload_dir = output_dir / "upload"
+        review_dir = output_dir / "review"
+        reports_dir = output_dir / "reports"
+        for subdir in [inventory_dir, normalized_dir, upload_dir, review_dir, reports_dir]:
+            subdir.mkdir(parents=True, exist_ok=True)
+
+        inventory_path = inventory_dir / f"{today}_pasda_directory_inventory.csv"
+        manifest_path = inventory_dir / f"{today}_pasda_metadata_manifest.csv"
+        download_inventory_path = inventory_dir / f"{today}_pasda_download_inventory.csv"
+        json_inventory_path = inventory_dir / f"{today}_pasda_json_inventory.csv"
+        normalized_jsonl_path = normalized_dir / f"{today}_pasda_normalized_records.jsonl"
+        normalized_csv_path = normalized_dir / f"{today}_pasda_normalized_records.csv"
+        aardvark_draft_path = upload_dir / f"{today}_pasda_aardvark_draft.csv"
+        distributions_path = upload_dir / f"{today}_pasda_distributions.csv"
+        asset_match_review_path = review_dir / f"{today}_pasda_asset_match_review.csv"
+        series_review_path = review_dir / f"{today}_pasda_series_review.csv"
+        unparsed_matched_review_path = review_dir / f"{today}_pasda_unparsed_matched_review.csv"
+        new_records_review_path = review_dir / f"{today}_pasda_new_records_review.csv"
+        changed_records_review_path = review_dir / f"{today}_pasda_changed_records_review.csv"
+        deleted_records_review_path = review_dir / f"{today}_pasda_deleted_records_review.csv"
+        errors_path = reports_dir / f"{today}_pasda_error_report.csv"
+        profile_summary_path = reports_dir / f"{today}_pasda_profile_summary.csv"
 
         write_csv_rows(inventory_path, self.inventory_rows)
         write_csv_rows(manifest_path, self.manifest_rows)
         write_jsonl(normalized_jsonl_path, self.normalized_records)
         primary_df.to_csv(normalized_csv_path, index=False, encoding="utf-8")
+        asset_match_review_rows = []
+        series_review_rows = []
+        unparsed_matched_review_rows = []
+        if self.download_inventory_rows or self.json_inventory_rows:
+            asset_match_review_rows = build_pasda_asset_match_review_records(
+                self.normalized_records,
+                download_inventory_rows=self.download_inventory_rows,
+                json_inventory_rows=self.json_inventory_rows,
+            )
+            series_review_rows = build_pasda_series_review_records(
+                self.normalized_records,
+                asset_match_review_rows=asset_match_review_rows,
+            )
+            unparsed_matched_review_rows = build_pasda_unparsed_matched_review_records(
+                self.normalized_records,
+                asset_match_review_rows=asset_match_review_rows,
+            )
         county_lookup = build_pasda_county_lookup(self.spatial_data)
         aardvark_draft_df = build_pasda_aardvark_draft_dataframe(
             self.normalized_records,
             county_lookup=county_lookup,
             theme_map=self.theme_map,
+            asset_match_review_rows=asset_match_review_rows,
+            series_review_rows=series_review_rows,
+            ready_only=bool(asset_match_review_rows)
+            and bool(self.config.get("aardvark_ready_only", True)),
         )
         aardvark_draft_df.to_csv(aardvark_draft_path, index=False, encoding="utf-8")
+        new_records_review_rows, changed_records_review_rows = (
+            build_pasda_new_changed_record_review_rows(
+                aardvark_draft_df.to_dict("records"),
+                normalized_records=self.normalized_records,
+                existing_metadata_registry=self.metadata_registry,
+            )
+        )
+        write_csv_rows(new_records_review_path, new_records_review_rows)
+        write_csv_rows(changed_records_review_path, changed_records_review_rows)
+        deleted_records_review_rows = build_pasda_deleted_record_review_rows(
+            existing_metadata_registry=self.metadata_registry,
+            inventory_rows=self.inventory_rows,
+        )
+        write_csv_rows(deleted_records_review_path, deleted_records_review_rows)
+        if self.config.get("build_download_inventory", False):
+            write_csv_rows(download_inventory_path, self.download_inventory_rows)
+        if self.config.get("build_json_inventory", False):
+            write_csv_rows(json_inventory_path, self.json_inventory_rows)
+        if self.download_inventory_rows or self.json_inventory_rows:
+            write_csv_rows(asset_match_review_path, asset_match_review_rows)
+            write_csv_rows(series_review_path, series_review_rows)
+            write_csv_rows(unparsed_matched_review_path, unparsed_matched_review_rows)
+            distribution_rows = build_pasda_distribution_records(
+                self.normalized_records,
+                asset_match_review_rows=asset_match_review_rows,
+            )
+            write_csv_rows(distributions_path, distribution_rows)
         write_csv_rows(errors_path, self.error_rows)
         write_csv_rows(profile_summary_path, self.profile_summary)
         if self.config.get("use_registry", True):
@@ -316,9 +429,21 @@ class PasdaHarvester(BaseHarvester):
             "normalized_jsonl": str(normalized_jsonl_path),
             "normalized_csv": str(normalized_csv_path),
             "aardvark_draft_csv": str(aardvark_draft_path),
+            "new_records_review_csv": str(new_records_review_path),
+            "changed_records_review_csv": str(changed_records_review_path),
+            "deleted_records_review_csv": str(deleted_records_review_path),
             "error_report_csv": str(errors_path),
             "profile_summary_csv": str(profile_summary_path),
         }
+        if self.config.get("build_download_inventory", False):
+            results["download_inventory_csv"] = str(download_inventory_path)
+        if self.config.get("build_json_inventory", False):
+            results["json_inventory_csv"] = str(json_inventory_path)
+        if self.download_inventory_rows or self.json_inventory_rows:
+            results["asset_match_review_csv"] = str(asset_match_review_path)
+            results["series_review_csv"] = str(series_review_path)
+            results["distributions_csv"] = str(distributions_path)
+            results["unparsed_matched_review_csv"] = str(unparsed_matched_review_path)
         if self.config.get("use_registry", True):
             results["metadata_registry_csv"] = self.config["metadata_registry_path"]
             results["normalized_registry_jsonl"] = self.config["normalized_registry_path"]
@@ -410,6 +535,113 @@ PASDA_METADATA_REGISTRY_FIELDS = [
     "registry_version",
 ]
 
+PASDA_ASSET_MATCH_REVIEW_FIELDS = [
+    "source_record_id",
+    "metadata_filename",
+    "title",
+    "metadata_url",
+    "pasda_asset_match_status",
+    "pasda_asset_match_level",
+    "pasda_distribution_candidate",
+    "metadata_download_links",
+    "exact_asset_urls",
+    "geojson_exact_count",
+    "geojson_exact_urls",
+    "download_exact_count",
+    "download_exact_urls",
+    "geojson_normalized_count",
+    "geojson_normalized_urls",
+    "download_normalized_count",
+    "download_normalized_urls",
+    "metadata_archive_link_count",
+    "metadata_archive_links",
+    "archive_directory_candidate_count",
+    "archive_directory_candidate_urls",
+    "supplemental_asset_urls",
+    "best_asset_url",
+    "best_asset_filename",
+    "best_asset_source_manifest",
+    "best_asset_kind",
+    "match_method",
+    "confidence",
+    "candidate_count",
+    "review_flag",
+]
+PASDA_ASSET_MATCH_URL_LIMIT = 25
+PASDA_ASSET_EXTENSION_RANK = {
+    ".geojson": 0,
+    ".json": 1,
+    ".zip": 2,
+    ".7z": 3,
+    ".gz": 4,
+    ".tar": 5,
+    ".tgz": 6,
+    ".gpkg": 7,
+    ".gdb": 8,
+    ".shp": 9,
+    ".kml": 10,
+    ".kmz": 11,
+    ".csv": 12,
+    ".tif": 13,
+    ".tiff": 14,
+    ".sid": 15,
+}
+
+PASDA_SERIES_REVIEW_FIELDS = [
+    "series_key",
+    "series_title",
+    "series_status",
+    "record_count",
+    "record_ids",
+    "metadata_filenames",
+    "inferred_record_dates",
+    "ready_count",
+    "review_count",
+    "no_asset_count",
+    "exact_asset_count",
+    "exact_assets_with_archive_count",
+    "archive_only_count",
+    "normalized_count",
+    "most_recently_found_record_id",
+    "most_recently_found_date",
+    "most_recently_found_match_status",
+    "most_recently_found_distribution_candidate",
+    "latest_ready_record_id",
+    "latest_ready_date",
+    "title_needs_date_qualifier",
+    "shared_title_count",
+    "unique_titles",
+    "series_currentness_note",
+]
+PASDA_SERIES_CURRENTNESS_NOTE = (
+    "Treat all PASDA series members as historical snapshots. "
+    "Most recently found is based on inferred metadata/file dates and is not a currentness claim; "
+    "check PASDA or the creator for the most current data."
+)
+PASDA_DISTRIBUTION_FIELDS = [
+    "friendlier_id",
+    "reference_type",
+    "distribution_url",
+    "label",
+]
+PASDA_UNPARSED_MATCH_REVIEW_FIELDS = [
+    "source_record_id",
+    "public_id",
+    "metadata_filename",
+    "metadata_url",
+    "raw_xml_path",
+    "xml_fetch_status",
+    "xml_parse_status",
+    "parse_error",
+    "title",
+    "pasda_distribution_candidate",
+    "pasda_asset_match_status",
+    "pasda_asset_match_level",
+    "match_method",
+    "confidence",
+    "best_asset_url",
+    "supplemental_asset_urls",
+]
 
 FGDC_TAGS = {
     "idinfo",
@@ -460,6 +692,38 @@ PASDA_AARDVARK_REVIEW_FIELDS = [
 PASDA_AARDVARK_DRAFT_FIELDS = [
     field for field in PRIMARY_FIELD_ORDER if field != "Index Year"
 ] + PASDA_AARDVARK_REVIEW_FIELDS
+PASDA_RECORD_CHANGE_REVIEW_FIELDS = [
+    "pasda_change_type",
+    "pasda_change_reason",
+    "metadata_filename",
+    "metadata_url",
+    "previous_xml_sha256",
+    "current_xml_sha256",
+    "previous_metadata_last_modified",
+    "current_metadata_last_modified",
+    "previous_metadata_size_bytes",
+    "current_metadata_size_bytes",
+] + PASDA_AARDVARK_DRAFT_FIELDS
+PASDA_RECORD_DELETE_REVIEW_FIELDS = [
+    "pasda_change_type",
+    "pasda_change_reason",
+    "metadata_filename",
+    "metadata_url",
+    "pasda_record_id",
+    "source_record_id",
+    "previous_xml_sha256",
+    "previous_metadata_last_modified",
+    "previous_metadata_size_bytes",
+    "metadata_profile",
+    "metadata_profile_confidence",
+    "xml_fetch_status",
+    "xml_parse_status",
+    "parse_error",
+    "first_seen",
+    "last_seen",
+    "last_parsed",
+    "registry_version",
+]
 
 
 def build_pasda_session(user_agent: str) -> requests.Session:
@@ -537,6 +801,1018 @@ def parse_metadata_directory_listing(
         )
 
     return rows
+
+
+def inventory_pasda_directory_tree(
+    session: requests.Session,
+    base_url: str,
+    source_manifest: str,
+    timeout: int,
+    harvested_at: str | None = None,
+    max_depth: int = 4,
+    max_pages: int = 5000,
+    file_extensions: set[str] | None = None,
+    request_delay_seconds: float = 0,
+) -> list[dict[str, Any]]:
+    harvested_at = harvested_at or utc_now()
+    root_url = ensure_trailing_slash(base_url)
+    pending = [(root_url, 0)]
+    seen_directories = set()
+    file_rows = []
+
+    while pending and len(seen_directories) < max_pages:
+        directory_url, depth = pending.pop(0)
+        directory_url = ensure_trailing_slash(directory_url)
+        if directory_url in seen_directories:
+            continue
+        seen_directories.add(directory_url)
+        if len(seen_directories) == 1 or len(seen_directories) % 100 == 0:
+            print(
+                "[PASDA] Directory inventory progress: "
+                f"{len(seen_directories)} pages, {len(file_rows)} files found."
+            )
+        if request_delay_seconds > 0:
+            time.sleep(request_delay_seconds)
+
+        try:
+            response = session.get(directory_url, timeout=timeout)
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            file_rows.append(
+                {
+                    "source_system": "PASDA",
+                    "source_manifest": source_manifest,
+                    "asset_url": directory_url,
+                    "asset_filename": "",
+                    "asset_file_stem": "",
+                    "asset_file_stem_normalized": "",
+                    "asset_extension": "",
+                    "asset_kind": "directory_listing_error",
+                    "asset_directory_url": directory_url,
+                    "asset_relative_path": "",
+                    "asset_last_modified": "",
+                    "asset_size_bytes": "",
+                    "asset_depth": depth,
+                    "harvested_at": harvested_at,
+                    "inventory_status": "failed",
+                    "inventory_error": str(exc),
+                }
+            )
+            continue
+
+        parsed = parse_pasda_asset_directory_listing(
+            response.text,
+            directory_url=directory_url,
+            root_url=root_url,
+            source_manifest=source_manifest,
+            harvested_at=harvested_at,
+            depth=depth,
+            file_extensions=file_extensions,
+        )
+        file_rows.extend(parsed["files"])
+        if depth < max_depth:
+            for child_url in parsed["directories"]:
+                if child_url not in seen_directories:
+                    pending.append((child_url, depth + 1))
+
+    if pending and len(seen_directories) >= max_pages:
+        print(
+            "[PASDA] Directory inventory stopped at "
+            f"{len(seen_directories)} pages because max_pages={max_pages}. "
+            f"{len(pending)} directories remain queued."
+        )
+
+    return file_rows
+
+
+def parse_pasda_asset_directory_listing(
+    html: str,
+    directory_url: str,
+    root_url: str,
+    source_manifest: str,
+    harvested_at: str,
+    depth: int = 0,
+    file_extensions: set[str] | None = None,
+) -> dict[str, list[Any]]:
+    soup = BeautifulSoup(html, "html.parser")
+    files = []
+    directories = []
+    seen_assets = set()
+    root_url = ensure_trailing_slash(root_url)
+    directory_url = ensure_trailing_slash(directory_url)
+
+    for anchor in soup.find_all("a", href=True):
+        href = anchor.get("href", "").strip()
+        if not href or href.startswith(("#", "?", "mailto:", "javascript:")):
+            continue
+        label = clean_text(anchor.get_text(" ", strip=True))
+        if label.lower() in {"parent directory", "[to parent directory]"} or href.startswith("../"):
+            continue
+
+        asset_url = urljoin(directory_url, href)
+        if not asset_url.startswith(root_url):
+            continue
+
+        filename = unquote(asset_url.rstrip("/").rsplit("/", 1)[-1])
+        if not filename:
+            continue
+        if asset_url in seen_assets:
+            continue
+        seen_assets.add(asset_url)
+
+        if href.endswith("/") or asset_url.endswith("/"):
+            directories.append(ensure_trailing_slash(asset_url))
+            continue
+
+        extension = Path(filename).suffix.lower()
+        if file_extensions is not None and extension not in file_extensions:
+            continue
+
+        context = directory_listing_context(anchor)
+        last_modified = parse_listing_last_modified(context)
+        size_bytes = parse_listing_size_bytes(context, filename)
+        relative_path = asset_url.removeprefix(root_url)
+        stem = Path(filename).stem
+        files.append(
+            {
+                "source_system": "PASDA",
+                "source_manifest": source_manifest,
+                "asset_url": asset_url,
+                "asset_filename": filename,
+                "asset_file_stem": stem,
+                "asset_file_stem_normalized": normalize_file_stem(stem),
+                "asset_extension": extension,
+                "asset_kind": pasda_asset_kind(extension, asset_url),
+                "asset_directory_url": directory_url,
+                "asset_relative_path": relative_path,
+                "asset_last_modified": last_modified,
+                "asset_size_bytes": size_bytes,
+                "asset_depth": depth,
+                "harvested_at": harvested_at,
+                "inventory_status": "found",
+                "inventory_error": "",
+            }
+        )
+
+    return {"files": files, "directories": directories}
+
+
+def directory_listing_context(anchor: Any) -> str:
+    sibling_parts = []
+    for sibling in anchor.next_siblings:
+        if getattr(sibling, "name", None) == "a":
+            break
+        sibling_value = str(sibling).strip()
+        if sibling_value:
+            sibling_parts.append(sibling_value)
+    sibling_text = " ".join(sibling_parts)
+    if sibling_text:
+        return sibling_text
+
+    parent = anchor.find_parent(["tr", "li"])
+    if parent is None:
+        return ""
+    return " ".join(parent.get_text(" ", strip=True).split())
+
+
+def ensure_trailing_slash(url: str) -> str:
+    if not url:
+        return ""
+    return url if url.endswith("/") else f"{url}/"
+
+
+def pasda_asset_kind(extension: str, asset_url: str) -> str:
+    normalized_url = asset_url.lower()
+    if extension in {".json", ".geojson"}:
+        return "geojson"
+    if extension in {".zip", ".7z", ".gz", ".tar", ".tgz"}:
+        return "download_archive"
+    if extension in {".gdb", ".shp", ".kml", ".kmz", ".csv", ".txt", ".tif", ".tiff", ".sid"}:
+        return "download_file"
+    if "archive" in normalized_url or "historic" in normalized_url:
+        return "archive_candidate"
+    return "download_file"
+
+
+def build_pasda_asset_match_review_records(
+    records: list[dict[str, Any]],
+    download_inventory_rows: list[dict[str, Any]] | None = None,
+    json_inventory_rows: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    download_rows = sorted_pasda_asset_rows(download_inventory_rows or [])
+    json_rows = sorted_pasda_asset_rows(json_inventory_rows or [])
+    download_exact_index = index_pasda_asset_rows(download_rows, "asset_file_stem")
+    json_exact_index = index_pasda_asset_rows(json_rows, "asset_file_stem")
+    download_normalized_index = index_pasda_asset_rows(download_rows, "asset_file_stem_normalized")
+    json_normalized_index = index_pasda_asset_rows(json_rows, "asset_file_stem_normalized")
+    archive_directories = pasda_download_archive_directories(download_rows)
+
+    review_rows = []
+    for record in records:
+        source_record_id = clean_text(record.get("source_record_id", ""))
+        metadata_filename = clean_text(record.get("metadata_filename", ""))
+        metadata_stem = pasda_record_file_stem(record)
+        normalized_stem = normalize_file_stem(metadata_stem)
+
+        geojson_exact = json_exact_index.get(metadata_stem, [])
+        download_exact = download_exact_index.get(metadata_stem, [])
+        exact_urls = {row.get("asset_url", "") for row in [*geojson_exact, *download_exact]}
+        geojson_normalized = [
+            row
+            for row in json_normalized_index.get(normalized_stem, [])
+            if row.get("asset_url", "") not in exact_urls
+        ]
+        download_normalized = [
+            row
+            for row in download_normalized_index.get(normalized_stem, [])
+            if row.get("asset_url", "") not in exact_urls
+        ]
+        exact_asset_urls = [row.get("asset_url", "") for row in [*geojson_exact, *download_exact]]
+        metadata_archive_links = pasda_metadata_archive_links(record)
+        archive_directory_candidates = pasda_archive_directory_candidates_for_download_rows(
+            [*download_exact, *download_normalized],
+            archive_directories,
+        )
+        normalized_asset_urls = [
+            row.get("asset_url", "") for row in [*geojson_normalized, *download_normalized]
+        ]
+        supplemental_asset_urls = dedupe_list(
+            [
+                *exact_asset_urls,
+                *metadata_archive_links,
+                *archive_directory_candidates,
+            ]
+        )
+        match_status, match_level, distribution_candidate = pasda_asset_match_status(
+            exact_asset_urls=exact_asset_urls,
+            normalized_asset_urls=normalized_asset_urls,
+            metadata_archive_links=metadata_archive_links,
+            archive_directory_candidates=archive_directory_candidates,
+        )
+
+        best_asset, match_method, confidence = select_pasda_best_asset_match(
+            geojson_exact=geojson_exact,
+            download_exact=download_exact,
+            geojson_normalized=geojson_normalized,
+            download_normalized=download_normalized,
+        )
+        review_flags = pasda_asset_match_review_flags(
+            geojson_exact=geojson_exact,
+            download_exact=download_exact,
+            geojson_normalized=geojson_normalized,
+            download_normalized=download_normalized,
+        )
+        candidate_count = (
+            len(geojson_exact)
+            + len(download_exact)
+            + len(geojson_normalized)
+            + len(download_normalized)
+        )
+
+        review_row = {field: "" for field in PASDA_ASSET_MATCH_REVIEW_FIELDS}
+        review_row.update(
+            {
+                "source_record_id": source_record_id,
+                "metadata_filename": metadata_filename,
+                "title": clean_text(record.get("title", "")),
+                "metadata_url": clean_text(record.get("metadata_url", "")),
+                "pasda_asset_match_status": match_status,
+                "pasda_asset_match_level": match_level,
+                "pasda_distribution_candidate": distribution_candidate,
+                "metadata_download_links": serialize_pasda_asset_urls(
+                    ensure_list(record.get("download_links_found_in_metadata", ""))
+                ),
+                "exact_asset_urls": serialize_pasda_asset_urls(exact_asset_urls),
+                "geojson_exact_count": len(geojson_exact),
+                "geojson_exact_urls": serialize_pasda_asset_urls(
+                    [row.get("asset_url", "") for row in geojson_exact]
+                ),
+                "download_exact_count": len(download_exact),
+                "download_exact_urls": serialize_pasda_asset_urls(
+                    [row.get("asset_url", "") for row in download_exact]
+                ),
+                "geojson_normalized_count": len(geojson_normalized),
+                "geojson_normalized_urls": serialize_pasda_asset_urls(
+                    [row.get("asset_url", "") for row in geojson_normalized]
+                ),
+                "download_normalized_count": len(download_normalized),
+                "download_normalized_urls": serialize_pasda_asset_urls(
+                    [row.get("asset_url", "") for row in download_normalized]
+                ),
+                "metadata_archive_link_count": len(metadata_archive_links),
+                "metadata_archive_links": serialize_pasda_asset_urls(metadata_archive_links),
+                "archive_directory_candidate_count": len(archive_directory_candidates),
+                "archive_directory_candidate_urls": serialize_pasda_asset_urls(
+                    archive_directory_candidates
+                ),
+                "supplemental_asset_urls": serialize_pasda_asset_urls(supplemental_asset_urls),
+                "best_asset_url": clean_text(best_asset.get("asset_url", "")),
+                "best_asset_filename": clean_text(best_asset.get("asset_filename", "")),
+                "best_asset_source_manifest": clean_text(best_asset.get("source_manifest", "")),
+                "best_asset_kind": clean_text(best_asset.get("asset_kind", "")),
+                "match_method": match_method,
+                "confidence": confidence,
+                "candidate_count": candidate_count,
+                "review_flag": "|".join(review_flags),
+            }
+        )
+        review_rows.append(review_row)
+    return review_rows
+
+
+def sorted_pasda_asset_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return sorted(
+        [row for row in rows if pasda_asset_row_found(row)],
+        key=pasda_asset_sort_key,
+    )
+
+
+def pasda_asset_row_found(row: dict[str, Any]) -> bool:
+    if not clean_text(row.get("asset_url", "")):
+        return False
+    inventory_status = clean_text(row.get("inventory_status", "found"))
+    return inventory_status in {"", "found"}
+
+
+def index_pasda_asset_rows(rows: list[dict[str, Any]], field: str) -> dict[str, list[dict[str, Any]]]:
+    indexed: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        key = clean_text(row.get(field, ""))
+        if key:
+            indexed.setdefault(key, []).append(row)
+    return indexed
+
+
+def pasda_record_file_stem(record: dict[str, Any]) -> str:
+    source_record_id = clean_text(record.get("source_record_id", ""))
+    if source_record_id:
+        return source_record_id
+    metadata_filename = clean_text(record.get("metadata_filename", ""))
+    if metadata_filename:
+        return Path(metadata_filename).stem
+    metadata_url = clean_text(record.get("metadata_url", ""))
+    if metadata_url:
+        return Path(unquote(metadata_url.rstrip("/").rsplit("/", 1)[-1])).stem
+    return ""
+
+
+def select_pasda_best_asset_match(
+    geojson_exact: list[dict[str, Any]],
+    download_exact: list[dict[str, Any]],
+    geojson_normalized: list[dict[str, Any]],
+    download_normalized: list[dict[str, Any]],
+) -> tuple[dict[str, Any], str, str]:
+    if geojson_exact:
+        return geojson_exact[0], "geojson_exact_filename", "95"
+    if download_exact:
+        confidence = "90" if download_exact[0].get("asset_kind") == "download_archive" else "85"
+        return download_exact[0], "download_exact_filename", confidence
+    if geojson_normalized:
+        return geojson_normalized[0], "geojson_normalized_filename", "80"
+    if download_normalized:
+        confidence = "75" if download_normalized[0].get("asset_kind") == "download_archive" else "70"
+        return download_normalized[0], "download_normalized_filename", confidence
+    return {}, "", ""
+
+
+def pasda_asset_match_review_flags(
+    geojson_exact: list[dict[str, Any]],
+    download_exact: list[dict[str, Any]],
+    geojson_normalized: list[dict[str, Any]],
+    download_normalized: list[dict[str, Any]],
+) -> list[str]:
+    exact_count = len(geojson_exact) + len(download_exact)
+    normalized_count = len(geojson_normalized) + len(download_normalized)
+    flags = []
+    if not exact_count and not normalized_count:
+        flags.append("no_filename_match")
+    if not exact_count and normalized_count:
+        flags.append("normalized_only_filename_match")
+    return flags
+
+
+def pasda_asset_match_status(
+    exact_asset_urls: list[str],
+    normalized_asset_urls: list[str],
+    metadata_archive_links: list[str],
+    archive_directory_candidates: list[str],
+) -> tuple[str, str, str]:
+    has_exact_assets = bool(dedupe_list(exact_asset_urls))
+    has_normalized_assets = bool(dedupe_list(normalized_asset_urls))
+    has_archives = bool(dedupe_list([*metadata_archive_links, *archive_directory_candidates]))
+    if has_exact_assets and has_archives:
+        return "exact_assets_with_archive", "exact", "ready"
+    if has_exact_assets:
+        return "exact_assets", "exact", "ready"
+    if has_normalized_assets and has_archives:
+        return "normalized_assets_with_archive", "normalized", "review"
+    if has_normalized_assets:
+        return "normalized_only", "normalized", "review"
+    if has_archives:
+        return "archive_only", "archive", "review"
+    return "no_asset_match", "none", "no"
+
+
+def build_pasda_distribution_records(
+    records: list[dict[str, Any]],
+    asset_match_review_rows: list[dict[str, Any]],
+    ready_only: bool = True,
+    parsed_only: bool = True,
+) -> list[dict[str, Any]]:
+    records_by_id = {
+        clean_text(record.get("source_record_id", "")): record
+        for record in records
+        if clean_text(record.get("source_record_id", ""))
+    }
+    distribution_rows = []
+    seen_rows = set()
+    for match_row in asset_match_review_rows:
+        source_record_id = clean_text(match_row.get("source_record_id", ""))
+        if ready_only and clean_text(match_row.get("pasda_distribution_candidate", "")) != "ready":
+            continue
+        friendlier_id = pasda_record_id_from_source(source_record_id)
+        if not friendlier_id:
+            continue
+        record = records_by_id.get(source_record_id, {})
+        if parsed_only and not pasda_record_is_upload_parseable(record):
+            continue
+        for row in pasda_distribution_rows_for_match(friendlier_id, match_row, record):
+            row_key = (
+                row["friendlier_id"],
+                row["reference_type"],
+                row["distribution_url"],
+                row["label"],
+            )
+            if row_key in seen_rows:
+                continue
+            seen_rows.add(row_key)
+            distribution_rows.append(row)
+    return distribution_rows
+
+
+def pasda_distribution_rows_for_match(
+    friendlier_id: str,
+    match_row: dict[str, Any],
+    record: dict[str, Any],
+) -> list[dict[str, str]]:
+    rows = []
+    for url in pasda_distribution_asset_urls(match_row):
+        reference_type, label = pasda_distribution_type_and_label(url)
+        if reference_type:
+            rows.append(pasda_distribution_row(friendlier_id, reference_type, url, label))
+
+    metadata_url = clean_text(record.get("metadata_url", "")) or clean_text(
+        match_row.get("metadata_url", "")
+    )
+    metadata_reference_type = pasda_metadata_distribution_type(record)
+    if metadata_url and metadata_reference_type:
+        rows.append(pasda_distribution_row(friendlier_id, metadata_reference_type, metadata_url, ""))
+    return rows
+
+
+def pasda_distribution_asset_urls(match_row: dict[str, Any]) -> list[str]:
+    return deserialize_pasda_asset_urls(clean_text(match_row.get("supplemental_asset_urls", "")))
+
+
+def pasda_distribution_type_and_label(url: str) -> tuple[str, str]:
+    clean_url = clean_text(url)
+    if not clean_url:
+        return "", ""
+    if pasda_distribution_url_is_historical_directory(clean_url):
+        return "download", "Historical versions"
+    return "download", pasda_distribution_label_from_url(clean_url)
+
+
+def pasda_distribution_url_is_historical_directory(url: str) -> bool:
+    return clean_text(url).endswith("/") and pasda_asset_url_is_archival(url)
+
+
+def pasda_distribution_label_from_url(url: str) -> str:
+    path = unquote(urlparse(url).path)
+    for marker in ["/download/", "/json/"]:
+        if marker in path:
+            relative_path = path.split(marker, 1)[1].strip("/")
+            if relative_path:
+                return relative_path
+    filename = clean_text(Path(path).name)
+    if filename:
+        return filename
+    extension = Path(path).suffix.lower()
+    if not extension:
+        return "Download"
+    return extension.lstrip(".").upper()
+
+
+def pasda_metadata_distribution_type(record: dict[str, Any]) -> str:
+    metadata_profile = clean_text(record.get("metadata_profile", ""))
+    if metadata_profile == "iso_19139":
+        return "metadata_iso"
+    if metadata_profile == "fgdc_csdgm":
+        return "metadata_fgdc"
+    return ""
+
+
+def pasda_distribution_row(
+    friendlier_id: str,
+    reference_type: str,
+    distribution_url: str,
+    label: str,
+) -> dict[str, str]:
+    return {
+        "friendlier_id": clean_text(friendlier_id),
+        "reference_type": clean_text(reference_type),
+        "distribution_url": clean_text(distribution_url),
+        "label": clean_text(label),
+    }
+
+
+def deserialize_pasda_asset_urls(value: str) -> list[str]:
+    return [
+        url
+        for url in dedupe_list(clean_text(value).split("|"))
+        if url and not url.startswith("... ")
+    ]
+
+
+def build_pasda_unparsed_matched_review_records(
+    records: list[dict[str, Any]],
+    asset_match_review_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    match_rows_by_id = {
+        clean_text(row.get("source_record_id", "")): row
+        for row in asset_match_review_rows
+        if clean_text(row.get("source_record_id", ""))
+    }
+    rows = []
+    for record in records:
+        source_record_id = clean_text(record.get("source_record_id", ""))
+        match_row = match_rows_by_id.get(source_record_id, {})
+        if clean_text(match_row.get("pasda_distribution_candidate", "")) != "ready":
+            continue
+        if pasda_record_is_upload_parseable(record):
+            continue
+        rows.append(pasda_unparsed_matched_review_row(record, match_row))
+    return rows
+
+
+def pasda_unparsed_matched_review_row(
+    record: dict[str, Any],
+    match_row: dict[str, Any],
+) -> dict[str, Any]:
+    source_record_id = clean_text(record.get("source_record_id", ""))
+    row = {
+        "source_record_id": source_record_id,
+        "public_id": pasda_record_id_from_source(source_record_id),
+        "metadata_filename": clean_text(record.get("metadata_filename", "")),
+        "metadata_url": clean_text(record.get("metadata_url", "")),
+        "raw_xml_path": clean_text(record.get("raw_xml_path", "")),
+        "xml_fetch_status": clean_text(record.get("xml_fetch_status", "")),
+        "xml_parse_status": clean_text(record.get("xml_parse_status", "")),
+        "parse_error": clean_text(record.get("parse_error", "")),
+        "title": clean_text(record.get("title", "")),
+        "pasda_distribution_candidate": clean_text(
+            match_row.get("pasda_distribution_candidate", "")
+        ),
+        "pasda_asset_match_status": clean_text(match_row.get("pasda_asset_match_status", "")),
+        "pasda_asset_match_level": clean_text(match_row.get("pasda_asset_match_level", "")),
+        "match_method": clean_text(match_row.get("match_method", "")),
+        "confidence": clean_text(match_row.get("confidence", "")),
+        "best_asset_url": clean_text(match_row.get("best_asset_url", "")),
+        "supplemental_asset_urls": clean_text(match_row.get("supplemental_asset_urls", "")),
+    }
+    return {field: row.get(field, "") for field in PASDA_UNPARSED_MATCH_REVIEW_FIELDS}
+
+
+def build_pasda_new_changed_record_review_rows(
+    aardvark_rows: list[dict[str, Any]],
+    normalized_records: list[dict[str, Any]],
+    existing_metadata_registry: dict[str, dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    records_by_public_id = {
+        pasda_record_id_from_source(clean_text(record.get("source_record_id", ""))): record
+        for record in normalized_records
+        if clean_text(record.get("source_record_id", ""))
+    }
+    new_rows = []
+    changed_rows = []
+    for aardvark_row in aardvark_rows:
+        public_id = clean_text(aardvark_row.get("ID", ""))
+        record = records_by_public_id.get(public_id, {})
+        filename = clean_text(record.get("metadata_filename", ""))
+        if not filename:
+            continue
+        existing_entry = existing_metadata_registry.get(filename)
+        if not existing_entry:
+            new_rows.append(
+                pasda_record_change_review_row(
+                    aardvark_row,
+                    record,
+                    existing_entry={},
+                    change_type="new",
+                    change_reason="new_metadata_file",
+                )
+            )
+            continue
+
+        previous_hash = clean_text(existing_entry.get("xml_sha256", ""))
+        current_hash = clean_text(record.get("xml_sha256", ""))
+        if previous_hash and current_hash and previous_hash != current_hash:
+            changed_rows.append(
+                pasda_record_change_review_row(
+                    aardvark_row,
+                    record,
+                    existing_entry=existing_entry,
+                    change_type="changed",
+                    change_reason="source_xml_hash_changed",
+                )
+            )
+    return new_rows, changed_rows
+
+
+def pasda_record_change_review_row(
+    aardvark_row: dict[str, Any],
+    record: dict[str, Any],
+    existing_entry: dict[str, Any],
+    change_type: str,
+    change_reason: str,
+) -> dict[str, Any]:
+    row = {
+        "pasda_change_type": clean_text(change_type),
+        "pasda_change_reason": clean_text(change_reason),
+        "metadata_filename": clean_text(record.get("metadata_filename", "")),
+        "metadata_url": clean_text(record.get("metadata_url", "")),
+        "previous_xml_sha256": clean_text(existing_entry.get("xml_sha256", "")),
+        "current_xml_sha256": clean_text(record.get("xml_sha256", "")),
+        "previous_metadata_last_modified": clean_text(
+            existing_entry.get("metadata_last_modified", "")
+        ),
+        "current_metadata_last_modified": clean_text(record.get("metadata_last_modified", "")),
+        "previous_metadata_size_bytes": clean_text(existing_entry.get("metadata_size_bytes", "")),
+        "current_metadata_size_bytes": clean_text(record.get("metadata_size_bytes", "")),
+    }
+    row.update({field: clean_text(aardvark_row.get(field, "")) for field in PASDA_AARDVARK_DRAFT_FIELDS})
+    return {field: row.get(field, "") for field in PASDA_RECORD_CHANGE_REVIEW_FIELDS}
+
+
+def build_pasda_deleted_record_review_rows(
+    existing_metadata_registry: dict[str, dict[str, Any]],
+    inventory_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    current_filenames = {
+        clean_text(row.get("metadata_filename", ""))
+        for row in inventory_rows
+        if clean_text(row.get("metadata_filename", ""))
+    }
+    deleted_rows = []
+    for filename in sorted(existing_metadata_registry):
+        clean_filename = clean_text(filename)
+        if not clean_filename or clean_filename in current_filenames:
+            continue
+        deleted_rows.append(
+            pasda_record_delete_review_row(existing_metadata_registry[filename])
+        )
+    return deleted_rows
+
+
+def pasda_record_delete_review_row(existing_entry: dict[str, Any]) -> dict[str, Any]:
+    row = {
+        "pasda_change_type": "deleted",
+        "pasda_change_reason": "metadata_file_missing_from_current_directory_listing",
+        "metadata_filename": clean_text(existing_entry.get("metadata_filename", "")),
+        "metadata_url": clean_text(existing_entry.get("metadata_url", "")),
+        "pasda_record_id": clean_text(existing_entry.get("pasda_record_id", "")),
+        "source_record_id": clean_text(existing_entry.get("source_record_id", "")),
+        "previous_xml_sha256": clean_text(existing_entry.get("xml_sha256", "")),
+        "previous_metadata_last_modified": clean_text(
+            existing_entry.get("metadata_last_modified", "")
+        ),
+        "previous_metadata_size_bytes": clean_text(existing_entry.get("metadata_size_bytes", "")),
+        "metadata_profile": clean_text(existing_entry.get("metadata_profile", "")),
+        "metadata_profile_confidence": clean_text(
+            existing_entry.get("metadata_profile_confidence", "")
+        ),
+        "xml_fetch_status": clean_text(existing_entry.get("xml_fetch_status", "")),
+        "xml_parse_status": clean_text(existing_entry.get("xml_parse_status", "")),
+        "parse_error": clean_text(existing_entry.get("parse_error", "")),
+        "first_seen": clean_text(existing_entry.get("first_seen", "")),
+        "last_seen": clean_text(existing_entry.get("last_seen", "")),
+        "last_parsed": clean_text(existing_entry.get("last_parsed", "")),
+        "registry_version": clean_text(existing_entry.get("registry_version", "")),
+    }
+    return {field: row.get(field, "") for field in PASDA_RECORD_DELETE_REVIEW_FIELDS}
+
+
+def build_pasda_series_review_records(
+    records: list[dict[str, Any]],
+    asset_match_review_rows: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    match_rows_by_id = {
+        clean_text(row.get("source_record_id", "")): row
+        for row in asset_match_review_rows or []
+        if clean_text(row.get("source_record_id", ""))
+    }
+    grouped_records: dict[str, list[dict[str, Any]]] = {}
+    for record in records:
+        series_key = pasda_series_key(record)
+        match_row = match_rows_by_id.get(clean_text(record.get("source_record_id", "")), {})
+        grouped_records.setdefault(series_key, []).append(
+            pasda_series_member_record(record, match_row, series_key)
+        )
+
+    return [
+        build_pasda_series_review_record(series_key, members)
+        for series_key, members in sorted(grouped_records.items())
+    ]
+
+
+def pasda_series_member_record(
+    record: dict[str, Any],
+    match_row: dict[str, Any],
+    series_key: str,
+) -> dict[str, Any]:
+    inferred_date = pasda_series_record_date(record)
+    match_status = clean_text(match_row.get("pasda_asset_match_status", "no_asset_match"))
+    match_level = clean_text(match_row.get("pasda_asset_match_level", "none"))
+    distribution_candidate = clean_text(match_row.get("pasda_distribution_candidate", "no"))
+    return {
+        "series_key": series_key,
+        "source_record_id": clean_text(record.get("source_record_id", "")),
+        "metadata_filename": clean_text(record.get("metadata_filename", "")),
+        "title": clean_text(record.get("title", "")),
+        "series_title": pasda_series_title(record),
+        "inferred_date": inferred_date,
+        "date_sort": pasda_series_date_sort_value(inferred_date),
+        "match_status": match_status or "no_asset_match",
+        "match_level": match_level or "none",
+        "distribution_candidate": distribution_candidate or "no",
+    }
+
+
+def build_pasda_series_review_record(series_key: str, members: list[dict[str, Any]]) -> dict[str, Any]:
+    sorted_members = sorted(
+        members,
+        key=lambda member: (member["date_sort"], member["source_record_id"]),
+    )
+    latest_member = sorted_members[-1]
+    ready_members = [
+        member for member in sorted_members if member.get("distribution_candidate") == "ready"
+    ]
+    latest_ready_member = ready_members[-1] if ready_members else {}
+    title_counts = count_pasda_values([member.get("series_title", "") for member in sorted_members])
+    shared_title_count = max(title_counts.values()) if title_counts else 0
+    record_count = len(sorted_members)
+    status_counts = count_pasda_values([member.get("match_status", "") for member in sorted_members])
+    ready_count = sum(1 for member in sorted_members if member.get("distribution_candidate") == "ready")
+    review_count = sum(1 for member in sorted_members if member.get("distribution_candidate") == "review")
+    no_asset_count = status_counts.get("no_asset_match", 0)
+    row = {field: "" for field in PASDA_SERIES_REVIEW_FIELDS}
+    row.update(
+        {
+            "series_key": series_key,
+            "series_title": pasda_primary_series_title(sorted_members),
+            "series_status": pasda_series_status(record_count, ready_count, review_count, no_asset_count),
+            "record_count": record_count,
+            "record_ids": "|".join(member["source_record_id"] for member in sorted_members),
+            "metadata_filenames": "|".join(member["metadata_filename"] for member in sorted_members),
+            "inferred_record_dates": "|".join(
+                member["inferred_date"] for member in sorted_members if member["inferred_date"]
+            ),
+            "ready_count": ready_count,
+            "review_count": review_count,
+            "no_asset_count": no_asset_count,
+            "exact_asset_count": status_counts.get("exact_assets", 0),
+            "exact_assets_with_archive_count": status_counts.get("exact_assets_with_archive", 0),
+            "archive_only_count": status_counts.get("archive_only", 0),
+            "normalized_count": status_counts.get("normalized_only", 0)
+            + status_counts.get("normalized_assets_with_archive", 0),
+            "most_recently_found_record_id": latest_member.get("source_record_id", ""),
+            "most_recently_found_date": latest_member.get("inferred_date", ""),
+            "most_recently_found_match_status": latest_member.get("match_status", ""),
+            "most_recently_found_distribution_candidate": latest_member.get(
+                "distribution_candidate", ""
+            ),
+            "latest_ready_record_id": latest_ready_member.get("source_record_id", ""),
+            "latest_ready_date": latest_ready_member.get("inferred_date", ""),
+            "title_needs_date_qualifier": "yes" if record_count > 1 and shared_title_count > 1 else "no",
+            "shared_title_count": shared_title_count,
+            "unique_titles": "|".join(title_counts.keys()),
+            "series_currentness_note": PASDA_SERIES_CURRENTNESS_NOTE,
+        }
+    )
+    return row
+
+
+def count_pasda_values(values: list[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for value in values:
+        clean_value = clean_text(value)
+        if not clean_value:
+            continue
+        counts[clean_value] = counts.get(clean_value, 0) + 1
+    return counts
+
+
+def pasda_primary_series_title(members: list[dict[str, Any]]) -> str:
+    title_counts = count_pasda_values([member.get("series_title", "") for member in members])
+    if not title_counts:
+        return ""
+    return sorted(title_counts.items(), key=lambda item: (-item[1], item[0]))[0][0]
+
+
+def pasda_series_status(
+    record_count: int,
+    ready_count: int,
+    review_count: int,
+    no_asset_count: int,
+) -> str:
+    if record_count == 1:
+        if ready_count:
+            return "single_record_ready"
+        if review_count:
+            return "single_record_review"
+        return "single_record_no_asset_match"
+    if ready_count == record_count:
+        return "series_all_members_ready"
+    if ready_count:
+        return "series_partial_assets"
+    if review_count:
+        return "series_review_only"
+    if no_asset_count == record_count:
+        return "series_no_asset_match"
+    return "series_mixed_unresolved"
+
+
+def pasda_series_key(record: dict[str, Any]) -> str:
+    stem = pasda_record_file_stem(record)
+    without_dates = strip_pasda_series_date_tokens(stem)
+    normalized = normalize_file_stem(without_dates)
+    return normalized or normalize_file_stem(stem) or "unknown_series"
+
+
+def pasda_series_title(record: dict[str, Any]) -> str:
+    title = clean_text(record.get("title", ""))
+    return format_pasda_title_dates(title) if title else ""
+
+
+def strip_pasda_series_date_tokens(value: str) -> str:
+    clean_value = clean_text(value)
+    clean_value = re.sub(
+        r"(?<!\d)(?:19|20)\d{2}[_\-. ]?(?:0[1-9]|1[0-2])[_\-. ]?(?:[0-3]\d)?(?!\d)",
+        " ",
+        clean_value,
+    )
+    clean_value = re.sub(r"(?:(?<=\D)|^)(?:19|20)\d{2}(?=\D|$)", " ", clean_value)
+    return clean_text(clean_value)
+
+
+def pasda_series_record_date(record: dict[str, Any]) -> str:
+    for value in [
+        record.get("source_record_id", ""),
+        record.get("metadata_filename", ""),
+        record.get("publication_date", ""),
+        record.get("modified", ""),
+        record.get("metadata_date", ""),
+        record.get("temporal_end", ""),
+        record.get("temporal_start", ""),
+        record.get("title", ""),
+    ]:
+        date_value = pasda_series_date_from_text(value)
+        if date_value:
+            return date_value
+    return ""
+
+
+def pasda_series_date_from_text(value: Any) -> str:
+    clean_value = clean_text(value)
+    if not clean_value:
+        return ""
+    date_match = re.search(
+        r"(?<!\d)((?:19|20)\d{2})[_\-. /]?(0[1-9]|1[0-2])[_\-. /]?([0-3]\d)(?!\d)",
+        clean_value,
+    )
+    if date_match:
+        year, month, day = date_match.groups()
+        return f"{year}-{month}-{day}"
+    date_match = re.search(
+        r"(?<!\d)((?:19|20)\d{2})[_\-. /]?(0[1-9]|1[0-2])(?!\d)",
+        clean_value,
+    )
+    if date_match:
+        year, month = date_match.groups()
+        return f"{year}-{month}"
+    date_match = re.search(r"(?<!\d)((?:19|20)\d{2})(?!\d)", clean_value)
+    return date_match.group(1) if date_match else ""
+
+
+def pasda_series_date_sort_value(date_value: str) -> str:
+    clean_value = clean_text(date_value)
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", clean_value):
+        return clean_value
+    if re.fullmatch(r"\d{4}-\d{2}", clean_value):
+        return f"{clean_value}-00"
+    if re.fullmatch(r"\d{4}", clean_value):
+        return f"{clean_value}-00-00"
+    return "0000-00-00"
+
+
+def pasda_metadata_archive_links(record: dict[str, Any]) -> list[str]:
+    archive_links = []
+    for field in [
+        "online_links",
+        "distribution_links",
+        "download_links_found_in_metadata",
+        "service_links_found_in_metadata",
+    ]:
+        for value in ensure_list(record.get(field, "")):
+            if pasda_archive_link_is_explicit(value):
+                archive_links.append(ensure_trailing_slash(value) if value.endswith("/") else value)
+    return dedupe_list(archive_links)
+
+
+def pasda_archive_link_is_explicit(url: str) -> bool:
+    clean_url = clean_text(url)
+    if not re.match(r"^(?:https?|ftp)://", clean_url, re.I):
+        return False
+    return pasda_asset_url_is_archival(clean_url)
+
+
+def pasda_download_archive_directories(rows: list[dict[str, Any]]) -> set[str]:
+    directories = set()
+    for row in rows:
+        directory_url = ensure_trailing_slash(clean_text(row.get("asset_directory_url", "")))
+        if directory_url and pasda_asset_url_is_archival(directory_url):
+            directories.add(directory_url)
+    return directories
+
+
+def pasda_archive_directory_candidates_for_download_rows(
+    rows: list[dict[str, Any]],
+    archive_directories: set[str],
+) -> list[str]:
+    candidates = []
+    for row in rows:
+        directory_url = ensure_trailing_slash(clean_text(row.get("asset_directory_url", "")))
+        if not directory_url:
+            continue
+        if pasda_asset_url_is_archival(directory_url):
+            candidates.append(directory_url)
+            continue
+        candidates.extend(
+            archive_dir
+            for archive_dir in archive_directories
+            if pasda_archive_directory_is_near_download_directory(archive_dir, directory_url)
+        )
+    return dedupe_list(candidates)
+
+
+def pasda_archive_directory_is_near_download_directory(archive_dir: str, download_dir: str) -> bool:
+    archive_dir = ensure_trailing_slash(clean_text(archive_dir))
+    download_dir = ensure_trailing_slash(clean_text(download_dir))
+    if not archive_dir.startswith(download_dir) or archive_dir == download_dir:
+        return False
+    relative_parts = [part for part in archive_dir.removeprefix(download_dir).split("/") if part]
+    if len(relative_parts) != 1:
+        return False
+    return pasda_archive_path_part_is_explicit(relative_parts[0])
+
+
+def pasda_asset_sort_key(row: dict[str, Any]) -> tuple[int, int, int, str]:
+    extension = clean_text(row.get("asset_extension", "")).lower()
+    source_manifest = clean_text(row.get("source_manifest", ""))
+    source_rank = 0 if source_manifest == "json_directory" else 1
+    extension_rank = PASDA_ASSET_EXTENSION_RANK.get(extension, 99)
+    archive_rank = 1 if pasda_asset_url_is_archival(row.get("asset_url", "")) else 0
+    return (
+        source_rank,
+        extension_rank,
+        archive_rank,
+        clean_text(row.get("asset_url", "")).lower(),
+    )
+
+
+def pasda_asset_url_is_archival(url: str) -> bool:
+    path_parts = [
+        unquote(part).lower()
+        for part in urlparse(clean_text(url)).path.split("/")
+        if clean_text(part)
+    ]
+    return any(pasda_archive_path_part_is_explicit(part) for part in path_parts)
+
+
+def pasda_archive_path_part_is_explicit(path_part: str) -> bool:
+    normalized = clean_text(path_part).lower()
+    return normalized in {"historic", "archive", "archived"} or normalized.endswith(
+        ("_historic", "-historic", "_archive", "-archive")
+    )
+
+
+def serialize_pasda_asset_urls(values: list[str]) -> str:
+    urls = dedupe_list(values)
+    if len(urls) <= PASDA_ASSET_MATCH_URL_LIMIT:
+        return "|".join(urls)
+    visible_urls = urls[:PASDA_ASSET_MATCH_URL_LIMIT]
+    visible_urls.append(f"... {len(urls) - PASDA_ASSET_MATCH_URL_LIMIT} more")
+    return "|".join(visible_urls)
 
 
 def sample_size_from_config(config: dict[str, Any]) -> int | None:
@@ -708,12 +1984,37 @@ def registry_entry_reusable(
     ):
         return False
 
+    if not metadata_listing_has_comparable_fields(inventory_row, metadata_entry):
+        return False
+    return metadata_listing_matches_registry(inventory_row, metadata_entry)
+
+
+def metadata_listing_comparable_fields(
+    inventory_row: dict[str, Any],
+    metadata_entry: dict[str, Any] | None,
+) -> list[str]:
+    if not metadata_entry:
+        return []
     listing_fields = ["metadata_last_modified", "metadata_size_bytes"]
-    comparable_fields = [
+    return [
         field
         for field in listing_fields
         if clean_text(inventory_row.get(field, "")) and clean_text(metadata_entry.get(field, ""))
     ]
+
+
+def metadata_listing_has_comparable_fields(
+    inventory_row: dict[str, Any],
+    metadata_entry: dict[str, Any] | None,
+) -> bool:
+    return bool(metadata_listing_comparable_fields(inventory_row, metadata_entry))
+
+
+def metadata_listing_matches_registry(
+    inventory_row: dict[str, Any],
+    metadata_entry: dict[str, Any] | None,
+) -> bool:
+    comparable_fields = metadata_listing_comparable_fields(inventory_row, metadata_entry)
     if not comparable_fields:
         return False
     return all(
@@ -776,7 +2077,9 @@ def build_pasda_metadata_registry_rows(
                 "metadata_filename": filename,
                 "metadata_url": clean_text(row.get("metadata_url", "")),
                 "source_record_id": clean_text(row.get("metadata_file_stem", "")),
-                "pasda_record_id": f"pasda-{clean_text(row.get('metadata_file_stem', ''))}",
+                "pasda_record_id": pasda_record_id_from_source(
+                    clean_text(row.get("metadata_file_stem", ""))
+                ),
                 "metadata_last_modified": clean_text(row.get("metadata_last_modified", "")),
                 "metadata_size_bytes": clean_text(row.get("metadata_size_bytes", "")),
                 "last_seen": seen_at,
@@ -861,7 +2164,13 @@ def prepare_normalized_record_for_registry(record: dict[str, Any]) -> dict[str, 
 
 
 def pasda_record_id_from_source(source_record_id: str) -> str:
-    return f"pasda-{source_record_id}" if source_record_id else ""
+    clean_source_id = clean_text(source_record_id).replace("[", "").replace("]", "")
+    return f"pasda-{clean_source_id}" if clean_source_id else ""
+
+
+def pasda_record_is_upload_parseable(record: dict[str, Any]) -> bool:
+    xml_parse_status = clean_text(record.get("xml_parse_status", ""))
+    return xml_parse_status in {"", "parsed"}
 
 
 def fetch_and_cache_metadata_xml(
@@ -870,10 +2179,16 @@ def fetch_and_cache_metadata_xml(
     cache_dir: Path,
     timeout: int,
     incremental: bool,
+    metadata_registry_entry: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     row = dict(row)
     cache_path = cache_dir / safe_metadata_filename(row["metadata_filename"])
-    cached_content = read_cached_xml_if_usable(cache_path, row, incremental)
+    cached_content = read_cached_xml_if_usable(
+        cache_path,
+        row,
+        incremental,
+        metadata_registry_entry=metadata_registry_entry,
+    )
 
     if cached_content is not None:
         row["xml_fetch_status"] = "cached"
@@ -899,8 +2214,14 @@ def read_cached_xml_if_usable(
     cache_path: Path,
     row: dict[str, Any],
     incremental: bool,
+    metadata_registry_entry: dict[str, Any] | None = None,
 ) -> bytes | None:
     if not incremental or not cache_path.exists():
+        return None
+
+    if metadata_listing_has_comparable_fields(row, metadata_registry_entry) and not (
+        metadata_listing_matches_registry(row, metadata_registry_entry)
+    ):
         return None
 
     size_hint = row.get("metadata_size_bytes")
@@ -1062,7 +2383,7 @@ def parse_fgdc_metadata(root: ET.Element, manifest_row: dict[str, Any]) -> dict[
     record = empty_normalized_record(manifest_row)
     record.update(
         {
-            "title": first_text(root, ["idinfo/citation/citeinfo/title"]),
+            "title": first_text(root, ["idinfo/citation/citeinfo/title", "idinfo/citation/title"]),
             "alternate_title": first_text(root, ["idinfo/citation/citeinfo/edition"]),
             "abstract": first_text(root, ["idinfo/descript/abstract"]),
             "purpose": first_text(root, ["idinfo/descript/purpose"]),
@@ -1705,20 +3026,76 @@ def first_responsible_party_org(root: ET.Element, roles: set[str]) -> str:
     return ""
 
 
+def pasda_asset_match_context_by_record_id(
+    asset_match_review_rows: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    return {
+        clean_text(row.get("source_record_id", "")): dict(row)
+        for row in asset_match_review_rows
+        if clean_text(row.get("source_record_id", ""))
+    }
+
+
+def pasda_series_context_by_record_id(
+    series_review_rows: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    contexts = {}
+    for row in series_review_rows:
+        record_ids = clean_text(row.get("record_ids", "")).split("|")
+        record_dates = clean_text(row.get("inferred_record_dates", "")).split("|")
+        metadata_filenames = clean_text(row.get("metadata_filenames", "")).split("|")
+        for index, record_id in enumerate(record_ids):
+            clean_record_id = clean_text(record_id)
+            if not clean_record_id:
+                continue
+            context = dict(row)
+            context["record_date"] = pasda_series_date_from_text(clean_record_id) or (
+                record_dates[index] if index < len(record_dates) else ""
+            )
+            context["record_metadata_filename"] = (
+                metadata_filenames[index] if index < len(metadata_filenames) else ""
+            )
+            contexts[clean_record_id] = context
+    return contexts
+
+
+def pasda_asset_review_flags(asset_match_context: dict[str, Any]) -> list[str]:
+    flags = []
+    match_status = clean_text(asset_match_context.get("pasda_asset_match_status", ""))
+    if match_status:
+        flags.append(f"pasda_asset_match_status_{match_status}")
+    return flags
+
+
 def build_pasda_aardvark_draft_records(
     normalized_records: list[dict[str, Any]],
     accession_date: str | None = None,
     county_lookup: dict[str, Any] | None = None,
+    asset_match_review_rows: list[dict[str, Any]] | None = None,
+    series_review_rows: list[dict[str, Any]] | None = None,
+    ready_only: bool = False,
 ) -> list[dict[str, Any]]:
     accession_date = accession_date or time.strftime("%Y-%m-%d")
-    return [
-        build_pasda_aardvark_draft_record(
-            record,
-            accession_date=accession_date,
-            county_lookup=county_lookup,
+    asset_match_by_id = pasda_asset_match_context_by_record_id(asset_match_review_rows or [])
+    series_context_by_id = pasda_series_context_by_record_id(series_review_rows or [])
+    draft_records = []
+    for record in normalized_records:
+        source_record_id = clean_text(record.get("source_record_id", ""))
+        asset_match_context = asset_match_by_id.get(source_record_id, {})
+        if ready_only and asset_match_context.get("pasda_distribution_candidate") != "ready":
+            continue
+        if ready_only and not pasda_record_is_upload_parseable(record):
+            continue
+        draft_records.append(
+            build_pasda_aardvark_draft_record(
+                record,
+                accession_date=accession_date,
+                county_lookup=county_lookup,
+                asset_match_context=asset_match_context,
+                series_context=series_context_by_id.get(source_record_id, {}),
+            )
         )
-        for record in normalized_records
-    ]
+    return draft_records
 
 
 def build_pasda_aardvark_draft_dataframe(
@@ -1726,12 +3103,18 @@ def build_pasda_aardvark_draft_dataframe(
     accession_date: str | None = None,
     county_lookup: dict[str, Any] | None = None,
     theme_map: dict[str, str] | None = None,
+    asset_match_review_rows: list[dict[str, Any]] | None = None,
+    series_review_rows: list[dict[str, Any]] | None = None,
+    ready_only: bool = False,
 ) -> pd.DataFrame:
     draft_df = pd.DataFrame(
         build_pasda_aardvark_draft_records(
             normalized_records,
             accession_date=accession_date,
             county_lookup=county_lookup,
+            asset_match_review_rows=asset_match_review_rows,
+            series_review_rows=series_review_rows,
+            ready_only=ready_only,
         )
     )
     if theme_map:
@@ -1743,6 +3126,8 @@ def build_pasda_aardvark_draft_record(
     record: dict[str, Any],
     accession_date: str,
     county_lookup: dict[str, Any] | None = None,
+    asset_match_context: dict[str, Any] | None = None,
+    series_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     row = {field: "" for field in PASDA_AARDVARK_DRAFT_FIELDS}
     review_flags = []
@@ -1755,6 +3140,12 @@ def build_pasda_aardvark_draft_record(
     temporal_end = normalize_pasda_date(record.get("temporal_end", ""))
     bbox, bbox_flag = pasda_bounding_box(record)
     original_title = clean_text(record.get("title", ""))
+    asset_match_context = asset_match_context or {}
+    series_context = series_context or {}
+    title = pasda_title(record, publication_date, modified_date, metadata_date)
+    title = pasda_title_with_series_date(title, record, series_context)
+    local_collection = pasda_local_collection_value(series_context)
+    display_note = pasda_display_note_value(series_context)
 
     if bbox_flag:
         review_flags.append(bbox_flag)
@@ -1769,9 +3160,9 @@ def build_pasda_aardvark_draft_record(
 
     row.update(
         {
-            "ID": f"pasda-{source_record_id}" if source_record_id else "",
+            "ID": pasda_record_id_from_source(source_record_id),
             "Code": "08a-01",
-            "Title": pasda_title(record, publication_date, modified_date, metadata_date),
+            "Title": title,
             "Alternative Title": pasda_alternative_title(record, original_title),
             "Description": pasda_description(record),
             "Language": "eng",
@@ -1795,6 +3186,8 @@ def build_pasda_aardvark_draft_record(
             "Access Rights": "Public",
             "Rights": pasda_rights(record),
             "Format": pasda_format(record),
+            "Display Note": display_note,
+            "Local Collection": local_collection,
             "Date Accessioned": accession_date,
             "Publication State": "draft",
             "Identifier": metadata_url,
@@ -1805,7 +3198,14 @@ def build_pasda_aardvark_draft_record(
             "Admin Note": pasda_admin_note(record),
             "pasda_xml_parse_status": clean_text(record.get("xml_parse_status", "")),
             "pasda_raw_xml_path": clean_text(record.get("raw_xml_path", "")),
-            "pasda_review_flags": "|".join(dedupe_list(review_flags)),
+            "pasda_review_flags": "|".join(
+                dedupe_list(
+                    [
+                        *review_flags,
+                        *pasda_asset_review_flags(asset_match_context),
+                    ]
+                )
+            ),
         }
     )
     return row
@@ -1833,6 +3233,62 @@ def pasda_title(
     if spatial_label and not pasda_title_has_place_context(title, record, spatial_label):
         title = f"{title} [{spatial_label}]"
     return title
+
+
+def pasda_title_with_series_date(
+    title: str,
+    record: dict[str, Any],
+    series_context: dict[str, Any],
+) -> str:
+    clean_title = clean_text(title)
+    if not series_context:
+        return clean_title
+    date_value = clean_text(series_context.get("record_date", "")) or pasda_series_record_date(record)
+    if not clean_title or not date_value:
+        return clean_title
+    if pasda_title_already_has_date(clean_title, date_value):
+        return clean_title
+    return f"{clean_title} {{{date_value}}}"
+
+
+def pasda_title_already_has_date(title: str, date_value: str) -> bool:
+    clean_title = clean_text(title)
+    clean_date = clean_text(date_value)
+    if not clean_title or not clean_date:
+        return False
+    compact_date = clean_date.replace("-", "")
+    loose_date = clean_date.replace("-", " ")
+    if clean_date in clean_title or compact_date in clean_title or loose_date in clean_title:
+        return True
+    if re.fullmatch(r"\d{4}", clean_date):
+        return bool(re.search(rf"(?<!\d){re.escape(clean_date)}(?!\d)", clean_title))
+    return False
+
+
+def pasda_local_collection_value(series_context: dict[str, Any]) -> str:
+    if pasda_series_context_record_count(series_context) < 2:
+        return ""
+    series_title = clean_text(series_context.get("series_title", ""))
+    series_key = clean_text(series_context.get("series_key", ""))
+    label = series_title or series_key
+    return f"PASDA series: {label}" if label else ""
+
+
+def pasda_display_note_value(series_context: dict[str, Any]) -> str:
+    if pasda_series_context_record_count(series_context) < 2:
+        return ""
+    return (
+        "Info: This record is part of a PASDA dataset series and may represent "
+        "a historical snapshot. Check PASDA or the data creator for the most current "
+        "available version: https://www.pasda.psu.edu"
+    )
+
+
+def pasda_series_context_record_count(series_context: dict[str, Any]) -> int:
+    try:
+        return int(series_context.get("record_count", 0) or 0)
+    except (TypeError, ValueError):
+        return 0
 
 
 def format_pasda_title_dates(title: str) -> str:

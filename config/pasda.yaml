@@ -2,6 +2,7 @@ name: pasda
 type: pasda
 metadata_base_url: "https://www.pasda.psu.edu/metadata/"
 download_base_url: "https://www.pasda.psu.edu/download/"
+json_base_url: "https://www.pasda.psu.edu/json/"
 source_manifest: metadata_directory
 cache_dir: inputs/pasda/metadata_xml
 output_dir: outputs/pasda
@@ -11,6 +12,16 @@ use_registry: true
 # The raw XML cache and dated outputs can remain local/disposable.
 metadata_registry_path: registry/pasda_metadata_registry.csv
 normalized_registry_path: registry/pasda_normalized_registry.jsonl
+build_download_inventory: true
+build_json_inventory: true
+download_inventory_max_depth: 4
+# PASDA /download/ is very large; start with a bounded first-pass crawl.
+download_inventory_max_pages: 3000
+# Optional pause between PASDA /download/ directory listing requests.
+download_inventory_request_delay_seconds: 0.1
+json_inventory_max_depth: 0
+json_inventory_max_pages: 1000
+json_inventory_request_delay_seconds: 0.1
 # Optional: set sample_size to download and parse a subset after writing the full inventory.
 # sample_size: 250
 sample_strategy: mixed

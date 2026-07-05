@@ -8,10 +8,19 @@ from harvesters.pasda import (
     PasdaHarvester,
     build_pasda_aardvark_draft_dataframe,
     build_pasda_aardvark_draft_records,
+    build_pasda_asset_match_review_records,
     build_pasda_county_lookup,
+    build_pasda_deleted_record_review_rows,
+    build_pasda_distribution_records,
+    build_pasda_new_changed_record_review_rows,
+    build_pasda_series_review_records,
+    build_pasda_unparsed_matched_review_records,
     detect_metadata_profile,
+    inventory_pasda_directory_tree,
+    parse_pasda_asset_directory_listing,
     parse_metadata_directory_listing,
     parse_pasda_manifest_row,
+    pasda_record_id_from_source,
     select_metadata_sample,
 )
 
@@ -285,6 +294,464 @@ def test_parse_metadata_directory_listing_apache_style() -> None:
     assert rows[0]["source_manifest"] == "metadata_directory"
 
 
+def test_parse_pasda_asset_directory_listing_finds_files_and_directories() -> None:
+    html = """
+    <html><body><pre>
+    <a href="../">Parent Directory</a>
+    <a href="roads/">roads/</a>
+    <a href="parcels.zip">parcels.zip</a> 2024-01-12 10:30 12K
+    <a href="preview.geojson">preview.geojson</a> 2024-01-12 10:31 2048
+    </pre></body></html>
+    """
+
+    parsed = parse_pasda_asset_directory_listing(
+        html,
+        directory_url="https://www.pasda.psu.edu/download/",
+        root_url="https://www.pasda.psu.edu/download/",
+        source_manifest="download_directory",
+        harvested_at="2026-07-03T00:00:00Z",
+    )
+
+    assert parsed["directories"] == ["https://www.pasda.psu.edu/download/roads/"]
+    assert [row["asset_filename"] for row in parsed["files"]] == ["parcels.zip", "preview.geojson"]
+    assert parsed["files"][0]["asset_kind"] == "download_archive"
+    assert parsed["files"][0]["asset_size_bytes"] == 12288
+    assert parsed["files"][1]["asset_kind"] == "geojson"
+
+
+def test_inventory_pasda_directory_tree_recurses_and_filters_extensions() -> None:
+    class FakeResponse:
+        def __init__(self, text: str) -> None:
+            self.text = text
+
+        def raise_for_status(self) -> None:
+            return None
+
+    class FakeSession:
+        def get(self, url: str, timeout: int):
+            pages = {
+                "https://www.pasda.psu.edu/download/": """
+                    <pre>
+                    <a href="roads/">roads/</a>
+                    <a href="top.zip">top.zip</a> 2024-01-01 10:00 1K
+                    </pre>
+                """,
+                "https://www.pasda.psu.edu/download/roads/": """
+                    <pre>
+                    <a href="../">Parent Directory</a>
+                    <a href="roads.zip">roads.zip</a> 2024-01-02 10:00 2K
+                    <a href="roads.txt">roads.txt</a> 2024-01-02 10:01 1K
+                    </pre>
+                """,
+            }
+            return FakeResponse(pages[url])
+
+    rows = inventory_pasda_directory_tree(
+        session=FakeSession(),
+        base_url="https://www.pasda.psu.edu/download/",
+        source_manifest="download_directory",
+        timeout=30,
+        harvested_at="2026-07-03T00:00:00Z",
+        max_depth=1,
+        file_extensions={".zip"},
+    )
+
+    assert [row["asset_relative_path"] for row in rows] == ["top.zip", "roads/roads.zip"]
+    assert rows[1]["asset_depth"] == 1
+
+
+def test_inventory_pasda_directory_tree_honors_request_delay(monkeypatch) -> None:
+    class FakeResponse:
+        text = "<pre><a href=\"file.zip\">file.zip</a> 2024-01-01 10:00 1K</pre>"
+
+        def raise_for_status(self) -> None:
+            return None
+
+    class FakeSession:
+        def get(self, url: str, timeout: int):
+            return FakeResponse()
+
+    sleep_calls = []
+    monkeypatch.setattr(pasda_module.time, "sleep", sleep_calls.append)
+
+    rows = inventory_pasda_directory_tree(
+        session=FakeSession(),
+        base_url="https://www.pasda.psu.edu/download/",
+        source_manifest="download_directory",
+        timeout=30,
+        harvested_at="2026-07-03T00:00:00Z",
+        request_delay_seconds=0.25,
+    )
+
+    assert [row["asset_filename"] for row in rows] == ["file.zip"]
+    assert sleep_calls == [0.25]
+
+
+def test_pasda_asset_match_review_prioritizes_exact_filenames() -> None:
+    records = [
+        {
+            "source_record_id": "AlleghenyCounty_StreetCenterlines201307",
+            "metadata_filename": "AlleghenyCounty_StreetCenterlines201307.xml",
+            "metadata_url": "https://www.pasda.psu.edu/metadata/AlleghenyCounty_StreetCenterlines201307.xml",
+            "title": "Allegheny County Street Centerlines 201307",
+            "download_links_found_in_metadata": [
+                "https://www.pasda.psu.edu/download/allegheny/streets.zip"
+            ],
+            "online_links": [
+                "https://www.pasda.psu.edu/download/allegheny/historic/"
+            ],
+        },
+        {
+            "source_record_id": "active_underground_permit_boundaries_202410",
+            "metadata_filename": "active_underground_permit_boundaries_202410.xml",
+            "metadata_url": "https://www.pasda.psu.edu/metadata/active_underground_permit_boundaries_202410.xml",
+            "title": "Active Underground Permit Boundaries 202410",
+            "download_links_found_in_metadata": [],
+        },
+    ]
+    download_inventory_rows = [
+        {
+            "source_manifest": "download_directory",
+            "asset_url": "https://www.pasda.psu.edu/download/allegheny/AlleghenyCounty_StreetCenterlines201307.shp",
+            "asset_filename": "AlleghenyCounty_StreetCenterlines201307.shp",
+            "asset_file_stem": "AlleghenyCounty_StreetCenterlines201307",
+            "asset_file_stem_normalized": "alleghenycounty_streetcenterlines201307",
+            "asset_extension": ".shp",
+            "asset_kind": "download_file",
+            "asset_directory_url": "https://www.pasda.psu.edu/download/allegheny/",
+            "inventory_status": "found",
+        },
+        {
+            "source_manifest": "download_directory",
+            "asset_url": "https://www.pasda.psu.edu/download/allegheny/AlleghenyCounty_StreetCenterlines201307.zip",
+            "asset_filename": "AlleghenyCounty_StreetCenterlines201307.zip",
+            "asset_file_stem": "AlleghenyCounty_StreetCenterlines201307",
+            "asset_file_stem_normalized": "alleghenycounty_streetcenterlines201307",
+            "asset_extension": ".zip",
+            "asset_kind": "download_archive",
+            "asset_directory_url": "https://www.pasda.psu.edu/download/allegheny/",
+            "inventory_status": "found",
+        },
+        {
+            "source_manifest": "download_directory",
+            "asset_url": "https://www.pasda.psu.edu/download/mining/active-underground-permit-boundaries-202410.zip",
+            "asset_filename": "active-underground-permit-boundaries-202410.zip",
+            "asset_file_stem": "active-underground-permit-boundaries-202410",
+            "asset_file_stem_normalized": "active_underground_permit_boundaries_202410",
+            "asset_extension": ".zip",
+            "asset_kind": "download_archive",
+            "inventory_status": "found",
+        },
+        {
+            "source_manifest": "download_directory",
+            "asset_url": "https://www.pasda.psu.edu/download/allegheny/historic/StreetCenterlines201206.zip",
+            "asset_filename": "StreetCenterlines201206.zip",
+            "asset_file_stem": "StreetCenterlines201206",
+            "asset_file_stem_normalized": "streetcenterlines201206",
+            "asset_extension": ".zip",
+            "asset_kind": "download_archive",
+            "asset_directory_url": "https://www.pasda.psu.edu/download/allegheny/historic/",
+            "inventory_status": "found",
+        },
+    ]
+    json_inventory_rows = [
+        {
+            "source_manifest": "json_directory",
+            "asset_url": "https://www.pasda.psu.edu/json/AlleghenyCounty_StreetCenterlines201307.geojson",
+            "asset_filename": "AlleghenyCounty_StreetCenterlines201307.geojson",
+            "asset_file_stem": "AlleghenyCounty_StreetCenterlines201307",
+            "asset_file_stem_normalized": "alleghenycounty_streetcenterlines201307",
+            "asset_extension": ".geojson",
+            "asset_kind": "geojson",
+            "inventory_status": "found",
+        },
+    ]
+
+    rows = build_pasda_asset_match_review_records(
+        records,
+        download_inventory_rows=download_inventory_rows,
+        json_inventory_rows=json_inventory_rows,
+    )
+
+    assert rows[0]["match_method"] == "geojson_exact_filename"
+    assert rows[0]["best_asset_url"] == (
+        "https://www.pasda.psu.edu/json/AlleghenyCounty_StreetCenterlines201307.geojson"
+    )
+    assert rows[0]["geojson_exact_count"] == 1
+    assert rows[0]["download_exact_count"] == 2
+    assert rows[0]["pasda_asset_match_status"] == "exact_assets_with_archive"
+    assert rows[0]["pasda_asset_match_level"] == "exact"
+    assert rows[0]["pasda_distribution_candidate"] == "ready"
+    assert rows[0]["exact_asset_urls"] == (
+        "https://www.pasda.psu.edu/json/AlleghenyCounty_StreetCenterlines201307.geojson|"
+        "https://www.pasda.psu.edu/download/allegheny/AlleghenyCounty_StreetCenterlines201307.zip|"
+        "https://www.pasda.psu.edu/download/allegheny/AlleghenyCounty_StreetCenterlines201307.shp"
+    )
+    assert rows[0]["metadata_archive_links"] == "https://www.pasda.psu.edu/download/allegheny/historic/"
+    assert rows[0]["archive_directory_candidate_urls"] == (
+        "https://www.pasda.psu.edu/download/allegheny/historic/"
+    )
+    assert rows[0]["review_flag"] == ""
+    assert rows[1]["match_method"] == "download_normalized_filename"
+    assert rows[1]["confidence"] == "75"
+    assert rows[1]["pasda_asset_match_status"] == "normalized_only"
+    assert rows[1]["pasda_asset_match_level"] == "normalized"
+    assert rows[1]["pasda_distribution_candidate"] == "review"
+    assert rows[1]["review_flag"] == "normalized_only_filename_match"
+
+
+def test_pasda_series_review_groups_dated_dataset_snapshots() -> None:
+    records = [
+        {
+            "source_record_id": "IntegratedListAttaining_Lakes2015_04",
+            "metadata_filename": "IntegratedListAttaining_Lakes2015_04.xml",
+            "title": "Lakes Assessments - Attaining",
+        },
+        {
+            "source_record_id": "IntegratedListAttaining_Lakes2018_10",
+            "metadata_filename": "IntegratedListAttaining_Lakes2018_10.xml",
+            "title": "Lakes Assessments - Attaining",
+        },
+        {
+            "source_record_id": "IntegratedListAttaining_Lakes2021_10",
+            "metadata_filename": "IntegratedListAttaining_Lakes2021_10.xml",
+            "title": "Lakes Assessments - Attaining",
+        },
+        {
+            "source_record_id": "IntegratedListAttaining_Lakes2025_07",
+            "metadata_filename": "IntegratedListAttaining_Lakes2025_07.xml",
+            "title": "Lakes Assessments - Attaining",
+        },
+    ]
+    asset_match_rows = [
+        {
+            "source_record_id": "IntegratedListAttaining_Lakes2015_04",
+            "pasda_asset_match_status": "exact_assets",
+            "pasda_asset_match_level": "exact",
+            "pasda_distribution_candidate": "ready",
+        },
+        {
+            "source_record_id": "IntegratedListAttaining_Lakes2018_10",
+            "pasda_asset_match_status": "exact_assets",
+            "pasda_asset_match_level": "exact",
+            "pasda_distribution_candidate": "ready",
+        },
+        {
+            "source_record_id": "IntegratedListAttaining_Lakes2021_10",
+            "pasda_asset_match_status": "no_asset_match",
+            "pasda_asset_match_level": "none",
+            "pasda_distribution_candidate": "no",
+        },
+        {
+            "source_record_id": "IntegratedListAttaining_Lakes2025_07",
+            "pasda_asset_match_status": "no_asset_match",
+            "pasda_asset_match_level": "none",
+            "pasda_distribution_candidate": "no",
+        },
+    ]
+
+    rows = build_pasda_series_review_records(records, asset_match_review_rows=asset_match_rows)
+
+    assert len(rows) == 1
+    assert rows[0]["series_key"] == "integratedlistattaining_lakes"
+    assert rows[0]["series_title"] == "Lakes Assessments - Attaining"
+    assert rows[0]["series_status"] == "series_partial_assets"
+    assert rows[0]["record_count"] == 4
+    assert rows[0]["inferred_record_dates"] == "2015-04|2018-10|2021-10|2025-07"
+    assert rows[0]["ready_count"] == 2
+    assert rows[0]["no_asset_count"] == 2
+    assert rows[0]["most_recently_found_record_id"] == "IntegratedListAttaining_Lakes2025_07"
+    assert rows[0]["most_recently_found_date"] == "2025-07"
+    assert rows[0]["latest_ready_record_id"] == "IntegratedListAttaining_Lakes2018_10"
+    assert rows[0]["latest_ready_date"] == "2018-10"
+    assert rows[0]["title_needs_date_qualifier"] == "yes"
+    assert "not a currentness claim" in rows[0]["series_currentness_note"]
+
+
+def test_pasda_distribution_records_use_asset_matches_and_metadata_xml() -> None:
+    records = [
+        {
+            "source_record_id": "roads",
+            "metadata_url": "https://www.pasda.psu.edu/metadata/roads.xml",
+            "metadata_profile": "fgdc_csdgm",
+        },
+        {
+            "source_record_id": "parcels",
+            "metadata_url": "https://www.pasda.psu.edu/metadata/parcels.xml",
+            "metadata_profile": "iso_19139",
+        },
+        {
+            "source_record_id": "unmatched",
+            "metadata_url": "https://www.pasda.psu.edu/metadata/unmatched.xml",
+            "metadata_profile": "fgdc_csdgm",
+        },
+    ]
+    match_rows = [
+        {
+            "source_record_id": "roads",
+            "pasda_distribution_candidate": "ready",
+            "supplemental_asset_urls": (
+                "https://www.pasda.psu.edu/json/roads.geojson|"
+                "https://www.pasda.psu.edu/download/roads/roads.zip|"
+                "https://www.pasda.psu.edu/download/roads/historic/"
+            ),
+        },
+        {
+            "source_record_id": "parcels",
+            "pasda_distribution_candidate": "ready",
+            "supplemental_asset_urls": "https://www.pasda.psu.edu/download/parcels/parcels.shp",
+        },
+        {
+            "source_record_id": "unmatched",
+            "pasda_distribution_candidate": "no",
+            "supplemental_asset_urls": "https://www.pasda.psu.edu/download/unmatched/unmatched.zip",
+        },
+    ]
+
+    rows = build_pasda_distribution_records(records, match_rows)
+
+    assert rows == [
+        {
+            "friendlier_id": "pasda-roads",
+            "reference_type": "download",
+            "distribution_url": "https://www.pasda.psu.edu/json/roads.geojson",
+            "label": "roads.geojson",
+        },
+        {
+            "friendlier_id": "pasda-roads",
+            "reference_type": "download",
+            "distribution_url": "https://www.pasda.psu.edu/download/roads/roads.zip",
+            "label": "roads/roads.zip",
+        },
+        {
+            "friendlier_id": "pasda-roads",
+            "reference_type": "download",
+            "distribution_url": "https://www.pasda.psu.edu/download/roads/historic/",
+            "label": "Historical versions",
+        },
+        {
+            "friendlier_id": "pasda-roads",
+            "reference_type": "metadata_fgdc",
+            "distribution_url": "https://www.pasda.psu.edu/metadata/roads.xml",
+            "label": "",
+        },
+        {
+            "friendlier_id": "pasda-parcels",
+            "reference_type": "download",
+            "distribution_url": "https://www.pasda.psu.edu/download/parcels/parcels.shp",
+            "label": "parcels/parcels.shp",
+        },
+        {
+            "friendlier_id": "pasda-parcels",
+            "reference_type": "metadata_iso",
+            "distribution_url": "https://www.pasda.psu.edu/metadata/parcels.xml",
+            "label": "",
+        },
+    ]
+
+
+def test_pasda_public_ids_drop_square_brackets_but_matching_keeps_source_id() -> None:
+    source_record_id = "wss_SSA_PA001_soildb_Adams_PA_2003_[2022-09-06]"
+    record = {
+        "source_record_id": source_record_id,
+        "metadata_filename": f"{source_record_id}.xml",
+        "metadata_url": f"https://www.pasda.psu.edu/metadata/{source_record_id}.xml",
+        "metadata_profile": "fgdc_csdgm",
+        "title": "Adams County Soil Survey",
+        "xml_parse_status": "parsed",
+    }
+    asset_rows = [
+        {
+            "source_manifest": "download_directory",
+            "asset_url": f"https://www.pasda.psu.edu/download/soils/{source_record_id}.zip",
+            "asset_filename": f"{source_record_id}.zip",
+            "asset_file_stem": source_record_id,
+            "asset_file_stem_normalized": "wss_ssa_pa001_soildb_adams_pa_2003_2022_09_06",
+            "asset_extension": ".zip",
+            "asset_kind": "download_archive",
+            "asset_directory_url": "https://www.pasda.psu.edu/download/soils/",
+            "inventory_status": "found",
+        }
+    ]
+
+    match_rows = build_pasda_asset_match_review_records([record], download_inventory_rows=asset_rows)
+    aardvark_rows = build_pasda_aardvark_draft_records(
+        [record],
+        asset_match_review_rows=match_rows,
+        ready_only=True,
+    )
+    distribution_rows = build_pasda_distribution_records([record], match_rows)
+
+    assert match_rows[0]["source_record_id"] == source_record_id
+    assert match_rows[0]["pasda_distribution_candidate"] == "ready"
+    assert pasda_record_id_from_source(source_record_id) == (
+        "pasda-wss_SSA_PA001_soildb_Adams_PA_2003_2022-09-06"
+    )
+    assert aardvark_rows[0]["ID"] == "pasda-wss_SSA_PA001_soildb_Adams_PA_2003_2022-09-06"
+    assert distribution_rows[0]["friendlier_id"] == (
+        "pasda-wss_SSA_PA001_soildb_Adams_PA_2003_2022-09-06"
+    )
+
+
+def test_pasda_ready_outputs_exclude_unparsed_matched_records() -> None:
+    records = [
+        {
+            "source_record_id": "parsed-roads",
+            "metadata_filename": "parsed-roads.xml",
+            "metadata_url": "https://www.pasda.psu.edu/metadata/parsed-roads.xml",
+            "metadata_profile": "fgdc_csdgm",
+            "title": "Parsed roads",
+            "xml_parse_status": "parsed",
+        },
+        {
+            "source_record_id": "broken-roads",
+            "metadata_filename": "broken-roads.xml",
+            "metadata_url": "https://www.pasda.psu.edu/metadata/broken-roads.xml",
+            "metadata_profile": "fgdc_csdgm",
+            "title": "",
+            "xml_parse_status": "malformed",
+            "parse_error": "mismatched tag",
+            "raw_xml_path": "inputs/pasda/metadata_xml/broken-roads.xml",
+        },
+    ]
+    match_rows = [
+        {
+            "source_record_id": "parsed-roads",
+            "pasda_asset_match_status": "exact_assets",
+            "pasda_asset_match_level": "exact",
+            "pasda_distribution_candidate": "ready",
+            "best_asset_url": "https://www.pasda.psu.edu/download/roads/parsed-roads.zip",
+            "supplemental_asset_urls": "https://www.pasda.psu.edu/download/roads/parsed-roads.zip",
+        },
+        {
+            "source_record_id": "broken-roads",
+            "pasda_asset_match_status": "exact_assets",
+            "pasda_asset_match_level": "exact",
+            "pasda_distribution_candidate": "ready",
+            "best_asset_url": "https://www.pasda.psu.edu/download/roads/broken-roads.zip",
+            "supplemental_asset_urls": "https://www.pasda.psu.edu/download/roads/broken-roads.zip",
+        },
+    ]
+
+    aardvark_rows = build_pasda_aardvark_draft_records(
+        records,
+        asset_match_review_rows=match_rows,
+        ready_only=True,
+    )
+    distribution_rows = build_pasda_distribution_records(records, match_rows)
+    unparsed_review_rows = build_pasda_unparsed_matched_review_records(records, match_rows)
+
+    assert [row["ID"] for row in aardvark_rows] == ["pasda-parsed-roads"]
+    assert [row["friendlier_id"] for row in distribution_rows] == ["pasda-parsed-roads"] * 2
+    assert len(unparsed_review_rows) == 1
+    assert unparsed_review_rows[0]["source_record_id"] == "broken-roads"
+    assert unparsed_review_rows[0]["public_id"] == "pasda-broken-roads"
+    assert unparsed_review_rows[0]["xml_parse_status"] == "malformed"
+    assert unparsed_review_rows[0]["best_asset_url"] == (
+        "https://www.pasda.psu.edu/download/roads/broken-roads.zip"
+    )
+
+
 def test_fetch_creates_test_directories_and_honors_max_records(
     tmp_path: Path,
     monkeypatch,
@@ -420,6 +887,198 @@ def test_fetch_and_parse_reuse_unchanged_metadata_registry(
     assert records[0]["registry_reuse_status"] == "reused"
 
 
+def test_fetch_redownloads_when_listing_changed_even_if_cached_size_matches(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    metadata_registry_path = tmp_path / "registry" / "pasda_metadata_registry.csv"
+    normalized_registry_path = tmp_path / "registry" / "pasda_normalized_registry.jsonl"
+    cache_path = tmp_path / "cache" / "one.xml"
+    metadata_registry_path.parent.mkdir()
+    cache_path.parent.mkdir()
+    cache_path.write_text(FGDC_XML, encoding="utf-8")
+    cached_size = cache_path.stat().st_size
+    changed_xml = FGDC_XML.replace("Pennsylvania Bedrock Geology", "New Pennsylvania Bedrock Map")
+    assert len(changed_xml.encode("utf-8")) == cached_size
+    pd.DataFrame(
+        [
+            {
+                "metadata_filename": "one.xml",
+                "metadata_url": "https://www.pasda.psu.edu/metadata/one.xml",
+                "source_record_id": "one",
+                "pasda_record_id": "pasda-one",
+                "metadata_last_modified": "2024-01-01 10:00",
+                "metadata_size_bytes": str(cached_size),
+                "xml_sha256": "oldhash",
+                "metadata_profile": "fgdc_csdgm",
+                "metadata_profile_confidence": "high",
+                "xml_fetch_status": "fetched",
+                "xml_parse_status": "parsed",
+                "parse_error": "",
+                "first_seen": "2026-07-01",
+                "last_seen": "2026-07-01",
+                "last_parsed": "2026-07-01",
+                "registry_version": "1",
+            }
+        ]
+    ).to_csv(metadata_registry_path, index=False)
+    normalized_registry_path.write_text(
+        json.dumps(
+            {
+                "source_system": "PASDA",
+                "source_record_id": "one",
+                "metadata_filename": "one.xml",
+                "metadata_url": "https://www.pasda.psu.edu/metadata/one.xml",
+                "title": "Registry Title",
+                "metadata_profile": "fgdc_csdgm",
+                "metadata_profile_confidence": "high",
+                "xml_parse_status": "parsed",
+                "xml_sha256": "oldhash",
+                "place_keywords": [],
+                "theme_keywords": [],
+                "iso_topic_categories": [],
+                "online_links": [],
+                "distribution_links": [],
+                "download_links_found_in_metadata": [],
+                "service_links_found_in_metadata": [],
+                "parse_warnings": [],
+                "registry_version": "1",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    class FakeResponse:
+        def __init__(self, text: str = "", content: bytes = b"") -> None:
+            self.text = text
+            self.content = content
+
+        def raise_for_status(self) -> None:
+            return None
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.metadata_get_count = 0
+
+        def get(self, url: str, timeout: int):
+            if url.endswith("/metadata/"):
+                return FakeResponse(
+                    f"""
+                    <pre>
+                    <a href="one.xml">one.xml</a> 2024-02-01 10:00 {cached_size}
+                    </pre>
+                    """
+                )
+            self.metadata_get_count += 1
+            return FakeResponse(content=changed_xml.encode("utf-8"))
+
+    fake_session = FakeSession()
+    monkeypatch.setattr(pasda_module, "build_pasda_session", lambda user_agent: fake_session)
+
+    config = _config(tmp_path)
+    config["metadata_registry_path"] = str(metadata_registry_path)
+    config["normalized_registry_path"] = str(normalized_registry_path)
+
+    harvester = PasdaHarvester(config)
+    rows = harvester.fetch()
+    records = harvester.parse(rows)
+
+    assert fake_session.metadata_get_count == 1
+    assert rows[0]["xml_fetch_status"] == "fetched"
+    assert records[0]["title"] == "New Pennsylvania Bedrock Map"
+
+
+def test_pasda_new_changed_record_review_rows_use_previous_registry() -> None:
+    aardvark_rows = [
+        {"ID": "pasda-new", "Title": "New title"},
+        {"ID": "pasda-changed", "Title": "Changed title"},
+        {"ID": "pasda-unchanged", "Title": "Unchanged title"},
+    ]
+    normalized_records = [
+        {
+            "source_record_id": "new",
+            "metadata_filename": "new.xml",
+            "metadata_url": "https://example.com/new.xml",
+            "xml_sha256": "newhash",
+            "metadata_last_modified": "2026-07-04 10:00",
+            "metadata_size_bytes": "10",
+        },
+        {
+            "source_record_id": "changed",
+            "metadata_filename": "changed.xml",
+            "metadata_url": "https://example.com/changed.xml",
+            "xml_sha256": "newhash",
+            "metadata_last_modified": "2026-07-04 10:00",
+            "metadata_size_bytes": "20",
+        },
+        {
+            "source_record_id": "unchanged",
+            "metadata_filename": "unchanged.xml",
+            "metadata_url": "https://example.com/unchanged.xml",
+            "xml_sha256": "samehash",
+        },
+    ]
+    existing_registry = {
+        "changed.xml": {
+            "xml_sha256": "oldhash",
+            "metadata_last_modified": "2026-06-30 10:00",
+            "metadata_size_bytes": "19",
+        },
+        "unchanged.xml": {"xml_sha256": "samehash"},
+    }
+
+    new_rows, changed_rows = build_pasda_new_changed_record_review_rows(
+        aardvark_rows,
+        normalized_records=normalized_records,
+        existing_metadata_registry=existing_registry,
+    )
+
+    assert [row["ID"] for row in new_rows] == ["pasda-new"]
+    assert new_rows[0]["pasda_change_type"] == "new"
+    assert new_rows[0]["metadata_filename"] == "new.xml"
+    assert [row["ID"] for row in changed_rows] == ["pasda-changed"]
+    assert changed_rows[0]["pasda_change_type"] == "changed"
+    assert changed_rows[0]["previous_xml_sha256"] == "oldhash"
+    assert changed_rows[0]["current_xml_sha256"] == "newhash"
+
+
+def test_pasda_deleted_record_review_rows_use_previous_registry() -> None:
+    existing_registry = {
+        "current.xml": {
+            "metadata_filename": "current.xml",
+            "pasda_record_id": "pasda-current",
+        },
+        "missing.xml": {
+            "metadata_filename": "missing.xml",
+            "metadata_url": "https://example.com/missing.xml",
+            "pasda_record_id": "pasda-missing",
+            "source_record_id": "missing",
+            "xml_sha256": "oldhash",
+            "metadata_last_modified": "2026-06-30 10:00",
+            "metadata_size_bytes": "19",
+            "first_seen": "2026-06-01",
+            "last_seen": "2026-06-30",
+        },
+    }
+    inventory_rows = [{"metadata_filename": "current.xml"}]
+
+    deleted_rows = build_pasda_deleted_record_review_rows(
+        existing_metadata_registry=existing_registry,
+        inventory_rows=inventory_rows,
+    )
+
+    assert [row["metadata_filename"] for row in deleted_rows] == ["missing.xml"]
+    assert deleted_rows[0]["pasda_change_type"] == "deleted"
+    assert (
+        deleted_rows[0]["pasda_change_reason"]
+        == "metadata_file_missing_from_current_directory_listing"
+    )
+    assert deleted_rows[0]["pasda_record_id"] == "pasda-missing"
+    assert deleted_rows[0]["previous_xml_sha256"] == "oldhash"
+    assert deleted_rows[0]["last_seen"] == "2026-06-30"
+
+
 def test_mixed_sample_strategy_selects_across_inventory() -> None:
     rows = [{"metadata_filename": f"{index:02d}.xml"} for index in range(10)]
 
@@ -455,6 +1114,32 @@ def test_fgdc_field_extraction(tmp_path: Path) -> None:
     assert record["download_links_found_in_metadata"] == [
         "https://www.pasda.psu.edu/download/geology/bedrock.zip"
     ]
+
+
+def test_fgdc_title_can_be_direct_child_of_citation(tmp_path: Path) -> None:
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+    <metadata>
+      <idinfo>
+        <citation>
+          <title>2020 Census Blocks</title>
+          <citeinfo>
+            <geoform>vector digital data</geoform>
+            <origin>Homeland Infrastructure Foundation-Level Data - HIFLD</origin>
+          </citeinfo>
+        </citation>
+        <descript><abstract>Blocks.</abstract></descript>
+      </idinfo>
+      <metainfo><metstdn>FGDC Content Standard for Digital Geospatial Metadata</metstdn></metainfo>
+    </metadata>
+    """
+
+    manifest, record = parse_pasda_manifest_row(_manifest_row(tmp_path, "blocks.xml", xml))
+
+    assert manifest["xml_parse_status"] == "parsed"
+    assert record["metadata_profile"] == "fgdc_csdgm"
+    assert record["title"] == "2020 Census Blocks"
+    assert record["creator"] == "Homeland Infrastructure Foundation-Level Data - HIFLD"
+    assert record["source_scale"] == "vector digital data"
 
 
 def test_fgdc_custom_projected_crs_keeps_descriptive_reference(tmp_path: Path) -> None:
@@ -729,6 +1414,61 @@ def test_pasda_aardvark_draft_dataframe_derives_theme_from_keywords() -> None:
 
     assert draft_df.loc[0, "Theme"] == "Transportation"
     assert draft_df.loc[1, "Theme"] == "Property"
+
+
+def test_pasda_aardvark_draft_uses_asset_and_series_reports() -> None:
+    normalized_records = [
+        {
+            "source_record_id": "IntegratedListAttaining_Lakes2015_04",
+            "metadata_url": "https://www.pasda.psu.edu/metadata/IntegratedListAttaining_Lakes2015_04.xml",
+            "title": "Lakes Assessments - Attaining",
+            "place_keywords": ["Pennsylvania"],
+            "xml_parse_status": "parsed",
+            "metadata_profile": "fgdc_csdgm",
+        },
+        {
+            "source_record_id": "IntegratedListAttaining_Lakes2021_10",
+            "metadata_url": "https://www.pasda.psu.edu/metadata/IntegratedListAttaining_Lakes2021_10.xml",
+            "title": "Lakes Assessments - Attaining",
+            "place_keywords": ["Pennsylvania"],
+            "xml_parse_status": "parsed",
+            "metadata_profile": "fgdc_csdgm",
+        },
+    ]
+    asset_match_rows = [
+        {
+            "source_record_id": "IntegratedListAttaining_Lakes2015_04",
+            "pasda_asset_match_status": "exact_assets",
+            "pasda_asset_match_level": "exact",
+            "pasda_distribution_candidate": "ready",
+        },
+        {
+            "source_record_id": "IntegratedListAttaining_Lakes2021_10",
+            "pasda_asset_match_status": "no_asset_match",
+            "pasda_asset_match_level": "none",
+            "pasda_distribution_candidate": "no",
+        },
+    ]
+    series_rows = build_pasda_series_review_records(
+        normalized_records,
+        asset_match_review_rows=asset_match_rows,
+    )
+
+    draft_df = build_pasda_aardvark_draft_dataframe(
+        normalized_records,
+        accession_date="2026-07-03",
+        asset_match_review_rows=asset_match_rows,
+        series_review_rows=series_rows,
+        ready_only=True,
+    )
+
+    assert len(draft_df) == 1
+    assert draft_df.loc[0, "ID"] == "pasda-IntegratedListAttaining_Lakes2015_04"
+    assert draft_df.loc[0, "Title"] == "Lakes Assessments - Attaining [Pennsylvania] {2015-04}"
+    assert draft_df.loc[0, "Local Collection"] == "PASDA series: Lakes Assessments - Attaining"
+    assert draft_df.loc[0, "Display Note"].startswith("Info: ")
+    assert "historical snapshot" in draft_df.loc[0, "Display Note"]
+    assert "https://www.pasda.psu.edu" in draft_df.loc[0, "Display Note"]
 
 
 def test_pasda_aardvark_temporal_coverage_uses_readable_range_separator() -> None:
