@@ -2625,13 +2625,16 @@ class HarvestTaskDashboardJob:
             return "<code>None</code>"
 
         links = [
-            self._render_record_link(identifier, self._admin_document_url(identifier))
+            self._render_record_link(identifier, self._geoportal_resource_url(identifier))
             for identifier in identifiers
         ]
         return ", ".join(links)
 
     def _admin_document_url(self, record_id: str) -> str:
         return f"{ADMIN_BASE_URL}/documents/{quote(self._clean_value(record_id), safe='')}/edit"
+
+    def _geoportal_resource_url(self, record_id: str) -> str:
+        return f"https://geo.btaa.org/resources/{quote(self._clean_value(record_id), safe='')}"
 
     def _render_record_link(self, label: str, url: str | None) -> str:
         cleaned_label = self._clean_value(label)
@@ -3386,7 +3389,7 @@ class HarvestTaskDashboardJob:
         if not identifiers:
             return "- Identifier: None"
 
-        links = [f"[{identifier}]({self._admin_document_url(identifier)})" for identifier in identifiers]
+        links = [f"[{identifier}]({self._geoportal_resource_url(identifier)})" for identifier in identifiers]
         return f"- Identifier: {', '.join(links)}"
 
     def _find_existing_issue(

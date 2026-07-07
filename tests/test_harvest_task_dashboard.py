@@ -461,7 +461,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Geology Index" in dashboard_html
     assert "py_socrata" not in dashboard_html
     assert "https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_websitePlatform_s%5D%5B%5D=Socrata&amp;f%5Bgbl_resourceClass_sm%5D%5B%5D=Series&amp;rows=20&amp;sort=score+desc" not in dashboard_html
-    assert "https://geomg.lib.umn.edu/admin/documents/site-5/edit" in dashboard_html
+    assert "https://geo.btaa.org/resources/site-5" in dashboard_html
     assert "restricted-login-glyph" in dashboard_html
     assert "🔒" in dashboard_html
     assert "https://github.com/geobtaa/harvest-operations/issues/new" in dashboard_html
@@ -481,11 +481,11 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Create issue" in public_dashboard_html
     assert "Get Latest Source CSVs" in public_dashboard_html
     assert "Workflow Run Queue" in public_dashboard_html
-    assert "https://geomg.lib.umn.edu/admin/documents/site-5/edit" in public_dashboard_html
+    assert "https://geo.btaa.org/resources/site-5" in public_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2227d-01%22" in public_arcgis_dashboard_html
     assert "https://geomg.lib.umn.edu/admin/documents/task-1/edit" in public_arcgis_dashboard_html
-    assert "https://geomg.lib.umn.edu/admin/documents/site-1/edit" in public_arcgis_dashboard_html
+    assert "https://geo.btaa.org/resources/site-1" in public_arcgis_dashboard_html
     assert "Reviews due" in dashboard_html
     assert "Harvests due" in dashboard_html
     assert "Harvest Records" in records_dashboard_html
@@ -506,7 +506,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Geology Index" in records_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in records_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_records_dashboard_html
-    assert "https://geomg.lib.umn.edu/admin/documents/site-5/edit" in records_dashboard_html
+    assert "https://geo.btaa.org/resources/site-5" in records_dashboard_html
     assert "Create issue" not in records_dashboard_html
     assert "Get Latest Source CSVs" not in records_dashboard_html
     assert records_dashboard_html.index("Parcel Fabric") < records_dashboard_html.index("Geology Index")
@@ -1352,7 +1352,7 @@ def test_harvest_task_dashboard_links_existing_issue_when_marker_matches(
     assert "Create issue" not in public_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2204a-01%22" in public_dashboard_html
     assert "https://geomg.lib.umn.edu/admin/documents/harvest_ornl/edit" in public_dashboard_html
-    assert "https://geomg.lib.umn.edu/admin/documents/04a-01/edit" in public_dashboard_html
+    assert "https://geo.btaa.org/resources/04a-01" in public_dashboard_html
     assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2204a-01%22" in public_retrospective_html
     assert "https://geomg.lib.umn.edu/admin/documents/harvest_ornl/edit" in public_retrospective_html
     assert public_view_html == public_dashboard_html
