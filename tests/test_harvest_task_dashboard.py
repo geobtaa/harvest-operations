@@ -168,6 +168,99 @@ def test_harvest_task_dashboard_lists_and_renders_historical_workflow_reports(
     assert ">7</td>" in historical_report_html
 
 
+def test_harvest_task_dashboard_triage_groups_only_unqueued_individual_records(
+    tmp_path: Path,
+) -> None:
+    harvest_records_path = tmp_path / "harvest-records.csv"
+    websites_path = tmp_path / "websites.csv"
+    pd.DataFrame(
+        [
+            {
+                "ID": "due-record",
+                "Title": "Individual Due Record",
+                "Harvest Workflow": "py_pasda",
+                "Last Harvested": "2026-01-01",
+                "Accrual Periodicity": "Monthly",
+            },
+            {
+                "ID": "scheduled-record",
+                "Title": "Individual Scheduled Record",
+                "Harvest Workflow": "py_hdx",
+                "Last Harvested": "2026-04-10",
+                "Accrual Periodicity": "Monthly",
+            },
+            {
+                "ID": "unscheduled-record",
+                "Title": "Individual Unscheduled Record",
+                "Harvest Workflow": "py_isgs",
+                "Last Harvested": "2026-01-01",
+                "Accrual Periodicity": "Irregular",
+            },
+            {
+                "ID": "todo-record",
+                "Title": "Queued To Do Record",
+                "Harvest Workflow": "py_pasda",
+                "Last Harvested": "2026-04-01",
+                "Accrual Periodicity": "Monthly",
+                "Tags": "queue:pending_updates|due:2026-05-01",
+            },
+            {
+                "ID": "arcgis-record",
+                "Title": "ArcGIS Hub Record",
+                "Harvest Workflow": "py_arcgis_hub",
+                "Last Harvested": "2026-01-01",
+                "Accrual Periodicity": "Monthly",
+            },
+            {
+                "ID": "socrata-record",
+                "Title": "Socrata Record",
+                "Harvest Workflow": "py_socrata",
+                "Last Harvested": "2026-01-01",
+                "Accrual Periodicity": "Monthly",
+            },
+            {
+                "ID": "ckan-record",
+                "Title": "CKAN Record",
+                "Harvest Workflow": "py_ckan",
+                "Last Harvested": "2026-01-01",
+                "Accrual Periodicity": "Monthly",
+            },
+        ]
+    ).to_csv(harvest_records_path, index=False)
+    pd.DataFrame(columns=["ID", "Harvest Workflow", "Name"]).to_csv(
+        websites_path, index=False
+    )
+    job = HarvestTaskDashboardJob(
+        {
+            "harvest_records_csv": str(harvest_records_path),
+            "websites_csv": str(websites_path),
+            "today": "2026-04-15",
+        }
+    )
+
+    triage_tasks = job._build_task_dataframe(
+        job._load_csv(harvest_records_path),
+        job._load_csv(websites_path),
+        consolidate_workflows=False,
+    )
+    triage_html = job._render_dashboard_html(
+        triage_tasks,
+        report_title="Harvest Task Triage",
+        section_mode="review",
+    )
+
+    assert "Review Due (1)" in triage_html
+    assert "Review Scheduled (1)" in triage_html
+    assert "No Schedule (1)" in triage_html
+    assert "Individual Due Record" in triage_html
+    assert "Individual Scheduled Record" in triage_html
+    assert "Individual Unscheduled Record" in triage_html
+    assert "Queued To Do Record" not in triage_html
+    assert "ArcGIS Hub Record" not in triage_html
+    assert "Socrata Record" not in triage_html
+    assert "CKAN Record" not in triage_html
+
+
 @pytest.mark.parametrize(
     ("dashboard_task", "expected_keys", "unexpected_keys"),
     [
@@ -1303,12 +1396,13 @@ def test_harvest_task_dashboard_splits_review_and_todo_views(
     assert tag_future["Tag Due Status"] == "Scheduled"
 
     assert "Harvest Task Triage" in review_html
-    assert "Triage (5)" in review_html
+    assert "Review Due (2)" in review_html
+    assert "Review Scheduled (1)" in review_html
     assert "Calendar Due Task" in review_html
-    assert "Tag Due Task" in review_html
     assert "Calendar Future Task" in review_html
     assert "Calendar No Last Harvested Task" in review_html
-    assert "Tag Future Task" in review_html
+    assert "Tag Due Task" not in review_html
+    assert "Tag Future Task" not in review_html
     assert "Use the issue buttons" not in review_html
     assert "Create issue" not in review_html
     assert "github.com/geobtaa/harvest-operations/issues/new" not in review_html
@@ -1336,7 +1430,7 @@ def test_harvest_task_dashboard_splits_review_and_todo_views(
         'href="https://geomg.lib.umn.edu/admin/documents/tag-due/edit"'
     ) < todo_html.index("Create issue")
     assert "Tags: queue:pending_updates" in todo_html
-    assert "Tags: queue:pending_updates" in review_html
+    assert "Tags: queue:pending_updates" not in review_html
     assert 'class="triage-view"' in todo_html
     assert "border-radius: 0" in todo_html
 

@@ -2680,6 +2680,9 @@ class HarvestTaskDashboardJob:
                 "Review Date",
                 "Schedule Due Date",
                 "Tag Due Date",
+                "Review Status",
+                "Schedule Due Status",
+                "Tag Due Status",
                 "Accrual Periodicity",
                 "Effective Harvest Workflow",
                 "Title",
@@ -2693,14 +2696,44 @@ class HarvestTaskDashboardJob:
         working_df["__tag_due_sort"] = pd.to_datetime(working_df["Tag Due Date"], errors="coerce")
 
         if section_mode == "review":
-            review_group = working_df.copy()
-            review_group["__section_date_display"] = review_group["Schedule Due Date"]
-            review_group = review_group.sort_values(
-                by=["__schedule_due_sort", "Effective Harvest Workflow", "Schedule Due Date", "Title"],
-                ascending=[True, True, True, True],
-                na_position="last",
+            triage_group = working_df.loc[
+                ~working_df["Tag Due Status"].isin(["Due", "Scheduled"])
+                & ~working_df["Effective Harvest Workflow"].isin(
+                    {"py_arcgis_hub", "py_socrata", "py_ckan"}
+                )
+            ].copy()
+            if triage_group.empty:
+                return []
+
+            review_status = triage_group.get("Review Status", pd.Series("", index=triage_group.index))
+            schedule_status = triage_group.get(
+                "Schedule Due Status", pd.Series("", index=triage_group.index)
             )
-            return [("Triage", [("", review_group)])]
+            triage_group["__triage_group"] = "No Schedule"
+            triage_group.loc[schedule_status == "Scheduled", "__triage_group"] = "Review Scheduled"
+            triage_group.loc[schedule_status == "Due", "__triage_group"] = "Review Due"
+            triage_group.loc[review_status == "Scheduled", "__triage_group"] = "Review Scheduled"
+            triage_group.loc[review_status == "Due", "__triage_group"] = "Review Due"
+            triage_group["__triage_sort"] = triage_group["__review_sort"].combine_first(
+                triage_group["__schedule_due_sort"]
+            )
+            triage_group["__section_date_display"] = triage_group["Review Date"].where(
+                triage_group["Review Date"].map(self._clean_value).astype(bool),
+                triage_group["Schedule Due Date"],
+            )
+            group_order = ("Review Due", "Review Scheduled", "No Schedule")
+            sections = []
+            for label in group_order:
+                status_group = triage_group.loc[
+                    triage_group["__triage_group"] == label
+                ].sort_values(
+                    by=["__triage_sort", "Title"],
+                    ascending=[True, True],
+                    na_position="last",
+                )
+                if not status_group.empty:
+                    sections.append((label, [("", status_group)]))
+            return sections
 
         if section_mode == "todo":
             todo_group = working_df.copy()
@@ -2779,6 +2812,8 @@ class HarvestTaskDashboardJob:
     def _section_class_name(self, label: str) -> str:
         section_classes = {
             "Triage": "section-pill--reviews",
+            "Review Due": "section-pill--reviews",
+            "Review Scheduled": "section-pill--reviews",
             "To be reviewed": "section-pill--reviews",
             "To be harvested": "section-pill--due",
             "To do": "section-pill--due",
