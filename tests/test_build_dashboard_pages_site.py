@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from scripts.build_dashboard_pages_site import build_pages_site
+from dashboard.build_pages_site import build_pages_site
 
 
 def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> None:
@@ -14,6 +14,9 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
             "<html><body>records-2026-03-30</body></html>"
         ),
         "2026-03-30_harvest-task-dashboard-due.html": "<html><body>due-2026-03-30</body></html>",
+        "2026-03-30_harvest-task-dashboard-py-arcgis-hub-public.html": (
+            "<html><body>arcgis-public-2026-03-30</body></html>"
+        ),
         "2026-04-01_harvest-task-dashboard.html": "<html><body>full-2026-04-01</body></html>",
         "2026-04-01_harvest-task-dashboard-records.html": (
             "<html><body>records-2026-04-01</body></html>"
@@ -46,6 +49,12 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
         "2026-04-01_harvest-task-dashboard-due-public.html": (
             "<html><body>due-public-2026-04-01</body></html>"
         ),
+        "2026-04-01_harvest-task-dashboard-review-public.html": (
+            "<html><body>review-public-2026-04-01</body></html>"
+        ),
+        "2026-04-01_harvest-task-dashboard-todo-public.html": (
+            "<html><body>todo-public-2026-04-01</body></html>"
+        ),
         "2026-04-01_harvest-task-dashboard-retrospective.html": (
             "<html><body>retrospective-2026-04-01</body></html>"
         ),
@@ -59,6 +68,10 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
         "2026-04-01_harvest-task-dashboard-py-arcgis-hub-public.html": (
             "<html><head><title>ArcGIS Hubs Harvest Report - 2026-04-01</title></head>"
             "<body>workflow-public-2026-04-01</body></html>"
+        ),
+        "2026-04-01_harvest-task-dashboard-py-ckan-public.html": (
+            "<html><head><title>CKAN Harvest Report - 2026-04-01</title></head>"
+            "<body>ckan-public-2026-04-01</body></html>"
         ),
     }
 
@@ -74,25 +87,33 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
     assert 'href="latest/institutions/"' in index_html
     assert 'href="latest/map-collections/"' in index_html
     assert 'href="latest/standalone-websites/"' in index_html
-    assert 'href="latest/due/"' in index_html
+    assert 'href="latest/triage/"' in index_html
+    assert 'href="latest/to-do/"' in index_html
     assert 'href="latest/retrospective/"' in index_html
-    assert 'href="latest/workflows/py-arcgis-hub/"' in index_html
+    assert 'href="workflows/py-arcgis-hub/"' in index_html
+    assert 'href="workflows/py-ckan/"' in index_html
     assert "<h2>Triage</h2>" in index_html
     assert "<h2>Reports</h2>" in index_html
     assert "<h2>Lists</h2>" in index_html
-    assert "Due-only tasks" in index_html
+    assert "Triage" in index_html
+    assert "To do" in index_html
     assert "All harvest records" not in index_html
     assert "Harvest records by Accrual Periodicity" not in index_html
     assert "Map collections only" in index_html
     assert "ArcGIS Hub report" in index_html
+    assert "CKAN report" in index_html
     assert 'href="2026-04-01/institutions/"' in index_html
     assert 'href="2026-04-01/map-collections/"' in index_html
     assert 'href="2026-04-01/standalone-websites/"' in index_html
+    assert 'href="2026-04-01/triage/"' in index_html
+    assert 'href="2026-04-01/to-do/"' in index_html
     assert 'href="2026-04-01/retrospective/"' in index_html
     assert 'href="2026-04-01/workflows/py-arcgis-hub/"' in index_html
     assert 'href="../2026-04-01/institutions/"' in archive_html
     assert 'href="../2026-04-01/map-collections/"' in archive_html
     assert 'href="../2026-04-01/standalone-websites/"' in archive_html
+    assert 'href="../2026-04-01/triage/"' in archive_html
+    assert 'href="../2026-04-01/to-do/"' in archive_html
     assert 'href="../2026-04-01/retrospective/"' in archive_html
     assert 'href="../2026-04-01/workflows/py-arcgis-hub/"' in archive_html
 
@@ -111,8 +132,12 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
         == "<html><body>standalone-public-2026-04-01</body></html>"
     )
     assert (
-        output_dir.joinpath("latest/due/index.html").read_text(encoding="utf-8")
-        == "<html><body>due-public-2026-04-01</body></html>"
+        output_dir.joinpath("latest/triage/index.html").read_text(encoding="utf-8")
+        == "<html><body>review-public-2026-04-01</body></html>"
+    )
+    assert (
+        output_dir.joinpath("latest/to-do/index.html").read_text(encoding="utf-8")
+        == "<html><body>todo-public-2026-04-01</body></html>"
     )
     assert (
         output_dir.joinpath("latest/retrospective/index.html").read_text(encoding="utf-8")
@@ -125,6 +150,13 @@ def test_build_pages_site_creates_latest_and_archive_views(tmp_path: Path) -> No
         == "<html><head><title>ArcGIS Hubs Harvest Report - 2026-04-01</title></head>"
         "<body>workflow-public-2026-04-01</body></html>"
     )
+    arcgis_archive_html = output_dir.joinpath("workflows/py-arcgis-hub/index.html").read_text(
+        encoding="utf-8"
+    )
+    assert "2026-04-01" in arcgis_archive_html
+    assert "2026-03-30" in arcgis_archive_html
+    assert 'href="../../2026-04-01/workflows/py-arcgis-hub/"' in arcgis_archive_html
+    assert output_dir.joinpath("workflows/py-ckan/index.html").is_file()
     assert not output_dir.joinpath("2026-04-01/all-harvest-records/index.html").exists()
     assert not output_dir.joinpath("2026-03-30/index.html").exists()
 

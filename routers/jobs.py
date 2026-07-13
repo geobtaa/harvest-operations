@@ -17,7 +17,7 @@ from harvesters.isgs import IsgsHarvester
 from harvesters.chicago_luna import ChicagoLunaHarvester
 from harvesters.hyrax import HyraxHarvester
 from harvesters.oai_qdc import OaiQdcHarvester
-from scripts.harvest_task_dashboard import HarvestTaskDashboardJob
+from dashboard.harvest_task_dashboard import HarvestTaskDashboardJob
 
 
 HARVESTER_REGISTRY = {
@@ -193,16 +193,31 @@ async def view_harvest_task_dashboard(
     embedded: bool = Query(default=False),
     report: str = Query(default="full"),
     workflow: str = Query(default=""),
+    report_date: str = Query(default=""),
 ):
     job_cfg = load_job_config("harvest-task-dashboard")
     dashboard_job = HarvestTaskDashboardJob(job_cfg)
-    return HTMLResponse(
-        content=dashboard_job.render_dashboard_view(
-            embedded=embedded,
-            report_type=report,
-            workflow=workflow,
+    try:
+        return HTMLResponse(
+            content=dashboard_job.render_dashboard_view(
+                embedded=embedded,
+                report_type=report,
+                workflow=workflow,
+                report_date=report_date,
+            )
         )
-    )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/jobs/harvest-task-dashboard/reports/{workflow}", response_class=HTMLResponse)
+async def view_harvest_workflow_report_archive(workflow: str):
+    job_cfg = load_job_config("harvest-task-dashboard")
+    dashboard_job = HarvestTaskDashboardJob(job_cfg)
+    try:
+        return HTMLResponse(content=dashboard_job.render_workflow_report_archive(workflow))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/reports/{filename:path}")
@@ -227,3 +242,9 @@ async def harvest_task_dashboard_workflow_queue():
             status_code=400,
             detail=f"Missing dashboard input file: {missing_file}",
         ) from exc
+
+
+@router.get("/jobs/harvest-task-dashboard/frequent-harvesters")
+async def frequent_harvesters():
+    job_cfg = load_job_config("harvest-task-dashboard")
+    return HarvestTaskDashboardJob(job_cfg).build_frequent_harvesters()

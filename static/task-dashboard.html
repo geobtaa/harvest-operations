@@ -8,46 +8,48 @@
       color-scheme: light;
       --ink: #17324d;
       --muted: #5f6f82;
+      --link: #4f7f9f;
       --line: #d7e1ec;
-      --panel: #ffffff;
-      --panel-soft: #f5f8fb;
-      --bg: #edf3f8;
-      --accent: #1f6fb2;
-      --accent-soft: #dcecff;
-      --success: #0f766e;
-      --danger: #b42318;
+      --accent: #a95d3f;
+      --success: #5f7f68;
+      --danger: #b25b4b;
+      --border-blue: #9fbfd0;
+      --border-green: #abc7ae;
+      --border-orange: #e0b08b;
+      --border-purple: #c9b4d4;
+      --border-red: #dfaaa0;
     }
     body {
       font-family: "Segoe UI", sans-serif;
       max-width: 1100px;
-      margin: 2rem auto;
-      padding: 0 1rem 2rem;
+      margin: 1rem auto;
+      padding: 0 1rem 1rem;
       line-height: 1.5;
       color: var(--ink);
-      background: linear-gradient(180deg, #f7fafc 0%, var(--bg) 100%);
     }
-    button {
+    .task-button {
       padding: 0.7rem 1.2rem;
       font-size: 1rem;
       cursor: pointer;
       margin-right: 0.75rem;
       border-radius: 999px;
-      border: 1px solid var(--accent);
-      background: var(--accent);
-      color: #fff;
+      border: 1px solid var(--success);
+      color: #1d1d1d;
+      background-color: #dff0df;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
-      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+      transition: transform 0.15s ease, border-color 0.15s ease;
     }
-    button:hover {
+    .task-button:hover {
       transform: translateY(-1px);
-      box-shadow: 0 10px 20px rgba(31, 111, 178, 0.14);
+      border-color: var(--ink);
     }
     h1 {
       margin-bottom: 0.5rem;
     }
+    a { color: var(--link); }
     #status {
       margin: 1rem 0;
       font-weight: bold;
@@ -61,24 +63,39 @@
     }
     #output {
       border: 1px solid var(--line);
-      background: var(--panel);
       padding: 1rem;
       white-space: pre-wrap;
       min-height: 8rem;
-      border-radius: 14px;
-      box-shadow: 0 12px 30px rgba(23, 50, 77, 0.06);
+      border-radius: 0;
+    }
+    #task-output-label {
+      margin: 1rem 0 0.35rem;
+      font-size: 1rem;
     }
     .source-box {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 1rem;
-      margin: 1rem 0 1.5rem;
-      box-shadow: 0 12px 30px rgba(23, 50, 77, 0.06);
+      border: 3px solid var(--border-blue);
+      border-radius: 0;
+      padding: 0.75rem 1rem;
+      margin: 0.75rem 0 1rem;
     }
+    .frequent-harvesters-section { border-color: var(--border-green); }
     .source-box h2 {
       margin-top: 0;
       margin-bottom: 0.5rem;
+    }
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(15rem, 20rem);
+      gap: 1rem;
+      align-items: start;
+    }
+    .dashboard-sidebar {
+      border: 3px solid var(--border-purple);
+      padding: 0.75rem;
+    }
+    .dashboard-sidebar h2 {
+      font-size: 1.1rem;
+      margin: 0 0 0.5rem;
     }
     .muted {
       color: var(--muted);
@@ -90,18 +107,56 @@
       vertical-align: text-top;
     }
     code {
-      background: var(--panel-soft);
       padding: 0.1rem 0.35rem;
+      border: 1px solid var(--line);
       border-radius: 6px;
     }
     .actions {
-      margin: 1.25rem 0 1rem;
+      margin: 0.75rem 0;
+    }
+    .task-actions {
+      display: grid;
+      gap: 0.75rem;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin: 0.75rem 0;
+    }
+    .task-action {
+      border: 3px solid var(--border-blue);
+      border-radius: 0;
+      padding: 0.75rem;
+    }
+    .task-action:nth-child(2) { border-color: var(--border-orange); }
+    .task-action:nth-child(3) { border-color: var(--border-purple); }
+    .task-action h2 {
+      margin: 0 0 0.4rem;
+      font-size: 1.1rem;
+    }
+    .task-action p {
+      margin: 0 0 0.9rem;
     }
     .report-columns {
       display: grid;
-      gap: 1.25rem;
+      gap: 0.75rem;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      margin: 1rem 0 1.5rem;
+      margin: 0.75rem 0;
+    }
+    .report-columns > section {
+      border: 3px solid var(--border-blue);
+      padding: 0.75rem;
+    }
+    .report-columns > section:nth-child(2) { border-color: var(--border-orange); }
+    .report-columns > section:nth-child(3) { border-color: var(--border-purple); }
+    .all-harvesters {
+      border-top: 3px solid var(--border-red);
+      margin-top: 1rem;
+      padding-top: 0.75rem;
+    }
+    .all-harvester-links {
+      margin: 0;
+      padding-left: 1.25rem;
+    }
+    .all-harvester-links li {
+      margin: 0.2rem 0;
     }
     .report-columns h2 {
       font-size: 1rem;
@@ -120,10 +175,25 @@
     }
     .workflow-grid {
       display: grid;
-      gap: 1rem;
+      gap: 0.75rem;
       grid-template-columns: minmax(0, 1fr);
-      margin: 1rem 0 1.5rem;
+      margin: 0;
     }
+    .frequent-harvester-group h3 {
+      font-size: 0.9rem;
+      margin: 0;
+    }
+    .frequent-harvester-list {
+      margin: 0.3rem 0 0;
+      padding-left: 1.15rem;
+    }
+    .frequent-harvester-list li { margin: 0.45rem 0; }
+    .last-run {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .harvest-record-link { font-size: 0.85rem; }
     .workflow-table {
       width: 100%;
       border-collapse: collapse;
@@ -131,7 +201,7 @@
     }
     .workflow-table th,
     .workflow-table td {
-      padding: 0.65rem 0.7rem;
+      padding: 0.45rem 0.55rem;
       text-align: left;
       vertical-align: top;
       border-top: 1px solid var(--line);
@@ -141,10 +211,6 @@
       font-size: 0.78rem;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      background: var(--panel-soft);
-    }
-    .workflow-table tbody tr:nth-child(even) {
-      background: #fbfdff;
     }
     .inline-actions {
       display: flex;
@@ -158,6 +224,12 @@
     }
     @media (max-width: 760px) {
       .report-columns {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .task-actions {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .dashboard-layout {
         grid-template-columns: minmax(0, 1fr);
       }
       .workflow-table,
@@ -194,164 +266,171 @@
 <body>
   <h1>Harvest Task Dashboard</h1>
 
-  <p>
-    Download the latest source CSVs, then generate the dashboard files.
-  </p>
+  <p><a href="/static/workflow-overview.html">Workflow Overview</a></p>
 
-  <p>
-    After the dashboard runs, use the report links below to review current harvest tasks.
-  </p>
+  <main class="dashboard-layout">
+    <div class="dashboard-primary">
+      <div class="source-box source-downloads">
+        <h2>Get Latest Source CSVs</h2>
+        <p>Download both CSVs before running the dashboard:</p>
+        <ul>
+          <li><a href="https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=draft&f%5Bgbl_resourceClass_sm%5D%5B%5D=Series" target="_blank" rel="noreferrer"><code>harvest-records.csv</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span> -> save as <code>inputs/harvest-records.csv</code></li>
+          <li><a href="https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites" target="_blank" rel="noreferrer"><code>websites.csv</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span> -> save as <code>reference_data/websites.csv</code></li>
+        </ul>
+      </div>
 
-  <div class="source-box">
-    <h2>Get Latest Source CSVs</h2>
-    <p>Download both CSVs before running the dashboard:</p>
-    <ul>
-      <li><a href="https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=draft&f%5Bgbl_resourceClass_sm%5D%5B%5D=Series" target="_blank" rel="noreferrer"><code>harvest-records.csv</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span> -> save as <code>inputs/harvest-records.csv</code></li>
-      <li><a href="https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites" target="_blank" rel="noreferrer"><code>websites.csv</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span> -> save as <code>reference_data/websites.csv</code></li>
-    </ul>
-  </div>
+      <div class="task-actions" aria-label="Dashboard tasks">
+        <section class="task-action">
+          <h2>Triage</h2>
+          <p class="muted">Refresh the current review and to-do queues.</p>
+          <button class="task-button" onclick="runDashboardTask('triage')">Run Triage</button>
+        </section>
+        <section class="task-action">
+          <h2>Reports</h2>
+          <p class="muted">Refresh retrospective and workflow report views.</p>
+          <button class="task-button" onclick="runDashboardTask('reports')">Run Reports</button>
+        </section>
+        <section class="task-action">
+          <h2>Lists</h2>
+          <p class="muted">Refresh institution, map collection, and standalone lists.</p>
+          <button class="task-button" onclick="runDashboardTask('lists')">Run Lists</button>
+        </section>
+      </div>
 
-  <div class="actions">
-    <button onclick="runDashboardJob()">Generate Dashboard Files & Prepare Inputs</button>
-  </div>
+      <div class="report-columns">
+        <section>
+          <h2>Triage</h2>
+          <ul>
+            <li><a id="review-report-link" href="/jobs/harvest-task-dashboard/view?report=review" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Triage</a></li>
+            <li><a id="todo-report-link" href="/jobs/harvest-task-dashboard/view?report=todo" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">To do</a></li>
+          </ul>
+        </section>
+        <section>
+          <h2>Reports</h2>
+          <ul>
+            <li><a id="retrospective-report-link" href="/jobs/harvest-task-dashboard/view?report=retrospective" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Retrospective report</a></li>
+            <li><a id="arcgis-hub-report-link" href="/jobs/harvest-task-dashboard/reports/py_arcgis_hub" target="_blank" rel="noreferrer">ArcGIS Hub reports</a></li>
+            <li><a id="socrata-report-link" href="/jobs/harvest-task-dashboard/reports/py_socrata" target="_blank" rel="noreferrer">Socrata reports</a></li>
+            <li><a id="ckan-report-link" href="/jobs/harvest-task-dashboard/reports/py_ckan" target="_blank" rel="noreferrer">CKAN reports</a></li>
+          </ul>
+        </section>
+        <section>
+          <h2>Lists</h2>
+          <ul>
+            <li><a id="institutions-report-link" href="/jobs/harvest-task-dashboard/view?report=institutions" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">By institution</a></li>
+            <li><a id="map-collections-report-link" href="/jobs/harvest-task-dashboard/view?report=map-collections" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Map collections only</a></li>
+            <li><a id="standalone-report-link" href="/jobs/harvest-task-dashboard/view?report=standalone" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Standalone websites</a></li>
+          </ul>
+        </section>
+      </div>
 
-  <div class="report-columns">
-    <section>
-      <h2>Triage</h2>
-      <ul>
-        <li><a id="due-report-link" href="/jobs/harvest-task-dashboard/view?report=due" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Due-only tasks</a></li>
-      </ul>
-    </section>
-    <section>
-      <h2>Reports</h2>
-      <ul>
-        <li><a id="retrospective-report-link" href="/jobs/harvest-task-dashboard/view?report=retrospective" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Retrospective report</a></li>
-        <li><a id="arcgis-hub-report-link" href="/jobs/harvest-task-dashboard/view?workflow=py_arcgis_hub" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">ArcGIS Hub report</a></li>
-        <li><a id="socrata-report-link" href="/jobs/harvest-task-dashboard/view?workflow=py_socrata" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Socrata report</a></li>
-      </ul>
-    </section>
-    <section>
-      <h2>Lists</h2>
-      <ul>
-        <li><a id="institutions-report-link" href="/jobs/harvest-task-dashboard/view?report=institutions" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">By institution</a></li>
-        <li><a id="map-collections-report-link" href="/jobs/harvest-task-dashboard/view?report=map-collections" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Map collections only</a></li>
-        <li><a id="standalone-report-link" href="/jobs/harvest-task-dashboard/view?report=standalone" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Standalone websites</a></li>
-      </ul>
-    </section>
-  </div>
+      <div id="status"></div>
+      <h2 id="task-output-label">Triage Output</h2>
+      <pre id="output" aria-labelledby="task-output-label"></pre>
+    </div>
 
-  <div class="source-box">
-    <h2>Workflow Queue</h2>
-    <p class="muted">
-      Generate the dashboard files after downloading new CSVs, then review the upcoming harvest jobs here.
-    </p>
-    <div id="workflow-summary" class="muted">Loading workflow queue...</div>
-    <div id="workflow-queue" class="workflow-grid"></div>
-  </div>
+    <aside class="dashboard-sidebar" aria-label="Harvesters">
+      <h2>Frequent Harvesters</h2>
+      <div id="frequent-harvesters" class="workflow-grid"></div>
 
-  <div id="status"></div>
-  <pre id="output"></pre>
+      <section class="all-harvesters">
+        <h2>Other Harvesters</h2>
+        <ul class="all-harvester-links">
+          <li><a href="/static/ogm-aardvark.html">OpenGeoMetadata Aardvark Harvester</a></li>
+          <li><a href="/static/ogmWisc.html">OpenGeoMetadata for edu.wisc Harvester</a></li>
+          <li><a href="/static/pasda.html">PASDA Portal Harvester</a></li>
+          <li><a href="/static/isgs.html">ISGS Harvester</a></li>
+          <li><a href="/static/oai-qdc.html">OAI QDC Harvester</a></li>
+          <li><a href="/static/chicago-luna.html">Chicago Luna Harvester</a></li>
+        </ul>
+      </section>
+    </aside>
+  </main>
 
   <script>
-    async function runDashboardJob() {
+    async function runDashboardTask(taskName) {
       const status = document.getElementById("status");
       const output = document.getElementById("output");
 
       status.dataset.state = "running";
-      status.textContent = "Generating dashboard files and preparing workflow inputs...";
+      status.textContent = `Running ${taskName}...`;
       output.textContent = "";
 
       try {
-        const response = await fetch("/jobs/harvest-task-dashboard/run", { method: "POST" });
+        const response = await fetch(`/jobs/harvest-task-${taskName}/run`, { method: "POST" });
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.detail || "Dashboard job failed.");
+          throw new Error(data.detail || `${taskName} task failed.`);
         }
 
         status.dataset.state = "success";
-        status.textContent = "Dashboard files generated and workflow inputs prepared.";
+        status.textContent = `${taskName} completed.`;
         output.textContent = JSON.stringify(data, null, 2);
         refreshReportLinks();
-        loadWorkflowQueue();
+        loadFrequentHarvesters();
       } catch (error) {
         status.dataset.state = "error";
-        status.textContent = "Dashboard job failed.";
+        status.textContent = `${taskName} task failed.`;
         output.textContent = error.message;
       }
     }
 
-    async function loadWorkflowQueue() {
-      const summary = document.getElementById("workflow-summary");
-      const queue = document.getElementById("workflow-queue");
+    async function loadFrequentHarvesters() {
+      const harvesters = document.getElementById("frequent-harvesters");
 
-      summary.textContent = "Loading workflow queue...";
-      queue.innerHTML = "";
+      harvesters.innerHTML = "";
 
       try {
-        const response = await fetch("/jobs/harvest-task-dashboard/workflow-queue");
+        const response = await fetch("/jobs/harvest-task-dashboard/frequent-harvesters");
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.detail || "Workflow queue unavailable.");
+          throw new Error(data.detail || "Frequent harvesters are unavailable.");
         }
 
-        renderWorkflowQueue(data);
+        renderFrequentHarvesters(data);
       } catch (error) {
-        summary.textContent = error.message;
-        queue.innerHTML = "";
+        harvesters.textContent = error.message;
       }
     }
 
-    function renderWorkflowQueue(data) {
-      const summary = document.getElementById("workflow-summary");
-      const queue = document.getElementById("workflow-queue");
-      const workflows = data.workflows || [];
-      const harvestCount = data.harvest_queue_count ?? data.harvest_due_count ?? 0;
-      const dueNowCount = data.harvest_due_count || 0;
-      const reviewCount = data.review_due_count || 0;
-      const queueEndDate = data.queue_end_date || "the next month";
+    function renderFrequentHarvesters(data) {
+      const harvesters = document.getElementById("frequent-harvesters");
+      const entries = data.harvesters || [];
 
-      summary.textContent = `${harvestCount} harvest task${harvestCount === 1 ? "" : "s"} due by ${queueEndDate} across ${workflows.length} workflow${workflows.length === 1 ? "" : "s"}. ${dueNowCount} due now. ${reviewCount} review task${reviewCount === 1 ? "" : "s"} due.`;
-
-      if (!workflows.length) {
-        queue.innerHTML = '<p class="empty-state">No harvest jobs are due within the next month.</p>';
-        return;
-      }
-
-      const rows = workflows.map((workflow) => {
-        const pageLink = workflow.static_page_url
-          ? `<a class="action-link" href="${escapeAttribute(workflow.static_page_url)}" target="_blank" rel="noreferrer">Open ${escapeHtml(workflow.static_page_label || workflow.label)}</a>`
-          : '<span class="muted">No static page configured</span>';
-        const queueCount = workflow.queue_count ?? workflow.due_count ?? 0;
-        const dueNow = workflow.due_now_count || 0;
-        const queueLabel = `${queueCount} task${queueCount === 1 ? "" : "s"}`;
+      const renderTable = (groupName, groupEntries) => {
+        const items = groupEntries.map((harvester) => {
+        const pageLink = `<a href="${escapeAttribute(harvester.static_page_url)}" target="_blank" rel="noreferrer">${escapeHtml(harvester.label)}</a>`;
+        const recordLink = harvester.harvest_record_url
+          ? `<a class="harvest-record-link" href="${escapeAttribute(harvester.harvest_record_url)}" target="_blank" rel="noreferrer">Harvest record</a>`
+          : "";
 
         return `
-          <tr>
-            <td data-label="Workflow"><strong>${escapeHtml(workflow.label || workflow.workflow)}</strong><div class="report-meta"><code>${escapeHtml(workflow.workflow)}</code></div></td>
-            <td data-label="Queued Tasks">${escapeHtml(queueLabel)}<div class="report-meta">${escapeHtml(dueNow)} due now</div></td>
-            <td data-label="Next Due">${escapeHtml(workflow.next_due_date || "Unknown")}</td>
-            <td data-label="Prepared Input"><code>${escapeHtml(workflow.workflow_input_csv || "")}</code></td>
-            <td data-label="Harvester Page">${pageLink}</td>
-          </tr>
+          <li>
+            ${pageLink}
+            <span class="last-run">Last run: ${escapeHtml(harvester.last_run)}</span>
+            ${recordLink}
+          </li>
         `;
-      }).join("");
+        }).join("");
 
-      queue.innerHTML = `
-        <table class="workflow-table">
-          <thead>
-            <tr>
-              <th>Workflow</th>
-              <th>Queued Tasks</th>
-              <th>Next Due</th>
-              <th>Prepared Input</th>
-              <th>Harvester Page</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      `;
+        return `
+          <section class="frequent-harvester-group">
+            <h3>${escapeHtml(groupName)}</h3>
+            <ul class="frequent-harvester-list">${items}</ul>
+          </section>
+        `;
+      };
+
+      const groups = ["Batch tasks", "Single-site tasks"];
+      harvesters.innerHTML = groups
+        .map((groupName) => renderTable(
+          groupName,
+          entries.filter((harvester) => harvester.group === groupName),
+        ))
+        .filter((html, index) => entries.some((harvester) => harvester.group === groups[index]))
+        .join("");
     }
 
     function escapeHtml(value) {
@@ -372,22 +451,20 @@
       const institutionsUrl = `/jobs/harvest-task-dashboard/view?report=institutions&ts=${timestamp}`;
       const mapCollectionsUrl = `/jobs/harvest-task-dashboard/view?report=map-collections&ts=${timestamp}`;
       const standaloneUrl = `/jobs/harvest-task-dashboard/view?report=standalone&ts=${timestamp}`;
-      const dueUrl = `/jobs/harvest-task-dashboard/view?report=due&ts=${timestamp}`;
+      const reviewUrl = `/jobs/harvest-task-dashboard/view?report=review&ts=${timestamp}`;
+      const todoUrl = `/jobs/harvest-task-dashboard/view?report=todo&ts=${timestamp}`;
       const retrospectiveUrl = `/jobs/harvest-task-dashboard/view?report=retrospective&ts=${timestamp}`;
-      const arcgisHubUrl = `/jobs/harvest-task-dashboard/view?workflow=py_arcgis_hub&ts=${timestamp}`;
-      const socrataUrl = `/jobs/harvest-task-dashboard/view?workflow=py_socrata&ts=${timestamp}`;
       document.getElementById("institutions-report-link").href = institutionsUrl;
       document.getElementById("map-collections-report-link").href = mapCollectionsUrl;
       document.getElementById("standalone-report-link").href = standaloneUrl;
-      document.getElementById("due-report-link").href = dueUrl;
+      document.getElementById("review-report-link").href = reviewUrl;
+      document.getElementById("todo-report-link").href = todoUrl;
       document.getElementById("retrospective-report-link").href = retrospectiveUrl;
-      document.getElementById("arcgis-hub-report-link").href = arcgisHubUrl;
-      document.getElementById("socrata-report-link").href = socrataUrl;
       return true;
     }
 
     refreshReportLinks();
-    loadWorkflowQueue();
+    loadFrequentHarvesters();
   </script>
 </body>
 </html>

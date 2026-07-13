@@ -171,7 +171,7 @@ How it works:
 You can also build the site locally with:
 
 ```bash
-uv run python scripts/build_dashboard_pages_site.py --reports-dir reports --output-dir site
+uv run python dashboard/build_pages_site.py --reports-dir reports --output-dir site
 ```
 
 That command writes a deployable static site into `site/`.

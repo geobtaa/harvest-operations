@@ -1,9 +1,10 @@
+import os
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
-from scripts.harvest_task_dashboard import (
+from dashboard.harvest_task_dashboard import (
     HARVEST_WORKFLOW_STATIC_PAGES,
     HarvestTaskDashboardJob,
 )
@@ -14,6 +15,231 @@ def test_harvest_task_dashboard_links_ckan_workflow_to_static_page() -> None:
         "label": "CKAN Harvester",
         "url": "/static/ckan.html",
     }
+
+
+def test_harvest_task_dashboard_lists_frequent_harvesters(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    arcgis_reports_dir = tmp_path / "reports" / "arcgis"
+    socrata_reports_dir = tmp_path / "reports" / "socrata"
+    ckan_reports_dir = tmp_path / "reports" / "ckan"
+    for reports_dir, filename in (
+        (arcgis_reports_dir, "2026-06-01_arcgis_report.csv"),
+        (socrata_reports_dir, "2026-06-02_socrata_report.csv"),
+        (ckan_reports_dir, "2026-06-03_ckan_report.csv"),
+    ):
+        reports_dir.mkdir(parents=True)
+        reports_dir.joinpath(filename).write_text("Code\nTOTAL\n", encoding="utf-8")
+
+    hdx_output_path = tmp_path / "outputs" / "hdx_primary.csv"
+    pasda_registry_path = tmp_path / "registry" / "pasda_metadata_registry.csv"
+    hdx_output_path.parent.mkdir()
+    pasda_registry_path.parent.mkdir()
+    hdx_output_path.write_text("ID\n", encoding="utf-8")
+    pasda_registry_path.write_text("ID\n", encoding="utf-8")
+    os.utime(hdx_output_path, (0, pd.Timestamp("2026-06-04 10:30").timestamp()))
+    os.utime(pasda_registry_path, (0, pd.Timestamp("2026-06-05 11:45").timestamp()))
+    harvest_records_path = tmp_path / "harvest-records.csv"
+    pd.DataFrame(
+        [
+            {
+                "Title": "Harvest record for Humanitarian Data Exchange",
+                "ID": "harvest_99-1400",
+                "Code": "99-1400",
+                "Harvest Workflow": "py_hdx",
+                "Last Harvested": "2026-06-30",
+            },
+            {
+                "Title": "Harvest record for PASDA Geospatial Data Archive",
+                "ID": "harvest_08a-04",
+                "Identifier": "08a-04",
+                "Harvest Workflow": "py_pasda_metadata_directory",
+                "Last Harvested": "2026-07-05",
+            },
+        ]
+    ).to_csv(harvest_records_path, index=False)
+
+    harvesters = HarvestTaskDashboardJob(
+        {
+            "harvest_records_csv": str(harvest_records_path),
+            "arcgis_reports_dir": str(arcgis_reports_dir),
+            "socrata_reports_dir": str(socrata_reports_dir),
+            "ckan_reports_dir": str(ckan_reports_dir),
+        }
+    ).build_frequent_harvesters()["harvesters"]
+
+    assert [harvester["workflow"] for harvester in harvesters] == [
+        "py_arcgis_hub",
+        "py_socrata",
+        "py_hdx",
+        "py_ckan",
+        "pasda-metadata",
+    ]
+    assert [harvester["last_run"] for harvester in harvesters] == [
+        "2026-06-01",
+        "2026-06-02",
+        "2026-06-30",
+        "2026-06-03",
+        "2026-07-05",
+    ]
+    assert [harvester["group"] for harvester in harvesters] == [
+        "Batch tasks",
+        "Batch tasks",
+        "Single-site tasks",
+        "Batch tasks",
+        "Single-site tasks",
+    ]
+    assert harvesters[2]["harvest_record_url"] == (
+        "https://geomg.lib.umn.edu/admin/documents/harvest_99-1400/edit"
+    )
+    assert harvesters[-1]["harvest_record_url"] == (
+        "https://geomg.lib.umn.edu/admin/documents/harvest_08a-04/edit"
+    )
+    assert harvesters[-1]["static_page_url"] == "/static/pasda-metadata.html"
+
+
+def test_harvest_task_dashboard_lists_and_renders_historical_workflow_reports(
+    tmp_path: Path,
+) -> None:
+    harvest_records_path = tmp_path / "harvest-records.csv"
+    websites_path = tmp_path / "websites.csv"
+    reports_dir = tmp_path / "arcgis-reports"
+    reports_dir.mkdir()
+    pd.DataFrame(
+        [
+            {
+                "ID": "harvest_example",
+                "Title": "Example Catalog",
+                "Harvest Workflow": "py_arcgis_hub",
+                "Code": "01a-01",
+                "Identifier": "example-01",
+            }
+        ]
+    ).to_csv(harvest_records_path, index=False)
+    pd.DataFrame(columns=["ID", "Harvest Workflow", "Name"]).to_csv(
+        websites_path, index=False
+    )
+    pd.DataFrame(
+        [
+            {
+                "Code": "01a-01",
+                "Identifier": "example-01",
+                "Harvest Run": "success",
+                "Total Records Found": "7",
+                "New Records": "2",
+                "Unpublished Records": "1",
+            }
+        ]
+    ).to_csv(reports_dir / "2026-05-01_arcgis_report.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "Code": "01a-01",
+                "Identifier": "example-01",
+                "Harvest Run": "success",
+                "Total Records Found": "11",
+                "New Records": "3",
+                "Unpublished Records": "2",
+            }
+        ]
+    ).to_csv(reports_dir / "2026-06-01_arcgis_report.csv", index=False)
+
+    job = HarvestTaskDashboardJob(
+        {
+            "harvest_records_csv": str(harvest_records_path),
+            "websites_csv": str(websites_path),
+            "arcgis_reports_dir": str(reports_dir),
+            "dedicated_workflow_views": ["py_arcgis_hub"],
+        }
+    )
+
+    archive_html = job.render_workflow_report_archive("py_arcgis_hub")
+    historical_report_html = job.render_dashboard_view(
+        workflow="py_arcgis_hub",
+        report_date="2026-05-01",
+    )
+
+    assert "ArcGIS Hubs Harvest Report Archive" in archive_html
+    assert archive_html.index("2026-06-01") < archive_html.index("2026-05-01")
+    assert "workflow=py_arcgis_hub&amp;report_date=2026-05-01" in archive_html
+    assert "ArcGIS Hubs Harvest Report - 2026-05-01" in historical_report_html
+    assert ">7</td>" in historical_report_html
+
+
+@pytest.mark.parametrize(
+    ("dashboard_task", "expected_keys", "unexpected_keys"),
+    [
+        (
+            "triage",
+            {"review_dashboard_html", "todo_dashboard_html", "due_dashboard_html"},
+            {"dashboard_html", "records_dashboard_html", "workflow_inputs"},
+        ),
+        (
+            "reports",
+            {"dashboard_html", "retrospective_dashboard_html", "workflow_inputs"},
+            {"review_dashboard_html", "records_dashboard_html"},
+        ),
+        (
+            "lists",
+            {
+                "records_dashboard_html",
+                "institution_dashboard_html",
+                "map_collections_dashboard_html",
+                "standalone_dashboard_html",
+            },
+            {"dashboard_html", "review_dashboard_html", "workflow_inputs"},
+        ),
+    ],
+)
+def test_harvest_task_dashboard_runs_only_the_selected_task_group(
+    tmp_path: Path,
+    dashboard_task: str,
+    expected_keys: set[str],
+    unexpected_keys: set[str],
+) -> None:
+    harvest_records_path = tmp_path / "harvest-records.csv"
+    websites_path = tmp_path / "websites.csv"
+    pd.DataFrame(
+        [
+            {
+                "ID": "harvest_example",
+                "Title": "Harvest record for Example Catalog",
+                "Harvest Workflow": "py_arcgis_hub",
+                "Identifier": "example-01",
+                "Last Harvested": "2026-03-01",
+                "Accrual Periodicity": "monthly",
+            }
+        ]
+    ).to_csv(harvest_records_path, index=False)
+    pd.DataFrame(columns=["ID", "Harvest Workflow", "Name"]).to_csv(
+        websites_path, index=False
+    )
+
+    results = HarvestTaskDashboardJob(
+        {
+            "dashboard_task": dashboard_task,
+            "harvest_records_csv": str(harvest_records_path),
+            "websites_csv": str(websites_path),
+            "output_tasks_csv": str(tmp_path / "reports/tasks.csv"),
+            "output_dashboard_html": str(tmp_path / "reports/dashboard.html"),
+            "output_due_dashboard_html": str(tmp_path / "reports/dashboard-due.html"),
+            "output_review_dashboard_html": str(tmp_path / "reports/dashboard-review.html"),
+            "output_todo_dashboard_html": str(tmp_path / "reports/dashboard-todo.html"),
+            "output_retrospective_dashboard_html": str(
+                tmp_path / "reports/dashboard-retrospective.html"
+            ),
+            "output_workflow_dir": str(tmp_path / "workflow-inputs"),
+            "today": "2026-04-01",
+        }
+    ).harvest_pipeline()
+
+    assert results["dashboard_task"] == dashboard_task
+    assert expected_keys <= results.keys()
+    assert not (unexpected_keys & results.keys())
+    for key in expected_keys - {"workflow_inputs"}:
+        assert Path(results[key]).is_file()
 
 
 def test_workflow_queue_consolidates_ckan_as_monthly_process(tmp_path: Path) -> None:
@@ -366,6 +592,14 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     public_due_dashboard_html = Path(results["public_due_dashboard_html"]).read_text(
         encoding="utf-8"
     )
+    review_dashboard_html = Path(results["review_dashboard_html"]).read_text(encoding="utf-8")
+    public_review_dashboard_html = Path(results["public_review_dashboard_html"]).read_text(
+        encoding="utf-8"
+    )
+    todo_dashboard_html = Path(results["todo_dashboard_html"]).read_text(encoding="utf-8")
+    public_todo_dashboard_html = Path(results["public_todo_dashboard_html"]).read_text(
+        encoding="utf-8"
+    )
     records_dashboard_html = Path(results["records_dashboard_html"]).read_text(encoding="utf-8")
     public_records_dashboard_html = Path(results["public_records_dashboard_html"]).read_text(
         encoding="utf-8"
@@ -422,6 +656,8 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
         report_type="due",
         workflow="py_arcgis_hub",
     )
+    review_view_html = job.render_dashboard_view(report_type="review")
+    todo_view_html = job.render_dashboard_view(report_type="todo")
     arcgis_retrospective_html = job.render_dashboard_view(
         report_type="retrospective",
         workflow="py_arcgis_hub",
@@ -478,12 +714,16 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "within the next month" in dashboard_html
     assert dashboard_html == public_dashboard_html
     assert due_dashboard_html == public_due_dashboard_html
+    assert review_dashboard_html == public_review_dashboard_html
+    assert todo_dashboard_html == public_todo_dashboard_html
+    assert review_dashboard_html == review_view_html
+    assert todo_dashboard_html == todo_view_html
     assert "Create issue" in public_dashboard_html
     assert "Get Latest Source CSVs" in public_dashboard_html
     assert "Workflow Run Queue" in public_dashboard_html
     assert "https://geo.btaa.org/resources/site-5" in public_dashboard_html
-    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_dashboard_html
-    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2227d-01%22" in public_arcgis_dashboard_html
+    assert "https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05f-01" in public_dashboard_html
+    assert "https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=27d-01" in public_arcgis_dashboard_html
     assert "https://geomg.lib.umn.edu/admin/documents/task-1/edit" in public_arcgis_dashboard_html
     assert "https://geo.btaa.org/resources/site-1" in public_arcgis_dashboard_html
     assert "Reviews due" in dashboard_html
@@ -504,8 +744,8 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Irregular" in records_dashboard_html
     assert "Parcel Fabric" in records_dashboard_html
     assert "Geology Index" in records_dashboard_html
-    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in records_dashboard_html
-    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_records_dashboard_html
+    assert "https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05f-01" in records_dashboard_html
+    assert "https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05f-01" in public_records_dashboard_html
     assert "https://geo.btaa.org/resources/site-5" in records_dashboard_html
     assert "Create issue" not in records_dashboard_html
     assert "Get Latest Source CSVs" not in records_dashboard_html
@@ -532,9 +772,9 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Geoportal items: 12" in institution_dashboard_html
     assert "Geoportal items: 3" in institution_dashboard_html
     assert "Geoportal items: Not available" in institution_dashboard_html
-    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2227d-01%22" in institution_dashboard_html
+    assert "https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=27d-01" in institution_dashboard_html
     assert "https://geomg.lib.umn.edu/admin/documents/task-1/edit" in institution_dashboard_html
-    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2205f-01%22" in public_institution_dashboard_html
+    assert "https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05f-01" in public_institution_dashboard_html
     assert "https://geomg.lib.umn.edu/admin/documents/task-1/edit" in public_institution_dashboard_html
     assert institution_dashboard_html.index("Transit Stops") < institution_dashboard_html.index("County Parcels")
     assert institution_dashboard_html.index("County Parcels") < institution_dashboard_html.index("Building Permits")
@@ -553,7 +793,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Geoportal items: 12" in map_collections_dashboard_html
     assert "Geoportal items: 3" in map_collections_dashboard_html
     assert "https://geomg.lib.umn.edu/admin/documents/task-1/edit" in map_collections_dashboard_html
-    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2227d-01%22" in (
+    assert "https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=27d-01" in (
         public_map_collections_dashboard_html
     )
     assert "https://geomg.lib.umn.edu/admin/documents/task-1/edit" in (
@@ -561,6 +801,8 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     )
     assert fetch_calls == 1
     assert "Harvest Tasks Due Now" in due_dashboard_html
+    assert "Harvest Task Triage" in review_dashboard_html
+    assert "Harvest Tasks To Do" in todo_dashboard_html
     assert "Get Latest Source CSVs" not in due_dashboard_html
     assert "Reviews due" in due_dashboard_html
     assert "Harvests due" in due_dashboard_html
@@ -569,6 +811,8 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Scan Socrata Sites" not in due_dashboard_html
     assert "Parcel Fabric" not in due_dashboard_html
     assert "Geology Index" not in due_dashboard_html
+    assert "Geology Index" in review_dashboard_html
+    assert "No harvest tasks were found" in todo_dashboard_html
     assert "Harvest Task Retrospective" in retrospective_dashboard_html
     assert "Get Latest Source CSVs" not in retrospective_dashboard_html
     assert "ArcGIS Hubs Harvest Report - 2026-03-30" in retrospective_dashboard_html
@@ -600,9 +844,9 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "py_arcgis_hub" not in dashboard_html
     assert "Scan ArcGIS Hubs" not in due_dashboard_html
     assert "Scan Socrata Sites" not in due_dashboard_html
-    assert "py_arcgis_hub" in retrospective_dashboard_html
-    assert "py_socrata" in retrospective_dashboard_html
-    assert "py_ckan" in retrospective_dashboard_html
+    assert "py_arcgis_hub" not in retrospective_dashboard_html
+    assert "py_socrata" not in retrospective_dashboard_html
+    assert "py_ckan" not in retrospective_dashboard_html
 
     assert set(dedicated_dashboard_outputs) == {"py_arcgis_hub", "py_socrata"}
     assert set(public_dedicated_dashboard_outputs) == {"py_arcgis_hub", "py_socrata"}
@@ -614,6 +858,12 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     )
     assert Path(results["records_dashboard_html"]).name == (
         "2026-03-30_harvest-task-dashboard-records-public.html"
+    )
+    assert Path(results["review_dashboard_html"]).name == (
+        "2026-03-30_harvest-task-dashboard-review-public.html"
+    )
+    assert Path(results["todo_dashboard_html"]).name == (
+        "2026-03-30_harvest-task-dashboard-todo-public.html"
     )
     assert Path(results["public_records_dashboard_html"]).name == (
         "2026-03-30_harvest-task-dashboard-records-public.html"
@@ -976,6 +1226,134 @@ def test_harvest_task_dashboard_marks_pending_updates_tag_as_due(tmp_path: Path)
     assert "2026-03-30" in due_dashboard_html
 
 
+def test_harvest_task_dashboard_splits_review_and_todo_views(
+    tmp_path: Path,
+) -> None:
+    harvest_records_path = tmp_path / "harvest-records.csv"
+    websites_path = tmp_path / "websites.csv"
+
+    pd.DataFrame(
+        [
+            {
+                "ID": "calendar-due",
+                "Title": "Calendar Due Task",
+                "Harvest Workflow": "template_csv",
+                "Last Harvested": "2026-02-15",
+                "Accrual Periodicity": "monthly",
+                "Tags": "",
+            },
+            {
+                "ID": "tag-due",
+                "Title": "Tag Due Task",
+                "Harvest Workflow": "template_csv",
+                "Last Harvested": "2026-03-29",
+                "Accrual Periodicity": "irregular",
+                "Tags": "queue:pending_updates",
+            },
+            {
+                "ID": "calendar-future",
+                "Title": "Calendar Future Task",
+                "Harvest Workflow": "template_csv",
+                "Last Harvested": "2026-03-29",
+                "Accrual Periodicity": "monthly",
+                "Tags": "",
+            },
+            {
+                "ID": "calendar-no-last-harvested",
+                "Title": "Calendar No Last Harvested Task",
+                "Harvest Workflow": "template_csv",
+                "Last Harvested": "",
+                "Accrual Periodicity": "monthly",
+                "Tags": "",
+            },
+            {
+                "ID": "tag-future",
+                "Title": "Tag Future Task",
+                "Harvest Workflow": "template_csv",
+                "Last Harvested": "2026-03-29",
+                "Accrual Periodicity": "irregular",
+                "Tags": "queue:pending_harvest|harvest_due:2026-04-15",
+            },
+        ]
+    ).to_csv(harvest_records_path, index=False)
+
+    pd.DataFrame(columns=["ID", "Harvest Workflow", "Name", "URL"]).to_csv(websites_path, index=False)
+
+    job = HarvestTaskDashboardJob(
+        {
+            "harvest_records_csv": str(harvest_records_path),
+            "websites_csv": str(websites_path),
+            "issue_repositories": [
+                {
+                    "name": "harvest-operations",
+                    "issues_new_url": "https://github.com/geobtaa/harvest-operations/issues/new",
+                    "template": "harvest-task.md",
+                    "labels": ["harvest-task"],
+                }
+            ],
+            "today": "2026-03-30",
+        }
+    )
+
+    task_df = job._build_task_dataframe(
+        pd.read_csv(harvest_records_path, dtype=str).fillna(""),
+        pd.read_csv(websites_path, dtype=str).fillna(""),
+    )
+    review_html = job.render_dashboard_view(report_type="review")
+    todo_html = job.render_dashboard_view(report_type="todo")
+
+    calendar_due = task_df.loc[task_df["ID"] == "calendar-due"].iloc[0]
+    tag_due = task_df.loc[task_df["ID"] == "tag-due"].iloc[0]
+    tag_future = task_df.loc[task_df["ID"] == "tag-future"].iloc[0]
+
+    assert calendar_due["Schedule Due Date"] == "2026-03-15"
+    assert calendar_due["Schedule Due Status"] == "Due"
+    assert calendar_due["Tag Due Date"] == ""
+    assert tag_due["Schedule Due Date"] == ""
+    assert tag_due["Tag Due Date"] == "2026-03-30"
+    assert tag_due["Tag Due Status"] == "Due"
+    assert tag_future["Tag Due Date"] == "2026-04-15"
+    assert tag_future["Tag Due Status"] == "Scheduled"
+
+    assert "Harvest Task Triage" in review_html
+    assert "Triage (5)" in review_html
+    assert "Calendar Due Task" in review_html
+    assert "Tag Due Task" in review_html
+    assert "Calendar Future Task" in review_html
+    assert "Calendar No Last Harvested Task" in review_html
+    assert "Tag Future Task" in review_html
+    assert "Use the issue buttons" not in review_html
+    assert "Create issue" not in review_html
+    assert "github.com/geobtaa/harvest-operations/issues/new" not in review_html
+    assert "Total Tasks" not in review_html
+    assert "Reviews due" not in review_html
+    assert "Harvests due" not in review_html
+    assert 'class="summary"' not in review_html
+    assert 'class="action-link" href="https://geomg.lib.umn.edu/admin/documents/calendar-due/edit" target="_blank" rel="noreferrer">Harvest record</a>' in review_html
+
+    assert "Harvest Tasks To Do" in todo_html
+    assert "To do (2)" in todo_html
+    assert "Next steps" in todo_html
+    assert "Tag Due Task" in todo_html
+    assert "Tag Future Task" in todo_html
+    assert "Calendar Due Task" not in todo_html
+    assert "Calendar Future Task" not in todo_html
+    assert "Calendar No Last Harvested Task" not in todo_html
+    assert "Harvest record:" not in todo_html
+    assert "<h3>" not in todo_html
+    assert "Create issue" in todo_html
+    assert "github.com/geobtaa/harvest-operations/issues/new" in todo_html
+    assert 'class="todo-actions"' in todo_html
+    assert 'class="action-link" href="https://geomg.lib.umn.edu/admin/documents/tag-due/edit" target="_blank" rel="noreferrer">Harvest record</a>' in todo_html
+    assert todo_html.index(
+        'href="https://geomg.lib.umn.edu/admin/documents/tag-due/edit"'
+    ) < todo_html.index("Create issue")
+    assert "Tags: queue:pending_updates" in todo_html
+    assert "Tags: queue:pending_updates" in review_html
+    assert 'class="triage-view"' in todo_html
+    assert "border-radius: 0" in todo_html
+
+
 def test_harvest_task_dashboard_creates_reviews_section_for_due_irregular_review_tags(
     tmp_path: Path,
 ) -> None:
@@ -1143,6 +1521,49 @@ def test_harvest_task_dashboard_marks_pending_harvest_rows_due_today() -> None:
     assert pending_due_alias["Review Status"] == "No Review"
 
 
+def test_harvest_task_dashboard_honors_due_tags_for_every_pending_queue_type() -> None:
+    job = HarvestTaskDashboardJob(
+        {
+            "harvest_records_csv": "unused-harvest-records.csv",
+            "websites_csv": "unused-websites.csv",
+            "today": "2026-06-04",
+        }
+    )
+    harvest_df = pd.DataFrame(
+        [
+            {
+                "ID": "pending-updates",
+                "Title": "Pending Updates",
+                "Harvest Workflow": "template_csv",
+                "Last Harvested": "",
+                "Accrual Periodicity": "Irregular",
+                "Tags": "queue:pending_updates|due:2026-06-18",
+            },
+            {
+                "ID": "pending-review",
+                "Title": "Pending Review",
+                "Harvest Workflow": "template_csv",
+                "Last Harvested": "2026-01-01",
+                "Accrual Periodicity": "Irregular",
+                "Tags": "queue:pending_review|due:2026-06-18",
+            },
+        ]
+    )
+    websites_df = pd.DataFrame(columns=["ID", "Harvest Workflow"])
+
+    task_df = job._build_task_dataframe(harvest_df, websites_df)
+    pending_updates = task_df.loc[task_df["ID"] == "pending-updates"].iloc[0]
+    pending_review = task_df.loc[task_df["ID"] == "pending-review"].iloc[0]
+
+    assert pending_updates["Tag Due Date"] == "2026-06-18"
+    assert pending_updates["Due Date"] == "2026-06-18"
+    assert pending_updates["Due Status"] == "Scheduled"
+    assert pending_review["Tag Due Date"] == "2026-06-18"
+    assert pending_review["Due Date"] == "2026-06-18"
+    assert pending_review["Review Date"] == "2026-06-18"
+    assert pending_review["Review Status"] == "Scheduled"
+
+
 def test_harvest_task_dashboard_generates_retrospective_report_with_month_grouping(
     tmp_path: Path,
 ) -> None:
@@ -1215,10 +1636,13 @@ def test_harvest_task_dashboard_generates_retrospective_report_with_month_groupi
     assert ">harvest</span>" in retrospective_dashboard_html
     assert ">ingest</span>" in retrospective_dashboard_html
     assert ">augment</span>" in retrospective_dashboard_html
-    assert ".status-pill--harvest { color: var(--action-harvest); background: var(--action-harvest-soft); }" in retrospective_dashboard_html
-    assert ".status-pill--review { color: var(--action-review); background: var(--action-review-soft); }" in retrospective_dashboard_html
-    assert ".status-pill--ingest { color: var(--action-ingest); background: var(--action-ingest-soft); }" in retrospective_dashboard_html
-    assert ".status-pill--other { color: var(--action-other); background: var(--action-other-soft); }" in retrospective_dashboard_html
+    assert "border: 1px solid currentColor" in retrospective_dashboard_html
+    assert ".status-pill--harvest { color: var(--action-harvest); background-color: var(--action-harvest-soft); }" in retrospective_dashboard_html
+    assert ".status-pill--review { color: var(--action-review); background-color: var(--action-review-soft); }" in retrospective_dashboard_html
+    assert ".status-pill--ingest { color: var(--action-ingest); background-color: var(--action-ingest-soft); }" in retrospective_dashboard_html
+    assert ".status-pill--other { color: var(--action-other); background-color: var(--action-other-soft); }" in retrospective_dashboard_html
+    assert "<th>Workflow</th>" not in retrospective_dashboard_html
+    assert 'data-label="Workflow"' not in retrospective_dashboard_html
     assert 'class="status-pill status-pill--harvest">harvest</span>' in retrospective_dashboard_html
     assert 'class="status-pill status-pill--review">review</span>' in retrospective_dashboard_html
     assert 'class="status-pill status-pill--ingest">ingest</span>' in retrospective_dashboard_html
@@ -1345,14 +1769,16 @@ def test_harvest_task_dashboard_links_existing_issue_when_marker_matches(
     public_retrospective_html = job.render_dashboard_view(report_type="retrospective", public=True)
 
     assert "Open issue #123" in dashboard_html
+    assert "Harvest record for ORNL LandScan Viewer" not in dashboard_html
+    assert "ORNL LandScan Viewer" in dashboard_html
     assert "https://github.com/geobtaa/harvest-operations/issues/123" in dashboard_html
     assert "Create issue" not in dashboard_html
     assert "Open issue #123" in public_dashboard_html
     assert "https://github.com/geobtaa/harvest-operations/issues/123" in public_dashboard_html
     assert "Create issue" not in public_dashboard_html
-    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2204a-01%22" in public_dashboard_html
+    assert "https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04a-01" in public_dashboard_html
     assert "https://geomg.lib.umn.edu/admin/documents/harvest_ornl/edit" in public_dashboard_html
     assert "https://geo.btaa.org/resources/04a-01" in public_dashboard_html
-    assert "https://geo.btaa.org/?search_field=all_fields&amp;q=%2204a-01%22" in public_retrospective_html
+    assert "https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04a-01" in public_retrospective_html
     assert "https://geomg.lib.umn.edu/admin/documents/harvest_ornl/edit" in public_retrospective_html
     assert public_view_html == public_dashboard_html

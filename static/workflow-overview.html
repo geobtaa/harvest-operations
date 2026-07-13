@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Workflow Overview</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17324d;
+      --muted: #5f6f82;
+      --border: #e0b08b;
+      --accent: #a95d3f;
+    }
+    body {
+      font-family: "Segoe UI", sans-serif;
+      max-width: 800px;
+      margin: 1rem auto;
+      padding: 0 1rem 1rem;
+      line-height: 1.5;
+      color: var(--ink);
+    }
+    .workflow {
+      border: 3px solid var(--border);
+      padding: 0.75rem 1rem;
+    }
+    h1 { margin-bottom: 0.35rem; }
+    h2 { font-size: 1.1rem; margin: 0 0 0.5rem; }
+    ol { margin: 0; padding-left: 1.5rem; }
+    li { margin: 0.6rem 0; }
+    .tag-reference { margin-top: 1rem; border-color: #abc7ae; }
+    .tag-reference ul { margin: 0; padding-left: 1.5rem; }
+    .tag-reference li { margin: 0.45rem 0; }
+    code {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.08rem 0.28rem;
+    }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <h1>Workflow Overview</h1>
+  <p><a href="/static/task-dashboard.html">Back to Harvest Task Dashboard</a></p>
+
+  <section class="workflow">
+    <h2>Harvest task workflow</h2>
+    <ol>
+      <li>Open Harvest Dashboard and run the Triage task.</li>
+      <li>Open the Triage view and identify sets to work on next.</li>
+      <li>Open the set’s Harvest record in GEOMG and add <code>queue:pending_*</code> and <code>due:yyyy-mm-dd</code> tags.</li>
+      <li>Download the harvest records again and rerun the Triage task.</li>
+      <li>Open the To do view.</li>
+      <li>Create a GitHub issue for a task.</li>
+      <li>Complete the task and close the GitHub issue.</li>
+      <li>Open the Harvest record, update the Last Harvested field, and remove the tags.</li>
+    </ol>
+  </section>
+
+  <section class="workflow tag-reference">
+    <h2>Dashboard tags</h2>
+    <p>Use these tags in the Harvest record’s Tags field. The dashboard recognizes tags separated by a pipe, comma, or semicolon.</p>
+    <ul>
+      <li><code>queue:pending_harvest</code> — queues harvesting work. It places the record in To do and keeps it in the Triage harvest section, including records with irregular periodicity.</li>
+      <li><code>queue:pending_updates</code> — queues record-update work. It places the record in To do.</li>
+      <li><code>queue:pending_review</code> — queues a review. It places the record in To do and uses its due date as the review date.</li>
+      <li><code>due:YYYY-MM-DD</code> — sets the due date for any pending queue tag. <code>harvest_due:YYYY-MM-DD</code> is also accepted. Without either, queued work is due today.</li>
+      <li><code>review:Ny</code> — schedules an irregular record for review N years after its Last Harvested date; for example, <code>review:2y</code>.</li>
+    </ul>
+  </section>
+</body>
+</html>

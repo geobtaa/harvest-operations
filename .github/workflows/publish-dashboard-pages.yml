@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - "reports/*.html"
-      - "scripts/build_dashboard_pages_site.py"
+      - "dashboard/build_pages_site.py"
       - ".github/workflows/publish-dashboard-pages.yml"
   workflow_dispatch:
 
@@ -39,7 +39,7 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Build dashboard site
-        run: python scripts/build_dashboard_pages_site.py --reports-dir reports --output-dir site
+        run: python dashboard/build_pages_site.py --reports-dir reports --output-dir site
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

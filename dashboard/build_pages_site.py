@@ -14,6 +14,7 @@ DEDICATED_WORKFLOW_PREFIX = "harvest-task-dashboard-"
 PUBLIC_REPORT_SUFFIX = "-public"
 ARCGIS_WORKFLOW_SLUG = "py-arcgis-hub"
 SOCRATA_WORKFLOW_SLUG = "py-socrata"
+CKAN_WORKFLOW_SLUG = "py-ckan"
 STANDARD_REPORT_TYPES = {
     "institutions": {
         "suffix": "harvest-task-dashboard-institutions.html",
@@ -43,6 +44,20 @@ STANDARD_REPORT_TYPES = {
         "latest_href": "latest/due/",
         "archive_segment": "due",
     },
+    "review": {
+        "suffix": "harvest-task-dashboard-review.html",
+        "label": "Triage",
+        "description": "All harvest records, grouped for review triage.",
+        "latest_href": "latest/triage/",
+        "archive_segment": "triage",
+    },
+    "todo": {
+        "suffix": "harvest-task-dashboard-todo.html",
+        "label": "To do",
+        "description": "Tagged harvest records that need work.",
+        "latest_href": "latest/to-do/",
+        "archive_segment": "to-do",
+    },
     "retrospective": {
         "suffix": "harvest-task-dashboard-retrospective.html",
         "label": "Retrospective",
@@ -52,15 +67,24 @@ STANDARD_REPORT_TYPES = {
     },
 }
 STANDARD_REPORT_ORDER = (
-    "due",
+    "review",
+    "todo",
     "retrospective",
     "institutions",
     "map-collections",
     "standalone",
 )
 REPORT_COLUMN_GROUPS = (
-    ("Triage", ("due",)),
-    ("Reports", ("retrospective", f"workflow:{ARCGIS_WORKFLOW_SLUG}", f"workflow:{SOCRATA_WORKFLOW_SLUG}")),
+    ("Triage", ("review", "todo")),
+    (
+        "Reports",
+        (
+            "retrospective",
+            f"workflow:{ARCGIS_WORKFLOW_SLUG}",
+            f"workflow:{SOCRATA_WORKFLOW_SLUG}",
+            f"workflow:{CKAN_WORKFLOW_SLUG}",
+        ),
+    ),
     ("Lists", ("institutions", "map-collections", "standalone")),
 )
 
@@ -150,6 +174,7 @@ def build_pages_site(reports_dir: Path, output_dir: Path) -> None:
     latest_reports = _copy_reports(reports_by_date, output_dir)
     write_index_page(output_dir, reports_by_date, latest_reports)
     write_archive_index_page(output_dir, reports_by_date)
+    write_workflow_archive_pages(output_dir, reports_by_date)
 
 
 def _copy_reports(
@@ -213,11 +238,7 @@ def write_index_page(
       --ink: #17324d;
       --muted: #5e6f83;
       --line: #d7e1ec;
-      --panel: #ffffff;
-      --panel-soft: #f5f8fb;
-      --bg: #e9f0f6;
       --accent: #1f6fb2;
-      --shadow: rgba(23, 50, 77, 0.08);
     }}
     * {{ box-sizing: border-box; }}
     body {{
@@ -225,7 +246,6 @@ def write_index_page(
       font-family: "Segoe UI", sans-serif;
       line-height: 1.5;
       color: var(--ink);
-      background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%);
     }}
     main {{
       max-width: 1100px;
@@ -236,10 +256,8 @@ def write_index_page(
     a {{ color: var(--accent); }}
     .hero,
     .archive {{
-      background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 18px;
-      box-shadow: 0 14px 30px var(--shadow);
     }}
     .hero {{
       padding: 1.5rem;
@@ -278,7 +296,6 @@ def write_index_page(
     .archive-header {{
       padding: 1rem 1.25rem;
       border-bottom: 1px solid var(--line);
-      background: var(--panel-soft);
     }}
     table {{
       width: 100%;
@@ -386,16 +403,12 @@ def write_archive_index_page(
       --ink: #17324d;
       --muted: #5e6f83;
       --line: #d7e1ec;
-      --panel: #ffffff;
-      --panel-soft: #f5f8fb;
-      --bg: #e9f0f6;
     }}
     body {{
       margin: 0;
       font-family: "Segoe UI", sans-serif;
       line-height: 1.5;
       color: var(--ink);
-      background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%);
     }}
     main {{
       max-width: 960px;
@@ -403,7 +416,6 @@ def write_archive_index_page(
       padding: 2rem 1rem 3rem;
     }}
     .panel {{
-      background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 18px;
       overflow: hidden;
@@ -411,7 +423,6 @@ def write_archive_index_page(
     .panel-header {{
       padding: 1rem 1.25rem;
       border-bottom: 1px solid var(--line);
-      background: var(--panel-soft);
     }}
     .eyebrow {{
       color: var(--muted);
@@ -465,6 +476,70 @@ def write_archive_index_page(
     archive_dir = output_dir / "archive"
     archive_dir.mkdir(parents=True, exist_ok=True)
     archive_dir.joinpath("index.html").write_text(html, encoding="utf-8")
+
+
+def write_workflow_archive_pages(
+    output_dir: Path,
+    reports_by_date: dict[str, dict[str, DashboardReport]],
+) -> None:
+    reports_by_workflow: dict[str, list[DashboardReport]] = {}
+    for reports in reports_by_date.values():
+        for report_key, report in reports.items():
+            if not report_key.startswith("workflow:"):
+                continue
+            reports_by_workflow.setdefault(report_key.removeprefix("workflow:"), []).append(report)
+
+    for workflow_slug, reports in reports_by_workflow.items():
+        report_rows = []
+        for report in sorted(reports, key=lambda item: item.date, reverse=True):
+            report_rows.append(
+                f"""
+        <tr>
+          <th scope="row">{escape(report.date)}</th>
+          <td><a href="../../{escape(report.archive_href)}">View report</a></td>
+        </tr>
+"""
+            )
+
+        workflow_label = _workflow_report_label("", workflow_slug)
+        html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{escape(workflow_label)} Archive</title>
+  <style>
+    :root {{ color-scheme: light; --ink: #17324d; --muted: #5e6f83; --line: #d7e1ec; --accent: #1f6fb2; }}
+    body {{ margin: 0; font-family: "Segoe UI", sans-serif; line-height: 1.5; color: var(--ink); }}
+    main {{ max-width: 900px; margin: 0 auto; padding: 2rem 1rem 3rem; }}
+    a {{ color: var(--accent); }}
+    .muted {{ color: var(--muted); }}
+    .archive {{ border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }}
+    table {{ width: 100%; border-collapse: collapse; }}
+    th, td {{ padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--line); }}
+    tbody tr:last-child th, tbody tr:last-child td {{ border-bottom: none; }}
+  </style>
+</head>
+<body>
+  <main>
+    <p><a href="../../">Back to latest reports</a></p>
+    <h1>{escape(workflow_label)} Archive</h1>
+    <p class="muted">Select a report date to view the historical harvest results.</p>
+    <section class="archive">
+      <table>
+        <thead><tr><th>Date</th><th>Report</th></tr></thead>
+        <tbody>
+{''.join(report_rows)}
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
+"""
+        archive_path = output_dir / "workflows" / workflow_slug / "index.html"
+        archive_path.parent.mkdir(parents=True, exist_ok=True)
+        archive_path.write_text(html, encoding="utf-8")
 
 
 def parse_args() -> argparse.Namespace:
@@ -555,6 +630,8 @@ def _workflow_report_label(workflow_title: str, workflow_slug: str) -> str:
         return "ArcGIS Hub report"
     if workflow_slug == SOCRATA_WORKFLOW_SLUG:
         return "Socrata report"
+    if workflow_slug == CKAN_WORKFLOW_SLUG:
+        return "CKAN report"
     if workflow_title:
         normalized_title = re.sub(
             r"\s+Harvest (?:Overview|Report)(?:\s+-\s+\d{4}-\d{2}-\d{2})?\s*$",
@@ -591,7 +668,7 @@ def _render_report_columns(
             report = reports.get(report_key)
             if report is None:
                 continue
-            href = getattr(report, href_attr)
+            href = _report_column_href(report, href_attr)
             text = getattr(report, link_text)
             links.append(f'<li><a href="{escape(href)}">{escape(text)}</a></li>')
         if not links:
@@ -607,6 +684,13 @@ def _render_report_columns(
 """
         )
     return "".join(columns)
+
+
+def _report_column_href(report: DashboardReport, href_attr: str) -> str:
+    if href_attr == "latest_href" and report.report_key.startswith("workflow:"):
+        workflow_slug = report.report_key.removeprefix("workflow:")
+        return f"workflows/{workflow_slug}/"
+    return str(getattr(report, href_attr))
 
 
 if __name__ == "__main__":

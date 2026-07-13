@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Harvest Tasks To Do</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17324d;
+      --muted: #5b6b7d;
+      --line: #d7e1ec;
+      --line-strong: #bfd0e2;
+      --panel: #ffffff;
+      --panel-soft: #f6f9fc;
+      --bg: #eef3f8;
+      --accent: #1f6fb2;
+      --accent-soft: #dcecff;
+      --reviews: #0f766e;
+      --reviews-soft: #d8f3ee;
+      --due: #b42318;
+      --due-soft: #fee4e2;
+      --scheduled: #b76e00;
+      --scheduled-soft: #fff1d6;
+      --no-schedule: #667085;
+      --no-schedule-soft: #edf1f5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: "Segoe UI", sans-serif; line-height: 1.35; color: var(--ink); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 0.4rem; }
+    h2 { margin-bottom: 0.9rem; }
+    h3 { margin-bottom: 0; font-size: 1rem; }
+    a { color: var(--accent); }
+    .restricted-login-glyph { display: inline-block; margin-left: 0.25rem; font-size: 0.86em; vertical-align: text-top; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin: 1.25rem 0 1.5rem; }
+    .card { border: 1px solid var(--line); border-top: 4px solid var(--accent); border-radius: 14px; padding: 0.8rem 0.9rem; }
+    .card strong { display: block; margin-top: 0.2rem; font-size: 1.5rem; }
+    .card.card--reviews { border-top-color: var(--reviews); }
+    .card.card--due { border-top-color: var(--due); }
+    .card.card--scheduled { border-top-color: var(--scheduled); }
+    .card.card--no-schedule { border-top-color: var(--no-schedule); }
+    .due-section { margin-top: 1.6rem; }
+    .section-header { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.8rem; }
+    .section-pill { display: inline-flex; align-items: center; padding: 0.25rem 0.7rem; border: 1px solid currentColor; border-radius: 999px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.02em; }
+    .section-pill--reviews { color: var(--reviews); }
+    .section-pill--due { color: var(--due); }
+    .section-pill--scheduled { color: var(--scheduled); }
+    .section-pill--no-schedule { color: var(--no-schedule); }
+    .workflow-block { margin: 0.9rem 0 1.15rem; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+    .workflow-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.75rem 0.95rem; border-bottom: 1px solid var(--line); }
+    .workflow-meta { color: var(--muted); font-size: 0.82rem; }
+    .workflow-run-queue { margin: 1rem 0 1.5rem; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+    .workflow-run-queue > p { padding: 0 1rem 1rem; }
+    .workflow-run-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; border-bottom: 1px solid var(--line); }
+    .workflow-run-header h2 { margin-bottom: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { padding: 0.55rem 0.7rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    tbody tr:last-child td { border-bottom: none; }
+    .task-name { font-weight: 700; margin-bottom: 0.2rem; }
+    .task-meta, .timing-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }
+    .task-meta code, .timing-meta code, .muted code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .date-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; font-weight: 700; }
+    .status-pill { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border: 1px solid currentColor; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .status-pill--reviews { color: var(--reviews); }
+    .status-pill--due { color: var(--due); }
+    .status-pill--scheduled { color: var(--scheduled); }
+    .status-pill--no-schedule { color: var(--no-schedule); }
+    .website-name { font-weight: 600; }
+    .muted { color: var(--muted); }
+    code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .actions { min-width: 170px; }
+    .action-link { display: inline-flex; align-items: center; margin: 0.1rem 0.3rem 0.1rem 0; padding: 0.34rem 0.62rem; border: 1px solid var(--line-strong); border-radius: 999px; text-decoration: none; color: var(--accent); font-size: 0.84rem; font-weight: 600; }
+    .action-link:hover { border-color: var(--accent); }
+    .source-box { border: 1px solid var(--line); border-radius: 16px; padding: 1rem; margin: 1rem 0 1.4rem; }
+    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }
+    .triage-view .due-section { margin-top: 1.4rem; }
+    .triage-view .workflow-block { margin: 0; border-radius: 0; }
+    .triage-view .section-pill, .triage-view .status-pill, .triage-view .action-link, .triage-view code { border-radius: 0; }
+    .todo-actions { display: grid; justify-items: start; gap: 0.45rem; }
+    .todo-actions .action-link { margin: 0; }
+    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .workflow-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } .actions { min-width: 0; padding-top: 0.25rem; } }
+  </style>
+</head>
+<body class="triage-view">
+  <h1>Harvest Tasks To Do</h1>
+  <p class="muted">For each queued task, open the Harvest record first, then create or open its GitHub issue. When complete, update Last Harvested, remove the Tags, sync, and rerun Triage.</p>
+  <section class="due-section section-pill--due">
+    <div class="section-header">
+      <h2>To do (6)</h2>
+    </div>
+    <div class="workflow-block">
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Timing</th>
+            <th class="actions">Next steps</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Task"><div class="task-name">Urban Base Layers - St. Paul</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2227-58000%22" target="_blank" rel="noreferrer"><code>27-58000</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Tag Due</span><span>2026-07-10</span></div><div class="timing-meta">Last harvested: Not yet harvested</div><div class="timing-meta">Periodicity: Annual</div><div class="timing-meta">Tags: queue:pending_harvest|due:2026-07-10</div></td>
+            <td class="actions" data-label="Actions"><div class="todo-actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/27-58000/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/67" target="_blank" rel="noreferrer">Open issue #67</a></div></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Ann Arbor Data Catalog</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/07c-02" target="_blank" rel="noreferrer"><code>07c-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2207c-02%22" target="_blank" rel="noreferrer"><code>07c-02</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Tag Due</span><span>2026-07-13</span></div><div class="timing-meta">Last harvested: 2026-07-05</div><div class="timing-meta">Periodicity: Quarterly</div><div class="timing-meta">Tags: queue:pending_updates|archive_candidate</div></td>
+            <td class="actions" data-label="Actions"><div class="todo-actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_07c-02/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?title=%5BHarvest+Due%5D+Ann+Arbor+Data+Catalog&amp;body=%23+%5BHarvest+Due%5D+Ann+Arbor+Data+Catalog%0A%0A-+Harvest+record%3A+%5Bharvest_07c-02%5D%28https%3A%2F%2Fgeomg.lib.umn.edu%2Fadmin%2Fdocuments%2Fharvest_07c-02%2Fedit%29%0A-+Identifier%3A+%5B07c-02%5D%28https%3A%2F%2Fgeo.btaa.org%2Fresources%2F07c-02%29%0A-+Due+date%3A+2026-07-13%0A-+Last+harvested%3A+2026-07-05%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_07c-02%3A2026-07-13+--%3E%0A%0A%23%23+Notes%0A&amp;template=harvest-task.md&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></div></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">City of Milwaukee Open Data</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10c-01" target="_blank" rel="noreferrer"><code>10c-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2210c-01%22" target="_blank" rel="noreferrer"><code>10c-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Tag Due</span><span>2026-07-13</span></div><div class="timing-meta">Last harvested: 2026-07-05</div><div class="timing-meta">Periodicity: Quarterly</div><div class="timing-meta">Tags: queue:pending_harvest</div></td>
+            <td class="actions" data-label="Actions"><div class="todo-actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_10c-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?title=%5BHarvest+Due%5D+City+of+Milwaukee+Open+Data&amp;body=%23+%5BHarvest+Due%5D+City+of+Milwaukee+Open+Data%0A%0A-+Harvest+record%3A+%5Bharvest_10c-01%5D%28https%3A%2F%2Fgeomg.lib.umn.edu%2Fadmin%2Fdocuments%2Fharvest_10c-01%2Fedit%29%0A-+Identifier%3A+%5B10c-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fresources%2F10c-01%29%0A-+Due+date%3A+2026-07-13%0A-+Last+harvested%3A+2026-07-05%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_10c-01%3A2026-07-13+--%3E%0A%0A%23%23+Notes%0A&amp;template=harvest-task.md&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></div></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Digital Collections at the University of Illinois at Urbana-Champaign Library</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/02d-01" target="_blank" rel="noreferrer"><code>02d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2202d-01%22" target="_blank" rel="noreferrer"><code>02d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Tag Due</span><span>2026-07-13</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div><div class="timing-meta">Tags: ogm|queue:pending_harvest</div></td>
+            <td class="actions" data-label="Actions"><div class="todo-actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_02d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?title=%5BHarvest+Due%5D+Digital+Collections+at+the+University+of+Illinois+at+Urbana-Champaign+Library&amp;body=%23+%5BHarvest+Due%5D+Digital+Collections+at+the+University+of+Illinois+at+Urbana-Champaign+Library%0A%0A-+Harvest+record%3A+%5Bharvest_02d-01%5D%28https%3A%2F%2Fgeomg.lib.umn.edu%2Fadmin%2Fdocuments%2Fharvest_02d-01%2Fedit%29%0A-+Identifier%3A+%5B02d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fresources%2F02d-01%29%0A-+Due+date%3A+2026-07-13%0A-+Last+harvested%3A+2021-04-27%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_02d-01%3A2026-07-13+--%3E%0A%0A%23%23+Notes%0A&amp;template=harvest-task.md&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></div></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">Maps of New Jersey</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/14d-01" target="_blank" rel="noreferrer"><code>14d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2214d-01%22" target="_blank" rel="noreferrer"><code>14d-01</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Tag Due</span><span>2026-07-13</span></div><div class="timing-meta">Last harvested: 2022-08-17</div><div class="timing-meta">Periodicity: Irregular</div><div class="timing-meta">Tags: ogm|queue:pending_updates</div></td>
+            <td class="actions" data-label="Actions"><div class="todo-actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_14d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?title=%5BHarvest+Due%5D+Maps+of+New+Jersey&amp;body=%23+%5BHarvest+Due%5D+Maps+of+New+Jersey%0A%0A-+Harvest+record%3A+%5Bharvest_14d-01%5D%28https%3A%2F%2Fgeomg.lib.umn.edu%2Fadmin%2Fdocuments%2Fharvest_14d-01%2Fedit%29%0A-+Identifier%3A+%5B14d-01%5D%28https%3A%2F%2Fgeo.btaa.org%2Fresources%2F14d-01%29%0A-+Due+date%3A+2026-07-13%0A-+Last+harvested%3A+2022-08-17%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_14d-01%3A2026-07-13+--%3E%0A%0A%23%23+Notes%0A&amp;template=harvest-task.md&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></div></td>
+          </tr>
+          <tr>
+            <td data-label="Task"><div class="task-name">National Historical Geographic Information System (NHGIS)</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-10" target="_blank" rel="noreferrer"><code>05d-10</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/?search_field=all_fields&amp;q=%2205d-10%22" target="_blank" rel="noreferrer"><code>05d-10</code></a></div></td>
+            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Tag Due</span><span>2026-07-13</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div><div class="timing-meta">Tags: queue:pending_updates</div></td>
+            <td class="actions" data-label="Actions"><div class="todo-actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-10/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span><a class="action-link" href="https://github.com/geobtaa/harvest-operations/issues/new?title=%5BHarvest+Due%5D+National+Historical+Geographic+Information+System+%28NHGIS%29&amp;body=%23+%5BHarvest+Due%5D+National+Historical+Geographic+Information+System+%28NHGIS%29%0A%0A-+Harvest+record%3A+%5Bharvest_05d-10%5D%28https%3A%2F%2Fgeomg.lib.umn.edu%2Fadmin%2Fdocuments%2Fharvest_05d-10%2Fedit%29%0A-+Identifier%3A+%5B05d-10%5D%28https%3A%2F%2Fgeo.btaa.org%2Fresources%2F05d-10%29%0A-+Due+date%3A+2026-07-13%0A-+Last+harvested%3A+2021-04-27%0A%0A%3C%21--+harvest-task-key%3A+harvest%3Aharvest_05d-10%3A2026-07-13+--%3E%0A%0A%23%23+Notes%0A&amp;template=harvest-task.md&amp;labels=harvest-task%2Charvest&amp;projects=geobtaa%2F4" target="_blank" rel="noreferrer">Create issue</a></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</body>
+</html>

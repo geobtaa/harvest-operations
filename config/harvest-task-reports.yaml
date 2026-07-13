@@ -1,0 +1,17 @@
+name: "Harvest Dashboard: Reports"
+type: task_dashboard
+dashboard_task: reports
+harvest_records_csv: inputs/harvest-records.csv
+websites_csv: reference_data/websites.csv
+geoportal_api_facet_url: https://lib-geoportal-prd-web-01.oit.umn.edu/api/v1/search/facets/b1g_code_s
+output_tasks_csv: reports/harvest-task-dashboard.csv
+output_dashboard_html: reports/harvest-task-dashboard.html
+output_retrospective_dashboard_html: reports/harvest-task-dashboard-retrospective.html
+output_workflow_dir: inputs/harvest-workflow-inputs
+arcgis_reports_dir: reports/arcgis
+socrata_reports_dir: reports/socrata
+ckan_reports_dir: reports/ckan
+dedicated_workflow_views:
+  - py_arcgis_hub
+  - py_socrata
+  - py_ckan

@@ -1,0 +1,11 @@
+name: "Harvest Dashboard: Lists"
+type: task_dashboard
+dashboard_task: lists
+harvest_records_csv: inputs/harvest-records.csv
+websites_csv: reference_data/websites.csv
+geoportal_api_facet_url: https://lib-geoportal-prd-web-01.oit.umn.edu/api/v1/search/facets/b1g_code_s
+output_dashboard_html: reports/harvest-task-dashboard.html
+output_records_dashboard_html: reports/harvest-task-dashboard-records.html
+output_institution_dashboard_html: reports/harvest-task-dashboard-institutions.html
+output_map_collections_dashboard_html: reports/harvest-task-dashboard-map-collections.html
+output_standalone_dashboard_html: reports/harvest-task-dashboard-standalone-websites.html

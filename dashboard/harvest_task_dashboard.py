@@ -103,6 +103,51 @@ HARVEST_WORKFLOW_STATIC_PAGES = {
     },
 }
 
+FREQUENT_HARVESTERS = (
+    {
+        "workflow": "py_arcgis_hub",
+        "label": "ArcGIS Hub",
+        "group": "Batch tasks",
+        "static_page": HARVEST_WORKFLOW_STATIC_PAGES["py_arcgis_hub"],
+        "report_workflow": "py_arcgis_hub",
+    },
+    {
+        "workflow": "py_socrata",
+        "label": "Socrata",
+        "group": "Batch tasks",
+        "static_page": HARVEST_WORKFLOW_STATIC_PAGES["py_socrata"],
+        "report_workflow": "py_socrata",
+    },
+    {
+        "workflow": "py_hdx",
+        "label": "HDX",
+        "group": "Single-site tasks",
+        "static_page": HARVEST_WORKFLOW_STATIC_PAGES["py_hdx"],
+        "harvest_record_code": "99-1400",
+        "harvest_record_workflow": "py_hdx",
+        "last_run_path": "outputs/hdx_primary.csv",
+    },
+    {
+        "workflow": "py_ckan",
+        "label": "CKAN",
+        "group": "Batch tasks",
+        "static_page": HARVEST_WORKFLOW_STATIC_PAGES["py_ckan"],
+        "report_workflow": "py_ckan",
+    },
+    {
+        "workflow": "pasda-metadata",
+        "label": "PASDA Metadata Directory",
+        "group": "Single-site tasks",
+        "static_page": {
+            "label": "PASDA Metadata Directory Harvester",
+            "url": "/static/pasda-metadata.html",
+        },
+        "harvest_record_code": "08a-04",
+        "harvest_record_workflow": "py_pasda_metadata_directory",
+        "last_run_path": "registry/pasda_metadata_registry.csv",
+    },
+)
+
 DEFAULT_DEDICATED_WORKFLOW_VIEWS = ("py_arcgis_hub", "py_socrata")
 ISSUE_TASK_MARKER_PREFIX = "harvest-task-key"
 DEFAULT_STANDALONE_ISSUE_TEMPLATE = "standalone-website.md"
@@ -116,6 +161,7 @@ DEFAULT_ARCGIS_REPORTS_DIR = "reports/arcgis"
 DEFAULT_SOCRATA_REPORTS_DIR = "reports/socrata"
 DEFAULT_CKAN_REPORTS_DIR = "reports/ckan"
 DEFAULT_PUBLIC_DASHBOARD_SITE_BASE_PATH = "/harvest-operations"
+VALID_DASHBOARD_TASKS = {"all", "triage", "reports", "lists"}
 ARCGIS_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_arcgis_report\.csv$")
 SOCRATA_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_socrata_report\.csv$")
 CKAN_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_ckan_report\.csv$")
@@ -153,6 +199,12 @@ HARVEST_REPORT_WORKFLOW_CONFIG = {
 class HarvestTaskDashboardJob:
     def __init__(self, config: dict[str, Any]):
         self.config = config
+        self.dashboard_task = self._clean_value(config.get("dashboard_task", "all")).lower() or "all"
+        if self.dashboard_task not in VALID_DASHBOARD_TASKS:
+            raise ValueError(
+                "dashboard_task must be one of: "
+                f"{', '.join(sorted(VALID_DASHBOARD_TASKS))}"
+            )
         self.harvest_records_path = Path(
             config.get("harvest_records_csv", DEFAULT_HARVEST_RECORDS_CSV)
         )
@@ -163,6 +215,22 @@ class HarvestTaskDashboardJob:
         )
         self.output_due_dashboard_html = Path(
             config.get("output_due_dashboard_html", "reports/harvest-task-dashboard-due.html")
+        )
+        self.output_review_dashboard_html = Path(
+            config.get(
+                "output_review_dashboard_html",
+                self.output_dashboard_html.with_name(
+                    f"{self.output_dashboard_html.stem}-review{self.output_dashboard_html.suffix}"
+                ),
+            )
+        )
+        self.output_todo_dashboard_html = Path(
+            config.get(
+                "output_todo_dashboard_html",
+                self.output_dashboard_html.with_name(
+                    f"{self.output_dashboard_html.stem}-todo{self.output_dashboard_html.suffix}"
+                ),
+            )
         )
         self.output_records_dashboard_html = Path(
             config.get(
@@ -205,6 +273,12 @@ class HarvestTaskDashboardJob:
         self.output_public_dashboard_html = self._public_output_path(self.output_dashboard_html)
         self.output_public_due_dashboard_html = self._public_output_path(
             self.output_due_dashboard_html
+        )
+        self.output_public_review_dashboard_html = self._public_output_path(
+            self.output_review_dashboard_html
+        )
+        self.output_public_todo_dashboard_html = self._public_output_path(
+            self.output_todo_dashboard_html
         )
         self.output_public_records_dashboard_html = self._public_output_path(
             self.output_records_dashboard_html
@@ -288,6 +362,11 @@ class HarvestTaskDashboardJob:
         standalone_websites_df = self._filter_standalone_websites(websites_df)
 
         task_df = self._build_task_dataframe(harvest_df, websites_df)
+        triage_task_df = self._build_task_dataframe(
+            harvest_df,
+            websites_df,
+            consolidate_workflows=False,
+        )
         main_task_df = self._filter_task_view(task_df)
         main_harvest_df = self._filter_harvest_view(harvest_df)
         dashboard_html = self._render_dashboard_html(
@@ -299,6 +378,16 @@ class HarvestTaskDashboardJob:
         due_dashboard_html = self._render_dashboard_html(
             self._filter_due_only_tasks(main_task_df),
             report_title=self._report_title(report_type="due"),
+        )
+        review_dashboard_html = self._render_dashboard_html(
+            triage_task_df,
+            report_title=self._report_title(report_type="review"),
+            section_mode="review",
+        )
+        todo_dashboard_html = self._render_dashboard_html(
+            self._filter_todo_tasks(triage_task_df),
+            report_title=self._report_title(report_type="todo"),
+            section_mode="todo",
         )
         records_dashboard_html = self._render_record_list_html(
             main_harvest_df,
@@ -321,69 +410,98 @@ class HarvestTaskDashboardJob:
             report_title=self._report_title(report_type="retrospective"),
         )
 
-        task_output_path = self._write_dataframe(task_df, self.output_tasks_csv)
-        dashboard_output_path = self._write_text(dashboard_html, self.output_public_dashboard_html)
-        due_dashboard_output_path = self._write_text(
-            due_dashboard_html, self.output_public_due_dashboard_html
-        )
-        records_dashboard_output_path = self._write_text(
-            records_dashboard_html, self.output_public_records_dashboard_html
-        )
-        institution_dashboard_output_path = self._write_text(
-            institution_dashboard_html,
-            self.output_public_institution_dashboard_html,
-        )
-        map_collections_dashboard_output_path = self._write_text(
-            map_collections_dashboard_html,
-            self.output_public_map_collections_dashboard_html,
-        )
-        standalone_dashboard_output_path = self._write_text(
-            standalone_dashboard_html,
-            self.output_public_standalone_dashboard_html,
-        )
-        retrospective_dashboard_output_path = self._write_text(
-            retrospective_dashboard_html,
-            self.output_public_retrospective_dashboard_html,
-        )
-        public_dedicated_dashboard_outputs = self._write_dedicated_workflow_dashboards(
-            harvest_df,
-            public=True,
-        )
-        dedicated_dashboard_outputs = public_dedicated_dashboard_outputs
-        # Write per-workflow input CSVs from harvest records so harvesters receive task rows.
-        workflow_outputs = self._write_workflow_inputs(harvest_df)
-
-        summary = self._build_summary(task_df)
-        return {
+        results: dict[str, Any] = {
             "status": "completed",
+            "dashboard_task": self.dashboard_task,
             "task_count": len(task_df),
-            "workflow_count": len(workflow_outputs),
-            "summary": summary,
-            "task_csv": str(task_output_path),
-            "dashboard_html": str(dashboard_output_path),
-            "public_dashboard_html": str(dashboard_output_path),
-            "due_dashboard_html": str(due_dashboard_output_path),
-            "public_due_dashboard_html": str(due_dashboard_output_path),
-            "records_dashboard_html": str(records_dashboard_output_path),
-            "public_records_dashboard_html": str(records_dashboard_output_path),
-            "institution_dashboard_html": str(institution_dashboard_output_path),
-            "public_institution_dashboard_html": str(institution_dashboard_output_path),
-            "map_collections_dashboard_html": str(map_collections_dashboard_output_path),
-            "public_map_collections_dashboard_html": str(map_collections_dashboard_output_path),
-            "standalone_dashboard_html": str(standalone_dashboard_output_path),
-            "public_standalone_dashboard_html": str(standalone_dashboard_output_path),
-            "retrospective_dashboard_html": str(retrospective_dashboard_output_path),
-            "public_retrospective_dashboard_html": str(retrospective_dashboard_output_path),
-            "dedicated_dashboard_html": dedicated_dashboard_outputs,
-            "public_dedicated_dashboard_html": public_dedicated_dashboard_outputs,
-            "workflow_inputs": workflow_outputs,
+            "summary": self._build_summary(task_df),
         }
+
+        if self.dashboard_task in {"all", "triage"}:
+            review_output_path = self._write_text(
+                review_dashboard_html, self.output_public_review_dashboard_html
+            )
+            todo_output_path = self._write_text(
+                todo_dashboard_html, self.output_public_todo_dashboard_html
+            )
+            due_output_path = self._write_text(
+                due_dashboard_html, self.output_public_due_dashboard_html
+            )
+            results.update(
+                {
+                    "review_dashboard_html": str(review_output_path),
+                    "public_review_dashboard_html": str(review_output_path),
+                    "todo_dashboard_html": str(todo_output_path),
+                    "public_todo_dashboard_html": str(todo_output_path),
+                    "due_dashboard_html": str(due_output_path),
+                    "public_due_dashboard_html": str(due_output_path),
+                }
+            )
+
+        if self.dashboard_task in {"all", "reports"}:
+            task_output_path = self._write_dataframe(task_df, self.output_tasks_csv)
+            dashboard_output_path = self._write_text(
+                dashboard_html, self.output_public_dashboard_html
+            )
+            retrospective_output_path = self._write_text(
+                retrospective_dashboard_html,
+                self.output_public_retrospective_dashboard_html,
+            )
+            results.update(
+                {
+                    "task_csv": str(task_output_path),
+                    "dashboard_html": str(dashboard_output_path),
+                    "public_dashboard_html": str(dashboard_output_path),
+                    "retrospective_dashboard_html": str(retrospective_output_path),
+                    "public_retrospective_dashboard_html": str(retrospective_output_path),
+                }
+            )
+            public_dedicated_dashboard_outputs = self._write_dedicated_workflow_dashboards(
+                harvest_df,
+                public=True,
+            )
+            results["dedicated_dashboard_html"] = public_dedicated_dashboard_outputs
+            results["public_dedicated_dashboard_html"] = public_dedicated_dashboard_outputs
+            results["workflow_inputs"] = self._write_workflow_inputs(harvest_df)
+            results["workflow_count"] = len(results["workflow_inputs"])
+
+        if self.dashboard_task in {"all", "lists"}:
+            records_output_path = self._write_text(
+                records_dashboard_html, self.output_public_records_dashboard_html
+            )
+            institution_output_path = self._write_text(
+                institution_dashboard_html,
+                self.output_public_institution_dashboard_html,
+            )
+            map_collections_output_path = self._write_text(
+                map_collections_dashboard_html,
+                self.output_public_map_collections_dashboard_html,
+            )
+            standalone_output_path = self._write_text(
+                standalone_dashboard_html,
+                self.output_public_standalone_dashboard_html,
+            )
+            results.update(
+                {
+                    "records_dashboard_html": str(records_output_path),
+                    "public_records_dashboard_html": str(records_output_path),
+                    "institution_dashboard_html": str(institution_output_path),
+                    "public_institution_dashboard_html": str(institution_output_path),
+                    "map_collections_dashboard_html": str(map_collections_output_path),
+                    "public_map_collections_dashboard_html": str(map_collections_output_path),
+                    "standalone_dashboard_html": str(standalone_output_path),
+                    "public_standalone_dashboard_html": str(standalone_output_path),
+                }
+            )
+
+        return results
 
     def render_dashboard_view(
         self,
         embedded: bool = False,
         report_type: str = "full",
         workflow: str = "",
+        report_date: str = "",
         public: bool = False,
     ) -> str:
         harvest_df = self._load_csv(self.harvest_records_path)
@@ -399,11 +517,21 @@ class HarvestTaskDashboardJob:
             scoped_workflow = report_workflow
             normalized_report_type = "full"
         if self._use_combined_workflow_view(scoped_workflow):
+            historical_report_path = None
+            if report_date:
+                historical_report_path = self._harvest_report_path_for_date(
+                    scoped_workflow, report_date
+                )
+                if historical_report_path is None:
+                    raise ValueError(
+                        f"No {self._workflow_view_label(scoped_workflow)} report was found for {report_date}."
+                    )
             return self._render_combined_workflow_html(
                 self._filter_harvest_view(harvest_df, scoped_workflow),
                 workflow=scoped_workflow,
                 embedded=embedded,
                 public=public,
+                historical_report_path=historical_report_path,
             )
         if normalized_report_type == "due":
             task_df = self._filter_due_only_tasks(self._filter_task_view(task_df, scoped_workflow))
@@ -412,6 +540,43 @@ class HarvestTaskDashboardJob:
                 embedded=embedded,
                 report_title=self._report_title(report_type="due", workflow=scoped_workflow),
                 public=public,
+            )
+        if normalized_report_type in {"review", "to-be-reviewed", "to_be_reviewed"}:
+            triage_task_df = self._build_task_dataframe(
+                harvest_df,
+                websites_df,
+                consolidate_workflows=False,
+            )
+            task_df = (
+                self._filter_task_view(triage_task_df, scoped_workflow)
+                if scoped_workflow
+                else triage_task_df
+            )
+            return self._render_dashboard_html(
+                task_df,
+                embedded=embedded,
+                report_title=self._report_title(report_type="review", workflow=scoped_workflow),
+                public=public,
+                section_mode="review",
+            )
+        if normalized_report_type in {"todo", "to-do", "to_do"}:
+            triage_task_df = self._build_task_dataframe(
+                harvest_df,
+                websites_df,
+                consolidate_workflows=False,
+            )
+            todo_source_df = (
+                self._filter_task_view(triage_task_df, scoped_workflow)
+                if scoped_workflow
+                else triage_task_df
+            )
+            task_df = self._filter_todo_tasks(todo_source_df)
+            return self._render_dashboard_html(
+                task_df,
+                embedded=embedded,
+                report_title=self._report_title(report_type="todo", workflow=scoped_workflow),
+                public=public,
+                section_mode="todo",
             )
         if normalized_report_type == "records":
             return self._render_record_list_html(
@@ -482,6 +647,68 @@ class HarvestTaskDashboardJob:
             ),
         )
 
+    def render_workflow_report_archive(self, workflow: str) -> str:
+        workflow_name = self._clean_value(workflow)
+        if workflow_name not in HARVEST_REPORT_WORKFLOW_CONFIG:
+            raise ValueError(f"Unsupported workflow report archive: {workflow_name}")
+
+        report_rows = []
+        for report_date, report_path in self._harvest_report_paths(workflow_name):
+            report_date_string = report_date.strftime("%Y-%m-%d")
+            report_url = (
+                "/jobs/harvest-task-dashboard/view?"
+                f"{urlencode({'workflow': workflow_name, 'report_date': report_date_string})}"
+            )
+            report_rows.append(
+                "        <tr>"
+                f"<th scope=\"row\">{escape(report_date_string)}</th>"
+                f"<td><a href=\"{escape(report_url, quote=True)}\">View report</a></td>"
+                f"<td><code>{escape(report_path.name)}</code></td>"
+                "</tr>"
+            )
+
+        report_title = self._harvest_report_title(workflow_name)
+        html_parts = [
+            "<!DOCTYPE html>",
+            '<html lang="en">',
+            "<head>",
+            '  <meta charset="UTF-8">',
+            f"  <title>{escape(report_title)} Archive</title>",
+            "  <style>",
+            "    :root { color-scheme: light; --ink: #17324d; --muted: #5b6b7d; --line: #d7e1ec; --accent: #1f6fb2; }",
+            '    body { margin: 1.5rem auto; max-width: 900px; padding: 0 1rem 2.5rem; font-family: "Segoe UI", sans-serif; line-height: 1.35; color: var(--ink); }',
+            "    h1, p { margin-top: 0; }",
+            "    a { color: var(--accent); }",
+            "    .muted { color: var(--muted); }",
+            "    .archive { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }",
+            "    table { width: 100%; border-collapse: collapse; }",
+            "    th, td { padding: 0.75rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }",
+            "    tbody tr:last-child th, tbody tr:last-child td { border-bottom: none; }",
+            "    code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "  </style>",
+            "</head>",
+            "<body>",
+            f"  <h1>{escape(report_title)} Archive</h1>",
+            "  <p class=\"muted\">Select a report date to view the historical harvest results.</p>",
+        ]
+        if report_rows:
+            html_parts.extend(
+                [
+                    "  <section class=\"archive\">",
+                    "    <table>",
+                    "      <thead><tr><th>Date</th><th>Report</th><th>Source CSV</th></tr></thead>",
+                    "      <tbody>",
+                    *report_rows,
+                    "      </tbody>",
+                    "    </table>",
+                    "  </section>",
+                ]
+            )
+        else:
+            html_parts.append("  <p>No prior reports are available.</p>")
+        html_parts.extend(["</body>", "</html>"])
+        return "\n".join(html_parts)
+
     def build_workflow_queue(self) -> dict[str, Any]:
         harvest_df = self._load_csv(self.harvest_records_path)
         websites_df = self._load_csv(self.websites_path)
@@ -500,6 +727,107 @@ class HarvestTaskDashboardJob:
             "workflows": workflows,
         }
 
+    def build_frequent_harvesters(self) -> dict[str, list[dict[str, str]]]:
+        harvest_records_df = (
+            self._load_csv(self.harvest_records_path)
+            if self.harvest_records_path.is_file()
+            else pd.DataFrame()
+        )
+        harvesters = []
+        for harvester in FREQUENT_HARVESTERS:
+            report_workflow = self._clean_value(harvester.get("report_workflow", ""))
+            last_run_path = Path(str(harvester.get("last_run_path", "")))
+            harvest_record_last_run = self._frequent_harvester_record_last_run(
+                harvest_records_df,
+                code=self._clean_value(harvester.get("harvest_record_code", "")),
+                workflow=self._clean_value(harvester.get("harvest_record_workflow", "")),
+            )
+            if harvest_record_last_run:
+                last_run = harvest_record_last_run
+            elif report_workflow:
+                report_path = self._latest_harvest_report_path(report_workflow)
+                last_run = self._harvest_report_date_from_path(report_path) or "Not available"
+            elif last_run_path.is_file():
+                last_run = pd.Timestamp.fromtimestamp(last_run_path.stat().st_mtime).strftime(
+                    "%Y-%m-%d"
+                )
+            else:
+                last_run = "Not available"
+
+            static_page = dict(harvester["static_page"])
+            harvest_record_url = self._frequent_harvester_record_url(
+                harvest_records_df,
+                code=self._clean_value(harvester.get("harvest_record_code", "")),
+                workflow=self._clean_value(harvester.get("harvest_record_workflow", "")),
+            )
+            harvesters.append(
+                {
+                    "workflow": str(harvester["workflow"]),
+                    "label": str(harvester["label"]),
+                    "group": str(harvester["group"]),
+                    "last_run": last_run,
+                    "static_page_label": str(static_page["label"]),
+                    "static_page_url": str(static_page["url"]),
+                    "harvest_record_url": harvest_record_url,
+                }
+            )
+        return {"harvesters": harvesters}
+
+    def _frequent_harvester_record_last_run(
+        self,
+        harvest_records_df: pd.DataFrame,
+        code: str,
+        workflow: str,
+    ) -> str:
+        if harvest_records_df.empty or not code or not workflow:
+            return ""
+
+        matching_records = self._frequent_harvester_records(
+            harvest_records_df, code=code, workflow=workflow
+        )
+        last_harvested = pd.to_datetime(
+            matching_records["Last Harvested"], errors="coerce"
+        ).dropna()
+        if last_harvested.empty:
+            return ""
+        return last_harvested.max().strftime("%Y-%m-%d")
+
+    def _frequent_harvester_record_url(
+        self,
+        harvest_records_df: pd.DataFrame,
+        code: str,
+        workflow: str,
+    ) -> str:
+        matching_records = self._frequent_harvester_records(
+            harvest_records_df, code=code, workflow=workflow
+        )
+        if matching_records.empty:
+            return ""
+        record_id = self._clean_value(matching_records.iloc[0].get("ID", ""))
+        return self._harvest_record_url(record_id) or ""
+
+    def _frequent_harvester_records(
+        self,
+        harvest_records_df: pd.DataFrame,
+        code: str,
+        workflow: str,
+    ) -> pd.DataFrame:
+        if harvest_records_df.empty or not code or not workflow:
+            return pd.DataFrame(columns=harvest_records_df.columns)
+
+        working_df = harvest_records_df.copy()
+        self._ensure_columns(
+            working_df,
+            ["Code", "Identifier", "Harvest Workflow", "Last Harvested", "ID"],
+        )
+        return working_df.loc[
+            (
+                working_df["Code"].map(self._clean_value).eq(code)
+                | working_df["Identifier"].map(self._clean_value).eq(code)
+            )
+            & working_df["Harvest Workflow"].map(self._clean_value).eq(workflow)
+        ]
+
     def _load_csv(self, path: Path) -> pd.DataFrame:
         df = pd.read_csv(path, dtype=str).fillna("")
         df.columns = [str(column).strip() for column in df.columns]
@@ -512,7 +840,12 @@ class HarvestTaskDashboardJob:
             working_df["Code"].map(self._clean_value).eq(STANDALONE_WEBSITE_CODE)
         ].reset_index(drop=True)
 
-    def _build_task_dataframe(self, harvest_df: pd.DataFrame, websites_df: pd.DataFrame) -> pd.DataFrame:
+    def _build_task_dataframe(
+        self,
+        harvest_df: pd.DataFrame,
+        websites_df: pd.DataFrame,
+        consolidate_workflows: bool = True,
+    ) -> pd.DataFrame:
         harvest_df = harvest_df.copy()
         websites_df = websites_df.copy()
 
@@ -538,15 +871,25 @@ class HarvestTaskDashboardJob:
             row_dict = harvest_row.to_dict()
             base_task = row_dict.copy()
 
-            due_date = self._calculate_due_date(
+            schedule_due_date = self._calculate_due_date(
                 row_dict.get("Last Harvested", ""),
                 row_dict.get("Accrual Periodicity", ""),
             )
-            if self._has_pending_updates_tag(row_dict):
-                due_date = self.today
-            pending_harvest_due_date = self._pending_harvest_due_date(row_dict)
-            if pending_harvest_due_date is not None:
-                due_date = pending_harvest_due_date
+            tag_due_date = self._tag_due_date(row_dict)
+            due_date = schedule_due_date
+            if self._has_pending_queue_tag(row_dict):
+                due_date = tag_due_date or self.today
+            base_task["Schedule Due Date"] = (
+                schedule_due_date.strftime("%Y-%m-%d") if schedule_due_date is not None else ""
+            )
+            base_task["Schedule Due Status"] = self._determine_schedule_due_status(
+                schedule_due_date,
+                row_dict.get("Accrual Periodicity", ""),
+            )
+            base_task["Tag Due Date"] = (
+                tag_due_date.strftime("%Y-%m-%d") if tag_due_date is not None else ""
+            )
+            base_task["Tag Due Status"] = self._determine_tag_due_status(tag_due_date)
             base_task["Due Date"] = due_date.strftime("%Y-%m-%d") if due_date is not None else ""
             base_task["Due Status"] = self._determine_due_status(
                 due_date,
@@ -610,7 +953,8 @@ class HarvestTaskDashboardJob:
         if task_df.empty:
             return task_df
 
-        task_df = self._consolidate_workflows(task_df, websites_df)
+        if consolidate_workflows:
+            task_df = self._consolidate_workflows(task_df, websites_df)
 
         task_df["Effective Harvest Workflow"] = task_df["Effective Harvest Workflow"].map(
             lambda value: self._clean_value(value) or "unspecified"
@@ -1002,11 +1346,8 @@ class HarvestTaskDashboardJob:
                 row_dict.get("Last Harvested", ""),
                 row_dict.get("Accrual Periodicity", ""),
             )
-            if self._has_pending_updates_tag(row_dict):
-                due_date = self.today
-            pending_harvest_due_date = self._pending_harvest_due_date(row_dict)
-            if pending_harvest_due_date is not None:
-                due_date = pending_harvest_due_date
+            if self._has_pending_queue_tag(row_dict):
+                due_date = self._tag_due_date(row_dict) or self.today
             review_date = self._calculate_review_date(
                 row_dict.get("Last Harvested", ""),
                 row_dict.get("Accrual Periodicity", ""),
@@ -1285,19 +1626,19 @@ class HarvestTaskDashboardJob:
             "      --no-schedule-soft: #edf1f5;",
             "    }",
             "    * { box-sizing: border-box; }",
-            "    body { margin: 1.5rem auto; max-width: 1100px; padding: 0 1rem 2.5rem; font-family: \"Segoe UI\", sans-serif; line-height: 1.35; color: var(--ink); background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%); }",
+            "    body { margin: 1.5rem auto; max-width: 1100px; padding: 0 1rem 2.5rem; font-family: \"Segoe UI\", sans-serif; line-height: 1.35; color: var(--ink); }",
             "    h1, h2, p { margin-top: 0; }",
             "    a { color: var(--accent); }",
             "    .restricted-login-glyph { display: inline-block; margin-left: 0.25rem; font-size: 0.86em; vertical-align: text-top; }",
             "    .muted { color: var(--muted); }",
-            "    code { background: var(--panel-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }",
-            "    .source-box, .periodicity-section { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
+            "    code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    .source-box, .periodicity-section { border: 1px solid var(--line); border-radius: 16px; }",
             "    .source-box { padding: 1rem; margin: 1rem 0 1.4rem; }",
             "    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }",
             "    .periodicity-section { overflow: hidden; margin-top: 1rem; }",
-            "    .section-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }",
+            "    .section-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; border-bottom: 1px solid var(--line); }",
             "    .section-meta { color: var(--muted); font-size: 0.82rem; }",
-            "    .toc-box { padding: 1rem; margin: 1rem 0 1.4rem; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
+            "    .toc-box { padding: 1rem; margin: 1rem 0 1.4rem; border: 1px solid var(--line); border-radius: 16px; }",
             "    .toc-box ul { columns: 2; column-gap: 2rem; margin: 0.75rem 0 0; padding-left: 1.15rem; }",
             "    .toc-box li { break-inside: avoid; margin-bottom: 0.35rem; }",
             "    .header-actions { display: flex; flex-wrap: wrap; gap: 0.55rem; margin: 1rem 0 1.2rem; }",
@@ -1306,16 +1647,16 @@ class HarvestTaskDashboardJob:
             "    .record-item:first-child { border-top: none; }",
             "    .task-name { font-weight: 700; margin-bottom: 0.2rem; }",
             "    .task-meta, .timing-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }",
-            "    .task-meta code, .timing-meta code { background: var(--no-schedule-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    .task-meta code, .timing-meta code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }",
             "    .record-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.55rem; }",
-            "    .action-link { display: inline-flex; align-items: center; padding: 0.34rem 0.62rem; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: var(--accent); background: #fff; font-size: 0.84rem; font-weight: 600; }",
-            "    .action-link:hover { background: #e8f2fd; border-color: #c3d7ed; }",
+            "    .action-link { display: inline-flex; align-items: center; padding: 0.34rem 0.62rem; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: var(--accent); font-size: 0.84rem; font-weight: 600; }",
+            "    .action-link:hover { border-color: var(--accent); }",
             "    .date-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; font-weight: 700; }",
-            "    .status-pill { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }",
-            "    .status-pill--reviews { color: var(--reviews); background: var(--reviews-soft); }",
-            "    .status-pill--due { color: var(--due); background: var(--due-soft); }",
-            "    .status-pill--scheduled { color: var(--scheduled); background: var(--scheduled-soft); }",
-            "    .status-pill--no-schedule { color: var(--no-schedule); background: var(--no-schedule-soft); }",
+            "    .status-pill { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border: 1px solid currentColor; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }",
+            "    .status-pill--reviews { color: var(--reviews); }",
+            "    .status-pill--due { color: var(--due); }",
+            "    .status-pill--scheduled { color: var(--scheduled); }",
+            "    .status-pill--no-schedule { color: var(--no-schedule); }",
             "    @media (max-width: 760px) { body { padding: 0 0.7rem 2rem; } .toc-box ul { columns: 1; } .record-item { grid-template-columns: 1fr; gap: 0.45rem; } .section-header { align-items: flex-start; flex-direction: column; } }",
             "  </style>",
             "</head>",
@@ -1411,14 +1752,19 @@ class HarvestTaskDashboardJob:
         workflow: str,
         embedded: bool = False,
         public: bool = False,
+        historical_report_path: Path | None = None,
     ) -> str:
         workflow_name = self._clean_value(workflow) or "unspecified"
         workflow_label = self._workflow_view_label(workflow_name)
         is_harvest_report = self._is_harvest_report_workflow(workflow_name)
         last_run = (
-            self._latest_harvest_report_date(workflow_name)
-            if is_harvest_report
-            else self._latest_harvest_date(harvest_df)
+            self._harvest_report_date_from_path(historical_report_path)
+            if historical_report_path is not None
+            else (
+                self._latest_harvest_report_date(workflow_name)
+                if is_harvest_report
+                else self._latest_harvest_date(harvest_df)
+            )
         )
         page_title = (
             f"{self._harvest_report_title(workflow_name)} - {last_run or 'Unknown date'}"
@@ -1427,9 +1773,17 @@ class HarvestTaskDashboardJob:
         )
         current_records = self._prepare_harvest_record_view(harvest_df)
         if is_harvest_report:
-            current_records = self._attach_harvest_report_numbers(current_records, workflow_name)
+            current_records = self._attach_harvest_report_numbers(
+                current_records,
+                workflow_name,
+                report_path=historical_report_path,
+            )
         report_totals = (
-            self._harvest_report_totals(current_records, workflow_name)
+            self._harvest_report_totals(
+                current_records,
+                workflow_name,
+                report_path=historical_report_path,
+            )
             if is_harvest_report
             else {}
         )
@@ -1458,37 +1812,36 @@ class HarvestTaskDashboardJob:
             "      --error-soft: #fee4e2;",
             "    }",
             "    * { box-sizing: border-box; }",
-            "    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: \"Segoe UI\", sans-serif; line-height: 1.35; color: var(--ink); background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%); }",
+            "    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: \"Segoe UI\", sans-serif; line-height: 1.35; color: var(--ink); }",
             "    h1, h2, p { margin-top: 0; }",
             "    h1 { margin-bottom: 0.4rem; }",
             "    h2 { margin-bottom: 0.9rem; }",
             "    a { color: var(--accent); }",
             "    .restricted-login-glyph { display: inline-block; margin-left: 0.25rem; font-size: 0.86em; vertical-align: text-top; }",
             "    .muted { color: var(--muted); }",
-            "    code { background: var(--panel-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }",
-            "    .source-box, .status-box, .section-box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 1rem; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
+            "    code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    .source-box, .status-box, .section-box { border: 1px solid var(--line); border-radius: 16px; padding: 1rem; }",
             "    .source-box { margin: 1rem 0 1.4rem; }",
             "    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }",
-            "    .status-box { margin: 1.25rem 0 1.4rem; background: linear-gradient(135deg, var(--panel) 0%, var(--success-soft) 100%); border-color: #b7e4d7; }",
+            "    .status-box { margin: 1.25rem 0 1.4rem; border-color: var(--success); }",
             "    .status-label { color: var(--muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }",
             "    .status-value { display: block; margin-top: 0.35rem; font-size: 1.65rem; font-weight: 700; color: var(--success); }",
             "    .section-box { padding: 0; overflow: hidden; }",
-            "    .section-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }",
+            "    .section-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; border-bottom: 1px solid var(--line); }",
             "    .section-meta { color: var(--muted); font-size: 0.82rem; }",
             "    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }",
             "    th, td { padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }",
-            "    th { background: #f9fbfd; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }",
+            "    th { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }",
             "    tbody tr:last-child td { border-bottom: none; }",
-            "    tbody tr:nth-child(even) { background: #fbfdff; }",
-            "    tbody tr.report-error { background: #fff7f6; }",
-            "    tfoot th, tfoot td { background: #f1f6fb; border-top: 2px solid var(--line-strong); font-weight: 700; }",
+            "    tbody tr.report-error { border-left: 3px solid var(--error); }",
+            "    tfoot th, tfoot td { border-top: 2px solid var(--line-strong); font-weight: 700; }",
             "    .task-name { font-weight: 700; margin-bottom: 0.2rem; }",
             "    .task-meta, .detail-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }",
-            "    .task-meta code, .detail-meta code { background: #edf1f5; padding: 0.08rem 0.32rem; border-radius: 6px; }",
-            "    .run-pill { display: inline-flex; align-items: center; padding: 0.16rem 0.5rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }",
-            "    .run-pill--success { color: var(--success); background: var(--success-soft); }",
-            "    .run-pill--error { color: var(--error); background: var(--error-soft); }",
-            "    .run-pill--unknown { color: var(--muted); background: var(--panel-soft); }",
+            "    .task-meta code, .detail-meta code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    .run-pill { display: inline-flex; align-items: center; padding: 0.16rem 0.5rem; border: 1px solid currentColor; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }",
+            "    .run-pill--success { color: var(--success); }",
+            "    .run-pill--error { color: var(--error); }",
+            "    .run-pill--unknown { color: var(--muted); }",
             "    .number-cell { text-align: right; white-space: nowrap; }",
             "    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .section-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } }",
             "  </style>",
@@ -1988,33 +2341,32 @@ class HarvestTaskDashboardJob:
             "      --action-other-soft: #ede9fe;",
             "    }",
             "    * { box-sizing: border-box; }",
-            "    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: \"Segoe UI\", sans-serif; line-height: 1.35; color: var(--ink); background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%); }",
+            "    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: \"Segoe UI\", sans-serif; line-height: 1.35; color: var(--ink); }",
             "    h1, h2, h3, p { margin-top: 0; }",
             "    h1 { margin-bottom: 0.4rem; }",
             "    h2 { margin-bottom: 0.9rem; }",
             "    a { color: var(--accent); }",
             "    .restricted-login-glyph { display: inline-block; margin-left: 0.25rem; font-size: 0.86em; vertical-align: text-top; }",
             "    .month-section { margin-top: 1.6rem; }",
-            "    .month-block { margin: 0.9rem 0 1.15rem; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
-            "    .month-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.75rem 0.95rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }",
+            "    .month-block { margin: 0.9rem 0 1.15rem; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }",
+            "    .month-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.75rem 0.95rem; border-bottom: 1px solid var(--line); }",
             "    .month-meta { color: var(--muted); font-size: 0.82rem; }",
             "    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }",
             "    th, td { padding: 0.55rem 0.7rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }",
-            "    th { background: #f9fbfd; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }",
+            "    th { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }",
             "    tbody tr:last-child td { border-bottom: none; }",
-            "    tbody tr:nth-child(even) { background: #fbfdff; }",
             "    .task-name { font-weight: 700; margin-bottom: 0.2rem; }",
             "    .task-meta, .detail-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }",
-            "    .task-meta code, .muted code { background: #edf1f5; padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    .task-meta code, .muted code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }",
             "    .date-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; font-weight: 700; }",
-            "    .status-pill { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }",
-            "    .status-pill--harvest { color: var(--action-harvest); background: var(--action-harvest-soft); }",
-            "    .status-pill--review { color: var(--action-review); background: var(--action-review-soft); }",
-            "    .status-pill--ingest { color: var(--action-ingest); background: var(--action-ingest-soft); }",
-            "    .status-pill--other { color: var(--action-other); background: var(--action-other-soft); }",
+            "    .status-pill { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border: 1px solid currentColor; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }",
+            "    .status-pill--harvest { color: var(--action-harvest); background-color: var(--action-harvest-soft); }",
+            "    .status-pill--review { color: var(--action-review); background-color: var(--action-review-soft); }",
+            "    .status-pill--ingest { color: var(--action-ingest); background-color: var(--action-ingest-soft); }",
+            "    .status-pill--other { color: var(--action-other); background-color: var(--action-other-soft); }",
             "    .muted { color: var(--muted); }",
-            "    code { background: var(--panel-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }",
-            "    .source-box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 1rem; margin: 1rem 0 1.4rem; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
+            "    code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    .source-box { border: 1px solid var(--line); border-radius: 16px; padding: 1rem; margin: 1rem 0 1.4rem; }",
             "    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }",
             "    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .month-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } }",
             "  </style>",
@@ -2054,7 +2406,6 @@ class HarvestTaskDashboardJob:
                     "          <tr>",
                     "            <th>Record</th>",
                     "            <th>Action</th>",
-                    "            <th>Workflow</th>",
                     "            <th>Details</th>",
                     "          </tr>",
                     "        </thead>",
@@ -2067,7 +2418,6 @@ class HarvestTaskDashboardJob:
                         "          <tr>",
                         f"            <td data-label=\"Record\">{self._render_retrospective_record_cell(row, public=public)}</td>",
                         f"            <td data-label=\"Action\">{self._render_retrospective_action_cell(row)}</td>",
-                        f"            <td data-label=\"Workflow\"><code>{escape(self._clean_value(row.get('Harvest Workflow', '')) or 'unspecified')}</code></td>",
                         f"            <td data-label=\"Details\">{self._render_retrospective_details_cell(row)}</td>",
                         "          </tr>",
                     ]
@@ -2092,9 +2442,12 @@ class HarvestTaskDashboardJob:
         public: bool = False,
         include_source_download_box: bool = False,
         workflow_queue_df: pd.DataFrame | None = None,
+        section_mode: str = "default",
     ) -> str:
         summary = self._build_summary(task_df)
-        sections = self._build_dashboard_sections(task_df)
+        sections = self._build_dashboard_sections(task_df, section_mode=section_mode)
+        is_triage_view = section_mode in {"review", "todo"}
+        show_summary = not is_triage_view
 
         html_parts = [
             "<!DOCTYPE html>",
@@ -2124,7 +2477,7 @@ class HarvestTaskDashboardJob:
             "      --no-schedule-soft: #edf1f5;",
             "    }",
             "    * { box-sizing: border-box; }",
-            "    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: \"Segoe UI\", sans-serif; line-height: 1.35; color: var(--ink); background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%); }",
+            "    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: \"Segoe UI\", sans-serif; line-height: 1.35; color: var(--ink); }",
             "    h1, h2, h3, p { margin-top: 0; }",
             "    h1 { margin-bottom: 0.4rem; }",
             "    h2 { margin-bottom: 0.9rem; }",
@@ -2132,7 +2485,7 @@ class HarvestTaskDashboardJob:
             "    a { color: var(--accent); }",
             "    .restricted-login-glyph { display: inline-block; margin-left: 0.25rem; font-size: 0.86em; vertical-align: text-top; }",
             "    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin: 1.25rem 0 1.5rem; }",
-            "    .card { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--accent); border-radius: 14px; padding: 0.8rem 0.9rem; box-shadow: 0 12px 30px rgba(23, 50, 77, 0.06); }",
+            "    .card { border: 1px solid var(--line); border-top: 4px solid var(--accent); border-radius: 14px; padding: 0.8rem 0.9rem; }",
             "    .card strong { display: block; margin-top: 0.2rem; font-size: 1.5rem; }",
             "    .card.card--reviews { border-top-color: var(--reviews); }",
             "    .card.card--due { border-top-color: var(--due); }",
@@ -2140,95 +2493,117 @@ class HarvestTaskDashboardJob:
             "    .card.card--no-schedule { border-top-color: var(--no-schedule); }",
             "    .due-section { margin-top: 1.6rem; }",
             "    .section-header { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 0.8rem; }",
-            "    .section-pill { display: inline-flex; align-items: center; padding: 0.25rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.02em; }",
-            "    .section-pill--reviews { color: var(--reviews); background: var(--reviews-soft); }",
-            "    .section-pill--due { color: var(--due); background: var(--due-soft); }",
-            "    .section-pill--scheduled { color: var(--scheduled); background: var(--scheduled-soft); }",
-            "    .section-pill--no-schedule { color: var(--no-schedule); background: var(--no-schedule-soft); }",
-            "    .workflow-block { margin: 0.9rem 0 1.15rem; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
-            "    .workflow-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.75rem 0.95rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }",
+            "    .section-pill { display: inline-flex; align-items: center; padding: 0.25rem 0.7rem; border: 1px solid currentColor; border-radius: 999px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.02em; }",
+            "    .section-pill--reviews { color: var(--reviews); }",
+            "    .section-pill--due { color: var(--due); }",
+            "    .section-pill--scheduled { color: var(--scheduled); }",
+            "    .section-pill--no-schedule { color: var(--no-schedule); }",
+            "    .workflow-block { margin: 0.9rem 0 1.15rem; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }",
+            "    .workflow-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.75rem 0.95rem; border-bottom: 1px solid var(--line); }",
             "    .workflow-meta { color: var(--muted); font-size: 0.82rem; }",
-            "    .workflow-run-queue { margin: 1rem 0 1.5rem; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
+            "    .workflow-run-queue { margin: 1rem 0 1.5rem; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }",
             "    .workflow-run-queue > p { padding: 0 1rem 1rem; }",
-            "    .workflow-run-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }",
+            "    .workflow-run-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; border-bottom: 1px solid var(--line); }",
             "    .workflow-run-header h2 { margin-bottom: 0; }",
             "    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }",
             "    th, td { padding: 0.55rem 0.7rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }",
-            "    th { background: #f9fbfd; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }",
+            "    th { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }",
             "    tbody tr:last-child td { border-bottom: none; }",
-            "    tbody tr:nth-child(even) { background: #fbfdff; }",
             "    .task-name { font-weight: 700; margin-bottom: 0.2rem; }",
             "    .task-meta, .timing-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }",
-            "    .task-meta code, .timing-meta code, .muted code { background: var(--no-schedule-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    .task-meta code, .timing-meta code, .muted code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }",
             "    .date-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; font-weight: 700; }",
-            "    .status-pill { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }",
-            "    .status-pill--reviews { color: var(--reviews); background: var(--reviews-soft); }",
-            "    .status-pill--due { color: var(--due); background: var(--due-soft); }",
-            "    .status-pill--scheduled { color: var(--scheduled); background: var(--scheduled-soft); }",
-            "    .status-pill--no-schedule { color: var(--no-schedule); background: var(--no-schedule-soft); }",
+            "    .status-pill { display: inline-flex; align-items: center; padding: 0.18rem 0.55rem; border: 1px solid currentColor; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }",
+            "    .status-pill--reviews { color: var(--reviews); }",
+            "    .status-pill--due { color: var(--due); }",
+            "    .status-pill--scheduled { color: var(--scheduled); }",
+            "    .status-pill--no-schedule { color: var(--no-schedule); }",
             "    .website-name { font-weight: 600; }",
             "    .muted { color: var(--muted); }",
-            "    code { background: var(--panel-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }",
             "    .actions { min-width: 170px; }",
-            "    .action-link { display: inline-flex; align-items: center; margin: 0.1rem 0.3rem 0.1rem 0; padding: 0.34rem 0.62rem; border: 1px solid var(--line-strong); border-radius: 999px; text-decoration: none; color: var(--accent); background: #fff; font-size: 0.84rem; font-weight: 600; }",
-            "    .action-link:hover { background: var(--accent-soft); border-color: var(--accent-soft); }",
-            "    .source-box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 1rem; margin: 1rem 0 1.4rem; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }",
+            "    .action-link { display: inline-flex; align-items: center; margin: 0.1rem 0.3rem 0.1rem 0; padding: 0.34rem 0.62rem; border: 1px solid var(--line-strong); border-radius: 999px; text-decoration: none; color: var(--accent); font-size: 0.84rem; font-weight: 600; }",
+            "    .action-link:hover { border-color: var(--accent); }",
+            "    .source-box { border: 1px solid var(--line); border-radius: 16px; padding: 1rem; margin: 1rem 0 1.4rem; }",
             "    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }",
+            "    .triage-view .due-section { margin-top: 1.4rem; }",
+            "    .triage-view .workflow-block { margin: 0; border-radius: 0; }",
+            "    .triage-view .section-pill, .triage-view .status-pill, .triage-view .action-link, .triage-view code { border-radius: 0; }",
+            "    .todo-actions { display: grid; justify-items: start; gap: 0.45rem; }",
+            "    .todo-actions .action-link { margin: 0; }",
             "    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .workflow-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } .actions { min-width: 0; padding-top: 0.25rem; } }",
             "  </style>",
             "</head>",
-            "<body>",
+            f"<body{' class=\"triage-view\"' if is_triage_view else ''}>",
         ]
 
         if embedded:
             html_parts.append("  <div class=\"summary\">")
         else:
-            subtitle = (
-                "This view lists harvest and review tasks that are currently due."
-                if report_title == "Harvest Tasks Due Now"
-                else (
+            if report_title == "Harvest Tasks Due Now":
+                subtitle = "This view lists harvest and review tasks that are currently due."
+            elif report_title == "Harvest Task Triage":
+                subtitle = (
+                    "Choose work here, then open its Harvest record and add a "
+                    "queue:pending_* tag with due:YYYY-MM-DD. Sync the record and rerun "
+                    "Triage to add it to To do."
+                )
+            elif report_title == "Harvest Tasks To Do":
+                subtitle = (
+                    "For each queued task, open the Harvest record first, then create or open "
+                    "its GitHub issue. When complete, update Last Harvested, remove the Tags, "
+                    "sync, and rerun Triage."
+                )
+            else:
+                subtitle = (
                     f"Generated from <code>{escape(str(self.harvest_records_path))}</code> and "
                     f"<code>{escape(str(self.websites_path))}</code>."
                 )
-            )
             html_parts.extend(
                 [
                     f"  <h1>{escape(report_title)}</h1>",
                     f"  <p class=\"muted\">{subtitle}</p>",
-                    "  <p class=\"muted\">Use the issue buttons to open a prefilled GitHub issue from the harvest-task template.</p>",
-                    "  <div class=\"summary\">",
                 ]
             )
+            if not is_triage_view:
+                html_parts.append(
+                    "  <p class=\"muted\">Use the issue buttons to open a prefilled GitHub issue from the harvest-task template.</p>"
+                )
+            if show_summary:
+                html_parts.append("  <div class=\"summary\">")
             if include_source_download_box:
-                html_parts[-2:-2] = [self._render_source_download_box()]
+                insert_at = -1 if show_summary else len(html_parts)
+                html_parts[insert_at:insert_at] = [self._render_source_download_box()]
 
-            queue_source_df = workflow_queue_df if workflow_queue_df is not None else task_df
-            html_parts[-1:-1] = [self._render_workflow_run_queue_html(queue_source_df)]
+            if show_summary:
+                queue_source_df = workflow_queue_df if workflow_queue_df is not None else task_df
+                html_parts[-1:-1] = [self._render_workflow_run_queue_html(queue_source_df)]
 
-        summary_cards = [
-            ("Total Tasks", summary["total"], ""),
-            ("Reviews due", summary["reviews"], "card--reviews"),
-            ("Harvests due", summary["due"], "card--due"),
-        ]
-        if report_title != "Harvest Tasks Due Now":
-            summary_cards.extend(
-                [
-                    ("Scheduled", summary["scheduled"], "card--scheduled"),
-                    ("No Schedule", summary["no_schedule"], "card--no-schedule"),
-                ]
-            )
-        for label, value, class_name in summary_cards:
-            card_class = f"card {class_name}".strip()
-            html_parts.extend(
-                [
-                    f"    <div class=\"{card_class}\">",
-                    f"      <span>{escape(label)}</span>",
-                    f"      <strong>{value}</strong>",
-                    "    </div>",
-                ]
-            )
+        if show_summary:
+            summary_cards = [
+                ("Total Tasks", summary["total"], ""),
+                ("Reviews due", summary["reviews"], "card--reviews"),
+                ("Harvests due", summary["due"], "card--due"),
+            ]
+            if report_title != "Harvest Tasks Due Now":
+                summary_cards.extend(
+                    [
+                        ("Scheduled", summary["scheduled"], "card--scheduled"),
+                        ("No Schedule", summary["no_schedule"], "card--no-schedule"),
+                    ]
+                )
+            for label, value, class_name in summary_cards:
+                card_class = f"card {class_name}".strip()
+                html_parts.extend(
+                    [
+                        f"    <div class=\"{card_class}\">",
+                        f"      <span>{escape(label)}</span>",
+                        f"      <strong>{value}</strong>",
+                        "    </div>",
+                    ]
+                )
 
-        html_parts.append("  </div>")
+            html_parts.append("  </div>")
 
         if not sections:
             html_parts.extend(
@@ -2243,6 +2618,7 @@ class HarvestTaskDashboardJob:
         for due_label, workflow_groups in sections:
             total_in_section = sum(len(group) for _, group in workflow_groups)
             section_class = self._section_class_name(due_label)
+            action_heading = "Next steps" if section_mode == "todo" else "Actions"
             html_parts.extend(
                 [
                     f"  <section class=\"due-section {section_class}\">",
@@ -2255,28 +2631,45 @@ class HarvestTaskDashboardJob:
                 html_parts.extend(
                     [
                         "    <div class=\"workflow-block\">",
-                        "      <div class=\"workflow-header\">",
-                        f"        <h3>{escape(workflow_name)}</h3>",
-                        f"        <div class=\"workflow-meta\">{len(workflow_group)} task{'s' if len(workflow_group) != 1 else ''}</div>",
-                        "      </div>",
+                        *(
+                            [
+                                "      <div class=\"workflow-header\">",
+                                f"        <h3>{escape(workflow_name)}</h3>",
+                                f"        <div class=\"workflow-meta\">{len(workflow_group)} task{'s' if len(workflow_group) != 1 else ''}</div>",
+                                "      </div>",
+                            ]
+                            if workflow_name
+                            else []
+                        ),
                         "      <table>",
                         "        <thead>",
                         "          <tr>",
                         "            <th>Task</th>",
                         "            <th>Timing</th>",
-                        "            <th class=\"actions\">Actions</th>",
+                        f"            <th class=\"actions\">{action_heading}</th>",
                         "          </tr>",
                         "        </thead>",
                         "        <tbody>",
                     ]
                 )
                 for _, row in workflow_group.iterrows():
+                    if section_mode == "todo":
+                        action_html = (
+                            '<div class="todo-actions">'
+                            f"{self._render_harvest_record_action_link(row)}"
+                            f"{self._render_issue_links(row, public=public)}"
+                            "</div>"
+                        )
+                    elif is_triage_view:
+                        action_html = self._render_harvest_record_action_link(row)
+                    else:
+                        action_html = self._render_issue_links(row, public=public)
                     html_parts.extend(
                         [
                             "          <tr>",
-                            f"            <td data-label=\"Task\">{self._render_task_cell(row, public=public)}</td>",
+                            f"            <td data-label=\"Task\">{self._render_task_cell(row, public=public, include_harvest_record=not is_triage_view)}</td>",
                             f"            <td data-label=\"Timing\">{self._render_timing_cell(row, due_label)}</td>",
-                            f"            <td class=\"actions\" data-label=\"Actions\">{self._render_issue_links(row, public=public)}</td>",
+                            f"            <td class=\"actions\" data-label=\"Actions\">{action_html}</td>",
                             "          </tr>",
                         ]
                     )
@@ -2292,14 +2685,54 @@ class HarvestTaskDashboardJob:
         html_parts.extend(["</body>", "</html>"])
         return "\n".join(html_parts)
 
-    def _build_dashboard_sections(self, task_df: pd.DataFrame) -> list[tuple[str, list[tuple[str, pd.DataFrame]]]]:
+    def _build_dashboard_sections(
+        self,
+        task_df: pd.DataFrame,
+        section_mode: str = "default",
+    ) -> list[tuple[str, list[tuple[str, pd.DataFrame]]]]:
         if task_df.empty:
             return []
 
         sections: list[tuple[str, list[tuple[str, pd.DataFrame]]]] = []
         working_df = task_df.copy()
+        self._ensure_columns(
+            working_df,
+            [
+                "Due Date",
+                "Review Date",
+                "Schedule Due Date",
+                "Tag Due Date",
+                "Accrual Periodicity",
+                "Effective Harvest Workflow",
+                "Title",
+            ],
+        )
         working_df["__due_sort"] = pd.to_datetime(working_df["Due Date"], errors="coerce")
         working_df["__review_sort"] = pd.to_datetime(working_df.get("Review Date", ""), errors="coerce")
+        working_df["__schedule_due_sort"] = pd.to_datetime(
+            working_df["Schedule Due Date"], errors="coerce"
+        )
+        working_df["__tag_due_sort"] = pd.to_datetime(working_df["Tag Due Date"], errors="coerce")
+
+        if section_mode == "review":
+            review_group = working_df.copy()
+            review_group["__section_date_display"] = review_group["Schedule Due Date"]
+            review_group = review_group.sort_values(
+                by=["__schedule_due_sort", "Effective Harvest Workflow", "Schedule Due Date", "Title"],
+                ascending=[True, True, True, True],
+                na_position="last",
+            )
+            return [("Triage", [("", review_group)])]
+
+        if section_mode == "todo":
+            todo_group = working_df.copy()
+            todo_group["__section_date_display"] = todo_group["Tag Due Date"]
+            todo_group = todo_group.sort_values(
+                by=["__tag_due_sort", "Tag Due Date", "Title"],
+                ascending=[True, True, True],
+                na_position="last",
+            )
+            return [("To do", [("", todo_group)])]
 
         periodicity_values = working_df.get("Accrual Periodicity", pd.Series("", index=working_df.index))
         irregular_mask = periodicity_values.map(self._normalize_periodicity) == "irregular"
@@ -2338,6 +2771,25 @@ class HarvestTaskDashboardJob:
         harvest_due_mask = task_df.get("Due Status", pd.Series("", index=task_df.index)) == "Due"
         return task_df.loc[review_due_mask | harvest_due_mask].copy()
 
+    def _filter_review_tasks(self, task_df: pd.DataFrame) -> pd.DataFrame:
+        if task_df.empty:
+            return task_df.copy()
+
+        working_df = task_df.copy()
+        self._ensure_columns(working_df, ["Last Harvested", "Schedule Due Status"])
+        has_last_harvested = working_df["Last Harvested"].map(self._clean_value).astype(bool)
+        review_due_mask = working_df["Schedule Due Status"] == "Due"
+        return working_df.loc[has_last_harvested & review_due_mask].copy()
+
+    def _filter_todo_tasks(self, task_df: pd.DataFrame) -> pd.DataFrame:
+        if task_df.empty:
+            return task_df.copy()
+
+        working_df = task_df.copy()
+        self._ensure_columns(working_df, ["Tag Due Status"])
+        todo_mask = working_df["Tag Due Status"].isin(["Due", "Scheduled"])
+        return working_df.loc[todo_mask].copy()
+
     def _group_section_by_workflow(self, section_df: pd.DataFrame) -> list[tuple[str, pd.DataFrame]]:
         workflow_groups: list[tuple[str, pd.DataFrame]] = []
         for workflow_name, workflow_group in section_df.groupby("Effective Harvest Workflow", dropna=False):
@@ -2348,8 +2800,10 @@ class HarvestTaskDashboardJob:
 
     def _section_class_name(self, label: str) -> str:
         section_classes = {
+            "Triage": "section-pill--reviews",
             "To be reviewed": "section-pill--reviews",
             "To be harvested": "section-pill--due",
+            "To do": "section-pill--due",
         }
         return section_classes.get(label, "section-pill--no-schedule")
 
@@ -2458,11 +2912,15 @@ class HarvestTaskDashboardJob:
         }
         return pill_classes.get(normalized_action_type, "status-pill--other")
 
-    def _render_task_cell(self, row: pd.Series | dict[str, Any], public: bool = False) -> str:
+    def _render_task_cell(
+        self,
+        row: pd.Series | dict[str, Any],
+        public: bool = False,
+        include_harvest_record: bool = True,
+    ) -> str:
         display_name = escape(self._build_display_name(row))
         task_id = self._clean_value(row.get("ID", ""))
         identifier = self._clean_value(row.get("Identifier", ""))
-        harvest_record_html = self._render_record_link(task_id, self._harvest_record_url(task_id))
         identifier_html = self._render_identifier_links(identifier)
         public_site_html = self._render_public_site_link(row)
         public_site_line = (
@@ -2471,12 +2929,17 @@ class HarvestTaskDashboardJob:
             else ""
         )
 
-        return (
-            f'<div class="task-name">{display_name}</div>'
-            f'<div class="task-meta">Harvest record: {harvest_record_html}</div>'
-            f'<div class="task-meta">Identifier: {identifier_html}</div>'
-            f"{public_site_line}"
+        task_parts = [f'<div class="task-name">{display_name}</div>']
+        if include_harvest_record:
+            harvest_record_html = self._render_record_link(task_id, self._harvest_record_url(task_id))
+            task_parts.append(f'<div class="task-meta">Harvest record: {harvest_record_html}</div>')
+        task_parts.extend(
+            [
+                f'<div class="task-meta">Identifier: {identifier_html}</div>',
+                public_site_line,
+            ]
         )
+        return "".join(task_parts)
 
     def _render_admin_record_list_task_cell(self, row: pd.Series | dict[str, Any]) -> str:
         display_name = escape(self._build_display_name(row))
@@ -2530,8 +2993,8 @@ class HarvestTaskDashboardJob:
         if not cleaned_code:
             return None
         return (
-            "https://geo.btaa.org/?search_field=all_fields&q=%22"
-            f"{quote(cleaned_code, safe='')}%22"
+            "https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D="
+            f"{quote(cleaned_code, safe='')}"
         )
 
     def _standalone_catalog_url(self, record_id: str) -> str | None:
@@ -2545,22 +3008,37 @@ class HarvestTaskDashboardJob:
         last_harvested = self._clean_value(row.get("Last Harvested", "")) or "Not yet harvested"
         periodicity = self._clean_value(row.get("Accrual Periodicity", "")) or "Not provided"
 
-        if due_label == "To be reviewed":
+        if due_label in {"Triage", "To be reviewed"}:
+            schedule_status = self._clean_value(row.get("Schedule Due Status", ""))
             review_status = self._clean_value(row.get("Review Status", ""))
-            if review_status and review_status != "No Review":
+            if schedule_status and schedule_status != "No Schedule":
+                pill_label = f"Review {schedule_status}".strip()
+            elif review_status and review_status != "No Review":
                 pill_label = f"Review {review_status}".strip()
             else:
                 pill_label = self._clean_value(row.get("Due Status", "")) or due_label
             pill_class = self._status_pill_class(pill_label)
+        elif due_label == "To do":
+            tag_status = self._clean_value(row.get("Tag Due Status", ""))
+            pill_label = f"Tag {tag_status}".strip() if tag_status else "No tag"
+            pill_class = self._status_pill_class(pill_label)
         else:
             pill_label = self._clean_value(row.get("Due Status", "")) or due_label
             pill_class = self._status_pill_class(pill_label)
+
+        tag_values = self._clean_value(row.get("Tags", ""))
+        tag_line = (
+            f'<div class="timing-meta">Tags: {escape(tag_values)}</div>'
+            if due_label in {"Triage", "To do"} and tag_values
+            else ""
+        )
 
         return (
             f'<div class="date-line"><span class="status-pill {pill_class}">{escape(pill_label)}</span>'
             f'<span>{escape(section_date)}</span></div>'
             f'<div class="timing-meta">Last harvested: {escape(last_harvested)}</div>'
             f'<div class="timing-meta">Periodicity: {escape(periodicity)}</div>'
+            f"{tag_line}"
         )
 
     def _render_record_metadata_cell(self, row: pd.Series | dict[str, Any]) -> str:
@@ -2608,6 +3086,8 @@ class HarvestTaskDashboardJob:
             "Review Due": "status-pill--reviews",
             "Review Scheduled": "status-pill--scheduled",
             "Review No Review": "status-pill--no-schedule",
+            "Tag Due": "status-pill--due",
+            "Tag Scheduled": "status-pill--scheduled",
         }
         return status_classes.get(status_label, "status-pill--no-schedule")
 
@@ -2647,6 +3127,17 @@ class HarvestTaskDashboardJob:
         return (
             f'<a href="{escape(url, quote=True)}" target="_blank" rel="noreferrer">'
             f"<code>{escaped_label}</code></a>{restricted_glyph}"
+        )
+
+    def _render_harvest_record_action_link(self, row: pd.Series | dict[str, Any]) -> str:
+        task_id = self._clean_value(row.get("ID", ""))
+        record_url = self._harvest_record_url(task_id)
+        if not task_id or not record_url:
+            return "<span class=\"muted\">No harvest record</span>"
+        restricted_glyph = self._restricted_login_glyph(record_url)
+        return (
+            f'<a class="action-link" href="{escape(record_url, quote=True)}" '
+            f'target="_blank" rel="noreferrer">Harvest record</a>{restricted_glyph}'
         )
 
     def _restricted_login_glyph(self, url: str | None) -> str:
@@ -2717,10 +3208,26 @@ class HarvestTaskDashboardJob:
         periodicity: str,
         row: pd.Series | dict[str, Any] | None = None,
     ) -> str:
-        if self._has_pending_updates_tag(row):
-            return "Due"
         if due_date is None:
             return "No Schedule"
+        if due_date <= self.today:
+            return "Due"
+        return "Scheduled"
+
+    def _determine_schedule_due_status(
+        self,
+        due_date: pd.Timestamp | None,
+        periodicity: str,
+    ) -> str:
+        if due_date is None:
+            return "No Schedule"
+        if due_date <= self.today:
+            return "Due"
+        return "Scheduled"
+
+    def _determine_tag_due_status(self, due_date: pd.Timestamp | None) -> str:
+        if due_date is None:
+            return ""
         if due_date <= self.today:
             return "Due"
         return "Scheduled"
@@ -2732,7 +3239,7 @@ class HarvestTaskDashboardJob:
         row: pd.Series | dict[str, Any] | None = None,
     ) -> pd.Timestamp | None:
         if self._has_pending_review_tag(row):
-            return self.today
+            return self._tag_due_date(row) or self.today
 
         if self._normalize_periodicity(periodicity) != "irregular":
             return None
@@ -2752,8 +3259,6 @@ class HarvestTaskDashboardJob:
         review_date: pd.Timestamp | None,
         row: pd.Series | dict[str, Any] | None = None,
     ) -> str:
-        if self._has_pending_review_tag(row):
-            return "Due"
         if review_date is None:
             return "No Review"
         if review_date <= self.today:
@@ -2778,8 +3283,23 @@ class HarvestTaskDashboardJob:
 
         return "queue:pending_review" in self._extract_tag_values(row)
 
-    def _pending_harvest_due_date(self, row: pd.Series | dict[str, Any] | None) -> pd.Timestamp | None:
-        if row is None or not self._has_pending_harvest_tag(row):
+    def _has_pending_queue_tag(self, row: pd.Series | dict[str, Any] | None) -> bool:
+        return (
+            self._has_pending_harvest_tag(row)
+            or self._has_pending_updates_tag(row)
+            or self._has_pending_review_tag(row)
+        )
+
+    def _tag_due_date(self, row: pd.Series | dict[str, Any] | None) -> pd.Timestamp | None:
+        if row is None:
+            return None
+
+        if not self._has_pending_queue_tag(row):
+            return None
+        return self._queue_due_date(row) or self.today
+
+    def _queue_due_date(self, row: pd.Series | dict[str, Any] | None) -> pd.Timestamp | None:
+        if row is None or not self._has_pending_queue_tag(row):
             return None
 
         for tag in self._extract_tag_values(row):
@@ -2841,7 +3361,9 @@ class HarvestTaskDashboardJob:
         for candidate in candidates:
             value = self._clean_value(row.get(candidate, ""))
             if value:
-                return value
+                return re.sub(
+                    r"^\s*Harvest record for\s+", "", value, flags=re.IGNORECASE
+                ) or value
         return "Unnamed task"
 
     def _build_website_name(self, row: pd.Series | dict[str, Any]) -> str:
@@ -3618,13 +4140,18 @@ class HarvestTaskDashboardJob:
         self,
         harvest_df: pd.DataFrame,
         workflow: str,
+        report_path: Path | None = None,
     ) -> pd.DataFrame:
         working_df = harvest_df.copy()
         self._ensure_columns(
             working_df,
             ["Code", "Identifier", "ID", *ARCGIS_REPORT_NUMBER_COLUMNS, *ARCGIS_REPORT_STATUS_COLUMNS],
         )
-        report_df = self._load_latest_harvest_report(workflow)
+        report_df = (
+            self._load_harvest_report(report_path)
+            if report_path is not None
+            else self._load_latest_harvest_report(workflow)
+        )
         if report_df.empty:
             return working_df
 
@@ -3682,10 +4209,11 @@ class HarvestTaskDashboardJob:
         self,
         harvest_df: pd.DataFrame,
         workflow: str,
+        report_path: Path | None = None,
     ) -> dict[str, str]:
-        report_path = self._latest_harvest_report_path(workflow)
-        if report_path is not None:
-            totals = self._harvest_report_totals_for_path(report_path)
+        selected_report_path = report_path or self._latest_harvest_report_path(workflow)
+        if selected_report_path is not None:
+            totals = self._harvest_report_totals_for_path(selected_report_path)
             if any(totals.values()):
                 return totals
 
@@ -3724,6 +4252,29 @@ class HarvestTaskDashboardJob:
                 continue
             candidates.append((report_date, report_path))
         return sorted(candidates, key=lambda item: (item[0], item[1].name), reverse=True)
+
+    def _harvest_report_path_for_date(self, workflow: str, report_date: str) -> Path | None:
+        normalized_date = self._clean_value(report_date)
+        for date_value, report_path in self._harvest_report_paths(workflow):
+            if date_value.strftime("%Y-%m-%d") == normalized_date:
+                return report_path
+        return None
+
+    def _harvest_report_date_from_path(self, report_path: Path | None) -> str:
+        if report_path is None:
+            return ""
+        match = re.match(r"^(\d{4}-\d{2}-\d{2})_", report_path.name)
+        return match.group(1) if match else ""
+
+    def _load_harvest_report(self, report_path: Path) -> pd.DataFrame:
+        report_df = self._load_csv(report_path)
+        self._ensure_columns(
+            report_df,
+            ["Code", "Identifier", *ARCGIS_REPORT_NUMBER_COLUMNS, *ARCGIS_REPORT_STATUS_COLUMNS],
+        )
+        return report_df.loc[
+            report_df["Code"].map(self._clean_value).str.upper() != "TOTAL"
+        ].copy()
 
     def _arcgis_report_totals_for_path(self, report_path: Path) -> dict[str, str]:
         return self._harvest_report_totals_for_path(report_path)
@@ -3893,6 +4444,10 @@ class HarvestTaskDashboardJob:
             base_title = "Harvest Task Retrospective"
         elif report_type == "due":
             base_title = "Harvest Tasks Due Now"
+        elif report_type in {"review", "to-be-reviewed", "to_be_reviewed"}:
+            base_title = "Harvest Task Triage"
+        elif report_type in {"todo", "to-do", "to_do"}:
+            base_title = "Harvest Tasks To Do"
         elif report_type == "records":
             base_title = "Harvest Records"
         elif report_type in {"institution", "institutions"}:
