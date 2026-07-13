@@ -161,7 +161,7 @@ def test_harvest_task_dashboard_lists_and_renders_historical_workflow_reports(
         report_date="2026-05-01",
     )
 
-    assert "ArcGIS Hubs Harvest Report Archive" in archive_html
+    assert "ArcGIS Hubs Harvest Report Reports" in archive_html
     assert archive_html.index("2026-06-01") < archive_html.index("2026-05-01")
     assert "workflow=py_arcgis_hub&amp;report_date=2026-05-01" in archive_html
     assert "ArcGIS Hubs Harvest Report - 2026-05-01" in historical_report_html
@@ -819,10 +819,10 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Socrata Harvest Report - 2026-03-30" in retrospective_dashboard_html
     assert "CKAN Harvest Report - 2026-03-30" in retrospective_dashboard_html
     assert ">Harvest</span>" in retrospective_dashboard_html
-    assert 'href="/harvest-operations/2026-03-30/workflows/py-arcgis-hub/"' in (
+    assert 'href="/harvest-operations/2026-03-30/workflows/py-arcgis-hub/"' not in (
         retrospective_dashboard_html
     )
-    assert 'href="/harvest-operations/2026-03-30/workflows/py-socrata/"' in (
+    assert 'href="/harvest-operations/2026-03-30/workflows/py-socrata/"' not in (
         retrospective_dashboard_html
     )
     assert "Total Records Found: 39; New Records: 9; Unpublished Records: 2" in (
@@ -831,12 +831,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Total Records Found: 18; New Records: 3; Unpublished Records: 1" in (
         retrospective_dashboard_html
     )
-    assert 'href="/harvest-operations/2026-03-30/workflows/py-arcgis-hub/"' in (
-        public_retrospective_dashboard_html
-    )
-    assert 'href="/harvest-operations/2026-03-30/workflows/py-socrata/"' in (
-        public_retrospective_dashboard_html
-    )
+    assert public_retrospective_dashboard_html == retrospective_dashboard_html
     assert "/reports/2026-03-30_harvest-task-dashboard-py-arcgis-hub.html" not in (
         public_retrospective_dashboard_html
     )
@@ -851,40 +846,32 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert set(dedicated_dashboard_outputs) == {"py_arcgis_hub", "py_socrata"}
     assert set(public_dedicated_dashboard_outputs) == {"py_arcgis_hub", "py_socrata"}
     assert Path(dedicated_dashboard_outputs["py_arcgis_hub"]).name == (
-        "2026-03-30_harvest-task-dashboard-py-arcgis-hub-public.html"
+        "2026-03-30_harvest-task-dashboard-py-arcgis-hub.html"
     )
     assert Path(dedicated_dashboard_outputs["py_socrata"]).name == (
-        "2026-03-30_harvest-task-dashboard-py-socrata-public.html"
+        "2026-03-30_harvest-task-dashboard-py-socrata.html"
     )
-    assert Path(results["records_dashboard_html"]).name == (
-        "2026-03-30_harvest-task-dashboard-records-public.html"
-    )
-    assert Path(results["review_dashboard_html"]).name == (
-        "2026-03-30_harvest-task-dashboard-review-public.html"
-    )
-    assert Path(results["todo_dashboard_html"]).name == (
-        "2026-03-30_harvest-task-dashboard-todo-public.html"
-    )
-    assert Path(results["public_records_dashboard_html"]).name == (
-        "2026-03-30_harvest-task-dashboard-records-public.html"
-    )
+    assert Path(results["records_dashboard_html"]).name == "harvest-task-dashboard-records.html"
+    assert Path(results["review_dashboard_html"]).name == "harvest-task-dashboard-review.html"
+    assert Path(results["todo_dashboard_html"]).name == "harvest-task-dashboard-todo.html"
+    assert Path(results["public_records_dashboard_html"]).name == "harvest-task-dashboard-records.html"
     assert Path(results["institution_dashboard_html"]).name == (
-        "2026-03-30_harvest-task-dashboard-institutions-public.html"
+        "harvest-task-dashboard-institutions.html"
     )
     assert Path(results["public_institution_dashboard_html"]).name == (
-        "2026-03-30_harvest-task-dashboard-institutions-public.html"
+        "harvest-task-dashboard-institutions.html"
     )
     assert Path(results["map_collections_dashboard_html"]).name == (
-        "2026-03-30_harvest-task-dashboard-map-collections-public.html"
+        "harvest-task-dashboard-map-collections.html"
     )
     assert Path(results["public_map_collections_dashboard_html"]).name == (
-        "2026-03-30_harvest-task-dashboard-map-collections-public.html"
+        "harvest-task-dashboard-map-collections.html"
     )
     assert Path(public_dedicated_dashboard_outputs["py_arcgis_hub"]).name == (
-        "2026-03-30_harvest-task-dashboard-py-arcgis-hub-public.html"
+        "2026-03-30_harvest-task-dashboard-py-arcgis-hub.html"
     )
     assert Path(public_dedicated_dashboard_outputs["py_socrata"]).name == (
-        "2026-03-30_harvest-task-dashboard-py-socrata-public.html"
+        "2026-03-30_harvest-task-dashboard-py-socrata.html"
     )
     assert arcgis_dashboard_output_html == arcgis_dashboard_html
     assert public_arcgis_dashboard_output_html == public_arcgis_dashboard_html
@@ -1101,10 +1088,10 @@ def test_harvest_task_dashboard_generates_standalone_websites_report(tmp_path: P
     assert "Last harvested:" not in standalone_dashboard_html
     assert "Periodicity:" not in standalone_dashboard_html
     assert Path(results["standalone_dashboard_html"]).name == (
-        "2026-04-01_harvest-task-dashboard-standalone-websites-public.html"
+        "harvest-task-dashboard-standalone-websites.html"
     )
     assert Path(results["public_standalone_dashboard_html"]).name == (
-        "2026-04-01_harvest-task-dashboard-standalone-websites-public.html"
+        "harvest-task-dashboard-standalone-websites.html"
     )
 
 
@@ -1651,7 +1638,9 @@ def test_harvest_task_dashboard_generates_retrospective_report_with_month_groupi
     assert ">added 365, retired 1</div>" in retrospective_dashboard_html
     assert "harvest / added 365, retired 1" not in retrospective_dashboard_html
     assert "2026-04-12" in retrospective_dashboard_html
-    assert "Not provided" not in retrospective_dashboard_html
+    assert retrospective_dashboard_html == job.render_dashboard_view(
+        report_type="retrospective", public=True
+    )
     assert '>Resource Type to &quot;Index maps|Aerial Photographs&quot;</div>' in retrospective_dashboard_html
     assert retrospective_dashboard_html.count(">harvest</span>") >= 2
     assert "Last Harvested field" not in retrospective_dashboard_html

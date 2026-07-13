@@ -210,16 +210,6 @@ async def view_harvest_task_dashboard(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get("/jobs/harvest-task-dashboard/reports/{workflow}", response_class=HTMLResponse)
-async def view_harvest_workflow_report_archive(workflow: str):
-    job_cfg = load_job_config("harvest-task-dashboard")
-    dashboard_job = HarvestTaskDashboardJob(job_cfg)
-    try:
-        return HTMLResponse(content=dashboard_job.render_workflow_report_archive(workflow))
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-
-
 @router.get("/reports/{filename:path}")
 async def view_report_file(filename: str):
     report_path = Path("reports", filename)
@@ -242,6 +232,16 @@ async def harvest_task_dashboard_workflow_queue():
             status_code=400,
             detail=f"Missing dashboard input file: {missing_file}",
         ) from exc
+
+
+@router.get("/jobs/harvest-task-dashboard/reports/{workflow}", response_class=HTMLResponse)
+async def view_harvest_workflow_report_archive(workflow: str):
+    job_cfg = load_job_config("harvest-task-dashboard")
+    dashboard_job = HarvestTaskDashboardJob(job_cfg)
+    try:
+        return HTMLResponse(content=dashboard_job.render_workflow_report_archive(workflow))
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/jobs/harvest-task-dashboard/frequent-harvesters")

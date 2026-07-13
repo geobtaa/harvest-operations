@@ -11,7 +11,6 @@ import shutil
 
 SITE_TITLE = "Harvest Task Dashboard Reports"
 DEDICATED_WORKFLOW_PREFIX = "harvest-task-dashboard-"
-PUBLIC_REPORT_SUFFIX = "-public"
 ARCGIS_WORKFLOW_SLUG = "py-arcgis-hub"
 SOCRATA_WORKFLOW_SLUG = "py-socrata"
 CKAN_WORKFLOW_SLUG = "py-ckan"
@@ -105,105 +104,87 @@ class DashboardReport:
         return (1, 0, self.label.lower())
 
 
-def collect_reports(reports_dir: Path) -> dict[str, dict[str, DashboardReport]]:
-    collected: dict[str, dict[str, tuple[bool, DashboardReport]]] = {}
+def collect_reports(reports_dir: Path) -> dict[str, DashboardReport]:
+    """Collect the current, shared dashboard reports.
 
-    for report_path in sorted(reports_dir.glob("*.html")):
-        if "_" not in report_path.name:
+    Dashboard report files are overwritten on each run. Older public-suffixed
+    and date-prefixed files are deliberately ignored so Pages only publishes
+    the current set of reports.
+    """
+    reports: dict[str, DashboardReport] = {}
+    for report_type, report_config in STANDARD_REPORT_TYPES.items():
+        report_path = reports_dir / str(report_config["suffix"])
+        if not report_path.is_file():
             continue
+        reports[report_type] = DashboardReport(
+            date="",
+            report_key=report_type,
+            source_path=report_path,
+            label=str(report_config["label"]),
+            description=str(report_config["description"]),
+            latest_href=str(report_config["latest_href"]),
+            archive_href="",
+        )
 
+    for workflow_reports in collect_workflow_reports(reports_dir).values():
+        if workflow_reports:
+            latest_report = max(workflow_reports, key=lambda report: report.date)
+            reports[latest_report.report_key] = latest_report
+
+    return reports
+
+
+def collect_workflow_reports(reports_dir: Path) -> dict[str, list[DashboardReport]]:
+    workflow_reports: dict[str, list[DashboardReport]] = {}
+    for report_path in sorted(reports_dir.glob(f"????-??-??_{DEDICATED_WORKFLOW_PREFIX}*.html")):
         report_date, report_name = report_path.name.split("_", 1)
-        report_name, is_public = _normalize_report_name(report_name)
-        if not is_public:
+        report = _collect_dedicated_workflow_report(report_date, report_name, report_path)
+        if report is None:
             continue
-        for report_type, report_config in STANDARD_REPORT_TYPES.items():
-            if report_name != report_config["suffix"]:
-                continue
-            _store_report(
-                collected,
-                report_date,
-                report_type,
-                DashboardReport(
-                    date=report_date,
-                    report_key=report_type,
-                    source_path=report_path,
-                    label=report_config["label"],
-                    description=report_config["description"],
-                    latest_href=report_config["latest_href"],
-                    archive_href=_standard_archive_href(
-                        report_date,
-                        str(report_config.get("archive_segment", report_type)),
-                    ),
-                ),
-                is_public,
-            )
-            break
-        else:
-            workflow_report = _collect_dedicated_workflow_report(
-                date=report_date,
-                report_name=report_name,
-                report_path=report_path,
-            )
-            if workflow_report is not None:
-                _store_report(
-                    collected,
-                    report_date,
-                    workflow_report.report_key,
-                    workflow_report,
-                    is_public,
-                )
-
-    return {
-        report_date: {
-            report_key: report
-            for report_key, (_, report) in sorted(report_map.items())
-        }
-        for report_date, report_map in sorted(collected.items(), reverse=True)
-    }
+        workflow_slug = report.report_key.removeprefix("workflow:")
+        workflow_reports.setdefault(workflow_slug, []).append(report)
+    return workflow_reports
 
 
 def build_pages_site(reports_dir: Path, output_dir: Path) -> None:
-    reports_by_date = collect_reports(reports_dir)
+    reports = collect_reports(reports_dir)
+    workflow_reports = collect_workflow_reports(reports_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    if not reports_by_date:
+    if not reports:
         raise ValueError(f"No dashboard HTML files were found in {reports_dir}")
+
+    for stale_archive_dir in (output_dir / "archive", output_dir / "workflows"):
+        if stale_archive_dir.exists():
+            shutil.rmtree(stale_archive_dir)
+    for dated_directory in output_dir.iterdir():
+        if dated_directory.is_dir() and re.fullmatch(r"\d{4}-\d{2}-\d{2}", dated_directory.name):
+            shutil.rmtree(dated_directory)
 
     output_dir.joinpath(".nojekyll").write_text("", encoding="utf-8")
 
-    latest_reports = _copy_reports(reports_by_date, output_dir)
-    write_index_page(output_dir, reports_by_date, latest_reports)
-    write_archive_index_page(output_dir, reports_by_date)
-    write_workflow_archive_pages(output_dir, reports_by_date)
+    latest_reports = _copy_reports(reports, output_dir)
+    write_index_page(output_dir, latest_reports)
+    write_workflow_report_pages(output_dir, workflow_reports)
 
 
 def _copy_reports(
-    reports_by_date: dict[str, dict[str, DashboardReport]],
+    reports: dict[str, DashboardReport],
     output_dir: Path,
 ) -> dict[str, DashboardReport]:
-    latest_reports: dict[str, DashboardReport] = {}
-
-    for reports in reports_by_date.values():
-        for report in reports.values():
-            archive_target = output_dir / report.archive_href / "index.html"
-            archive_target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(report.source_path, archive_target)
-
-            if report.report_key not in latest_reports:
-                latest_target = output_dir / report.latest_href / "index.html"
-                latest_target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(report.source_path, latest_target)
-                latest_reports[report.report_key] = report
-
-    return latest_reports
+    for report in reports.values():
+        if report.report_key.startswith("workflow:"):
+            continue
+        latest_target = output_dir / report.latest_href / "index.html"
+        latest_target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(report.source_path, latest_target)
+    return reports
 
 
 def write_index_page(
     output_dir: Path,
-    reports_by_date: dict[str, dict[str, DashboardReport]],
     latest_reports: dict[str, DashboardReport],
 ) -> None:
-    latest_date = next(iter(reports_by_date))
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     latest_report_columns = _render_report_columns(
@@ -211,20 +192,6 @@ def write_index_page(
         href_attr="latest_href",
         link_text="label",
     )
-
-    archive_rows = []
-    for date, reports in reports_by_date.items():
-        links = []
-        for report in _ordered_reports(reports):
-            links.append(f'<a href="{escape(report.archive_href)}">{escape(report.label)}</a>')
-        archive_rows.append(
-            f"""
-        <tr>
-          <th scope="row">{escape(date)}</th>
-          <td>{' | '.join(links)}</td>
-        </tr>
-"""
-        )
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -238,7 +205,10 @@ def write_index_page(
       --ink: #17324d;
       --muted: #5e6f83;
       --line: #d7e1ec;
-      --accent: #1f6fb2;
+      --link: #4f7f9f;
+      --border-blue: #9fbfd0;
+      --border-orange: #e0b08b;
+      --border-purple: #c9b4d4;
     }}
     * {{ box-sizing: border-box; }}
     body {{
@@ -253,15 +223,14 @@ def write_index_page(
       padding: 2rem 1rem 3rem;
     }}
     h1, h2, p {{ margin-top: 0; }}
-    a {{ color: var(--accent); }}
-    .hero,
-    .archive {{
-      border: 1px solid var(--line);
-      border-radius: 18px;
+    a {{ color: var(--link); }}
+    .hero {{
+      border: 3px solid var(--border-blue);
+      border-radius: 0;
     }}
     .hero {{
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
     }}
     .hero p:last-child {{
       margin-bottom: 0;
@@ -277,8 +246,14 @@ def write_index_page(
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 1.25rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
     }}
+    .report-columns > section {{
+      border: 3px solid var(--border-blue);
+      padding: 0.75rem;
+    }}
+    .report-columns > section:nth-child(2) {{ border-color: var(--border-orange); }}
+    .report-columns > section:nth-child(3) {{ border-color: var(--border-purple); }}
     .report-columns h2 {{
       font-size: 1rem;
       margin-bottom: 0.35rem;
@@ -289,28 +264,6 @@ def write_index_page(
     }}
     .report-columns li {{
       margin: 0.35rem 0;
-    }}
-    .archive {{
-      overflow: hidden;
-    }}
-    .archive-header {{
-      padding: 1rem 1.25rem;
-      border-bottom: 1px solid var(--line);
-    }}
-    table {{
-      width: 100%;
-      border-collapse: collapse;
-    }}
-    th,
-    td {{
-      padding: 0.9rem 1.25rem;
-      text-align: left;
-      border-top: 1px solid var(--line);
-      vertical-align: top;
-    }}
-    tbody tr:first-child th,
-    tbody tr:first-child td {{
-      border-top: none;
     }}
     footer {{
       margin-top: 1rem;
@@ -324,10 +277,6 @@ def write_index_page(
       .report-columns {{
         grid-template-columns: minmax(0, 1fr);
       }}
-      th,
-      td {{
-        padding: 0.75rem;
-      }}
     }}
   </style>
 </head>
@@ -336,31 +285,12 @@ def write_index_page(
     <section class="hero">
       <p class="eyebrow">GitHub Pages</p>
       <h1>{SITE_TITLE}</h1>
-      <p>This site publishes the committed dashboard HTML files from <code>reports/</code> in a stable, human-readable layout.</p>
-      <p>The latest published report date is <strong>{escape(latest_date)}</strong>. The site index was generated at {escape(generated_at)}.</p>
-      <p><a href="archive/">Browse the archive index</a></p>
+      <p>This site publishes the current dashboard HTML files from <code>reports/</code>.</p>
+      <p>The site index was generated at {escape(generated_at)}.</p>
     </section>
 
     <section class="report-columns" aria-label="Latest reports">
 {latest_report_columns}
-    </section>
-
-    <section class="archive">
-      <div class="archive-header">
-        <p class="eyebrow">Archive</p>
-        <h2>Published Report Dates</h2>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Reports</th>
-          </tr>
-        </thead>
-        <tbody>
-{''.join(archive_rows)}
-        </tbody>
-      </table>
     </section>
 
     <footer>
@@ -478,20 +408,16 @@ def write_archive_index_page(
     archive_dir.joinpath("index.html").write_text(html, encoding="utf-8")
 
 
-def write_workflow_archive_pages(
+def write_workflow_report_pages(
     output_dir: Path,
-    reports_by_date: dict[str, dict[str, DashboardReport]],
+    reports_by_workflow: dict[str, list[DashboardReport]],
 ) -> None:
-    reports_by_workflow: dict[str, list[DashboardReport]] = {}
-    for reports in reports_by_date.values():
-        for report_key, report in reports.items():
-            if not report_key.startswith("workflow:"):
-                continue
-            reports_by_workflow.setdefault(report_key.removeprefix("workflow:"), []).append(report)
-
     for workflow_slug, reports in reports_by_workflow.items():
         report_rows = []
         for report in sorted(reports, key=lambda item: item.date, reverse=True):
+            report_target = output_dir / report.archive_href / "index.html"
+            report_target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(report.source_path, report_target)
             report_rows.append(
                 f"""
         <tr>
@@ -507,7 +433,7 @@ def write_workflow_archive_pages(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{escape(workflow_label)} Archive</title>
+  <title>{escape(workflow_label)} Reports</title>
   <style>
     :root {{ color-scheme: light; --ink: #17324d; --muted: #5e6f83; --line: #d7e1ec; --accent: #1f6fb2; }}
     body {{ margin: 0; font-family: "Segoe UI", sans-serif; line-height: 1.5; color: var(--ink); }}
@@ -522,8 +448,8 @@ def write_workflow_archive_pages(
 </head>
 <body>
   <main>
-    <p><a href="../../">Back to latest reports</a></p>
-    <h1>{escape(workflow_label)} Archive</h1>
+    <p><a href="../../">Back to reports</a></p>
+    <h1>{escape(workflow_label)} Reports</h1>
     <p class="muted">Select a report date to view the historical harvest results.</p>
     <section class="archive">
       <table>
@@ -566,32 +492,6 @@ def main() -> None:
     build_pages_site(args.reports_dir, args.output_dir)
 
 
-def _standard_archive_href(report_date: str, archive_segment: str) -> str:
-    if not archive_segment:
-        return f"{report_date}/"
-    return f"{report_date}/{archive_segment}/"
-
-
-def _normalize_report_name(report_name: str) -> tuple[str, bool]:
-    public_suffix = f"{PUBLIC_REPORT_SUFFIX}.html"
-    if not report_name.endswith(public_suffix):
-        return report_name, False
-    return f"{report_name.removesuffix(public_suffix)}.html", True
-
-
-def _store_report(
-    collected: dict[str, dict[str, tuple[bool, DashboardReport]]],
-    report_date: str,
-    report_key: str,
-    report: DashboardReport,
-    is_public: bool,
-) -> None:
-    existing = collected.setdefault(report_date, {}).get(report_key)
-    if existing is not None and existing[0] and not is_public:
-        return
-    collected[report_date][report_key] = (is_public, report)
-
-
 def _collect_dedicated_workflow_report(
     date: str,
     report_name: str,
@@ -612,7 +512,7 @@ def _collect_dedicated_workflow_report(
         source_path=report_path,
         label=workflow_label,
         description=_workflow_report_description(workflow_slug),
-        latest_href=f"latest/workflows/{workflow_slug}/",
+        latest_href=f"workflows/{workflow_slug}/",
         archive_href=f"{date}/workflows/{workflow_slug}/",
     )
 

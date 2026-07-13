@@ -151,7 +151,6 @@ FREQUENT_HARVESTERS = (
 DEFAULT_DEDICATED_WORKFLOW_VIEWS = ("py_arcgis_hub", "py_socrata")
 ISSUE_TASK_MARKER_PREFIX = "harvest-task-key"
 DEFAULT_STANDALONE_ISSUE_TEMPLATE = "standalone-website.md"
-PUBLIC_REPORT_SUFFIX = "-public"
 DEFAULT_CODE_SCHEMA_MAP_PATH = "schemas/code-schema-map.csv"
 DEFAULT_GEO_API_FACET_URL = ""
 DEFAULT_GEO_API_TIMEOUT_SECONDS = 10
@@ -270,31 +269,17 @@ class HarvestTaskDashboardJob:
                 "reports/harvest-task-dashboard-retrospective.html",
             )
         )
-        self.output_public_dashboard_html = self._public_output_path(self.output_dashboard_html)
-        self.output_public_due_dashboard_html = self._public_output_path(
-            self.output_due_dashboard_html
-        )
-        self.output_public_review_dashboard_html = self._public_output_path(
-            self.output_review_dashboard_html
-        )
-        self.output_public_todo_dashboard_html = self._public_output_path(
-            self.output_todo_dashboard_html
-        )
-        self.output_public_records_dashboard_html = self._public_output_path(
-            self.output_records_dashboard_html
-        )
-        self.output_public_institution_dashboard_html = self._public_output_path(
-            self.output_institution_dashboard_html
-        )
-        self.output_public_map_collections_dashboard_html = self._public_output_path(
-            self.output_map_collections_dashboard_html
-        )
-        self.output_public_standalone_dashboard_html = self._public_output_path(
-            self.output_standalone_dashboard_html
-        )
-        self.output_public_retrospective_dashboard_html = self._public_output_path(
-            self.output_retrospective_dashboard_html
-        )
+        # Dashboard reports are shared by local and public views. The public result
+        # keys remain as aliases for callers that consumed the earlier API.
+        self.output_public_dashboard_html = self.output_dashboard_html
+        self.output_public_due_dashboard_html = self.output_due_dashboard_html
+        self.output_public_review_dashboard_html = self.output_review_dashboard_html
+        self.output_public_todo_dashboard_html = self.output_todo_dashboard_html
+        self.output_public_records_dashboard_html = self.output_records_dashboard_html
+        self.output_public_institution_dashboard_html = self.output_institution_dashboard_html
+        self.output_public_map_collections_dashboard_html = self.output_map_collections_dashboard_html
+        self.output_public_standalone_dashboard_html = self.output_standalone_dashboard_html
+        self.output_public_retrospective_dashboard_html = self.output_retrospective_dashboard_html
         self.output_workflow_dir = Path(
             config.get("output_workflow_dir", "inputs/harvest-workflow-inputs")
         )
@@ -456,12 +441,9 @@ class HarvestTaskDashboardJob:
                     "public_retrospective_dashboard_html": str(retrospective_output_path),
                 }
             )
-            public_dedicated_dashboard_outputs = self._write_dedicated_workflow_dashboards(
-                harvest_df,
-                public=True,
-            )
-            results["dedicated_dashboard_html"] = public_dedicated_dashboard_outputs
-            results["public_dedicated_dashboard_html"] = public_dedicated_dashboard_outputs
+            dedicated_dashboard_outputs = self._write_dedicated_workflow_dashboards(harvest_df)
+            results["dedicated_dashboard_html"] = dedicated_dashboard_outputs
+            results["public_dedicated_dashboard_html"] = dedicated_dashboard_outputs
             results["workflow_inputs"] = self._write_workflow_inputs(harvest_df)
             results["workflow_count"] = len(results["workflow_inputs"])
 
@@ -632,7 +614,7 @@ class HarvestTaskDashboardJob:
                 self._filter_harvest_view(harvest_df, scoped_workflow),
                 embedded=embedded,
                 report_title=self._report_title(report_type="retrospective", workflow=scoped_workflow),
-                public=public,
+                public=False,
             )
         return self._render_dashboard_html(
             self._filter_task_view(task_df, scoped_workflow),
@@ -673,28 +655,28 @@ class HarvestTaskDashboardJob:
             '<html lang="en">',
             "<head>",
             '  <meta charset="UTF-8">',
-            f"  <title>{escape(report_title)} Archive</title>",
+            f"  <title>{escape(report_title)} Reports</title>",
             "  <style>",
-            "    :root { color-scheme: light; --ink: #17324d; --muted: #5b6b7d; --line: #d7e1ec; --accent: #1f6fb2; }",
-            '    body { margin: 1.5rem auto; max-width: 900px; padding: 0 1rem 2.5rem; font-family: "Segoe UI", sans-serif; line-height: 1.35; color: var(--ink); }',
+            "    :root { color-scheme: light; --ink: #17324d; --muted: #5b6b7d; --line: #d7e1ec; --link: #4f7f9f; --border: #9fbfd0; }",
+            '    body { margin: 1rem auto; max-width: 900px; padding: 0 1rem 2rem; font-family: "Segoe UI", sans-serif; line-height: 1.35; color: var(--ink); }',
             "    h1, p { margin-top: 0; }",
-            "    a { color: var(--accent); }",
+            "    a { color: var(--link); }",
             "    .muted { color: var(--muted); }",
-            "    .archive { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }",
+            "    .report-list { border: 3px solid var(--border); }",
             "    table { width: 100%; border-collapse: collapse; }",
             "    th, td { padding: 0.75rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }",
             "    tbody tr:last-child th, tbody tr:last-child td { border-bottom: none; }",
-            "    code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }",
+            "    code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 4px; }",
             "  </style>",
             "</head>",
             "<body>",
-            f"  <h1>{escape(report_title)} Archive</h1>",
-            "  <p class=\"muted\">Select a report date to view the historical harvest results.</p>",
+            f"  <h1>{escape(report_title)} Reports</h1>",
+            "  <p class=\"muted\">Select a report date to view its harvest results.</p>",
         ]
         if report_rows:
             html_parts.extend(
                 [
-                    "  <section class=\"archive\">",
+                    "  <section class=\"report-list\">",
                     "    <table>",
                     "      <thead><tr><th>Date</th><th>Report</th><th>Source CSV</th></tr></thead>",
                     "      <tbody>",
@@ -705,7 +687,7 @@ class HarvestTaskDashboardJob:
                 ]
             )
         else:
-            html_parts.append("  <p>No prior reports are available.</p>")
+            html_parts.append("  <p>No workflow reports are available.</p>")
         html_parts.extend(["</body>", "</html>"])
         return "\n".join(html_parts)
 
@@ -1073,30 +1055,30 @@ class HarvestTaskDashboardJob:
         return dict(sorted(workflow_outputs.items()))
 
     def _write_dataframe(self, df: pd.DataFrame, configured_path: Path) -> Path:
-        output_path = self._dated_output_path(configured_path)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(output_path, index=False, encoding="utf-8")
-        return output_path
+        configured_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(configured_path, index=False, encoding="utf-8")
+        return configured_path
 
     def _write_text(self, content: str, configured_path: Path) -> Path:
-        output_path = self._dated_output_path(configured_path)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(content, encoding="utf-8")
-        return output_path
+        configured_path.parent.mkdir(parents=True, exist_ok=True)
+        configured_path.write_text(content, encoding="utf-8")
+        return configured_path
 
     def _write_dedicated_workflow_dashboards(
         self,
         harvest_df: pd.DataFrame,
-        public: bool = False,
     ) -> dict[str, str]:
         dedicated_outputs: dict[str, str] = {}
         for workflow_name in self.dedicated_workflow_views:
-            configured_path = self._dedicated_workflow_output_path(workflow_name, public=public)
+            configured_path = self._dedicated_workflow_output_path(workflow_name)
             workflow_html = self._render_combined_workflow_html(
                 self._filter_harvest_view(harvest_df, workflow_name),
                 workflow=workflow_name,
             )
-            output_path = self._write_text(workflow_html, configured_path)
+            output_path = self._write_text(
+                workflow_html,
+                self._dated_output_path(configured_path),
+            )
             dedicated_outputs[workflow_name] = str(output_path)
         return dict(sorted(dedicated_outputs.items()))
 
@@ -2189,12 +2171,8 @@ class HarvestTaskDashboardJob:
                     "Code": "",
                     "Harvest Workflow": workflow_name,
                     "Details": self._harvest_report_totals_details(totals),
-                    "Report Href": self._harvest_report_href(workflow_name, report_date_string),
-                    "Public Report Href": self._harvest_report_href(
-                        workflow_name,
-                        report_date_string,
-                        public=True,
-                    ),
+                    "Report Href": "",
+                    "Public Report Href": "",
                 }
             )
         return action_rows
@@ -4052,22 +4030,13 @@ class HarvestTaskDashboardJob:
         filename = f"{self.today.strftime('%Y-%m-%d')}_{configured_path.name}"
         return configured_path.parent / filename
 
-    def _public_output_path(self, configured_path: Path) -> Path:
-        return configured_path.with_name(
-            f"{configured_path.stem}{PUBLIC_REPORT_SUFFIX}{configured_path.suffix}"
-        )
-
     def _dated_directory(self, configured_path: Path) -> Path:
         dated_name = f"{self.today.strftime('%Y-%m-%d')}_{configured_path.name}"
         return configured_path.parent / dated_name
 
-    def _dedicated_workflow_output_path(self, workflow: str, public: bool = False) -> Path:
+    def _dedicated_workflow_output_path(self, workflow: str) -> Path:
         workflow_slug = self._slugify(self._clean_value(workflow) or "unspecified")
-        filename = (
-            f"{self.output_dashboard_html.stem}-{workflow_slug}"
-            f"{PUBLIC_REPORT_SUFFIX if public else ''}"
-            f"{self.output_dashboard_html.suffix}"
-        )
+        filename = f"{self.output_dashboard_html.stem}-{workflow_slug}{self.output_dashboard_html.suffix}"
         return self.output_dashboard_html.with_name(filename)
 
     def _slugify(self, value: str) -> str:
