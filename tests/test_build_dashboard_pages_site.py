@@ -23,6 +23,11 @@ def test_build_pages_site_publishes_current_reports_and_workflow_histories(tmp_p
             "<html><head><title>ArcGIS Hubs Harvest Report - 2026-04-01</title></head>"
             "<body>arcgis-2026-04-01</body></html>"
         ),
+        "2026-04-04_harvest-task-dashboard-py-arcgis-hub.html": (
+            "<html><head><title>ArcGIS Hubs Harvest Report - 2026-04-01</title></head>"
+            "<body><span>Harvest report date</span><strong>2026-04-01</strong>"
+            "arcgis-2026-04-01-refreshed</body></html>"
+        ),
         "2026-04-01_harvest-task-dashboard-py-ckan.html": (
             "<html><head><title>CKAN Harvest Report - 2026-04-01</title></head>"
             "<body>ckan-2026-04-01</body></html>"
@@ -58,9 +63,10 @@ def test_build_pages_site_publishes_current_reports_and_workflow_histories(tmp_p
     assert "2026-04-01" in arcgis_reports_html
     assert "2026-03-30" in arcgis_reports_html
     assert 'href="../../2026-04-01/workflows/py-arcgis-hub/"' in arcgis_reports_html
+    assert arcgis_reports_html.count("2026-04-01") == 2
     assert output_dir.joinpath("2026-04-01/workflows/py-arcgis-hub/index.html").read_text(
         encoding="utf-8"
-    ).endswith("arcgis-2026-04-01</body></html>")
+    ).endswith("arcgis-2026-04-01-refreshed</body></html>")
     assert not output_dir.joinpath("archive/index.html").exists()
     assert not output_dir.joinpath("2026-04-01/retrospective/index.html").exists()
 

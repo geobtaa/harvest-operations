@@ -135,15 +135,21 @@ def collect_reports(reports_dir: Path) -> dict[str, DashboardReport]:
 
 
 def collect_workflow_reports(reports_dir: Path) -> dict[str, list[DashboardReport]]:
-    workflow_reports: dict[str, list[DashboardReport]] = {}
+    reports_by_workflow_and_date: dict[str, dict[str, DashboardReport]] = {}
     for report_path in sorted(reports_dir.glob(f"????-??-??_{DEDICATED_WORKFLOW_PREFIX}*.html")):
-        report_date, report_name = report_path.name.split("_", 1)
-        report = _collect_dedicated_workflow_report(report_date, report_name, report_path)
+        dashboard_date, report_name = report_path.name.split("_", 1)
+        report = _collect_dedicated_workflow_report(dashboard_date, report_name, report_path)
         if report is None:
             continue
         workflow_slug = report.report_key.removeprefix("workflow:")
-        workflow_reports.setdefault(workflow_slug, []).append(report)
-    return workflow_reports
+        reports_by_date = reports_by_workflow_and_date.setdefault(workflow_slug, {})
+        # A dashboard can be refreshed more than once for the same harvest run.
+        # Keep the most recently named dashboard artifact for that report date.
+        reports_by_date[report.date] = report
+    return {
+        workflow_slug: list(reports_by_date.values())
+        for workflow_slug, reports_by_date in reports_by_workflow_and_date.items()
+    }
 
 
 def build_pages_site(reports_dir: Path, output_dir: Path) -> None:
@@ -493,7 +499,7 @@ def main() -> None:
 
 
 def _collect_dedicated_workflow_report(
-    date: str,
+    dashboard_date: str,
     report_name: str,
     report_path: Path,
 ) -> DashboardReport | None:
@@ -505,15 +511,18 @@ def _collect_dedicated_workflow_report(
         return None
 
     workflow_title = _extract_html_title(report_path)
+    harvest_report_date = _extract_harvest_report_date(report_path)
     workflow_label = _workflow_report_label(workflow_title, workflow_slug)
     return DashboardReport(
-        date=date,
+        # Older committed files used the dashboard refresh date in the filename.
+        # Prefer the date rendered inside the report, which is the harvest run date.
+        date=harvest_report_date or dashboard_date,
         report_key=f"workflow:{workflow_slug}",
         source_path=report_path,
         label=workflow_label,
         description=_workflow_report_description(workflow_slug),
         latest_href=f"workflows/{workflow_slug}/",
-        archive_href=f"{date}/workflows/{workflow_slug}/",
+        archive_href=f"{harvest_report_date or dashboard_date}/workflows/{workflow_slug}/",
     )
 
 
@@ -523,6 +532,26 @@ def _extract_html_title(report_path: Path) -> str:
     if match is None:
         return ""
     return re.sub(r"\s+", " ", match.group(1)).strip()
+
+
+def _extract_harvest_report_date(report_path: Path) -> str:
+    html = report_path.read_text(encoding="utf-8", errors="ignore")
+    labeled_date = re.search(
+        r"Harvest\s+report\s+date\s*</span>\s*<strong\b[^>]*>\s*"
+        r"(\d{4}-\d{2}-\d{2})\s*</strong>",
+        html,
+        flags=re.IGNORECASE,
+    )
+    if labeled_date is not None:
+        return labeled_date.group(1)
+
+    title_date = re.search(
+        r"<title>.*?Harvest\s+(?:Overview|Report)\s*-\s*"
+        r"(\d{4}-\d{2}-\d{2})\s*</title>",
+        html,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    return title_date.group(1) if title_date is not None else ""
 
 
 def _workflow_report_label(workflow_title: str, workflow_slug: str) -> str:
