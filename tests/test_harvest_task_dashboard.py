@@ -932,12 +932,19 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     assert "Socrata Harvest Report - 2026-03-30" in retrospective_dashboard_html
     assert "CKAN Harvest Report - 2026-03-30" in retrospective_dashboard_html
     assert ">Harvest</span>" in retrospective_dashboard_html
-    assert 'href="/harvest-operations/2026-03-30/workflows/py-arcgis-hub/"' not in (
+    assert 'href="/harvest-operations/2026-03-30/workflows/py-arcgis-hub/"' in (
         retrospective_dashboard_html
     )
-    assert 'href="/harvest-operations/2026-03-30/workflows/py-socrata/"' not in (
+    assert 'href="/harvest-operations/2026-03-30/workflows/py-socrata/"' in (
         retrospective_dashboard_html
     )
+    assert 'href="/harvest-operations/2026-03-30/workflows/py-ckan/"' in (
+        retrospective_dashboard_html
+    )
+    arcgis_retrospective_row = job._build_harvest_report_retrospective_rows("py_arcgis_hub")[0]
+    arcgis_record_cell = job._render_retrospective_record_cell(arcgis_retrospective_row)
+    assert "Harvest record:" not in arcgis_record_cell
+    assert "Identifier:" not in arcgis_record_cell
     assert "Total Records Found: 39; New Records: 9; Unpublished Records: 2" in (
         retrospective_dashboard_html
     )

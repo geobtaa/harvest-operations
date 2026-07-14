@@ -2199,8 +2199,15 @@ class HarvestTaskDashboardJob:
                     "Code": "",
                     "Harvest Workflow": workflow_name,
                     "Details": self._harvest_report_totals_details(totals),
-                    "Report Href": "",
-                    "Public Report Href": "",
+                    "Report Href": self._harvest_report_href(
+                        workflow_name,
+                        report_date_string,
+                    ),
+                    "Public Report Href": self._harvest_report_href(
+                        workflow_name,
+                        report_date_string,
+                        public=True,
+                    ),
                 }
             )
         return action_rows
