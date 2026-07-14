@@ -164,6 +164,8 @@ def test_harvest_task_dashboard_lists_and_renders_historical_workflow_reports(
             "websites_csv": str(websites_path),
             "arcgis_reports_dir": str(reports_dir),
             "dedicated_workflow_views": ["py_arcgis_hub"],
+            "output_dashboard_html": str(tmp_path / "harvest-task-dashboard.html"),
+            "today": "2026-07-01",
         }
     )
 
@@ -178,6 +180,12 @@ def test_harvest_task_dashboard_lists_and_renders_historical_workflow_reports(
     assert "workflow=py_arcgis_hub&amp;report_date=2026-05-01" in archive_html
     assert "ArcGIS Hubs Harvest Report - 2026-05-01" in historical_report_html
     assert ">7</td>" in historical_report_html
+    dedicated_outputs = job._write_dedicated_workflow_dashboards(
+        job._load_csv(harvest_records_path)
+    )
+    assert Path(dedicated_outputs["py_arcgis_hub"]).name == (
+        "2026-06-01_harvest-task-dashboard-py-arcgis-hub.html"
+    )
 
 
 def test_harvest_task_dashboard_triage_groups_only_unqueued_individual_records(

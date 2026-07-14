@@ -1102,9 +1102,10 @@ class HarvestTaskDashboardJob:
                 self._filter_harvest_view(harvest_df, workflow_name),
                 workflow=workflow_name,
             )
+            report_date = self._latest_harvest_report_date(workflow_name)
             output_path = self._write_text(
                 workflow_html,
-                self._dated_output_path(configured_path),
+                self._dated_output_path(configured_path, report_date=report_date),
             )
             dedicated_outputs[workflow_name] = str(output_path)
         return dict(sorted(dedicated_outputs.items()))
@@ -4161,8 +4162,14 @@ class HarvestTaskDashboardJob:
     def _normalize_key(self, value: str) -> str:
         return self._clean_value(value).strip().lower()
 
-    def _dated_output_path(self, configured_path: Path) -> Path:
-        filename = f"{self.today.strftime('%Y-%m-%d')}_{configured_path.name}"
+    def _dated_output_path(self, configured_path: Path, report_date: str = "") -> Path:
+        dated_value = pd.to_datetime(self._clean_value(report_date), errors="coerce")
+        date_prefix = (
+            dated_value.strftime("%Y-%m-%d")
+            if not pd.isna(dated_value)
+            else self.today.strftime("%Y-%m-%d")
+        )
+        filename = f"{date_prefix}_{configured_path.name}"
         return configured_path.parent / filename
 
     def _dated_directory(self, configured_path: Path) -> Path:
