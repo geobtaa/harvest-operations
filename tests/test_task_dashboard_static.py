@@ -112,5 +112,6 @@ def test_task_dashboard_static_page_includes_frequent_harvesters() -> None:
     assert "/static/socrata.html" not in other_harvesters
     assert "/static/hdx.html" not in other_harvesters
     assert "/static/pasda-metadata.html" not in other_harvesters
+    assert "/static/standalone-websites.html" not in other_harvesters
     assert '<h2 id="task-output-label">Triage Output</h2>' in html
     assert 'aria-labelledby="task-output-label"' in html

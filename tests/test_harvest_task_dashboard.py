@@ -75,6 +75,7 @@ def test_harvest_task_dashboard_lists_frequent_harvesters(
         "py_socrata",
         "py_hdx",
         "py_ckan",
+        "standalone-websites",
         "pasda-metadata",
     ]
     assert [harvester["last_run"] for harvester in harvesters] == [
@@ -82,12 +83,14 @@ def test_harvest_task_dashboard_lists_frequent_harvesters(
         "2026-06-02",
         "2026-06-30",
         "2026-06-03",
+        "Not available",
         "2026-07-05",
     ]
     assert [harvester["group"] for harvester in harvesters] == [
         "Batch tasks",
         "Batch tasks",
         "Single-site tasks",
+        "Batch tasks",
         "Batch tasks",
         "Single-site tasks",
     ]
@@ -98,6 +101,7 @@ def test_harvest_task_dashboard_lists_frequent_harvesters(
         "https://geomg.lib.umn.edu/admin/documents/harvest_08a-04/edit"
     )
     assert harvesters[-1]["static_page_url"] == "/static/pasda-metadata.html"
+    assert harvesters[-2]["static_page_url"] == "/static/standalone-websites.html"
 
 
 def test_harvest_task_dashboard_lists_and_renders_historical_workflow_reports(

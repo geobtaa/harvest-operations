@@ -1,0 +1,7 @@
+name: Standalone Website Link Check
+type: standalone_websites
+websites_csv: reference_data/websites.csv
+harvest_records_csv: inputs/harvest-records.csv
+standalone_website_code: w00_01
+timeout: 20
+output_primary_csv: outputs/standalone-websites_primary.csv

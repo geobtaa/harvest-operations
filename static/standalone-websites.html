@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Standalone Website Link Check</title>
+  <style>
+    body { font-family: sans-serif; line-height: 1.5; margin: 2em; max-width: 760px; }
+    h2 { margin-top: 1.5em; }
+    button { font: inherit; padding: 0.55em 0.9em; }
+    pre { border: 1px solid #ccc; margin-top: 1em; min-height: 8em; overflow: auto; padding: 1em; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Standalone Website Link Check</h1>
+
+  <p>
+    Checks the landing-page URL in the <code>Identifier</code> column for every
+    standalone website (<code>w00_01</code>) in <code>reference_data/websites.csv</code>.
+    Restricted records are recorded as skipped and are never requested. A live log
+    identifies each site as it is checked.
+  </p>
+
+  <h2>Outputs</h2>
+  <p>
+    A dated metadata CSV is written to <code>outputs/YYYY-MM-DD_standalone-websites_primary.csv</code>.
+    It contains only standalone website rows. Successful website rows receive
+    today’s <code>Date Accessioned</code>; failed checks are moved to draft with an
+    <code>Admin Note</code>. The standalone-websites harvest record is appended last.
+  </p>
+
+  <h2>Run Link Check</h2>
+  <button id="run-button" type="button">Run Link Check</button>
+  <div id="status" aria-live="polite"></div>
+  <pre id="stream-output" aria-live="polite"></pre>
+
+  <script>
+    const runButton = document.getElementById("run-button");
+    const status = document.getElementById("status");
+    const output = document.getElementById("stream-output");
+    let eventSource;
+
+    runButton.addEventListener("click", async () => {
+      runButton.disabled = true;
+      status.textContent = "Checking standalone website links...";
+      output.textContent = "";
+
+      if (eventSource) eventSource.close();
+      eventSource = new EventSource("/run-standalone-websites-stream");
+
+      eventSource.onmessage = (event) => {
+        if (event.data === "DONE") {
+          status.textContent = "Link check complete.";
+          runButton.disabled = false;
+          eventSource.close();
+          eventSource = null;
+          return;
+        }
+        output.textContent += `${event.data}\n`;
+        output.scrollTop = output.scrollHeight;
+      };
+
+      eventSource.onerror = () => {
+        output.textContent += "Stream closed before the link check completed.\n";
+        status.textContent = "Link check stopped.";
+        runButton.disabled = false;
+        eventSource.close();
+        eventSource = null;
+      };
+    });
+  </script>
+
+  <h2>Next Steps</h2>
+  <p>
+    Upload <code>YYYY-MM-DD_standalone-websites_primary.csv</code> to GEOMG. Records whose
+    landing-page checks failed are marked <code>Draft</code>. For each drafted record,
+    check both its <code>Identifier</code> field and its Distributions, find a replacement
+    link, then publish the record again or unpublish it entirely. Use the
+    <a href="https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=draft&amp;f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites&amp;rows=20&amp;sort=score+desc" target="_blank" rel="noreferrer">GEOMG Draft Websites list</a>
+    to find the flagged items.
+  </p>
+</body>
+</html>

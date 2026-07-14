@@ -101,6 +101,10 @@ HARVEST_WORKFLOW_STATIC_PAGES = {
         "label": "Socrata Harvester",
         "url": "/static/socrata.html",
     },
+    "standalone-websites": {
+        "label": "Standalone Website Link Check",
+        "url": "/static/standalone-websites.html",
+    },
 }
 
 FREQUENT_HARVESTERS = (
@@ -133,6 +137,13 @@ FREQUENT_HARVESTERS = (
         "group": "Batch tasks",
         "static_page": HARVEST_WORKFLOW_STATIC_PAGES["py_ckan"],
         "report_workflow": "py_ckan",
+    },
+    {
+        "workflow": "standalone-websites",
+        "label": "Standalone Websites",
+        "group": "Batch tasks",
+        "static_page": HARVEST_WORKFLOW_STATIC_PAGES["standalone-websites"],
+        "last_run_glob": "outputs/????-??-??_standalone-websites_primary.csv",
     },
     {
         "workflow": "pasda-metadata",
@@ -719,6 +730,7 @@ class HarvestTaskDashboardJob:
         for harvester in FREQUENT_HARVESTERS:
             report_workflow = self._clean_value(harvester.get("report_workflow", ""))
             last_run_path = Path(str(harvester.get("last_run_path", "")))
+            last_run_glob = self._clean_value(harvester.get("last_run_glob", ""))
             harvest_record_last_run = self._frequent_harvester_record_last_run(
                 harvest_records_df,
                 code=self._clean_value(harvester.get("harvest_record_code", "")),
@@ -729,6 +741,17 @@ class HarvestTaskDashboardJob:
             elif report_workflow:
                 report_path = self._latest_harvest_report_path(report_workflow)
                 last_run = self._harvest_report_date_from_path(report_path) or "Not available"
+            elif last_run_glob:
+                latest_output = max(
+                    Path().glob(last_run_glob),
+                    key=lambda path: path.stat().st_mtime,
+                    default=None,
+                )
+                last_run = (
+                    pd.Timestamp.fromtimestamp(latest_output.stat().st_mtime).strftime("%Y-%m-%d")
+                    if latest_output is not None
+                    else "Not available"
+                )
             elif last_run_path.is_file():
                 last_run = pd.Timestamp.fromtimestamp(last_run_path.stat().st_mtime).strftime(
                     "%Y-%m-%d"

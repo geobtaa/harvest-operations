@@ -408,6 +408,44 @@ async def run_ckan_stream():
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
+
+@app.get("/run-standalone-websites-stream")
+async def run_standalone_websites_stream():
+    from harvesters.standalone_websites import StandaloneWebsiteLinkChecker
+
+    async def event_stream():
+        queue: asyncio.Queue = asyncio.Queue()
+        loop = asyncio.get_running_loop()
+
+        def run_link_check():
+            writer = QueueLogWriter(queue, loop)
+            try:
+                with contextlib.redirect_stdout(writer), contextlib.redirect_stderr(writer):
+                    config = load_yaml_config("config/standalone-websites.yaml")
+                    results = StandaloneWebsiteLinkChecker(config).harvest_pipeline()
+                    print(
+                        "[Standalone websites] Complete: "
+                        f"{results['active_count']} active, "
+                        f"{results['inactive_count']} inactive, "
+                        f"{results['skipped_count']} skipped."
+                    )
+                    print(f"[Standalone websites] Output: {results['primary_csv']}")
+            except Exception as exc:
+                print(f"[Standalone websites] ERROR: {exc}")
+            finally:
+                writer.flush()
+                loop.call_soon_threadsafe(queue.put_nowait, "DONE")
+
+        task = asyncio.create_task(asyncio.to_thread(run_link_check))
+        while True:
+            message = await queue.get()
+            yield format_sse_message(message)
+            if message == "DONE":
+                break
+        await task
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
 @app.get("/run-pasda-stream")
 async def run_pasda_stream():
     from harvesters.pasda import PasdaHarvester

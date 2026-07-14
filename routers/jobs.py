@@ -17,6 +17,7 @@ from harvesters.isgs import IsgsHarvester
 from harvesters.chicago_luna import ChicagoLunaHarvester
 from harvesters.hyrax import HyraxHarvester
 from harvesters.oai_qdc import OaiQdcHarvester
+from harvesters.standalone_websites import StandaloneWebsiteLinkChecker
 from dashboard.harvest_task_dashboard import HarvestTaskDashboardJob
 
 
@@ -33,6 +34,7 @@ HARVESTER_REGISTRY = {
     "chicago-luna": ChicagoLunaHarvester,
     "hyrax": HyraxHarvester,
     "oai_qdc": OaiQdcHarvester,
+    "standalone_websites": StandaloneWebsiteLinkChecker,
     "task_dashboard": HarvestTaskDashboardJob,
 
 }
