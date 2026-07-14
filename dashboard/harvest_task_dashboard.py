@@ -162,6 +162,10 @@ FREQUENT_HARVESTERS = (
 DEFAULT_DEDICATED_WORKFLOW_VIEWS = ("py_arcgis_hub", "py_socrata")
 ISSUE_TASK_MARKER_PREFIX = "harvest-task-key"
 DEFAULT_STANDALONE_ISSUE_TEMPLATE = "standalone-website.md"
+TODO_ISSUE_TEMPLATES = (
+    {"label": "Harvest task", "template": "harvest-task.md", "issue_type": "harvest"},
+    {"label": "Review due", "template": "review-due.md", "issue_type": "review"},
+)
 DEFAULT_CODE_SCHEMA_MAP_PATH = "schemas/code-schema-map.csv"
 DEFAULT_GEO_API_FACET_URL = ""
 DEFAULT_GEO_API_TIMEOUT_SECONDS = 10
@@ -2530,8 +2534,8 @@ class HarvestTaskDashboardJob:
             "    .triage-view .due-section { margin-top: 1.4rem; }",
             "    .triage-view .workflow-block { margin: 0; border-radius: 0; }",
             "    .triage-view .section-pill, .triage-view .status-pill, .triage-view .action-link, .triage-view code { border-radius: 0; }",
-            "    .todo-actions { display: grid; justify-items: start; gap: 0.45rem; }",
-            "    .todo-actions .action-link { margin: 0; }",
+            "    .todo-issue-actions { display: grid; justify-items: start; gap: 0.45rem; }",
+            "    .todo-issue-actions .action-link { margin: 0; }",
             "    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .workflow-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } .actions { min-width: 0; padding-top: 0.25rem; } }",
             "  </style>",
             "</head>",
@@ -2619,7 +2623,7 @@ class HarvestTaskDashboardJob:
         for due_label, workflow_groups in sections:
             total_in_section = sum(len(group) for _, group in workflow_groups)
             section_class = self._section_class_name(due_label)
-            action_heading = "Next steps" if section_mode == "todo" else "Actions"
+            action_heading = "Actions"
             html_parts.extend(
                 [
                     f"  <section class=\"due-section {section_class}\">",
@@ -2647,7 +2651,14 @@ class HarvestTaskDashboardJob:
                         "          <tr>",
                         "            <th>Task</th>",
                         "            <th>Timing</th>",
-                        f"            <th class=\"actions\">{action_heading}</th>",
+                        *(
+                            [
+                                "            <th class=\"actions\">Harvest record</th>",
+                                "            <th class=\"actions\">GitHub issues</th>",
+                            ]
+                            if section_mode == "todo"
+                            else [f"            <th class=\"actions\">{action_heading}</th>"]
+                        ),
                         "          </tr>",
                         "        </thead>",
                         "        <tbody>",
@@ -2655,25 +2666,35 @@ class HarvestTaskDashboardJob:
                 )
                 for _, row in workflow_group.iterrows():
                     if section_mode == "todo":
-                        action_html = (
-                            '<div class="todo-actions">'
-                            f"{self._render_harvest_record_action_link(row)}"
-                            f"{self._render_issue_links(row, public=public)}"
-                            "</div>"
+                        harvest_record_html = self._render_harvest_record_action_link(row)
+                        issue_html = self._render_issue_links(
+                            row, public=public, template_choices=True
                         )
                     elif is_triage_view:
                         action_html = self._render_harvest_record_action_link(row)
                     else:
                         action_html = self._render_issue_links(row, public=public)
-                    html_parts.extend(
-                        [
-                            "          <tr>",
-                            f"            <td data-label=\"Task\">{self._render_task_cell(row, public=public, include_harvest_record=not is_triage_view)}</td>",
-                            f"            <td data-label=\"Timing\">{self._render_timing_cell(row, due_label)}</td>",
-                            f"            <td class=\"actions\" data-label=\"Actions\">{action_html}</td>",
-                            "          </tr>",
-                        ]
-                    )
+                    if section_mode == "todo":
+                        html_parts.extend(
+                            [
+                                "          <tr>",
+                                f"            <td data-label=\"Task\">{self._render_task_cell(row, public=public, include_harvest_record=False)}</td>",
+                                f"            <td data-label=\"Timing\">{self._render_timing_cell(row, due_label)}</td>",
+                                f"            <td class=\"actions\" data-label=\"Harvest record\">{harvest_record_html}</td>",
+                                f"            <td class=\"actions\" data-label=\"GitHub issues\"><div class=\"todo-issue-actions\">{issue_html}</div></td>",
+                                "          </tr>",
+                            ]
+                        )
+                    else:
+                        html_parts.extend(
+                            [
+                                "          <tr>",
+                                f"            <td data-label=\"Task\">{self._render_task_cell(row, public=public, include_harvest_record=not is_triage_view)}</td>",
+                                f"            <td data-label=\"Timing\">{self._render_timing_cell(row, due_label)}</td>",
+                                f"            <td class=\"actions\" data-label=\"Actions\">{action_html}</td>",
+                                "          </tr>",
+                            ]
+                        )
                 html_parts.extend(
                     [
                         "        </tbody>",
@@ -3604,13 +3625,29 @@ class HarvestTaskDashboardJob:
                 return True
         return False
 
-    def _render_issue_links(self, row: pd.Series | dict[str, Any], public: bool = False) -> str:
+    def _render_issue_links(
+        self,
+        row: pd.Series | dict[str, Any],
+        public: bool = False,
+        template_choices: bool = False,
+    ) -> str:
         if not self.issue_repositories:
             return "<span class=\"muted\">No issue target configured</span>"
 
         links = []
         for issue_repository in self.issue_repositories:
             existing_issue = self._find_existing_issue(row, issue_repository)
+            if template_choices and not existing_issue:
+                for issue_template in TODO_ISSUE_TEMPLATES:
+                    existing_issue = self._find_existing_issue_for_task_key(
+                        self._issue_task_key(
+                            row,
+                            self._clean_value(issue_template["issue_type"]),
+                        ),
+                        issue_repository,
+                    )
+                    if existing_issue:
+                        break
             if existing_issue:
                 issue_state = self._clean_value(existing_issue.get("state", "")).lower()
                 issue_label = "Closed issue" if issue_state == "closed" else "Open issue"
@@ -3621,10 +3658,29 @@ class HarvestTaskDashboardJob:
                 )
                 continue
 
-            issue_url = self._build_issue_url(row, issue_repository)
-            links.append(
-                f'<a class="action-link" href="{escape(issue_url, quote=True)}" target="_blank" rel="noreferrer">Create issue</a>'
-            )
+            if template_choices:
+                for issue_template in TODO_ISSUE_TEMPLATES:
+                    issue_type = self._clean_value(issue_template["issue_type"])
+                    configured_template = (
+                        self._clean_value(issue_repository.get("review_due_template"))
+                        if issue_type == "review"
+                        else self._clean_value(issue_repository.get("template"))
+                    )
+                    issue_url = self._build_issue_url(
+                        row,
+                        issue_repository,
+                        template=configured_template
+                        or self._clean_value(issue_template["template"]),
+                        issue_type=issue_type,
+                    )
+                    links.append(
+                        f'<a class="action-link" href="{escape(issue_url, quote=True)}" target="_blank" rel="noreferrer">Create {escape(str(issue_template["label"]))} issue</a>'
+                    )
+            else:
+                issue_url = self._build_issue_url(row, issue_repository)
+                links.append(
+                    f'<a class="action-link" href="{escape(issue_url, quote=True)}" target="_blank" rel="noreferrer">Create issue</a>'
+                )
         return "".join(links)
 
     def _render_standalone_issue_links(
@@ -3665,13 +3721,19 @@ class HarvestTaskDashboardJob:
             )
         return "".join(links)
 
-    def _build_issue_url(self, row: pd.Series | dict[str, Any], issue_repository: dict[str, Any]) -> str:
+    def _build_issue_url(
+        self,
+        row: pd.Series | dict[str, Any],
+        issue_repository: dict[str, Any],
+        template: str = "",
+        issue_type: str = "",
+    ) -> str:
         labels = [
             self._clean_value(label)
             for label in issue_repository.get("labels", [])
             if self._clean_value(label)
         ]
-        issue_label = self._issue_label(row)
+        issue_label = self._issue_label(row, issue_type)
         if issue_label and issue_label not in labels:
             labels.append(issue_label)
 
@@ -3682,9 +3744,13 @@ class HarvestTaskDashboardJob:
         ]
         return self._build_prefilled_issue_url(
             issue_repository,
-            title=self._build_issue_title(row),
-            body=self._build_issue_body(row),
-            template=self._clean_value(issue_repository.get("template")) or "harvest-task.md",
+            title=self._build_issue_title(row, issue_type),
+            body=self._build_issue_body(row, issue_type),
+            template=(
+                self._clean_value(template)
+                or self._clean_value(issue_repository.get("template"))
+                or "harvest-task.md"
+            ),
             labels=labels,
             projects=projects,
         )
@@ -3774,12 +3840,16 @@ class HarvestTaskDashboardJob:
 
         return f"{issues_new_url}?{urlencode(query_params)}"
 
-    def _build_issue_title(self, row: pd.Series | dict[str, Any]) -> str:
-        return f"[{self._issue_prefix(row)}] {self._issue_display_name(row)}"
+    def _build_issue_title(
+        self, row: pd.Series | dict[str, Any], issue_type: str = ""
+    ) -> str:
+        return f"[{self._issue_prefix(row, issue_type)}] {self._issue_display_name(row)}"
 
-    def _build_issue_body(self, row: pd.Series | dict[str, Any]) -> str:
-        issue_title = self._build_issue_title(row)
-        due_date = self._issue_due_date(row)
+    def _build_issue_body(
+        self, row: pd.Series | dict[str, Any], issue_type: str = ""
+    ) -> str:
+        issue_title = self._build_issue_title(row, issue_type)
+        due_date = self._issue_due_date(row, issue_type)
         harvest_record_id = self._clean_value(row.get("ID", ""))
         harvest_record_line = self._markdown_link_line(
             "Harvest record",
@@ -3795,29 +3865,32 @@ class HarvestTaskDashboardJob:
             f"- Due date: {due_date}",
             f"- Last harvested: {self._clean_value(row.get('Last Harvested', '')) or 'Not yet harvested'}",
             "",
-            self._issue_task_marker(row),
+            self._issue_task_marker(row, issue_type),
             "",
             "## Notes",
             "",
         ]
         return "\n".join(lines)
 
-    def _issue_prefix(self, row: pd.Series | dict[str, Any]) -> str:
-        return "Review Due" if self._is_review_issue(row) else "Harvest Due"
+    def _issue_prefix(self, row: pd.Series | dict[str, Any], issue_type: str = "") -> str:
+        return "Review due" if self._issue_label(row, issue_type) == "review" else "Harvest Due"
 
     def _issue_display_name(self, row: pd.Series | dict[str, Any]) -> str:
         display_name = self._build_display_name(row)
         return re.sub(r"^\s*Harvest record for\s+", "", display_name, flags=re.IGNORECASE) or display_name
 
-    def _issue_label(self, row: pd.Series | dict[str, Any]) -> str:
+    def _issue_label(self, row: pd.Series | dict[str, Any], issue_type: str = "") -> str:
+        normalized_issue_type = self._clean_value(issue_type).lower()
+        if normalized_issue_type in {"harvest", "review"}:
+            return normalized_issue_type
         return "review" if self._is_review_issue(row) else "harvest"
 
-    def _issue_task_key(self, row: pd.Series | dict[str, Any]) -> str:
+    def _issue_task_key(self, row: pd.Series | dict[str, Any], issue_type: str = "") -> str:
         task_id = self._clean_value(row.get("ID", "")) or self._issue_display_name(row)
-        return f"{self._issue_label(row)}:{task_id}:{self._issue_due_date(row)}"
+        return f"{self._issue_label(row, issue_type)}:{task_id}:{self._issue_due_date(row, issue_type)}"
 
-    def _issue_task_marker(self, row: pd.Series | dict[str, Any]) -> str:
-        return self._issue_task_marker_for_key(self._issue_task_key(row))
+    def _issue_task_marker(self, row: pd.Series | dict[str, Any], issue_type: str = "") -> str:
+        return self._issue_task_marker_for_key(self._issue_task_key(row, issue_type))
 
     def _issue_task_marker_for_key(self, task_key: str) -> str:
         cleaned_task_key = self._clean_value(task_key)
@@ -3931,9 +4004,13 @@ class HarvestTaskDashboardJob:
     def _is_review_issue(self, row: pd.Series | dict[str, Any]) -> bool:
         return self._clean_value(row.get("Review Date", "")) != ""
 
-    def _issue_due_date(self, row: pd.Series | dict[str, Any]) -> str:
-        if self._is_review_issue(row):
-            return self._clean_value(row.get("Review Date", "")) or "No review date"
+    def _issue_due_date(self, row: pd.Series | dict[str, Any], issue_type: str = "") -> str:
+        if self._issue_label(row, issue_type) == "review":
+            return self._first_non_empty(
+                row.get("Review Date", ""),
+                row.get("Tag Due Date", ""),
+                row.get("Due Date", ""),
+            ) or "No review date"
         return self._clean_value(row.get("Due Date", "")) or "No schedule"
 
     def _markdown_link_line(self, label: str, text: str, url: str | None) -> str:

@@ -17,6 +17,14 @@ def test_harvest_task_dashboard_links_ckan_workflow_to_static_page() -> None:
     }
 
 
+def test_review_due_issue_template_is_available() -> None:
+    template = Path(".github/ISSUE_TEMPLATE/review-due.md").read_text(encoding="utf-8")
+
+    assert 'title: "[Review due] "' in template
+    assert "## Review Summary" in template
+    assert "## Harvest Record Details" in template
+
+
 def test_harvest_task_dashboard_lists_frequent_harvesters(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1418,7 +1426,8 @@ def test_harvest_task_dashboard_splits_review_and_todo_views(
 
     assert "Harvest Tasks To Do" in todo_html
     assert "To do (2)" in todo_html
-    assert "Next steps" in todo_html
+    assert "<th class=\"actions\">Harvest record</th>" in todo_html
+    assert "<th class=\"actions\">GitHub issues</th>" in todo_html
     assert "Tag Due Task" in todo_html
     assert "Tag Future Task" in todo_html
     assert "Calendar Due Task" not in todo_html
@@ -1426,13 +1435,16 @@ def test_harvest_task_dashboard_splits_review_and_todo_views(
     assert "Calendar No Last Harvested Task" not in todo_html
     assert "Harvest record:" not in todo_html
     assert "<h3>" not in todo_html
-    assert "Create issue" in todo_html
+    assert "Create Harvest task issue" in todo_html
+    assert "Create Review due issue" in todo_html
+    assert "template=harvest-task.md" in todo_html
+    assert "template=review-due.md" in todo_html
     assert "github.com/geobtaa/harvest-operations/issues/new" in todo_html
-    assert 'class="todo-actions"' in todo_html
+    assert 'class="todo-issue-actions"' in todo_html
     assert 'class="action-link" href="https://geomg.lib.umn.edu/admin/documents/tag-due/edit" target="_blank" rel="noreferrer">Harvest record</a>' in todo_html
     assert todo_html.index(
         'href="https://geomg.lib.umn.edu/admin/documents/tag-due/edit"'
-    ) < todo_html.index("Create issue")
+    ) < todo_html.index("Create Harvest task issue")
     assert "Tags: queue:pending_updates" in todo_html
     assert "Tags: queue:pending_updates" not in review_html
     assert 'class="triage-view"' in todo_html
@@ -1869,3 +1881,45 @@ def test_harvest_task_dashboard_links_existing_issue_when_marker_matches(
     assert "https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04a-01" in public_retrospective_html
     assert "https://geomg.lib.umn.edu/admin/documents/harvest_ornl/edit" in public_retrospective_html
     assert public_view_html == public_dashboard_html
+
+
+def test_todo_issue_choices_are_hidden_when_a_template_issue_exists(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    job = HarvestTaskDashboardJob(
+        {
+            "issue_repositories": [
+                {
+                    "name": "harvest-operations",
+                    "repository": "geobtaa/harvest-operations",
+                    "issues_new_url": "https://github.com/geobtaa/harvest-operations/issues/new",
+                    "lookup_existing_issues": True,
+                }
+            ]
+        }
+    )
+    row = {
+        "ID": "harvest_review",
+        "Title": "Reviewable Record",
+        "Review Date": "2026-05-01",
+        "Tag Due Date": "2026-05-01",
+    }
+
+    def fake_fetch_existing_issue_index(
+        issue_repository: dict[str, str],
+        repository_slug: str,
+    ) -> dict[str, dict[str, str]]:
+        return {
+            "review:harvest_review:2026-05-01": {
+                "html_url": "https://github.com/geobtaa/harvest-operations/issues/456",
+                "number": "456",
+                "state": "open",
+            }
+        }
+
+    monkeypatch.setattr(job, "_fetch_existing_issue_index", fake_fetch_existing_issue_index)
+    issue_html = job._render_issue_links(row, template_choices=True)
+
+    assert "Open issue #456" in issue_html
+    assert "Create Harvest task issue" not in issue_html
+    assert "Create Review due issue" not in issue_html
