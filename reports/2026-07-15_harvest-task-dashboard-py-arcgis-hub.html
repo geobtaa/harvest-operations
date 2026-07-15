@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ArcGIS Hubs Harvest Report - 2026-07-15</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17324d;
+      --muted: #5b6b7d;
+      --line: #d7e1ec;
+      --line-strong: #bfd0e2;
+      --panel: #ffffff;
+      --panel-soft: #f6f9fc;
+      --bg: #eef3f8;
+      --accent: #1f6fb2;
+      --accent-soft: #dcecff;
+      --success: #0f766e;
+      --success-soft: #d8f3ee;
+      --error: #b42318;
+      --error-soft: #fee4e2;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: "Segoe UI", sans-serif; line-height: 1.35; color: var(--ink); }
+    h1, h2, p { margin-top: 0; }
+    h1 { margin-bottom: 0.4rem; }
+    h2 { margin-bottom: 0.9rem; }
+    a { color: var(--accent); }
+    .restricted-login-glyph { display: inline-block; margin-left: 0.25rem; font-size: 0.86em; vertical-align: text-top; }
+    .muted { color: var(--muted); }
+    code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .source-box, .status-box, .section-box { border: 1px solid var(--line); border-radius: 16px; padding: 1rem; }
+    .source-box { margin: 1rem 0 1.4rem; }
+    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }
+    .status-box { margin: 1.25rem 0 1.4rem; border-color: var(--success); }
+    .status-label { color: var(--muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+    .status-value { display: block; margin-top: 0.35rem; font-size: 1.65rem; font-weight: 700; color: var(--success); }
+    .section-box { padding: 0; overflow: hidden; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; border-bottom: 1px solid var(--line); }
+    .section-meta { color: var(--muted); font-size: 0.82rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr.report-error { border-left: 3px solid var(--error); }
+    tfoot th, tfoot td { border-top: 2px solid var(--line-strong); font-weight: 700; }
+    .task-name { font-weight: 700; margin-bottom: 0.2rem; }
+    .task-meta, .detail-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }
+    .task-meta code, .detail-meta code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .run-pill { display: inline-flex; align-items: center; padding: 0.16rem 0.5rem; border: 1px solid currentColor; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .run-pill--success { color: var(--success); }
+    .run-pill--error { color: var(--error); }
+    .run-pill--unknown { color: var(--muted); }
+    .number-cell { text-align: right; white-space: nowrap; }
+    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .section-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } }
+  </style>
+</head>
+<body>
+  <h1>ArcGIS Hubs Harvest Report - 2026-07-15</h1>
+  <p class="muted">This report summarizes the ArcGIS Hub harvest run for the date shown below.</p>
+  <div class="status-box">
+    <span class="status-label">Harvest report date</span>
+    <strong class="status-value">2026-07-15</strong>
+  </div>
+  <section class="section-box">
+    <div class="section-header">
+      <h2>ArcGIS Hub Harvest Results</h2>
+      <div class="section-meta">172 records</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Harvest Record</th>
+          <th>Harvest Run</th>
+          <th class="number-cell">Total Records Found</th>
+          <th class="number-cell">New Records</th>
+          <th class="number-cell">Unpublished Records</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Allegheny County GIS Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_08b-42003/edit" target="_blank" rel="noreferrer"><code>harvest_08b-42003</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08b-42003" target="_blank" rel="noreferrer"><code>08b-42003</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08b-42003" target="_blank" rel="noreferrer"><code>08b-42003</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">57</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Anne Arundel County GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_04b-24003/edit" target="_blank" rel="noreferrer"><code>harvest_04b-24003</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04b-24003" target="_blank" rel="noreferrer"><code>04b-24003</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04b-24003" target="_blank" rel="noreferrer"><code>04b-24003</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Ashland County, WI GIS Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55003/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55003</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55003" target="_blank" rel="noreferrer"><code>10b-55003</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55003" target="_blank" rel="noreferrer"><code>10b-55003</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">11</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr class="report-error">
+          <td data-label="Harvest Record"><div class="task-name">Athens County GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39009/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39009</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39009" target="_blank" rel="noreferrer"><code>11b-39009</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39009" target="_blank" rel="noreferrer"><code>11b-39009</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--error">error</span><div class="detail-meta">[ArcGIS] Error fetching 11b-39009: 500 Server Error: Internal Server Error for url: https://data-athgis.opendata.arcgis.com/api/feed/dcat-us/1.1.json</div></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Baltimore County Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_04b-24005/edit" target="_blank" rel="noreferrer"><code>harvest_04b-24005</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04b-24005" target="_blank" rel="noreferrer"><code>04b-24005</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04b-24005" target="_blank" rel="noreferrer"><code>04b-24005</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">224</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Beltrami County Open GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27007/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27007</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27007" target="_blank" rel="noreferrer"><code>05b-27007</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27007" target="_blank" rel="noreferrer"><code>05b-27007</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">47</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Benton County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-55005/edit" target="_blank" rel="noreferrer"><code>harvest_16b-55005</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-55005" target="_blank" rel="noreferrer"><code>16b-55005</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-55005" target="_blank" rel="noreferrer"><code>16b-55005</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">48</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Big Stone County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27011/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27011</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27011" target="_blank" rel="noreferrer"><code>05b-27011</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27011" target="_blank" rel="noreferrer"><code>05b-27011</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">15</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr class="report-error">
+          <td data-label="Harvest Record"><div class="task-name">CAGIS Open Data Hub for Cincinnati Area, Ohio</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11c-01-3/edit" target="_blank" rel="noreferrer"><code>harvest_11c-01-3</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11c-01-01" target="_blank" rel="noreferrer"><code>11c-01-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11c-01-01" target="_blank" rel="noreferrer"><code>11c-01-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--error">error</span><div class="detail-meta">[ArcGIS] Error fetching 11c-01-3: 403 Client Error: Forbidden for url: https://data-cagisportal.opendata.arcgis.com/api/feed/dcat-us/1.1.json</div></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">CMAP (Chicago Metropolitan Agency for Planning) Data Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_12f-01/edit" target="_blank" rel="noreferrer"><code>harvest_12f-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12f-01" target="_blank" rel="noreferrer"><code>12f-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12f-01" target="_blank" rel="noreferrer"><code>12f-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">383</td>
+          <td class="number-cell" data-label="New Records">2</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Calumet County GIS Download</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55015/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55015</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55015" target="_blank" rel="noreferrer"><code>10b-55015</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55015" target="_blank" rel="noreferrer"><code>10b-55015</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">74</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Calvert County Open GIS Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_04b-24009/edit" target="_blank" rel="noreferrer"><code>harvest_04b-24009</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04b-24009" target="_blank" rel="noreferrer"><code>04b-24009</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04b-24009" target="_blank" rel="noreferrer"><code>04b-24009</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">16</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr class="report-error">
+          <td data-label="Harvest Record"><div class="task-name">Carroll County GIS Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_04b-24013/edit" target="_blank" rel="noreferrer"><code>harvest_04b-24013</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04b-24013" target="_blank" rel="noreferrer"><code>04b-24013</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04b-24013" target="_blank" rel="noreferrer"><code>04b-24013</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--error">error</span><div class="detail-meta">[ArcGIS] Error fetching 04b-24013: 404 Client Error: Not Found for url: https://data-carrollco-md.opendata.arcgis.com/api/feed/dcat-us/1.1.json</div></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr class="report-error">
+          <td data-label="Harvest Record"><div class="task-name">Carver County GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27019/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27019</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27019" target="_blank" rel="noreferrer"><code>05b-27019</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27019" target="_blank" rel="noreferrer"><code>05b-27019</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--error">error</span><div class="detail-meta">[ArcGIS] Error fetching 05b-27019: 500 Server Error: Internal Server Error for url: https://data-carver.opendata.arcgis.com/api/feed/dcat-us/1.1.json</div></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Center for Rural Pennsylvania Data Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_8856ec9a-47ac-4c79-bfba-643e97c0b62d/edit" target="_blank" rel="noreferrer"><code>harvest_8856ec9a-47ac-4c79-bfba-643e97c0b62d</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/8856ec9a-47ac-4c79-bfba-643e97c0b62d" target="_blank" rel="noreferrer"><code>8856ec9a-47ac-4c79-bfba-643e97c0b62d</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=8856ec9a-47ac-4c79-bfba-643e97c0b62d" target="_blank" rel="noreferrer"><code>8856ec9a-47ac-4c79-bfba-643e97c0b62d</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">277</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Centre County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_08b-42027/edit" target="_blank" rel="noreferrer"><code>harvest_08b-42027</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08b-42027" target="_blank" rel="noreferrer"><code>08b-42027</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08b-42027" target="_blank" rel="noreferrer"><code>08b-42027</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">100</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Chester County GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_08b-42029/edit" target="_blank" rel="noreferrer"><code>harvest_08b-42029</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08b-42029" target="_blank" rel="noreferrer"><code>08b-42029</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08b-42029" target="_blank" rel="noreferrer"><code>08b-42029</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">125</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Chippewa County Open GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27023/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27023</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27023" target="_blank" rel="noreferrer"><code>05b-27023</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27023" target="_blank" rel="noreferrer"><code>05b-27023</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">7</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">City of Bellevue Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16c-04/edit" target="_blank" rel="noreferrer"><code>harvest_16c-04</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16c-04" target="_blank" rel="noreferrer"><code>16c-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16c-04" target="_blank" rel="noreferrer"><code>16c-04</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">198</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">City of Bend Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_17c-04/edit" target="_blank" rel="noreferrer"><code>harvest_17c-04</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/17c-04" target="_blank" rel="noreferrer"><code>17c-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=17c-04" target="_blank" rel="noreferrer"><code>17c-04</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">138</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">City of Champaign GIS</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_02c-02/edit" target="_blank" rel="noreferrer"><code>harvest_02c-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/02c-02" target="_blank" rel="noreferrer"><code>02c-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=02c-02" target="_blank" rel="noreferrer"><code>02c-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">34</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">City of Cleveland Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11c-03/edit" target="_blank" rel="noreferrer"><code>harvest_11c-03</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11c-03" target="_blank" rel="noreferrer"><code>11c-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11c-03" target="_blank" rel="noreferrer"><code>11c-03</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">268</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">City of Corvallis GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_17c-05/edit" target="_blank" rel="noreferrer"><code>harvest_17c-05</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/17c-05" target="_blank" rel="noreferrer"><code>17c-05</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=17c-05" target="_blank" rel="noreferrer"><code>17c-05</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">74</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">City of Des Moines GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_03c-01/edit" target="_blank" rel="noreferrer"><code>harvest_03c-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/https%3A%2F%2Fdata.dsm.city" target="_blank" rel="noreferrer"><code>https://data.dsm.city</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=03c-01" target="_blank" rel="noreferrer"><code>03c-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">65</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">City of Eugene Mapping Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_17c-02/edit" target="_blank" rel="noreferrer"><code>harvest_17c-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/17c-02" target="_blank" rel="noreferrer"><code>17c-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=17c-02" target="_blank" rel="noreferrer"><code>17c-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">94</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">City of Grand Island Public GIS Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_13c-02/edit" target="_blank" rel="noreferrer"><code>harvest_13c-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/13c-02" target="_blank" rel="noreferrer"><code>13c-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=13c-02" target="_blank" rel="noreferrer"><code>13c-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">61</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">City of Madison, WI GIS Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10c-03/edit" target="_blank" rel="noreferrer"><code>harvest_10c-03</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10c-03" target="_blank" rel="noreferrer"><code>10c-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10c-03" target="_blank" rel="noreferrer"><code>10c-03</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">144</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">City of Newark GIN</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_14c-01/edit" target="_blank" rel="noreferrer"><code>harvest_14c-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/14c-01" target="_blank" rel="noreferrer"><code>14c-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=14c-01" target="_blank" rel="noreferrer"><code>14c-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">131</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">City of Saint Paul GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05c-02/edit" target="_blank" rel="noreferrer"><code>harvest_05c-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05c-02" target="_blank" rel="noreferrer"><code>05c-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05c-02" target="_blank" rel="noreferrer"><code>05c-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">133</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr class="report-error">
+          <td data-label="Harvest Record"><div class="task-name">City of Vancouver Open Data Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16c-05/edit" target="_blank" rel="noreferrer"><code>harvest_16c-05</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16c-05" target="_blank" rel="noreferrer"><code>16c-05</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16c-05" target="_blank" rel="noreferrer"><code>16c-05</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--error">error</span><div class="detail-meta">[ArcGIS] Error fetching 16c-05: 403 Client Error: Forbidden for url: https://city-of-vancouver-wa-geo-hub-cityofvancouver.hub.arcgis.com/api/feed/dcat-us/1.1.json</div></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">1</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Clallam County GIS Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53009/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53009</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53009" target="_blank" rel="noreferrer"><code>16b-53009</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53009" target="_blank" rel="noreferrer"><code>16b-53009</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">56</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Clark County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53011/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53011</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53011" target="_blank" rel="noreferrer"><code>16b-53011</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53011" target="_blank" rel="noreferrer"><code>16b-53011</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">65</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Clay County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27027/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27027</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27027" target="_blank" rel="noreferrer"><code>05b-27027</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27027" target="_blank" rel="noreferrer"><code>05b-27027</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">25</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Clinton County, Ohio, Geographic Information Systems</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39027/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39027</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39027" target="_blank" rel="noreferrer"><code>11b-39027</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39027" target="_blank" rel="noreferrer"><code>11b-39027</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">22</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Columbus GIS</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11c-02/edit" target="_blank" rel="noreferrer"><code>harvest_11c-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11c-02" target="_blank" rel="noreferrer"><code>11c-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11c-02" target="_blank" rel="noreferrer"><code>11c-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">63</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Cook Central</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_12b-17031/edit" target="_blank" rel="noreferrer"><code>harvest_12b-17031</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12b-17031" target="_blank" rel="noreferrer"><code>12b-17031</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12b-17031" target="_blank" rel="noreferrer"><code>12b-17031</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">481</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Cook County Open GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27031/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27031</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27031" target="_blank" rel="noreferrer"><code>05b-27031</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27031" target="_blank" rel="noreferrer"><code>05b-27031</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">6</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Crawford County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_08b-42039/edit" target="_blank" rel="noreferrer"><code>harvest_08b-42039</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08b-42039" target="_blank" rel="noreferrer"><code>08b-42039</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08b-42039" target="_blank" rel="noreferrer"><code>08b-42039</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">249</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Crow Wing County GIS Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27035/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27035</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27035" target="_blank" rel="noreferrer"><code>05b-27035</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27035" target="_blank" rel="noreferrer"><code>05b-27035</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">55</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Cuyahoga County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39035/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39035</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39035" target="_blank" rel="noreferrer"><code>11b-39035</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39035" target="_blank" rel="noreferrer"><code>11b-39035</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">33</td>
+          <td class="number-cell" data-label="New Records">1</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Data Salem</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_17c-03/edit" target="_blank" rel="noreferrer"><code>harvest_17c-03</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/17c-03" target="_blank" rel="noreferrer"><code>17c-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=17c-03" target="_blank" rel="noreferrer"><code>17c-03</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">196</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Dauphin County GIS Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_08b-42043/edit" target="_blank" rel="noreferrer"><code>harvest_08b-42043</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08b-42043" target="_blank" rel="noreferrer"><code>08b-42043</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08b-42043" target="_blank" rel="noreferrer"><code>08b-42043</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">30</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Delaware County GIS</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39041/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39041</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39041" target="_blank" rel="noreferrer"><code>11b-39041</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39041" target="_blank" rel="noreferrer"><code>11b-39041</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">40</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Delaware Valley Regional Planning Commission (DVRPC)</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_04f-01/edit" target="_blank" rel="noreferrer"><code>harvest_04f-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04f-01" target="_blank" rel="noreferrer"><code>04f-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04f-01" target="_blank" rel="noreferrer"><code>04f-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">178</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Detroit Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_07c-01/edit" target="_blank" rel="noreferrer"><code>harvest_07c-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/07c-01" target="_blank" rel="noreferrer"><code>07c-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=07c-01" target="_blank" rel="noreferrer"><code>07c-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">349</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Discover Dane County, WI</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55025/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55025</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55025" target="_blank" rel="noreferrer"><code>10b-55025</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55025" target="_blank" rel="noreferrer"><code>10b-55025</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">36</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Douglas County Mapping and Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53017/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53017</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53017" target="_blank" rel="noreferrer"><code>16b-53017</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53017" target="_blank" rel="noreferrer"><code>16b-53017</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">93</td>
+          <td class="number-cell" data-label="New Records">1</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Douglas County Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27041/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27041</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27041" target="_blank" rel="noreferrer"><code>05b-27041</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27041" target="_blank" rel="noreferrer"><code>05b-27041</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">28</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">DuPage County GIS</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_12b-17043/edit" target="_blank" rel="noreferrer"><code>harvest_12b-17043</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12b-17043" target="_blank" rel="noreferrer"><code>12b-17043</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12b-17043" target="_blank" rel="noreferrer"><code>12b-17043</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">115</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Eau Claire County Geospatial Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55035-01/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55035-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55035" target="_blank" rel="noreferrer"><code>10b-55035</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55035" target="_blank" rel="noreferrer"><code>10b-55035</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">38</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Evanston, Illinois Open Data Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_02c-01/edit" target="_blank" rel="noreferrer"><code>harvest_02c-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/02c-01" target="_blank" rel="noreferrer"><code>02c-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=02c-01" target="_blank" rel="noreferrer"><code>02c-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">65</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Evansville, Vanderburgh County, Indiana Open Data Collection</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_01b-18163/edit" target="_blank" rel="noreferrer"><code>harvest_01b-18163</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/01b-18163" target="_blank" rel="noreferrer"><code>01b-18163</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=01b-18163" target="_blank" rel="noreferrer"><code>01b-18163</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">63</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Franklin County Auditor, Ohio Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39049/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39049</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39049" target="_blank" rel="noreferrer"><code>11b-39049</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39049" target="_blank" rel="noreferrer"><code>11b-39049</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">72</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Frederick County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_04b-24021/edit" target="_blank" rel="noreferrer"><code>harvest_04b-24021</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04b-24021" target="_blank" rel="noreferrer"><code>04b-24021</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04b-24021" target="_blank" rel="noreferrer"><code>04b-24021</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">129</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">GIS Data Downloads for Madison County, Ohio</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39097/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39097</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39097" target="_blank" rel="noreferrer"><code>11b-39097</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39097" target="_blank" rel="noreferrer"><code>11b-39097</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">141</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">GIS Data Downloads for Muskingum County, Ohio</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39119/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39119</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39119" target="_blank" rel="noreferrer"><code>11b-39119</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39119" target="_blank" rel="noreferrer"><code>11b-39119</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">58</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">GIS Divison of Eau Claire County, WI</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55035/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55035</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55035" target="_blank" rel="noreferrer"><code>10b-55035</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55035" target="_blank" rel="noreferrer"><code>10b-55035</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">38</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr class="report-error">
+          <td data-label="Harvest Record"><div class="task-name">Geodata Hub of Vilas County, WI</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55125-01/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55125-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55125" target="_blank" rel="noreferrer"><code>10b-55125</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55125" target="_blank" rel="noreferrer"><code>10b-55125</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--error">error</span><div class="detail-meta">[ArcGIS] Error fetching 10b-55125: 404 Client Error: Not Found for url: https://data-vilas.opendata.arcgis.com/api/feed/dcat-us/1.1.json</div></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Grand Rapids, Michigan Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_07c-03/edit" target="_blank" rel="noreferrer"><code>harvest_07c-03</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/07c-03" target="_blank" rel="noreferrer"><code>07c-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=07c-03" target="_blank" rel="noreferrer"><code>07c-03</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">40</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Grant County Open Data Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27051/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27051</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27051" target="_blank" rel="noreferrer"><code>05b-27051</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27051" target="_blank" rel="noreferrer"><code>05b-27051</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">22</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Grant County Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53025/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53025</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53025" target="_blank" rel="noreferrer"><code>16b-53025</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53025" target="_blank" rel="noreferrer"><code>16b-53025</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">71</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Greene County GIS Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39057/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39057</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39057" target="_blank" rel="noreferrer"><code>11b-39057</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39057" target="_blank" rel="noreferrer"><code>11b-39057</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">87</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">HUD-eGIS Geospatial Data Storefront</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_1000-0001/edit" target="_blank" rel="noreferrer"><code>harvest_1000-0001</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/1000-0001" target="_blank" rel="noreferrer"><code>1000-0001</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=1000-0001" target="_blank" rel="noreferrer"><code>1000-0001</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">112</td>
+          <td class="number-cell" data-label="New Records">3</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Hamilton County, Indiana Open Data Collection</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_01b-18057/edit" target="_blank" rel="noreferrer"><code>harvest_01b-18057</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/01b-18057" target="_blank" rel="noreferrer"><code>01b-18057</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=01b-18057" target="_blank" rel="noreferrer"><code>01b-18057</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">48</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Harford County Planning and Zoning Open GIS</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_04b-24025/edit" target="_blank" rel="noreferrer"><code>harvest_04b-24025</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04b-24025" target="_blank" rel="noreferrer"><code>04b-24025</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04b-24025" target="_blank" rel="noreferrer"><code>04b-24025</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">87</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Hennepin County GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27053/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27053</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27053" target="_blank" rel="noreferrer"><code>05b-27053</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27053" target="_blank" rel="noreferrer"><code>05b-27053</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">37</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Holmes County GIS Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39075/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39075</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39075" target="_blank" rel="noreferrer"><code>11b-39075</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39075" target="_blank" rel="noreferrer"><code>11b-39075</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">26</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Hubbard County Open Geospatial Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27057/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27057</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27057" target="_blank" rel="noreferrer"><code>05b-27057</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27057" target="_blank" rel="noreferrer"><code>05b-27057</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">9</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Illinois DOT Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_02a-04/edit" target="_blank" rel="noreferrer"><code>harvest_02a-04</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/02a-04" target="_blank" rel="noreferrer"><code>02a-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=02a-04" target="_blank" rel="noreferrer"><code>02a-04</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">127</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">IndianaMap</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_09a-04/edit" target="_blank" rel="noreferrer"><code>harvest_09a-04</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/09a-04" target="_blank" rel="noreferrer"><code>09a-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=09a-04" target="_blank" rel="noreferrer"><code>09a-04</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">780</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">4</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Iowa Geodata</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_03a-03/edit" target="_blank" rel="noreferrer"><code>harvest_03a-03</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/03a-03" target="_blank" rel="noreferrer"><code>03a-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=03a-03" target="_blank" rel="noreferrer"><code>03a-03</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">275</td>
+          <td class="number-cell" data-label="New Records">1</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">IowaDOT Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_03a-02/edit" target="_blank" rel="noreferrer"><code>harvest_03a-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/03a-02" target="_blank" rel="noreferrer"><code>03a-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=03a-02" target="_blank" rel="noreferrer"><code>03a-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">440</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">11</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Isanti County Geospatial Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27059/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27059</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27059" target="_blank" rel="noreferrer"><code>05b-27059</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27059" target="_blank" rel="noreferrer"><code>05b-27059</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">19</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Island County Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53029/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53029</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53029" target="_blank" rel="noreferrer"><code>16b-53029</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53029" target="_blank" rel="noreferrer"><code>16b-53029</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">38</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Jefferson County Washington Open Data Site</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53031/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53031</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53031" target="_blank" rel="noreferrer"><code>16b-53031</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53031" target="_blank" rel="noreferrer"><code>16b-53031</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">37</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr class="report-error">
+          <td data-label="Harvest Record"><div class="task-name">Kankakee County GIS</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_02b-17091/edit" target="_blank" rel="noreferrer"><code>harvest_02b-17091</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/02b-17091" target="_blank" rel="noreferrer"><code>02b-17091</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=02b-17091" target="_blank" rel="noreferrer"><code>02b-17091</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--error">error</span><div class="detail-meta">[ArcGIS] Error fetching 02b-17091: Expecting value: line 1 column 1 (char 0)</div></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Kenosha County, WI GIS Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55059/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55059</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55059" target="_blank" rel="noreferrer"><code>10b-55059</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55059" target="_blank" rel="noreferrer"><code>10b-55059</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">56</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">King County GIS Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53033/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53033</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53033" target="_blank" rel="noreferrer"><code>16b-53033</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53033" target="_blank" rel="noreferrer"><code>16b-53033</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">536</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Kittitas County Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53037/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53037</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53037" target="_blank" rel="noreferrer"><code>16b-53037</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53037" target="_blank" rel="noreferrer"><code>16b-53037</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">50</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Lake County GIS Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39085/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39085</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39085" target="_blank" rel="noreferrer"><code>11b-39085</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39085" target="_blank" rel="noreferrer"><code>11b-39085</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">43</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Lake County Illinois Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_12b-17097/edit" target="_blank" rel="noreferrer"><code>harvest_12b-17097</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12b-17097" target="_blank" rel="noreferrer"><code>12b-17097</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12b-17097" target="_blank" rel="noreferrer"><code>12b-17097</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">1551</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Land Records Data Portal of Columbia County, WI</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55021/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55021</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55021" target="_blank" rel="noreferrer"><code>10b-55021</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55021" target="_blank" rel="noreferrer"><code>10b-55021</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">136</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Lincoln Open Data and Performance Management</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_13c-01/edit" target="_blank" rel="noreferrer"><code>harvest_13c-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/13c-01" target="_blank" rel="noreferrer"><code>13c-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=13c-01" target="_blank" rel="noreferrer"><code>13c-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">313</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Linn County, Iowa Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_03b-19113/edit" target="_blank" rel="noreferrer"><code>harvest_03b-19113</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/03b-19113" target="_blank" rel="noreferrer"><code>03b-19113</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=03b-19113" target="_blank" rel="noreferrer"><code>03b-19113</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">140</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Logan County GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39091/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39091</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39091" target="_blank" rel="noreferrer"><code>11b-39091</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39091" target="_blank" rel="noreferrer"><code>11b-39091</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Lorain County GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39093/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39093</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39093" target="_blank" rel="noreferrer"><code>11b-39093</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39093" target="_blank" rel="noreferrer"><code>11b-39093</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">305</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Lyon County, MN Mapping Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27083/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27083</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27083" target="_blank" rel="noreferrer"><code>05b-27083</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27083" target="_blank" rel="noreferrer"><code>05b-27083</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">33</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">MapFlint Data Download</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_07c-04/edit" target="_blank" rel="noreferrer"><code>harvest_07c-04</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/07c-04" target="_blank" rel="noreferrer"><code>07c-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=07c-04" target="_blank" rel="noreferrer"><code>07c-04</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Maryland iMap</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_04a-01/edit" target="_blank" rel="noreferrer"><code>harvest_04a-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04a-01" target="_blank" rel="noreferrer"><code>04a-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04a-01" target="_blank" rel="noreferrer"><code>04a-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">1510</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">McLean County GIS</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_12b-17113-2/edit" target="_blank" rel="noreferrer"><code>harvest_12b-17113-2</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12b-17113-2" target="_blank" rel="noreferrer"><code>12b-17113-2</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12b-17113-2" target="_blank" rel="noreferrer"><code>12b-17113-2</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">28</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">McLean County GIS Consortium Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_02b-17113/edit" target="_blank" rel="noreferrer"><code>harvest_02b-17113</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/02b-17113" target="_blank" rel="noreferrer"><code>02b-17113</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=02b-17113" target="_blank" rel="noreferrer"><code>02b-17113</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">47</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr class="report-error">
+          <td data-label="Harvest Record"><div class="task-name">Michigan DNR Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_06a-02/edit" target="_blank" rel="noreferrer"><code>harvest_06a-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/06a-02" target="_blank" rel="noreferrer"><code>06a-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=06a-02" target="_blank" rel="noreferrer"><code>06a-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--error">error</span><div class="detail-meta">[ArcGIS] Error fetching 06a-02: 500 Server Error: Internal Server Error for url: https://gis-midnr.opendata.arcgis.com/api/feed/dcat-us/1.1.json</div></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Mid-Ohio Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11f-02/edit" target="_blank" rel="noreferrer"><code>harvest_11f-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/https%3A%2F%2Fpublic-morpc.hub.arcgis.com" target="_blank" rel="noreferrer"><code>https://public-morpc.hub.arcgis.com</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11f-02" target="_blank" rel="noreferrer"><code>11f-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">59</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Milwaukee County GIS Download</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55079/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55079</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55079" target="_blank" rel="noreferrer"><code>10b-55079</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55079" target="_blank" rel="noreferrer"><code>10b-55079</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">60</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Minnesota Geospatial Commons</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05a-01/edit" target="_blank" rel="noreferrer"><code>harvest_05a-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05a-01" target="_blank" rel="noreferrer"><code>05a-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05a-01" target="_blank" rel="noreferrer"><code>05a-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">2397</td>
+          <td class="number-cell" data-label="New Records">57</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Montgomery County GIS Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_04b-24031/edit" target="_blank" rel="noreferrer"><code>harvest_04b-24031</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04b-24031" target="_blank" rel="noreferrer"><code>04b-24031</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04b-24031" target="_blank" rel="noreferrer"><code>04b-24031</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">141</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Montgomery County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_08b-42091/edit" target="_blank" rel="noreferrer"><code>harvest_08b-42091</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08b-42091" target="_blank" rel="noreferrer"><code>08b-42091</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08b-42091" target="_blank" rel="noreferrer"><code>08b-42091</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Mower County Geospatial Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27099/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27099</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27099" target="_blank" rel="noreferrer"><code>05b-27099</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27099" target="_blank" rel="noreferrer"><code>05b-27099</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">27</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">NAIP GeoHub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_99-1800/edit" target="_blank" rel="noreferrer"><code>harvest_99-1800</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/99-1800" target="_blank" rel="noreferrer"><code>99-1800</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=99-1800" target="_blank" rel="noreferrer"><code>99-1800</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Nebraska Game &amp; Parks Map and Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_13a-04/edit" target="_blank" rel="noreferrer"><code>harvest_13a-04</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/13a-04" target="_blank" rel="noreferrer"><code>13a-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=13a-04" target="_blank" rel="noreferrer"><code>13a-04</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">29</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">NebraskaMap</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_13a-01/edit" target="_blank" rel="noreferrer"><code>harvest_13a-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/13a-01" target="_blank" rel="noreferrer"><code>13a-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=13a-01" target="_blank" rel="noreferrer"><code>13a-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">251</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">New Jersey Department of Environmental Protection&#x27;s (NJDEP) Bureau of GIS</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_14a-02/edit" target="_blank" rel="noreferrer"><code>harvest_14a-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/14a-02" target="_blank" rel="noreferrer"><code>14a-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=14a-02" target="_blank" rel="noreferrer"><code>14a-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">574</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">New Jersey Geographic Information Network (NJGIN) Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_14a-01/edit" target="_blank" rel="noreferrer"><code>harvest_14a-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/14a-01" target="_blank" rel="noreferrer"><code>14a-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=14a-01" target="_blank" rel="noreferrer"><code>14a-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">1256</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">1</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">North Central PA Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_08f-03/edit" target="_blank" rel="noreferrer"><code>harvest_08f-03</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08f-03" target="_blank" rel="noreferrer"><code>08f-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08f-03" target="_blank" rel="noreferrer"><code>08f-03</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">35</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Oakland County, MI Open data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_06b-26125/edit" target="_blank" rel="noreferrer"><code>harvest_06b-26125</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/06b-26125" target="_blank" rel="noreferrer"><code>06b-26125</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=06b-26125" target="_blank" rel="noreferrer"><code>06b-26125</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">360</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Omaha/Douglas County GIS Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_13b-31055/edit" target="_blank" rel="noreferrer"><code>harvest_13b-31055</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/13b-31055" target="_blank" rel="noreferrer"><code>13b-31055</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=13b-31055" target="_blank" rel="noreferrer"><code>13b-31055</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">109</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Open Baltimore</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_04c-02/edit" target="_blank" rel="noreferrer"><code>harvest_04c-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04c-02" target="_blank" rel="noreferrer"><code>04c-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04c-02" target="_blank" rel="noreferrer"><code>04c-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">974</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Open Data DC</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_04c-01/edit" target="_blank" rel="noreferrer"><code>harvest_04c-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04c-01" target="_blank" rel="noreferrer"><code>04c-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04c-01" target="_blank" rel="noreferrer"><code>04c-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">1863</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Open Data Kitsap County GIS</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53035/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53035</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53035" target="_blank" rel="noreferrer"><code>16b-53035</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53035" target="_blank" rel="noreferrer"><code>16b-53035</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">78</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Open Data Minneapolis</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05c-01/edit" target="_blank" rel="noreferrer"><code>harvest_05c-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05c-01" target="_blank" rel="noreferrer"><code>05c-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05c-01" target="_blank" rel="noreferrer"><code>05c-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">282</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">OpenIndy Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_01c-02/edit" target="_blank" rel="noreferrer"><code>harvest_01c-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/01c-02" target="_blank" rel="noreferrer"><code>01c-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=01c-02" target="_blank" rel="noreferrer"><code>01c-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">651</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Opioid Awareness|Peoria City/County Health Department</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_12c-02/edit" target="_blank" rel="noreferrer"><code>harvest_12c-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12c-02" target="_blank" rel="noreferrer"><code>12c-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12c-02" target="_blank" rel="noreferrer"><code>12c-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">11</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Oregon GEOHub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_17a-01/edit" target="_blank" rel="noreferrer"><code>harvest_17a-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/17a-01" target="_blank" rel="noreferrer"><code>17a-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=17a-01" target="_blank" rel="noreferrer"><code>17a-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">479</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">1</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Otter Tail County Maps and Data Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27111/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27111</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27111" target="_blank" rel="noreferrer"><code>05b-27111</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27111" target="_blank" rel="noreferrer"><code>05b-27111</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">15</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Outgamie County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55087/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55087</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55087" target="_blank" rel="noreferrer"><code>10b-55087</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55087" target="_blank" rel="noreferrer"><code>10b-55087</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">182</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">PHLmaps</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_08c-01-2/edit" target="_blank" rel="noreferrer"><code>harvest_08c-01-2</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08c-01-2" target="_blank" rel="noreferrer"><code>08c-01-2</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08c-01-2" target="_blank" rel="noreferrer"><code>08c-01-2</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">843</td>
+          <td class="number-cell" data-label="New Records">5</td>
+          <td class="number-cell" data-label="Unpublished Records">1</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Pennsylvania Department of Conservation and Natural Resources Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_08a-02/edit" target="_blank" rel="noreferrer"><code>harvest_08a-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08a-02" target="_blank" rel="noreferrer"><code>08a-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08a-02" target="_blank" rel="noreferrer"><code>08a-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">104</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Pennsylvania Department of Environmental Protection</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_08a-03/edit" target="_blank" rel="noreferrer"><code>harvest_08a-03</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08a-03" target="_blank" rel="noreferrer"><code>08a-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08a-03" target="_blank" rel="noreferrer"><code>08a-03</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">173</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Peoria County GIS Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_12b-17143/edit" target="_blank" rel="noreferrer"><code>harvest_12b-17143</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12b-17143" target="_blank" rel="noreferrer"><code>12b-17143</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12b-17143" target="_blank" rel="noreferrer"><code>12b-17143</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">197</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Pickaway County GIS Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39129/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39129</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39129" target="_blank" rel="noreferrer"><code>11b-39129</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39129" target="_blank" rel="noreferrer"><code>11b-39129</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">181</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Pierce County GIS Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55093/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55093</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55093" target="_blank" rel="noreferrer"><code>10b-55093</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55093" target="_blank" rel="noreferrer"><code>10b-55093</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">6</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Pierce County Open GeoSpatial Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53053/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53053</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53053" target="_blank" rel="noreferrer"><code>16b-53053</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53053" target="_blank" rel="noreferrer"><code>16b-53053</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">261</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Pipestone County Land Records Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27117/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27117</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27117" target="_blank" rel="noreferrer"><code>05b-27117</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27117" target="_blank" rel="noreferrer"><code>05b-27117</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">12</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Pittsburgh Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_08c-02/edit" target="_blank" rel="noreferrer"><code>harvest_08c-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08c-02" target="_blank" rel="noreferrer"><code>08c-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08c-02" target="_blank" rel="noreferrer"><code>08c-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">54</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Polk County GIS Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27119/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27119</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27119" target="_blank" rel="noreferrer"><code>05b-27119</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27119" target="_blank" rel="noreferrer"><code>05b-27119</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">62</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Pope County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27121/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27121</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27121" target="_blank" rel="noreferrer"><code>05b-27121</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27121" target="_blank" rel="noreferrer"><code>05b-27121</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">45</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">PortlandMaps Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_17c-06/edit" target="_blank" rel="noreferrer"><code>harvest_17c-06</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/17c-06" target="_blank" rel="noreferrer"><code>17c-06</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=17c-06" target="_blank" rel="noreferrer"><code>17c-06</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">354</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Pottawattamie County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_03b-19155/edit" target="_blank" rel="noreferrer"><code>harvest_03b-19155</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/03b-19155" target="_blank" rel="noreferrer"><code>03b-19155</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=03b-19155" target="_blank" rel="noreferrer"><code>03b-19155</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">291</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Puget Sound Regional Council Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16f-01/edit" target="_blank" rel="noreferrer"><code>harvest_16f-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16f-01" target="_blank" rel="noreferrer"><code>16f-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16f-01" target="_blank" rel="noreferrer"><code>16f-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">201</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Putnam County GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39137/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39137</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39137" target="_blank" rel="noreferrer"><code>11b-39137</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39137" target="_blank" rel="noreferrer"><code>11b-39137</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">RLIS Discovery</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_17c-01/edit" target="_blank" rel="noreferrer"><code>harvest_17c-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/17c-01" target="_blank" rel="noreferrer"><code>17c-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=17c-01" target="_blank" rel="noreferrer"><code>17c-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">248</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Racine County GIS Download</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55101/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55101</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55101" target="_blank" rel="noreferrer"><code>10b-55101</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55101" target="_blank" rel="noreferrer"><code>10b-55101</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">117</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Ramsey County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27123/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27123</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27123" target="_blank" rel="noreferrer"><code>05b-27123</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27123" target="_blank" rel="noreferrer"><code>05b-27123</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">40</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Renville County Open GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27129/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27129</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27129" target="_blank" rel="noreferrer"><code>05b-27129</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27129" target="_blank" rel="noreferrer"><code>05b-27129</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">105</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">SEMCOG Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_06f-01/edit" target="_blank" rel="noreferrer"><code>harvest_06f-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/06f-01" target="_blank" rel="noreferrer"><code>06f-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=06f-01" target="_blank" rel="noreferrer"><code>06f-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">66</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Saint Louis County GIS &amp; Mapping</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27137/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27137</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27137" target="_blank" rel="noreferrer"><code>05b-27137</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27137" target="_blank" rel="noreferrer"><code>05b-27137</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">19</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Sarpy County GIS Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_13b-31153/edit" target="_blank" rel="noreferrer"><code>harvest_13b-31153</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/13b-31153" target="_blank" rel="noreferrer"><code>13b-31153</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=13b-31153" target="_blank" rel="noreferrer"><code>13b-31153</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">184</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Sauk County GIS Download</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55111/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55111</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55111" target="_blank" rel="noreferrer"><code>10b-55111</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55111" target="_blank" rel="noreferrer"><code>10b-55111</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">33</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Scott County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27139/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27139</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27139" target="_blank" rel="noreferrer"><code>05b-27139</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27139" target="_blank" rel="noreferrer"><code>05b-27139</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">88</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Seattle GeoData</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16c-01/edit" target="_blank" rel="noreferrer"><code>harvest_16c-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16c-01" target="_blank" rel="noreferrer"><code>16c-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16c-01" target="_blank" rel="noreferrer"><code>16c-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">573</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Seneca County GeoLibrary</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39047/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39047</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39047" target="_blank" rel="noreferrer"><code>11b-39047</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39047" target="_blank" rel="noreferrer"><code>11b-39047</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">87</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Sherburne County Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27141/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27141</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27141" target="_blank" rel="noreferrer"><code>05b-27141</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27141" target="_blank" rel="noreferrer"><code>05b-27141</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">71</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Snohomish County Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53061/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53061</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53061" target="_blank" rel="noreferrer"><code>16b-53061</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53061" target="_blank" rel="noreferrer"><code>16b-53061</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">85</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">South Bend, IN Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_09c-01/edit" target="_blank" rel="noreferrer"><code>harvest_09c-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/09c-01" target="_blank" rel="noreferrer"><code>09c-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=09c-01" target="_blank" rel="noreferrer"><code>09c-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">136</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Spokane County GIS Data Catalog</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53063/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53063</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53063" target="_blank" rel="noreferrer"><code>16b-53063</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53063" target="_blank" rel="noreferrer"><code>16b-53063</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">46</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">St. Croix County GIS Download</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55109/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55109</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55109" target="_blank" rel="noreferrer"><code>10b-55109</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55109" target="_blank" rel="noreferrer"><code>10b-55109</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">5</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Stark County GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39151/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39151</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39151" target="_blank" rel="noreferrer"><code>11b-39151</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39151" target="_blank" rel="noreferrer"><code>11b-39151</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">114</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">State of Michigan Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_06a-01/edit" target="_blank" rel="noreferrer"><code>harvest_06a-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/06a-01" target="_blank" rel="noreferrer"><code>06a-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=06a-01" target="_blank" rel="noreferrer"><code>06a-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">728</td>
+          <td class="number-cell" data-label="New Records">1</td>
+          <td class="number-cell" data-label="Unpublished Records">2</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">State of Washington Geospatial Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16a-01/edit" target="_blank" rel="noreferrer"><code>harvest_16a-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16a-01" target="_blank" rel="noreferrer"><code>16a-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16a-01" target="_blank" rel="noreferrer"><code>16a-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">1508</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Stearns County GIS Data for Download</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27145/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27145</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27145" target="_blank" rel="noreferrer"><code>05b-27145</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27145" target="_blank" rel="noreferrer"><code>05b-27145</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">7</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Stevens County Geospatial Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27149/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27149</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27149" target="_blank" rel="noreferrer"><code>05b-27149</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27149" target="_blank" rel="noreferrer"><code>05b-27149</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">31</td>
+          <td class="number-cell" data-label="New Records">1</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Summit County GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_11b-39153/edit" target="_blank" rel="noreferrer"><code>harvest_11b-39153</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11b-39153" target="_blank" rel="noreferrer"><code>11b-39153</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11b-39153" target="_blank" rel="noreferrer"><code>11b-39153</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">138</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Tacoma Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16c-03/edit" target="_blank" rel="noreferrer"><code>harvest_16c-03</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16c-03" target="_blank" rel="noreferrer"><code>16c-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16c-03" target="_blank" rel="noreferrer"><code>16c-03</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">230</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Three Rivers Park District Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05f-01/edit" target="_blank" rel="noreferrer"><code>harvest_05f-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05f-01" target="_blank" rel="noreferrer"><code>05f-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05f-01" target="_blank" rel="noreferrer"><code>05f-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">137</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Thurston GeoData Center</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53067/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53067</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53067" target="_blank" rel="noreferrer"><code>16b-53067</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53067" target="_blank" rel="noreferrer"><code>16b-53067</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">76</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Traverse County Open GIS Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27155/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27155</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27155" target="_blank" rel="noreferrer"><code>05b-27155</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27155" target="_blank" rel="noreferrer"><code>05b-27155</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">1</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">U.S. Fish and Wildlife Service Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_1000-0003/edit" target="_blank" rel="noreferrer"><code>harvest_1000-0003</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/1000-0003" target="_blank" rel="noreferrer"><code>1000-0003</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=1000-0003" target="_blank" rel="noreferrer"><code>1000-0003</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">3254</td>
+          <td class="number-cell" data-label="New Records">23</td>
+          <td class="number-cell" data-label="Unpublished Records">4</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">UM Matthaei Botanical Gardens and Nichols Arboretum</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_07d-02/edit" target="_blank" rel="noreferrer"><code>harvest_07d-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/07d-02" target="_blank" rel="noreferrer"><code>07d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=07d-02" target="_blank" rel="noreferrer"><code>07d-02</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">157</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">University of Chicago Library GIS Data Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_12d-03/edit" target="_blank" rel="noreferrer"><code>harvest_12d-03</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12d-03" target="_blank" rel="noreferrer"><code>12d-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12d-03" target="_blank" rel="noreferrer"><code>12d-03</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">34</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Walla Walla County GIS</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53071/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53071</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53071" target="_blank" rel="noreferrer"><code>16b-53071</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53071" target="_blank" rel="noreferrer"><code>16b-53071</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">60</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Washington County GIS Download</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55131/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55131</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55131" target="_blank" rel="noreferrer"><code>10b-55131</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55131" target="_blank" rel="noreferrer"><code>10b-55131</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">138</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Washington County MN Geospatial Maps and Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27163/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27163</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27163" target="_blank" rel="noreferrer"><code>05b-27163</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27163" target="_blank" rel="noreferrer"><code>05b-27163</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">26</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Washtenaw County, Michigan Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_07b-26161/edit" target="_blank" rel="noreferrer"><code>harvest_07b-26161</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/07b-26161" target="_blank" rel="noreferrer"><code>07b-26161</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=07b-26161" target="_blank" rel="noreferrer"><code>07b-26161</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">39</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Waukesha County GIS Download</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55133/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55133</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55133" target="_blank" rel="noreferrer"><code>10b-55133</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55133" target="_blank" rel="noreferrer"><code>10b-55133</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">198</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Waupaca County GIS Download</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55135/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55135</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55135" target="_blank" rel="noreferrer"><code>10b-55135</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55135" target="_blank" rel="noreferrer"><code>10b-55135</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">63</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Waushara County GIS Download</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55137/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55137</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55137" target="_blank" rel="noreferrer"><code>10b-55137</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55137" target="_blank" rel="noreferrer"><code>10b-55137</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">13</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Wilkin County, Minnesota Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27167/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27167</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27167" target="_blank" rel="noreferrer"><code>05b-27167</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27167" target="_blank" rel="noreferrer"><code>05b-27167</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">16</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Wisconsin Rapids Online Map Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10c-04/edit" target="_blank" rel="noreferrer"><code>harvest_10c-04</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10c-04" target="_blank" rel="noreferrer"><code>10c-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10c-04" target="_blank" rel="noreferrer"><code>10c-04</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">32</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr class="report-error">
+          <td data-label="Harvest Record"><div class="task-name">Wood County Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10b-55141/edit" target="_blank" rel="noreferrer"><code>harvest_10b-55141</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10b-55141" target="_blank" rel="noreferrer"><code>10b-55141</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10b-55141" target="_blank" rel="noreferrer"><code>10b-55141</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--error">error</span><div class="detail-meta">[ArcGIS] Error fetching 10b-55141: 404 Client Error: Not Found for url: https://opendata.woodcogis.com/api/feed/dcat-us/1.1.json</div></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Yakima County, WA - Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_16b-53077/edit" target="_blank" rel="noreferrer"><code>harvest_16b-53077</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/16b-53077" target="_blank" rel="noreferrer"><code>16b-53077</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16b-53077" target="_blank" rel="noreferrer"><code>16b-53077</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">24</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">Yellow Medicine County Hub</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27173/edit" target="_blank" rel="noreferrer"><code>harvest_05b-27173</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27173" target="_blank" rel="noreferrer"><code>05b-27173</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27173" target="_blank" rel="noreferrer"><code>05b-27173</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">9</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr>
+          <td data-label="Harvest Record"><div class="task-name">York County, PA GIS Open Data Portal</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_08b-42133/edit" target="_blank" rel="noreferrer"><code>harvest_08b-42133</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08b-42133" target="_blank" rel="noreferrer"><code>08b-42133</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08b-42133" target="_blank" rel="noreferrer"><code>08b-42133</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
+          <td class="number-cell" data-label="Total Records Found">86</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row">Total</th>
+          <td></td>
+          <td class="number-cell" data-label="Total Records Found">34090</td>
+          <td class="number-cell" data-label="New Records">95</td>
+          <td class="number-cell" data-label="Unpublished Records">25</td>
+        </tr>
+      </tfoot>
+    </table>
+  </section>
+</body>
+</html>

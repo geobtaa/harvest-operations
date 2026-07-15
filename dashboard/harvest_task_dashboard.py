@@ -175,7 +175,7 @@ DEFAULT_ARCGIS_REPORTS_DIR = "reports/arcgis"
 DEFAULT_SOCRATA_REPORTS_DIR = "reports/socrata"
 DEFAULT_CKAN_REPORTS_DIR = "reports/ckan"
 DEFAULT_PUBLIC_DASHBOARD_SITE_BASE_PATH = "/harvest-operations"
-VALID_DASHBOARD_TASKS = {"all", "triage", "reports", "lists"}
+VALID_DASHBOARD_TASKS = {"all", "source_csvs", "triage", "reports", "lists"}
 ARCGIS_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_arcgis_report\.csv$")
 SOCRATA_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_socrata_report\.csv$")
 CKAN_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_ckan_report\.csv$")
@@ -417,6 +417,10 @@ class HarvestTaskDashboardJob:
             "summary": self._build_summary(task_df),
         }
 
+        if self.dashboard_task in {"all", "source_csvs"}:
+            results["workflow_inputs"] = self._write_workflow_inputs(harvest_df)
+            results["workflow_count"] = len(results["workflow_inputs"])
+
         if self.dashboard_task in {"all", "triage"}:
             review_output_path = self._write_text(
                 review_dashboard_html, self.output_public_review_dashboard_html
@@ -459,8 +463,6 @@ class HarvestTaskDashboardJob:
             dedicated_dashboard_outputs = self._write_dedicated_workflow_dashboards(harvest_df)
             results["dedicated_dashboard_html"] = dedicated_dashboard_outputs
             results["public_dedicated_dashboard_html"] = dedicated_dashboard_outputs
-            results["workflow_inputs"] = self._write_workflow_inputs(harvest_df)
-            results["workflow_count"] = len(results["workflow_inputs"])
 
         if self.dashboard_task in {"all", "lists"}:
             records_output_path = self._write_text(
@@ -1158,7 +1160,7 @@ class HarvestTaskDashboardJob:
                 "    <ul>",
                 *item_lines,
                 "    </ul>",
-                "    <p class=\"muted\">Generate Dashboard Files prepares per-workflow CSVs in <code>inputs/harvest-workflow-inputs/</code>.</p>",
+                "    <p class=\"muted\">After saving the source CSVs, generate per-workflow CSVs in <code>inputs/harvest-workflow-inputs/</code> before running Triage, Reports, or Lists.</p>",
                 "  </div>",
             ]
         )

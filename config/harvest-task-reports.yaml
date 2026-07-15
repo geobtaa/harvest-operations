@@ -7,7 +7,6 @@ geoportal_api_facet_url: https://lib-geoportal-prd-web-01.oit.umn.edu/api/v1/sea
 output_tasks_csv: reports/harvest-task-dashboard.csv
 output_dashboard_html: reports/harvest-task-dashboard.html
 output_retrospective_dashboard_html: reports/harvest-task-dashboard-retrospective.html
-output_workflow_dir: inputs/harvest-workflow-inputs
 arcgis_reports_dir: reports/arcgis
 socrata_reports_dir: reports/socrata
 ckan_reports_dir: reports/ckan

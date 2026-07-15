@@ -1,0 +1,6 @@
+name: "Harvest Dashboard: Source CSVs"
+type: task_dashboard
+dashboard_task: source_csvs
+harvest_records_csv: inputs/harvest-records.csv
+websites_csv: reference_data/websites.csv
+output_workflow_dir: inputs/harvest-workflow-inputs

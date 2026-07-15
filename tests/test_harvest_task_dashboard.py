@@ -285,14 +285,19 @@ def test_harvest_task_dashboard_triage_groups_only_unqueued_individual_records(
     ("dashboard_task", "expected_keys", "unexpected_keys"),
     [
         (
+            "source_csvs",
+            {"workflow_inputs"},
+            {"dashboard_html", "review_dashboard_html", "records_dashboard_html"},
+        ),
+        (
             "triage",
             {"review_dashboard_html", "todo_dashboard_html", "due_dashboard_html"},
             {"dashboard_html", "records_dashboard_html", "workflow_inputs"},
         ),
         (
             "reports",
-            {"dashboard_html", "retrospective_dashboard_html", "workflow_inputs"},
-            {"review_dashboard_html", "records_dashboard_html"},
+            {"dashboard_html", "retrospective_dashboard_html"},
+            {"review_dashboard_html", "records_dashboard_html", "workflow_inputs"},
         ),
         (
             "lists",

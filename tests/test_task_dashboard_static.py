@@ -58,11 +58,13 @@ def test_task_dashboard_static_page_includes_map_collections_link() -> None:
     assert 'class="report-link' not in html
     assert "Refresh Report Links" not in html
     assert "Refresh Workflow Queue" not in html
+    assert "Generate Workflow Inputs" in html
+    assert "runDashboardTask('source-csvs', 'Generate Workflow Inputs')" in html
     assert "Run Triage" in html
     assert "Run Reports" in html
     assert "Run Lists" in html
     assert "`/jobs/harvest-task-${taskName}/run`" in html
-    assert "runDashboardTask(taskName)" in html
+    assert 'runDashboardTask(taskName, taskLabel = "")' in html
     assert "background:" not in html
     assert "--link: #4f7f9f;" in html
     assert "a { color: var(--link); }" in html
