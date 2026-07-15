@@ -176,6 +176,20 @@ DEFAULT_SOCRATA_REPORTS_DIR = "reports/socrata"
 DEFAULT_CKAN_REPORTS_DIR = "reports/ckan"
 DEFAULT_PUBLIC_DASHBOARD_SITE_BASE_PATH = "/harvest-operations"
 VALID_DASHBOARD_TASKS = {"all", "source_csvs", "triage", "reports", "lists"}
+LEGACY_DATED_DASHBOARD_REPORT_PATTERN = re.compile(
+    r"^\d{4}-\d{2}-\d{2}_harvest-task-dashboard"
+    r"(?:-(?:due|review|todo|records|institutions|map-collections|standalone-websites|retrospective))?"
+    r"\.html$"
+)
+LEGACY_DATED_PUBLIC_REPORT_PATTERN = re.compile(
+    r"^\d{4}-\d{2}-\d{2}_harvest-task-dashboard.*-public\.html$"
+)
+LEGACY_DATED_TASK_CSV_PATTERN = re.compile(
+    r"^\d{4}-\d{2}-\d{2}_harvest-task-dashboard\.csv$"
+)
+DATED_WORKFLOW_DASHBOARD_REPORT_PATTERN = re.compile(
+    r"^(\d{4}-\d{2}-\d{2})_harvest-task-dashboard-(py-[a-z0-9-]+)\.html$"
+)
 ARCGIS_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_arcgis_report\.csv$")
 SOCRATA_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_socrata_report\.csv$")
 CKAN_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_ckan_report\.csv$")
@@ -463,6 +477,10 @@ class HarvestTaskDashboardJob:
             dedicated_dashboard_outputs = self._write_dedicated_workflow_dashboards(harvest_df)
             results["dedicated_dashboard_html"] = dedicated_dashboard_outputs
             results["public_dedicated_dashboard_html"] = dedicated_dashboard_outputs
+            removed_legacy_reports = self._cleanup_legacy_dated_dashboard_reports()
+            results["removed_legacy_report_count"] = len(removed_legacy_reports)
+            if removed_legacy_reports:
+                results["removed_legacy_reports"] = removed_legacy_reports
 
         if self.dashboard_task in {"all", "lists"}:
             records_output_path = self._write_text(
@@ -1093,6 +1111,53 @@ class HarvestTaskDashboardJob:
         configured_path.write_text(content, encoding="utf-8")
         return configured_path
 
+    def _cleanup_legacy_dated_dashboard_reports(self) -> list[str]:
+        reports_dir = self.output_dashboard_html.parent
+        if not reports_dir.exists():
+            return []
+
+        removed_paths: list[str] = []
+        for report_path in sorted(reports_dir.iterdir()):
+            if not report_path.is_file():
+                continue
+            if not self._is_legacy_dated_dashboard_report(report_path.name):
+                continue
+            report_path.unlink()
+            removed_paths.append(str(report_path))
+        return removed_paths
+
+    def _is_legacy_dated_dashboard_report(self, filename: str) -> bool:
+        if LEGACY_DATED_PUBLIC_REPORT_PATTERN.match(filename):
+            return True
+
+        workflow_match = DATED_WORKFLOW_DASHBOARD_REPORT_PATTERN.match(filename)
+        if workflow_match is not None:
+            return not self._workflow_dashboard_matches_harvest_report_csv(
+                workflow_match.group(1),
+                workflow_match.group(2),
+            )
+
+        return any(
+            pattern.match(filename)
+            for pattern in (
+                LEGACY_DATED_DASHBOARD_REPORT_PATTERN,
+                LEGACY_DATED_TASK_CSV_PATTERN,
+            )
+        )
+
+    def _workflow_dashboard_matches_harvest_report_csv(
+        self,
+        report_date: str,
+        workflow_slug: str,
+    ) -> bool:
+        workflow = workflow_slug.replace("-", "_")
+        if not self._is_harvest_report_workflow(workflow):
+            return True
+        return any(
+            date_value.strftime("%Y-%m-%d") == report_date
+            for date_value, _ in self._harvest_report_paths(workflow)
+        )
+
     def _write_dedicated_workflow_dashboards(
         self,
         harvest_df: pd.DataFrame,
@@ -1100,17 +1165,56 @@ class HarvestTaskDashboardJob:
         dedicated_outputs: dict[str, str] = {}
         for workflow_name in self.dedicated_workflow_views:
             configured_path = self._dedicated_workflow_output_path(workflow_name)
+            if self._is_harvest_report_workflow(workflow_name):
+                output_path = self._write_historical_workflow_dashboards(
+                    harvest_df,
+                    workflow_name,
+                    configured_path,
+                )
+            else:
+                workflow_html = self._render_combined_workflow_html(
+                    self._filter_harvest_view(harvest_df, workflow_name),
+                    workflow=workflow_name,
+                )
+                report_date = self._latest_harvest_report_date(workflow_name)
+                output_path = self._write_text(
+                    workflow_html,
+                    self._dated_output_path(configured_path, report_date=report_date),
+                )
+            dedicated_outputs[workflow_name] = str(output_path)
+        return dict(sorted(dedicated_outputs.items()))
+
+    def _write_historical_workflow_dashboards(
+        self,
+        harvest_df: pd.DataFrame,
+        workflow_name: str,
+        configured_path: Path,
+    ) -> Path:
+        report_paths = self._harvest_report_paths(workflow_name)
+        if not report_paths:
             workflow_html = self._render_combined_workflow_html(
                 self._filter_harvest_view(harvest_df, workflow_name),
                 workflow=workflow_name,
             )
-            report_date = self._latest_harvest_report_date(workflow_name)
+            return self._write_text(workflow_html, self._dated_output_path(configured_path))
+
+        latest_output_path: Path | None = None
+        for report_date, report_path in report_paths:
+            report_date_string = report_date.strftime("%Y-%m-%d")
+            workflow_html = self._render_combined_workflow_html(
+                self._filter_harvest_view(harvest_df, workflow_name),
+                workflow=workflow_name,
+                historical_report_path=report_path,
+            )
             output_path = self._write_text(
                 workflow_html,
-                self._dated_output_path(configured_path, report_date=report_date),
+                self._dated_output_path(configured_path, report_date=report_date_string),
             )
-            dedicated_outputs[workflow_name] = str(output_path)
-        return dict(sorted(dedicated_outputs.items()))
+            latest_output_path = latest_output_path or output_path
+
+        if latest_output_path is None:
+            raise ValueError(f"No workflow dashboard could be written for {workflow_name}.")
+        return latest_output_path
 
     def _build_summary(self, task_df: pd.DataFrame) -> dict[str, int]:
         if "Due Status" in task_df.columns:

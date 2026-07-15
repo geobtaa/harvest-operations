@@ -360,6 +360,114 @@ def test_harvest_task_dashboard_runs_only_the_selected_task_group(
         assert Path(results[key]).is_file()
 
 
+def test_reports_task_removes_legacy_dated_dashboard_snapshots(tmp_path: Path) -> None:
+    harvest_records_path = tmp_path / "harvest-records.csv"
+    websites_path = tmp_path / "websites.csv"
+    reports_dir = tmp_path / "reports"
+    arcgis_reports_dir = reports_dir / "arcgis"
+    arcgis_reports_dir.mkdir(parents=True)
+
+    pd.DataFrame(
+        [
+            {
+                "ID": "harvest_example",
+                "Title": "Harvest record for Example Catalog",
+                "Harvest Workflow": "py_arcgis_hub",
+                "Identifier": "example-01",
+                "Last Harvested": "2026-03-01",
+                "Accrual Periodicity": "monthly",
+            }
+        ]
+    ).to_csv(harvest_records_path, index=False)
+    pd.DataFrame(columns=["ID", "Harvest Workflow", "Name"]).to_csv(
+        websites_path, index=False
+    )
+    pd.DataFrame(
+        [
+            {
+                "Code": "example-01",
+                "Total Records Found": "5",
+                "New Records": "1",
+                "Unpublished Records": "0",
+                "Harvest Run": "completed",
+                "Harvest Message": "",
+            },
+            {
+                "Code": "TOTAL",
+                "Total Records Found": "5",
+                "New Records": "1",
+                "Unpublished Records": "0",
+            },
+        ]
+    ).to_csv(arcgis_reports_dir / "2026-04-05_arcgis_report.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "Code": "example-01",
+                "Total Records Found": "3",
+                "New Records": "0",
+                "Unpublished Records": "0",
+                "Harvest Run": "completed",
+                "Harvest Message": "",
+            },
+            {
+                "Code": "TOTAL",
+                "Total Records Found": "3",
+                "New Records": "0",
+                "Unpublished Records": "0",
+            },
+        ]
+    ).to_csv(arcgis_reports_dir / "2026-03-15_arcgis_report.csv", index=False)
+
+    stale_dashboard = reports_dir / "2026-04-01_harvest-task-dashboard.html"
+    stale_public_dashboard = reports_dir / "2026-04-01_harvest-task-dashboard-public.html"
+    stale_public_workflow = (
+        reports_dir / "2026-04-05_harvest-task-dashboard-py-arcgis-hub-public.html"
+    )
+    stale_duplicate_workflow = reports_dir / "2026-04-10_harvest-task-dashboard-py-arcgis-hub.html"
+    stale_task_csv = reports_dir / "2026-04-01_harvest-task-dashboard.csv"
+    retained_workflow = reports_dir / "2026-04-05_harvest-task-dashboard-py-arcgis-hub.html"
+    regenerated_workflow = reports_dir / "2026-03-15_harvest-task-dashboard-py-arcgis-hub.html"
+    for path in (
+        stale_dashboard,
+        stale_public_dashboard,
+        stale_public_workflow,
+        stale_duplicate_workflow,
+        stale_task_csv,
+        retained_workflow,
+    ):
+        path.write_text("old", encoding="utf-8")
+
+    results = HarvestTaskDashboardJob(
+        {
+            "dashboard_task": "reports",
+            "harvest_records_csv": str(harvest_records_path),
+            "websites_csv": str(websites_path),
+            "output_tasks_csv": str(reports_dir / "harvest-task-dashboard.csv"),
+            "output_dashboard_html": str(reports_dir / "harvest-task-dashboard.html"),
+            "output_retrospective_dashboard_html": str(
+                reports_dir / "harvest-task-dashboard-retrospective.html"
+            ),
+            "arcgis_reports_dir": str(arcgis_reports_dir),
+            "dedicated_workflow_views": ["py_arcgis_hub"],
+            "today": "2026-04-10",
+        }
+    ).harvest_pipeline()
+
+    assert results["removed_legacy_report_count"] == 5
+    assert not stale_dashboard.exists()
+    assert not stale_public_dashboard.exists()
+    assert not stale_public_workflow.exists()
+    assert not stale_duplicate_workflow.exists()
+    assert not stale_task_csv.exists()
+    assert retained_workflow.exists()
+    assert retained_workflow.read_text(encoding="utf-8") != "old"
+    assert regenerated_workflow.exists()
+    assert "ArcGIS Hubs Harvest Report - 2026-03-15" in regenerated_workflow.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_workflow_queue_consolidates_ckan_as_monthly_process(tmp_path: Path) -> None:
     harvest_records_path = tmp_path / "harvest-records.csv"
     websites_path = tmp_path / "websites.csv"

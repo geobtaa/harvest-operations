@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>CKAN Harvest Report - 2026-05-29</title>
+  <title>CKAN Harvest Report - 2026-06-22</title>
   <style>
     :root {
       color-scheme: light;
@@ -21,46 +21,46 @@
       --error-soft: #fee4e2;
     }
     * { box-sizing: border-box; }
-    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: "Segoe UI", sans-serif; line-height: 1.35; color: var(--ink); background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%); }
+    body { margin: 1.5rem auto; max-width: 1180px; padding: 0 1rem 2.5rem; font-family: "Segoe UI", sans-serif; line-height: 1.35; color: var(--ink); }
     h1, h2, p { margin-top: 0; }
     h1 { margin-bottom: 0.4rem; }
     h2 { margin-bottom: 0.9rem; }
     a { color: var(--accent); }
+    .restricted-login-glyph { display: inline-block; margin-left: 0.25rem; font-size: 0.86em; vertical-align: text-top; }
     .muted { color: var(--muted); }
-    code { background: var(--panel-soft); padding: 0.08rem 0.32rem; border-radius: 6px; }
-    .source-box, .status-box, .section-box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 1rem; box-shadow: 0 12px 28px rgba(23, 50, 77, 0.05); }
+    code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .source-box, .status-box, .section-box { border: 1px solid var(--line); border-radius: 16px; padding: 1rem; }
     .source-box { margin: 1rem 0 1.4rem; }
     .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }
-    .status-box { margin: 1.25rem 0 1.4rem; background: linear-gradient(135deg, var(--panel) 0%, var(--success-soft) 100%); border-color: #b7e4d7; }
+    .status-box { margin: 1.25rem 0 1.4rem; border-color: var(--success); }
     .status-label { color: var(--muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
     .status-value { display: block; margin-top: 0.35rem; font-size: 1.65rem; font-weight: 700; color: var(--success); }
     .section-box { padding: 0; overflow: hidden; }
-    .section-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; background: var(--panel-soft); border-bottom: 1px solid var(--line); }
+    .section-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; border-bottom: 1px solid var(--line); }
     .section-meta { color: var(--muted); font-size: 0.82rem; }
     table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
     th, td { padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
-    th { background: #f9fbfd; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    th { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
     tbody tr:last-child td { border-bottom: none; }
-    tbody tr:nth-child(even) { background: #fbfdff; }
-    tbody tr.report-error { background: #fff7f6; }
-    tfoot th, tfoot td { background: #f1f6fb; border-top: 2px solid var(--line-strong); font-weight: 700; }
+    tbody tr.report-error { border-left: 3px solid var(--error); }
+    tfoot th, tfoot td { border-top: 2px solid var(--line-strong); font-weight: 700; }
     .task-name { font-weight: 700; margin-bottom: 0.2rem; }
     .task-meta, .detail-meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.18rem; }
-    .task-meta code, .detail-meta code { background: #edf1f5; padding: 0.08rem 0.32rem; border-radius: 6px; }
-    .run-pill { display: inline-flex; align-items: center; padding: 0.16rem 0.5rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-    .run-pill--success { color: var(--success); background: var(--success-soft); }
-    .run-pill--error { color: var(--error); background: var(--error-soft); }
-    .run-pill--unknown { color: var(--muted); background: var(--panel-soft); }
+    .task-meta code, .detail-meta code { border: 1px solid var(--line); padding: 0.08rem 0.32rem; border-radius: 6px; }
+    .run-pill { display: inline-flex; align-items: center; padding: 0.16rem 0.5rem; border: 1px solid currentColor; border-radius: 999px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .run-pill--success { color: var(--success); }
+    .run-pill--error { color: var(--error); }
+    .run-pill--unknown { color: var(--muted); }
     .number-cell { text-align: right; white-space: nowrap; }
     @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .section-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } }
   </style>
 </head>
 <body>
-  <h1>CKAN Harvest Report - 2026-05-29</h1>
+  <h1>CKAN Harvest Report - 2026-06-22</h1>
   <p class="muted">This report summarizes the CKAN harvest run for the date shown below.</p>
   <div class="status-box">
     <span class="status-label">Harvest report date</span>
-    <strong class="status-value">2026-05-29</strong>
+    <strong class="status-value">2026-06-22</strong>
   </div>
   <section class="section-box">
     <div class="section-header">
@@ -79,34 +79,34 @@
       </thead>
       <tbody>
         <tr>
-          <td data-label="Harvest Record"><div class="task-name">Harvest record for Western Pennsylvania Regional Data Center Open Data</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_08f-01/edit" target="_blank" rel="noreferrer"><code>harvest_08f-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/08f-01/edit" target="_blank" rel="noreferrer"><code>08f-01</code></a></div></td>
+          <td data-label="Harvest Record"><div class="task-name">Ann Arbor Data Catalog</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_07c-02/edit" target="_blank" rel="noreferrer"><code>harvest_07c-02</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/07c-02" target="_blank" rel="noreferrer"><code>07c-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=07c-02" target="_blank" rel="noreferrer"><code>07c-02</code></a></div></td>
           <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
-          <td class="number-cell" data-label="Total Records Found">368</td>
-          <td class="number-cell" data-label="New Records">5</td>
-          <td class="number-cell" data-label="Unpublished Records">2</td>
-        </tr>
-        <tr>
-          <td data-label="Harvest Record"><div class="task-name">Harvest record for Ann Arbor Data Catalog</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_07c-02/edit" target="_blank" rel="noreferrer"><code>harvest_07c-02</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/07c-02/edit" target="_blank" rel="noreferrer"><code>07c-02</code></a></div></td>
-          <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
-          <td class="number-cell" data-label="Total Records Found">93</td>
-          <td class="number-cell" data-label="New Records">93</td>
+          <td class="number-cell" data-label="Total Records Found">94</td>
+          <td class="number-cell" data-label="New Records">1</td>
           <td class="number-cell" data-label="Unpublished Records">0</td>
         </tr>
         <tr>
-          <td data-label="Harvest Record"><div class="task-name">Harvest record for City of Milwaukee Open Data</div><div class="task-meta">Harvest record: <a href="https://geo.btaa.org/admin/documents/harvest_10c-01/edit" target="_blank" rel="noreferrer"><code>harvest_10c-01</code></a></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/admin/documents/10c-01/edit" target="_blank" rel="noreferrer"><code>10c-01</code></a></div></td>
+          <td data-label="Harvest Record"><div class="task-name">City of Milwaukee Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_10c-01/edit" target="_blank" rel="noreferrer"><code>harvest_10c-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10c-01" target="_blank" rel="noreferrer"><code>10c-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10c-01" target="_blank" rel="noreferrer"><code>10c-01</code></a></div></td>
           <td data-label="Harvest Run"><span class="run-pill run-pill--success">success</span></td>
           <td class="number-cell" data-label="Total Records Found">186</td>
-          <td class="number-cell" data-label="New Records">186</td>
+          <td class="number-cell" data-label="New Records">0</td>
           <td class="number-cell" data-label="Unpublished Records">0</td>
+        </tr>
+        <tr class="report-error">
+          <td data-label="Harvest Record"><div class="task-name">Western Pennsylvania Regional Data Center Open Data</div><div class="task-meta">Harvest record: <a href="https://geomg.lib.umn.edu/admin/documents/harvest_08f-01/edit" target="_blank" rel="noreferrer"><code>harvest_08f-01</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08f-01" target="_blank" rel="noreferrer"><code>08f-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08f-01" target="_blank" rel="noreferrer"><code>08f-01</code></a></div></td>
+          <td data-label="Harvest Run"><span class="run-pill run-pill--error">error</span><div class="detail-meta">[CKAN] Error fetching 08f-01: 500 Server Error: Internal Server Error for url: https://www.wprdc.org/api/3/action/package_search?rows=100&amp;start=0</div></td>
+          <td class="number-cell" data-label="Total Records Found">0</td>
+          <td class="number-cell" data-label="New Records">0</td>
+          <td class="number-cell" data-label="Unpublished Records">370</td>
         </tr>
       </tbody>
       <tfoot>
         <tr>
           <th scope="row">Total</th>
           <td></td>
-          <td class="number-cell" data-label="Total Records Found">647</td>
-          <td class="number-cell" data-label="New Records">284</td>
-          <td class="number-cell" data-label="Unpublished Records">2</td>
+          <td class="number-cell" data-label="Total Records Found">280</td>
+          <td class="number-cell" data-label="New Records">1</td>
+          <td class="number-cell" data-label="Unpublished Records">370</td>
         </tr>
       </tfoot>
     </table>
