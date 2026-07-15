@@ -2,6 +2,7 @@ import csv
 import time
 import os
 import re
+from datetime import date
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
@@ -11,7 +12,10 @@ import pandas as pd
 from harvesters.base import BaseHarvester
 from scripts.build_uploads import (
     build_filename_regex,
+    build_distribution_delta_files,
     discover_dated_files,
+    load_distribution_csv_norm,
+    load_primary_csv_norm,
     most_recent_file_before,
 )
 from utils.distribution_writer import generate_secondary_table
@@ -28,6 +32,12 @@ class ArcGISHarvester(BaseHarvester):
         # Initialize the ArcGIS harvester with the shared harvester configuration.
         config = dict(config)
         config.setdefault("build_uploads", True)
+        config.setdefault("use_registry", True)
+        config.setdefault("primary_registry_csv", "registry/arcgis_primary_registry.csv")
+        config.setdefault(
+            "distributions_registry_csv",
+            "registry/arcgis_distributions_registry.csv",
+        )
         super().__init__(config)
         self.workflow_input_path = required_config_path(self.config, "input_csv")
         self.hub_metadata_path = required_config_path(self.config, "hub_metadata_csv")
@@ -213,10 +223,38 @@ class ArcGISHarvester(BaseHarvester):
         return results
 
     def build_uploads(self, results: dict) -> dict | None:
-        # Delegate upload delta generation to the shared base implementation.
+        # Build upload deltas from the shared ArcGIS registry when enabled.
+        if self.config.get("use_registry", True):
+            return build_arcgis_uploads_from_registry(results, self.config)
         return super().build_uploads(results)
 
 # Custom functions for this harvester
+
+
+ARCGIS_PRIMARY_REGISTRY_FIELDS = [
+    "Title",
+    "Alternative Title",
+    "Creator",
+    "Publisher",
+    "Resource Class",
+    "Temporal Coverage",
+    "Date Issued",
+    "Date Accessioned",
+    "ID",
+    "Identifier",
+    "Code",
+    "last_seen",
+    "Date Retired",
+    "registry_status",
+]
+
+ARCGIS_DISTRIBUTION_REGISTRY_FIELDS = [
+    "friendlier_id",
+    "reference_type",
+    "distribution_url",
+    "label",
+    "last_seen",
+]
 
 
 def required_config_path(config: dict, key: str) -> str:
@@ -225,6 +263,294 @@ def required_config_path(config: dict, key: str) -> str:
     if not value:
         raise ValueError(f"[ArcGIS] Missing required config value: {key}")
     return value
+
+
+def build_arcgis_uploads_from_registry(results: dict, config: dict) -> dict | None:
+    # Compare the current full ArcGIS outputs against compact Git-tracked registries.
+    if not config.get("build_uploads"):
+        return None
+
+    primary_csv = results.get("primary_csv")
+    distributions_csv = results.get("distributions_csv")
+    if not primary_csv or not distributions_csv:
+        return {
+            "status": "skipped",
+            "reason": "ArcGIS registry uploads require primary_csv and distributions_csv results.",
+        }
+
+    primary_registry_path = Path(config["primary_registry_csv"])
+    distributions_registry_path = Path(config["distributions_registry_csv"])
+    if not primary_registry_path.exists():
+        return {
+            "status": "skipped",
+            "reason": f"ArcGIS primary registry not found: {primary_registry_path}",
+        }
+
+    today = date.today().isoformat()
+    source = infer_upload_source_prefix(config.get("output_primary_csv", "arcgis_primary.csv"))
+    primary_path = Path(primary_csv).resolve()
+    distributions_path = Path(distributions_csv).resolve()
+    upload_dir = primary_path.parent / "to_upload"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    current_primary_df = load_primary_csv_norm(primary_path)
+    current_distribution_df = load_distribution_csv_norm(distributions_path)
+    registry_primary_df = load_arcgis_primary_registry(primary_registry_path)
+    registry_distribution_df = load_arcgis_distribution_registry(distributions_registry_path)
+
+    current_item_df = arcgis_item_rows_for_registry(current_primary_df)
+    registry_item_df = arcgis_item_rows_for_registry(registry_primary_df)
+    active_registry_df = active_arcgis_registry_rows(registry_item_df)
+
+    current_ids = set(current_item_df["ID"].astype(str).str.strip())
+    active_registry_ids = set(active_registry_df["ID"].astype(str).str.strip())
+    new_ids = current_ids - active_registry_ids
+    shared_ids = current_ids.intersection(active_registry_ids)
+
+    refresh_rows = arcgis_harvest_record_rows_for_upload(current_primary_df)
+    new_primary_rows = current_item_df[current_item_df["ID"].isin(new_ids)].copy()
+    retired_registry_rows = active_registry_df[~active_registry_df["ID"].isin(current_ids)].copy()
+    retired_primary_rows = build_arcgis_retired_upload_rows(retired_registry_rows, today)
+
+    primary_upload_df = build_arcgis_primary_upload_dataframe(
+        current_primary_df,
+        refresh_rows,
+        new_primary_rows,
+        retired_primary_rows,
+    )
+    dist_new_df, dist_delete_df, changed_distribution_ids = build_distribution_delta_files(
+        current_distribution_df,
+        registry_distribution_df,
+        new_ids=new_ids,
+        shared_ids=shared_ids,
+    )
+
+    primary_upload_path = upload_dir / f"{today}_{source}_primary_upload.csv"
+    dist_new_path = upload_dir / f"{today}_{source}_distributions_new.csv"
+    dist_delete_path = upload_dir / f"{today}_{source}_distributions_delete.csv"
+
+    primary_upload_df.to_csv(primary_upload_path, index=False, encoding="utf-8")
+    dist_new_df.to_csv(dist_new_path, index=False, encoding="utf-8")
+    dist_delete_df.to_csv(dist_delete_path, index=False, encoding="utf-8")
+
+    updated_primary_registry = build_updated_arcgis_primary_registry(
+        current_item_df,
+        registry_item_df,
+        today,
+    )
+    updated_distribution_registry = build_updated_arcgis_distribution_registry(
+        current_distribution_df,
+        today,
+    )
+    write_arcgis_registry(primary_registry_path, updated_primary_registry)
+    write_arcgis_registry(distributions_registry_path, updated_distribution_registry)
+
+    return {
+        "status": "created",
+        "source": source,
+        "primary_upload_csv": str(primary_upload_path),
+        "distributions_new_csv": str(dist_new_path),
+        "distributions_delete_csv": str(dist_delete_path),
+        "primary_registry_csv": str(primary_registry_path),
+        "distributions_registry_csv": str(distributions_registry_path),
+        "new_count": len(new_primary_rows),
+        "retired_count": len(retired_primary_rows),
+        "distribution_new_count": len(dist_new_df),
+        "distribution_delete_count": len(dist_delete_df),
+        "changed_distribution_ids": sorted(changed_distribution_ids),
+    }
+
+
+def load_arcgis_primary_registry(path: Path) -> pd.DataFrame:
+    return load_arcgis_registry(path, ARCGIS_PRIMARY_REGISTRY_FIELDS, required_column="ID")
+
+
+def load_arcgis_distribution_registry(path: Path) -> pd.DataFrame:
+    if not path.exists():
+        return pd.DataFrame(columns=ARCGIS_DISTRIBUTION_REGISTRY_FIELDS)
+    return load_arcgis_registry(
+        path,
+        ARCGIS_DISTRIBUTION_REGISTRY_FIELDS,
+        required_column="friendlier_id",
+    )
+
+
+def load_arcgis_registry(path: Path, fields: list[str], required_column: str) -> pd.DataFrame:
+    df = pd.read_csv(path, dtype=str, keep_default_na=False).fillna("")
+    for column in fields:
+        if column not in df.columns:
+            df[column] = ""
+    for column in df.columns:
+        if df[column].dtype == object:
+            df[column] = df[column].astype(str).str.strip()
+    df = df[df[required_column].astype(str).str.strip().ne("")].copy()
+    return df.drop_duplicates(subset=[required_column], keep="first") if required_column == "ID" else df
+
+
+def arcgis_item_rows_for_registry(df: pd.DataFrame) -> pd.DataFrame:
+    work = df.copy()
+    if "Resource Class" not in work.columns:
+        work["Resource Class"] = ""
+    if "ID" not in work.columns:
+        work["ID"] = ""
+    mask = ~is_arcgis_harvest_record_row(work)
+    return work[mask & work["ID"].astype(str).str.strip().ne("")].copy()
+
+
+def arcgis_harvest_record_rows_for_upload(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return df.copy()
+    return df[is_arcgis_harvest_record_row(df)].copy()
+
+
+def is_arcgis_harvest_record_row(df: pd.DataFrame) -> pd.Series:
+    resource_class = (
+        df.get("Resource Class", pd.Series("", index=df.index))
+        .astype(str)
+        .str.strip()
+        .str.casefold()
+    )
+    ids = df.get("ID", pd.Series("", index=df.index)).astype(str).str.strip()
+    return resource_class.eq("websites") | ids.str.startswith("harvest_")
+
+
+def active_arcgis_registry_rows(df: pd.DataFrame) -> pd.DataFrame:
+    work = df.copy()
+    if "registry_status" not in work.columns:
+        work["registry_status"] = ""
+    status = work["registry_status"].astype(str).str.strip().str.casefold()
+    return work[status.ne("retired")].copy()
+
+
+def build_arcgis_retired_upload_rows(registry_rows: pd.DataFrame, retired_on: str) -> pd.DataFrame:
+    if registry_rows.empty:
+        return pd.DataFrame(columns=ARCGIS_PRIMARY_REGISTRY_FIELDS)
+
+    retired_rows = registry_rows.copy()
+    for column in ARCGIS_PRIMARY_REGISTRY_FIELDS:
+        if column not in retired_rows.columns:
+            retired_rows[column] = ""
+
+    title_fallback = retired_rows["Title"].astype(str).str.strip().eq("")
+    retired_rows.loc[title_fallback, "Title"] = retired_rows.loc[
+        title_fallback,
+        "Alternative Title",
+    ]
+    retired_rows["Display Note"] = (
+        f"Danger: Record not found during verification on {retired_on}; marked as retired."
+    )
+    retired_rows["Date Retired"] = retired_on
+    retired_rows["Resource Class"] = retired_rows["Resource Class"].replace("", "Web services")
+    retired_rows["Publication State"] = "unpublished"
+    retired_rows["Access Rights"] = "Public"
+    return retired_rows
+
+
+def build_arcgis_primary_upload_dataframe(
+    current_primary_df: pd.DataFrame,
+    refresh_rows: pd.DataFrame,
+    new_primary_rows: pd.DataFrame,
+    retired_primary_rows: pd.DataFrame,
+) -> pd.DataFrame:
+    parts = [
+        part
+        for part in [refresh_rows, new_primary_rows, retired_primary_rows]
+        if part is not None and not part.empty
+    ]
+    upload_columns = list(
+        dict.fromkeys(
+            list(current_primary_df.columns)
+            + ["Display Note", "Date Retired", "Publication State", "Access Rights"]
+            + ARCGIS_PRIMARY_REGISTRY_FIELDS
+        )
+    )
+    if not parts:
+        return pd.DataFrame(columns=upload_columns)
+
+    upload_df = pd.concat(parts, ignore_index=True)
+    upload_df = upload_df.drop_duplicates(subset=["ID"], keep="first")
+    return upload_df.reindex(columns=upload_columns, fill_value="")
+
+
+def build_updated_arcgis_primary_registry(
+    current_item_df: pd.DataFrame,
+    existing_registry_df: pd.DataFrame,
+    seen_on: str,
+) -> pd.DataFrame:
+    existing_by_id = {
+        str(row.get("ID", "")).strip(): row
+        for row in existing_registry_df.to_dict("records")
+        if str(row.get("ID", "")).strip()
+    }
+    current_ids = set(current_item_df["ID"].astype(str).str.strip())
+    rows = []
+
+    for current_row in current_item_df.to_dict("records"):
+        row_id = str(current_row.get("ID", "")).strip()
+        if not row_id:
+            continue
+        existing_row = existing_by_id.get(row_id, {})
+        registry_row = {
+            field: str(current_row.get(field, "") or "").strip()
+            for field in ARCGIS_PRIMARY_REGISTRY_FIELDS
+        }
+        registry_row["Date Accessioned"] = first_non_empty(
+            existing_row.get("Date Accessioned", ""),
+            current_row.get("Date Accessioned", ""),
+            seen_on,
+        )
+        registry_row["last_seen"] = seen_on
+        registry_row["Date Retired"] = ""
+        registry_row["registry_status"] = "active"
+        rows.append(registry_row)
+
+    for existing_row in existing_registry_df.to_dict("records"):
+        row_id = str(existing_row.get("ID", "")).strip()
+        if not row_id or row_id in current_ids:
+            continue
+        registry_row = {
+            field: str(existing_row.get(field, "") or "").strip()
+            for field in ARCGIS_PRIMARY_REGISTRY_FIELDS
+        }
+        registry_row["Resource Class"] = first_non_empty(
+            registry_row.get("Resource Class", ""),
+            "Web services",
+        )
+        registry_row["Date Accessioned"] = first_non_empty(
+            registry_row.get("Date Accessioned", ""),
+            registry_row.get("last_seen", ""),
+            seen_on,
+        )
+        registry_row["Date Retired"] = first_non_empty(
+            registry_row.get("Date Retired", ""),
+            seen_on,
+        )
+        registry_row["registry_status"] = "retired"
+        rows.append(registry_row)
+
+    return pd.DataFrame(rows, columns=ARCGIS_PRIMARY_REGISTRY_FIELDS)
+
+
+def build_updated_arcgis_distribution_registry(
+    current_distribution_df: pd.DataFrame,
+    seen_on: str,
+) -> pd.DataFrame:
+    registry_df = current_distribution_df.copy()
+    for column in ARCGIS_DISTRIBUTION_REGISTRY_FIELDS:
+        if column not in registry_df.columns:
+            registry_df[column] = ""
+    registry_df["last_seen"] = seen_on
+    registry_df = registry_df[registry_df["friendlier_id"].astype(str).str.strip().ne("")]
+    registry_df = registry_df.drop_duplicates(
+        subset=["friendlier_id", "reference_type", "distribution_url", "label"],
+        keep="first",
+    )
+    return registry_df.reindex(columns=ARCGIS_DISTRIBUTION_REGISTRY_FIELDS, fill_value="")
+
+
+def write_arcgis_registry(path: Path, df: pd.DataFrame) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(path, index=False, encoding="utf-8")
 
 
 def drop_arcgis_output_columns(df: pd.DataFrame) -> pd.DataFrame:
