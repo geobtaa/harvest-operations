@@ -188,7 +188,7 @@ def test_arcgis_harvester_allows_build_uploads_to_be_disabled() -> None:
     assert harvester.config["build_uploads"] is False
 
 
-def test_arcgis_registry_uploads_preserve_accessioned_dates_and_update_state(tmp_path) -> None:
+def test_arcgis_registry_uploads_preserve_accessioned_dates_and_prune_state(tmp_path) -> None:
     outputs_dir = tmp_path / "outputs"
     registry_dir = tmp_path / "registry"
     outputs_dir.mkdir()
@@ -350,15 +350,27 @@ def test_arcgis_registry_uploads_preserve_accessioned_dates_and_update_state(tmp
         dtype=str,
         keep_default_na=False,
     ).fillna("")
+    assert set(updated_registry["ID"]) == {"shared-id", "new-id"}
+    assert "last_seen" not in updated_registry.columns
+    assert "registry_status" not in updated_registry.columns
+    assert "Date Retired" not in updated_registry.columns
     shared_registry_row = updated_registry.loc[updated_registry["ID"] == "shared-id"].iloc[0]
-    retired_registry_row = updated_registry.loc[updated_registry["ID"] == "retired-id"].iloc[0]
+    new_registry_row = updated_registry.loc[updated_registry["ID"] == "new-id"].iloc[0]
     assert shared_registry_row["Title"] == "Shared New Title"
     assert shared_registry_row["Date Accessioned"] == "2026-01-08"
-    assert shared_registry_row["last_seen"] == today
-    assert shared_registry_row["registry_status"] == "active"
-    assert retired_registry_row["registry_status"] == "retired"
-    assert retired_registry_row["Date Retired"] == today
-    assert retired_registry_row["last_seen"] == "2026-07-13"
+    assert new_registry_row["Date Accessioned"] == "2026-07-15"
+
+    updated_distributions_registry = pd.read_csv(
+        distributions_registry_path,
+        dtype=str,
+        keep_default_na=False,
+    ).fillna("")
+    assert "last_seen" not in updated_distributions_registry.columns
+    assert set(updated_distributions_registry["friendlier_id"]) == {"shared-id", "new-id"}
+    assert set(updated_distributions_registry["distribution_url"]) == {
+        "https://example.org/new.zip",
+        "https://example.org/new-record.zip",
+    }
 
 
 def test_arcgis_harvester_writes_harvest_report_with_counts(tmp_path, monkeypatch) -> None:

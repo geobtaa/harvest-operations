@@ -243,9 +243,6 @@ ARCGIS_PRIMARY_REGISTRY_FIELDS = [
     "ID",
     "Identifier",
     "Code",
-    "last_seen",
-    "Date Retired",
-    "registry_status",
 ]
 
 ARCGIS_DISTRIBUTION_REGISTRY_FIELDS = [
@@ -253,7 +250,6 @@ ARCGIS_DISTRIBUTION_REGISTRY_FIELDS = [
     "reference_type",
     "distribution_url",
     "label",
-    "last_seen",
 ]
 
 
@@ -338,10 +334,7 @@ def build_arcgis_uploads_from_registry(results: dict, config: dict) -> dict | No
         registry_item_df,
         today,
     )
-    updated_distribution_registry = build_updated_arcgis_distribution_registry(
-        current_distribution_df,
-        today,
-    )
+    updated_distribution_registry = build_updated_arcgis_distribution_registry(current_distribution_df)
     write_arcgis_registry(primary_registry_path, updated_primary_registry)
     write_arcgis_registry(distributions_registry_path, updated_distribution_registry)
 
@@ -475,14 +468,13 @@ def build_arcgis_primary_upload_dataframe(
 def build_updated_arcgis_primary_registry(
     current_item_df: pd.DataFrame,
     existing_registry_df: pd.DataFrame,
-    seen_on: str,
+    run_date: str,
 ) -> pd.DataFrame:
     existing_by_id = {
         str(row.get("ID", "")).strip(): row
         for row in existing_registry_df.to_dict("records")
         if str(row.get("ID", "")).strip()
     }
-    current_ids = set(current_item_df["ID"].astype(str).str.strip())
     rows = []
 
     for current_row in current_item_df.to_dict("records"):
@@ -497,35 +489,8 @@ def build_updated_arcgis_primary_registry(
         registry_row["Date Accessioned"] = first_non_empty(
             existing_row.get("Date Accessioned", ""),
             current_row.get("Date Accessioned", ""),
-            seen_on,
+            run_date,
         )
-        registry_row["last_seen"] = seen_on
-        registry_row["Date Retired"] = ""
-        registry_row["registry_status"] = "active"
-        rows.append(registry_row)
-
-    for existing_row in existing_registry_df.to_dict("records"):
-        row_id = str(existing_row.get("ID", "")).strip()
-        if not row_id or row_id in current_ids:
-            continue
-        registry_row = {
-            field: str(existing_row.get(field, "") or "").strip()
-            for field in ARCGIS_PRIMARY_REGISTRY_FIELDS
-        }
-        registry_row["Resource Class"] = first_non_empty(
-            registry_row.get("Resource Class", ""),
-            "Web services",
-        )
-        registry_row["Date Accessioned"] = first_non_empty(
-            registry_row.get("Date Accessioned", ""),
-            registry_row.get("last_seen", ""),
-            seen_on,
-        )
-        registry_row["Date Retired"] = first_non_empty(
-            registry_row.get("Date Retired", ""),
-            seen_on,
-        )
-        registry_row["registry_status"] = "retired"
         rows.append(registry_row)
 
     return pd.DataFrame(rows, columns=ARCGIS_PRIMARY_REGISTRY_FIELDS)
@@ -533,13 +498,11 @@ def build_updated_arcgis_primary_registry(
 
 def build_updated_arcgis_distribution_registry(
     current_distribution_df: pd.DataFrame,
-    seen_on: str,
 ) -> pd.DataFrame:
     registry_df = current_distribution_df.copy()
     for column in ARCGIS_DISTRIBUTION_REGISTRY_FIELDS:
         if column not in registry_df.columns:
             registry_df[column] = ""
-    registry_df["last_seen"] = seen_on
     registry_df = registry_df[registry_df["friendlier_id"].astype(str).str.strip().ne("")]
     registry_df = registry_df.drop_duplicates(
         subset=["friendlier_id", "reference_type", "distribution_url", "label"],

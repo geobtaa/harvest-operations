@@ -16,6 +16,7 @@ ArcGIS uses these compact registries as the previous-run state for upload deltas
 - `arcgis_distributions_registry.csv`
 
 The ArcGIS harvester reads these files before building upload CSVs, then updates
-them from the current full local outputs. `Date Accessioned` is preserved from
-the existing primary registry, while `last_seen`, `registry_status`, and
-`Date Retired` are maintained by the harvester.
+them from the current full local outputs. The registries are current snapshots,
+not history tables: records and distribution rows missing from the current
+harvest are pruned after upload deltas are written. `Date Accessioned` is
+preserved from the existing primary registry.

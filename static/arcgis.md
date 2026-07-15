@@ -112,19 +112,17 @@ class methods are limited to the same template methods defined in
 - Primary registry CSV
   - Config key: `primary_registry_csv`
   - Default path: `registry/arcgis_primary_registry.csv`
-  - Git-trackable previous-run state for primary records. It keeps compact
-    citation fields for current and retired ArcGIS records, including `Title`,
+  - Git-trackable previous-run state for current primary records. It keeps
+    compact citation fields for ArcGIS records, including `Title`,
     `Alternative Title`, `Creator`, `Publisher`, `Resource Class`,
     `Temporal Coverage`, `Date Issued`, `Date Accessioned`, `ID`,
-    `Identifier`, `Code`, `last_seen`, `Date Retired`, and
-    `registry_status`.
+    `Identifier`, and `Code`.
 
 - Distributions registry CSV
   - Config key: `distributions_registry_csv`
   - Default path: `registry/arcgis_distributions_registry.csv`
   - Git-trackable previous-run state for distribution rows. It stores
-    `friendlier_id`, `reference_type`, `distribution_url`, `label`, and
-    `last_seen`.
+    `friendlier_id`, `reference_type`, `distribution_url`, and `label`.
 
 ## Outputs
 
@@ -157,11 +155,11 @@ class methods are limited to the same template methods defined in
 - Updated registry CSVs
   - The harvester updates `registry/arcgis_primary_registry.csv` and
     `registry/arcgis_distributions_registry.csv` after building upload deltas.
+  - The registries are rewritten as current snapshots, so records and
+    distribution rows missing from the current harvest are pruned.
   - `Date Accessioned` is preserved from the existing primary registry.
   - Descriptive fields such as title, creator, publisher, temporal coverage,
     and identifier are refreshed from the current harvest for active records.
-  - Missing records are marked with `registry_status = retired` and
-    `Date Retired`.
 
 ## ArcGIS-Specific Behavior
 
@@ -198,8 +196,9 @@ class methods are limited to the same template methods defined in
   - Retired upload rows preserve compact citation fields from the registry.
   - Retired upload rows set `Publication State` to `unpublished`,
     `Access Rights` to `Public`, and `Resource Class` to `Web services`.
-  - Retired records stay in the primary registry with `registry_status =
-    retired`, so they are not repeatedly emitted as newly retired on later runs.
+  - Retired records are removed from the primary registry after the upload
+    delta is written, so they are not repeatedly emitted as newly retired on
+    later runs.
 
 ## Code Organization
 
