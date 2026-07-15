@@ -1079,6 +1079,189 @@ def test_pasda_deleted_record_review_rows_use_previous_registry() -> None:
     assert deleted_rows[0]["last_seen"] == "2026-06-30"
 
 
+def test_pasda_write_outputs_can_write_change_only_files(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    config.update(
+        {
+            "use_registry": False,
+            "write_inventory_outputs": False,
+            "write_normalized_outputs": False,
+            "write_full_upload_outputs": False,
+            "write_change_upload_outputs": True,
+            "write_change_review_outputs": False,
+            "write_match_review_outputs": False,
+            "write_report_outputs": True,
+            "write_diagnostic_report_outputs": False,
+        }
+    )
+    harvester = PasdaHarvester(config)
+    harvester.inventory_rows = [
+        {"metadata_filename": "new.xml"},
+        {"metadata_filename": "changed.xml"},
+    ]
+    harvester.normalized_records = [
+        {
+            "source_record_id": "new",
+            "metadata_filename": "new.xml",
+            "metadata_url": "https://www.pasda.psu.edu/metadata/new.xml",
+            "metadata_profile": "fgdc_csdgm",
+            "xml_parse_status": "parsed",
+            "xml_sha256": "newhash",
+            "title": "New Roads",
+            "place_keywords": [],
+            "theme_keywords": [],
+        },
+        {
+            "source_record_id": "changed",
+            "metadata_filename": "changed.xml",
+            "metadata_url": "https://www.pasda.psu.edu/metadata/changed.xml",
+            "metadata_profile": "fgdc_csdgm",
+            "xml_parse_status": "parsed",
+            "xml_sha256": "changed-newhash",
+            "title": "Changed Roads",
+            "place_keywords": [],
+            "theme_keywords": [],
+        },
+    ]
+    harvester.metadata_registry = {
+        "changed.xml": {
+            "metadata_filename": "changed.xml",
+            "xml_sha256": "changed-oldhash",
+            "metadata_last_modified": "2026-07-01 10:00",
+            "metadata_size_bytes": "10",
+        },
+        "deleted.xml": {
+            "metadata_filename": "deleted.xml",
+            "metadata_url": "https://www.pasda.psu.edu/metadata/deleted.xml",
+            "pasda_record_id": "pasda-deleted",
+            "source_record_id": "deleted",
+            "xml_sha256": "deletedhash",
+            "last_seen": "2026-07-01",
+        },
+    }
+    harvester.download_inventory_rows = [
+        {
+            "source_manifest": "download_directory",
+            "asset_url": "https://www.pasda.psu.edu/download/new/new.zip",
+            "asset_filename": "new.zip",
+            "asset_file_stem": "new",
+            "asset_file_stem_normalized": "new",
+            "asset_extension": ".zip",
+            "asset_kind": "download_archive",
+            "asset_directory_url": "https://www.pasda.psu.edu/download/new/",
+            "inventory_status": "found",
+        },
+        {
+            "source_manifest": "download_directory",
+            "asset_url": "https://www.pasda.psu.edu/download/changed/changed.zip",
+            "asset_filename": "changed.zip",
+            "asset_file_stem": "changed",
+            "asset_file_stem_normalized": "changed",
+            "asset_extension": ".zip",
+            "asset_kind": "download_archive",
+            "asset_directory_url": "https://www.pasda.psu.edu/download/changed/",
+            "inventory_status": "found",
+        },
+    ]
+
+    results = harvester.write_outputs(pd.DataFrame(harvester.normalized_records))
+
+    assert "aardvark_draft_csv" not in results
+    assert "normalized_csv" not in results
+    assert "download_inventory_csv" not in results
+    assert "asset_match_review_csv" not in results
+    assert "new_records_review_csv" not in results
+    assert "error_report_csv" not in results
+    new_upload = Path(results["new_aardvark_upload_csv"])
+    changed_upload = Path(results["changed_aardvark_upload_csv"])
+    new_distributions = Path(results["new_distributions_upload_csv"])
+    changed_distributions = Path(results["changed_distributions_upload_csv"])
+    deleted_ids = Path(results["deleted_ids_upload_csv"])
+    summary = Path(results["change_summary_csv"])
+
+    assert new_upload.exists()
+    assert changed_upload.exists()
+    assert new_distributions.exists()
+    assert changed_distributions.exists()
+    assert deleted_ids.exists()
+    assert summary.exists()
+    assert new_upload.parent.name == "upload"
+    assert deleted_ids.parent.name == "upload"
+    assert not (Path(config["output_dir"]) / "review").exists()
+    assert [row["ID"] for row in pd.read_csv(new_upload).to_dict("records")] == ["pasda-new"]
+    assert [row["ID"] for row in pd.read_csv(changed_upload).to_dict("records")] == [
+        "pasda-changed"
+    ]
+    assert [row["friendlier_id"] for row in pd.read_csv(new_distributions).to_dict("records")][
+        0
+    ] == "pasda-new"
+    assert [
+        row["friendlier_id"] for row in pd.read_csv(changed_distributions).to_dict("records")
+    ][0] == "pasda-changed"
+    assert [row["ID"] for row in pd.read_csv(deleted_ids).to_dict("records")] == [
+        "pasda-deleted"
+    ]
+
+
+def test_pasda_write_outputs_skips_zero_row_change_files(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    config.update(
+        {
+            "use_registry": False,
+            "write_inventory_outputs": False,
+            "write_normalized_outputs": False,
+            "write_full_upload_outputs": False,
+            "write_change_upload_outputs": True,
+            "write_change_review_outputs": False,
+            "write_match_review_outputs": False,
+            "write_report_outputs": True,
+            "write_diagnostic_report_outputs": False,
+        }
+    )
+    harvester = PasdaHarvester(config)
+    harvester.inventory_rows = [{"metadata_filename": "new.xml"}]
+    harvester.normalized_records = [
+        {
+            "source_record_id": "new",
+            "metadata_filename": "new.xml",
+            "metadata_url": "https://www.pasda.psu.edu/metadata/new.xml",
+            "metadata_profile": "fgdc_csdgm",
+            "xml_parse_status": "parsed",
+            "xml_sha256": "newhash",
+            "title": "New Roads",
+            "place_keywords": [],
+            "theme_keywords": [],
+        }
+    ]
+    harvester.download_inventory_rows = [
+        {
+            "source_manifest": "download_directory",
+            "asset_url": "https://www.pasda.psu.edu/download/new/new.zip",
+            "asset_filename": "new.zip",
+            "asset_file_stem": "new",
+            "asset_file_stem_normalized": "new",
+            "asset_extension": ".zip",
+            "asset_kind": "download_archive",
+            "asset_directory_url": "https://www.pasda.psu.edu/download/new/",
+            "inventory_status": "found",
+        }
+    ]
+    stale_changed = Path(config["output_dir"]) / "upload" / (
+        f"{pasda_module.time.strftime('%Y-%m-%d')}_pasda_aardvark_changed.csv"
+    )
+    stale_changed.parent.mkdir(parents=True)
+    stale_changed.write_text("stale\n", encoding="utf-8")
+
+    results = harvester.write_outputs(pd.DataFrame(harvester.normalized_records))
+
+    assert "new_aardvark_upload_csv" in results
+    assert "new_distributions_upload_csv" in results
+    assert "changed_aardvark_upload_csv" not in results
+    assert "changed_distributions_upload_csv" not in results
+    assert "deleted_ids_upload_csv" not in results
+    assert not stale_changed.exists()
+
+
 def test_mixed_sample_strategy_selects_across_inventory() -> None:
     rows = [{"metadata_filename": f"{index:02d}.xml"} for index in range(10)]
 

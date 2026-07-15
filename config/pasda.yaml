@@ -22,6 +22,15 @@ download_inventory_request_delay_seconds: 0.1
 json_inventory_max_depth: 0
 json_inventory_max_pages: 1000
 json_inventory_request_delay_seconds: 0.1
+# Routine reruns should produce compact change files, not full dated rebuild files.
+write_inventory_outputs: false
+write_normalized_outputs: false
+write_full_upload_outputs: false
+write_change_upload_outputs: true
+write_change_review_outputs: false
+write_match_review_outputs: false
+write_report_outputs: true
+write_diagnostic_report_outputs: false
 # Optional: set sample_size to download and parse a subset after writing the full inventory.
 # sample_size: 250
 sample_strategy: mixed

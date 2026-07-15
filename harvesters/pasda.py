@@ -110,6 +110,14 @@ class PasdaHarvester(BaseHarvester):
         config.setdefault("json_inventory_max_pages", 100)
         config.setdefault("json_inventory_request_delay_seconds", 0)
         config.setdefault("aardvark_ready_only", True)
+        config.setdefault("write_inventory_outputs", False)
+        config.setdefault("write_normalized_outputs", False)
+        config.setdefault("write_full_upload_outputs", False)
+        config.setdefault("write_change_upload_outputs", True)
+        config.setdefault("write_change_review_outputs", False)
+        config.setdefault("write_match_review_outputs", False)
+        config.setdefault("write_report_outputs", True)
+        config.setdefault("write_diagnostic_report_outputs", False)
         config.setdefault("sample_strategy", "first")
         config.setdefault("sample_seed", 42)
         config.setdefault("timeout", 30)
@@ -319,14 +327,22 @@ class PasdaHarvester(BaseHarvester):
         today = time.strftime("%Y-%m-%d")
         output_dir = Path(self.config["output_dir"])
         output_dir.mkdir(parents=True, exist_ok=True)
+        write_inventory_outputs = bool(self.config.get("write_inventory_outputs", False))
+        write_normalized_outputs = bool(self.config.get("write_normalized_outputs", False))
+        write_full_upload_outputs = bool(self.config.get("write_full_upload_outputs", False))
+        write_change_upload_outputs = bool(self.config.get("write_change_upload_outputs", True))
+        write_change_review_outputs = bool(self.config.get("write_change_review_outputs", False))
+        write_match_review_outputs = bool(self.config.get("write_match_review_outputs", False))
+        write_report_outputs = bool(self.config.get("write_report_outputs", True))
+        write_diagnostic_report_outputs = bool(
+            self.config.get("write_diagnostic_report_outputs", False)
+        )
 
         inventory_dir = output_dir / "inventory"
         normalized_dir = output_dir / "normalized"
         upload_dir = output_dir / "upload"
         review_dir = output_dir / "review"
         reports_dir = output_dir / "reports"
-        for subdir in [inventory_dir, normalized_dir, upload_dir, review_dir, reports_dir]:
-            subdir.mkdir(parents=True, exist_ok=True)
 
         inventory_path = inventory_dir / f"{today}_pasda_directory_inventory.csv"
         manifest_path = inventory_dir / f"{today}_pasda_metadata_manifest.csv"
@@ -335,23 +351,36 @@ class PasdaHarvester(BaseHarvester):
         normalized_jsonl_path = normalized_dir / f"{today}_pasda_normalized_records.jsonl"
         normalized_csv_path = normalized_dir / f"{today}_pasda_normalized_records.csv"
         aardvark_draft_path = upload_dir / f"{today}_pasda_aardvark_draft.csv"
+        new_aardvark_upload_path = upload_dir / f"{today}_pasda_aardvark_new.csv"
+        changed_aardvark_upload_path = upload_dir / f"{today}_pasda_aardvark_changed.csv"
         distributions_path = upload_dir / f"{today}_pasda_distributions.csv"
+        new_distributions_path = upload_dir / f"{today}_pasda_distributions_new.csv"
+        changed_distributions_path = upload_dir / f"{today}_pasda_distributions_changed.csv"
+        deleted_ids_upload_path = upload_dir / f"{today}_pasda_deleted_ids.csv"
         asset_match_review_path = review_dir / f"{today}_pasda_asset_match_review.csv"
         series_review_path = review_dir / f"{today}_pasda_series_review.csv"
         unparsed_matched_review_path = review_dir / f"{today}_pasda_unparsed_matched_review.csv"
         new_records_review_path = review_dir / f"{today}_pasda_new_records_review.csv"
         changed_records_review_path = review_dir / f"{today}_pasda_changed_records_review.csv"
         deleted_records_review_path = review_dir / f"{today}_pasda_deleted_records_review.csv"
+        change_summary_path = reports_dir / f"{today}_pasda_change_summary.csv"
         errors_path = reports_dir / f"{today}_pasda_error_report.csv"
         profile_summary_path = reports_dir / f"{today}_pasda_profile_summary.csv"
 
-        write_csv_rows(inventory_path, self.inventory_rows)
-        write_csv_rows(manifest_path, self.manifest_rows)
-        write_jsonl(normalized_jsonl_path, self.normalized_records)
-        primary_df.to_csv(normalized_csv_path, index=False, encoding="utf-8")
+        if write_inventory_outputs:
+            write_csv_rows(inventory_path, self.inventory_rows)
+            write_csv_rows(manifest_path, self.manifest_rows)
+            if self.config.get("build_download_inventory", False):
+                write_csv_rows(download_inventory_path, self.download_inventory_rows)
+            if self.config.get("build_json_inventory", False):
+                write_csv_rows(json_inventory_path, self.json_inventory_rows)
+        if write_normalized_outputs:
+            write_jsonl(normalized_jsonl_path, self.normalized_records)
+            primary_df.to_csv(normalized_csv_path, index=False, encoding="utf-8")
         asset_match_review_rows = []
         series_review_rows = []
         unparsed_matched_review_rows = []
+        distribution_rows = []
         if self.download_inventory_rows or self.json_inventory_rows:
             asset_match_review_rows = build_pasda_asset_match_review_records(
                 self.normalized_records,
@@ -366,6 +395,10 @@ class PasdaHarvester(BaseHarvester):
                 self.normalized_records,
                 asset_match_review_rows=asset_match_review_rows,
             )
+            distribution_rows = build_pasda_distribution_records(
+                self.normalized_records,
+                asset_match_review_rows=asset_match_review_rows,
+            )
         county_lookup = build_pasda_county_lookup(self.spatial_data)
         aardvark_draft_df = build_pasda_aardvark_draft_dataframe(
             self.normalized_records,
@@ -376,36 +409,99 @@ class PasdaHarvester(BaseHarvester):
             ready_only=bool(asset_match_review_rows)
             and bool(self.config.get("aardvark_ready_only", True)),
         )
-        aardvark_draft_df.to_csv(aardvark_draft_path, index=False, encoding="utf-8")
+        aardvark_draft_rows = aardvark_draft_df.to_dict("records")
         new_records_review_rows, changed_records_review_rows = (
             build_pasda_new_changed_record_review_rows(
-                aardvark_draft_df.to_dict("records"),
+                aardvark_draft_rows,
                 normalized_records=self.normalized_records,
                 existing_metadata_registry=self.metadata_registry,
             )
         )
-        write_csv_rows(new_records_review_path, new_records_review_rows)
-        write_csv_rows(changed_records_review_path, changed_records_review_rows)
         deleted_records_review_rows = build_pasda_deleted_record_review_rows(
             existing_metadata_registry=self.metadata_registry,
             inventory_rows=self.inventory_rows,
         )
-        write_csv_rows(deleted_records_review_path, deleted_records_review_rows)
-        if self.config.get("build_download_inventory", False):
-            write_csv_rows(download_inventory_path, self.download_inventory_rows)
-        if self.config.get("build_json_inventory", False):
-            write_csv_rows(json_inventory_path, self.json_inventory_rows)
-        if self.download_inventory_rows or self.json_inventory_rows:
+        new_aardvark_rows = pasda_aardvark_rows_from_change_review_rows(new_records_review_rows)
+        changed_aardvark_rows = pasda_aardvark_rows_from_change_review_rows(
+            changed_records_review_rows
+        )
+        deleted_id_rows = build_pasda_deleted_id_review_rows(deleted_records_review_rows)
+        new_distribution_rows = filter_pasda_distribution_rows_by_ids(
+            distribution_rows,
+            {clean_text(row.get("ID", "")) for row in new_aardvark_rows},
+        )
+        changed_distribution_rows = filter_pasda_distribution_rows_by_ids(
+            distribution_rows,
+            {clean_text(row.get("ID", "")) for row in changed_aardvark_rows},
+        )
+        change_summary_rows = build_pasda_change_summary_rows(
+            new_aardvark_rows=new_aardvark_rows,
+            changed_aardvark_rows=changed_aardvark_rows,
+            deleted_id_rows=deleted_id_rows,
+            new_distribution_rows=new_distribution_rows,
+            changed_distribution_rows=changed_distribution_rows,
+        )
+        if write_full_upload_outputs:
+            aardvark_draft_df.to_csv(aardvark_draft_path, index=False, encoding="utf-8")
+            if distribution_rows:
+                write_csv_rows(distributions_path, distribution_rows, PASDA_DISTRIBUTION_FIELDS)
+        if write_change_upload_outputs:
+            new_aardvark_upload_written = write_csv_rows_if_present(
+                new_aardvark_upload_path,
+                new_aardvark_rows,
+                PASDA_AARDVARK_DRAFT_FIELDS,
+            )
+            changed_aardvark_upload_written = write_csv_rows_if_present(
+                changed_aardvark_upload_path,
+                changed_aardvark_rows,
+                PASDA_AARDVARK_DRAFT_FIELDS,
+            )
+            new_distributions_written = write_csv_rows_if_present(
+                new_distributions_path,
+                new_distribution_rows,
+                PASDA_DISTRIBUTION_FIELDS,
+            )
+            changed_distributions_written = write_csv_rows_if_present(
+                changed_distributions_path,
+                changed_distribution_rows,
+                PASDA_DISTRIBUTION_FIELDS,
+            )
+            deleted_ids_upload_written = write_csv_rows_if_present(
+                deleted_ids_upload_path,
+                deleted_id_rows,
+                PASDA_DELETED_ID_REVIEW_FIELDS,
+            )
+        else:
+            new_aardvark_upload_written = False
+            changed_aardvark_upload_written = False
+            new_distributions_written = False
+            changed_distributions_written = False
+            deleted_ids_upload_written = False
+        if write_change_review_outputs:
+            write_csv_rows(
+                new_records_review_path,
+                new_records_review_rows,
+                PASDA_RECORD_CHANGE_REVIEW_FIELDS,
+            )
+            write_csv_rows(
+                changed_records_review_path,
+                changed_records_review_rows,
+                PASDA_RECORD_CHANGE_REVIEW_FIELDS,
+            )
+            write_csv_rows(
+                deleted_records_review_path,
+                deleted_records_review_rows,
+                PASDA_RECORD_DELETE_REVIEW_FIELDS,
+            )
+        if write_match_review_outputs and (self.download_inventory_rows or self.json_inventory_rows):
             write_csv_rows(asset_match_review_path, asset_match_review_rows)
             write_csv_rows(series_review_path, series_review_rows)
             write_csv_rows(unparsed_matched_review_path, unparsed_matched_review_rows)
-            distribution_rows = build_pasda_distribution_records(
-                self.normalized_records,
-                asset_match_review_rows=asset_match_review_rows,
-            )
-            write_csv_rows(distributions_path, distribution_rows)
-        write_csv_rows(errors_path, self.error_rows)
-        write_csv_rows(profile_summary_path, self.profile_summary)
+        if write_report_outputs:
+            write_csv_rows(change_summary_path, change_summary_rows, PASDA_CHANGE_SUMMARY_FIELDS)
+        if write_diagnostic_report_outputs:
+            write_csv_rows(errors_path, self.error_rows)
+            write_csv_rows(profile_summary_path, self.profile_summary)
         if self.config.get("use_registry", True):
             metadata_registry_path = Path(self.config["metadata_registry_path"])
             normalized_registry_path = Path(self.config["normalized_registry_path"])
@@ -423,27 +519,45 @@ class PasdaHarvester(BaseHarvester):
             write_csv_rows(metadata_registry_path, metadata_registry_rows)
             write_jsonl(normalized_registry_path, normalized_registry_records)
 
-        results = {
-            "directory_inventory_csv": str(inventory_path),
-            "manifest_csv": str(manifest_path),
-            "normalized_jsonl": str(normalized_jsonl_path),
-            "normalized_csv": str(normalized_csv_path),
-            "aardvark_draft_csv": str(aardvark_draft_path),
-            "new_records_review_csv": str(new_records_review_path),
-            "changed_records_review_csv": str(changed_records_review_path),
-            "deleted_records_review_csv": str(deleted_records_review_path),
-            "error_report_csv": str(errors_path),
-            "profile_summary_csv": str(profile_summary_path),
-        }
-        if self.config.get("build_download_inventory", False):
+        results = {}
+        if write_inventory_outputs:
+            results["directory_inventory_csv"] = str(inventory_path)
+            results["manifest_csv"] = str(manifest_path)
+        if write_inventory_outputs and self.config.get("build_download_inventory", False):
             results["download_inventory_csv"] = str(download_inventory_path)
-        if self.config.get("build_json_inventory", False):
+        if write_inventory_outputs and self.config.get("build_json_inventory", False):
             results["json_inventory_csv"] = str(json_inventory_path)
-        if self.download_inventory_rows or self.json_inventory_rows:
+        if write_normalized_outputs:
+            results["normalized_jsonl"] = str(normalized_jsonl_path)
+            results["normalized_csv"] = str(normalized_csv_path)
+        if write_full_upload_outputs:
+            results["aardvark_draft_csv"] = str(aardvark_draft_path)
+            if distribution_rows:
+                results["distributions_csv"] = str(distributions_path)
+        if write_change_upload_outputs:
+            if new_aardvark_upload_written:
+                results["new_aardvark_upload_csv"] = str(new_aardvark_upload_path)
+            if changed_aardvark_upload_written:
+                results["changed_aardvark_upload_csv"] = str(changed_aardvark_upload_path)
+            if deleted_ids_upload_written:
+                results["deleted_ids_upload_csv"] = str(deleted_ids_upload_path)
+            if new_distributions_written:
+                results["new_distributions_upload_csv"] = str(new_distributions_path)
+            if changed_distributions_written:
+                results["changed_distributions_upload_csv"] = str(changed_distributions_path)
+        if write_change_review_outputs:
+            results["new_records_review_csv"] = str(new_records_review_path)
+            results["changed_records_review_csv"] = str(changed_records_review_path)
+            results["deleted_records_review_csv"] = str(deleted_records_review_path)
+        if write_match_review_outputs and (self.download_inventory_rows or self.json_inventory_rows):
             results["asset_match_review_csv"] = str(asset_match_review_path)
             results["series_review_csv"] = str(series_review_path)
-            results["distributions_csv"] = str(distributions_path)
             results["unparsed_matched_review_csv"] = str(unparsed_matched_review_path)
+        if write_report_outputs:
+            results["change_summary_csv"] = str(change_summary_path)
+        if write_diagnostic_report_outputs:
+            results["error_report_csv"] = str(errors_path)
+            results["profile_summary_csv"] = str(profile_summary_path)
         if self.config.get("use_registry", True):
             results["metadata_registry_csv"] = self.config["metadata_registry_path"]
             results["normalized_registry_jsonl"] = self.config["normalized_registry_path"]
@@ -723,6 +837,17 @@ PASDA_RECORD_DELETE_REVIEW_FIELDS = [
     "last_seen",
     "last_parsed",
     "registry_version",
+]
+PASDA_DELETED_ID_REVIEW_FIELDS = [
+    "ID",
+    "metadata_filename",
+    "metadata_url",
+    "last_seen",
+    "pasda_change_reason",
+]
+PASDA_CHANGE_SUMMARY_FIELDS = [
+    "change_artifact",
+    "row_count",
 ]
 
 
@@ -1500,6 +1625,64 @@ def pasda_record_delete_review_row(existing_entry: dict[str, Any]) -> dict[str, 
         "registry_version": clean_text(existing_entry.get("registry_version", "")),
     }
     return {field: row.get(field, "") for field in PASDA_RECORD_DELETE_REVIEW_FIELDS}
+
+
+def pasda_aardvark_rows_from_change_review_rows(
+    change_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
+        {field: clean_text(row.get(field, "")) for field in PASDA_AARDVARK_DRAFT_FIELDS}
+        for row in change_rows
+    ]
+
+
+def filter_pasda_distribution_rows_by_ids(
+    distribution_rows: list[dict[str, Any]],
+    ids: set[str],
+) -> list[dict[str, Any]]:
+    clean_ids = {clean_text(value) for value in ids if clean_text(value)}
+    return [
+        {field: clean_text(row.get(field, "")) for field in PASDA_DISTRIBUTION_FIELDS}
+        for row in distribution_rows
+        if clean_text(row.get("friendlier_id", "")) in clean_ids
+    ]
+
+
+def build_pasda_deleted_id_review_rows(
+    deleted_review_rows: list[dict[str, Any]],
+) -> list[dict[str, str]]:
+    rows = []
+    for row in deleted_review_rows:
+        rows.append(
+            {
+                "ID": clean_text(row.get("pasda_record_id", "")),
+                "metadata_filename": clean_text(row.get("metadata_filename", "")),
+                "metadata_url": clean_text(row.get("metadata_url", "")),
+                "last_seen": clean_text(row.get("last_seen", "")),
+                "pasda_change_reason": clean_text(row.get("pasda_change_reason", "")),
+            }
+        )
+    return rows
+
+
+def build_pasda_change_summary_rows(
+    new_aardvark_rows: list[dict[str, Any]],
+    changed_aardvark_rows: list[dict[str, Any]],
+    deleted_id_rows: list[dict[str, Any]],
+    new_distribution_rows: list[dict[str, Any]],
+    changed_distribution_rows: list[dict[str, Any]],
+) -> list[dict[str, str]]:
+    counts = {
+        "new_aardvark_records": len(new_aardvark_rows),
+        "changed_aardvark_records": len(changed_aardvark_rows),
+        "deleted_record_ids_for_review": len(deleted_id_rows),
+        "new_distribution_rows": len(new_distribution_rows),
+        "changed_distribution_rows": len(changed_distribution_rows),
+    }
+    return [
+        {"change_artifact": artifact, "row_count": str(row_count)}
+        for artifact, row_count in counts.items()
+    ]
 
 
 def build_pasda_series_review_records(
@@ -2734,13 +2917,22 @@ def build_profile_summary(manifest_rows: list[dict[str, Any]]) -> list[dict[str,
     ]
 
 
-def write_csv_rows(path: Path, rows: list[dict[str, Any]]) -> None:
+def write_csv_rows(
+    path: Path,
+    rows: list[dict[str, Any]],
+    fieldnames: list[str] | None = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
-        path.write_text("", encoding="utf-8")
+        if not fieldnames:
+            path.write_text("", encoding="utf-8")
+            return
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            writer.writeheader()
         return
 
-    fieldnames = list(rows[0].keys())
+    fieldnames = list(fieldnames or rows[0].keys())
     for row in rows[1:]:
         for key in row.keys():
             if key not in fieldnames:
@@ -2750,6 +2942,21 @@ def write_csv_rows(path: Path, rows: list[dict[str, Any]]) -> None:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def write_csv_rows_if_present(
+    path: Path,
+    rows: list[dict[str, Any]],
+    fieldnames: list[str] | None = None,
+) -> bool:
+    if not rows:
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            pass
+        return False
+    write_csv_rows(path, rows, fieldnames)
+    return True
 
 
 def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
