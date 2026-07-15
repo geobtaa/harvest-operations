@@ -12,8 +12,10 @@ class methods are limited to the same template methods defined in
 
 - `__init__`
   - Enables `build_uploads` by default unless the config explicitly disables it.
+  - Enables `use_registry` by default unless the config explicitly disables it.
   - Stores the workflow input CSV path.
   - Stores the ArcGIS hub metadata defaults CSV path.
+  - Stores the ArcGIS primary and distribution registry CSV paths.
 
 - `load_reference_data`
   - Runs the base reference-data loading.
@@ -77,7 +79,15 @@ class methods are limited to the same template methods defined in
   - Builds the secondary distributions table from the primary dataframe.
   - Delegates dated CSV writing to the base harvester.
   - Writes the ArcGIS harvest report CSV.
-  - Supports upload delta generation through the base `build_uploads` stage.
+
+- `build_uploads`
+  - When `use_registry` is enabled, compares the current local output files to
+    the ArcGIS registry CSVs in `registry/`.
+  - Writes upload-ready CSVs for new records, retired records, new distribution
+    rows, and deleted distribution rows.
+  - Updates the registry CSVs after upload deltas are built.
+  - Falls back to the shared base upload builder only when `use_registry` is
+    disabled.
 
 ## Inputs
 
@@ -99,6 +109,23 @@ class methods are limited to the same template methods defined in
   - Read from each workflow row's `Endpoint URL`.
   - Expected to return JSON with a `dataset` list.
 
+- Primary registry CSV
+  - Config key: `primary_registry_csv`
+  - Default path: `registry/arcgis_primary_registry.csv`
+  - Git-trackable previous-run state for primary records. It keeps compact
+    citation fields for current and retired ArcGIS records, including `Title`,
+    `Alternative Title`, `Creator`, `Publisher`, `Resource Class`,
+    `Temporal Coverage`, `Date Issued`, `Date Accessioned`, `ID`,
+    `Identifier`, `Code`, `last_seen`, `Date Retired`, and
+    `registry_status`.
+
+- Distributions registry CSV
+  - Config key: `distributions_registry_csv`
+  - Default path: `registry/arcgis_distributions_registry.csv`
+  - Git-trackable previous-run state for distribution rows. It stores
+    `friendlier_id`, `reference_type`, `distribution_url`, `label`, and
+    `last_seen`.
+
 ## Outputs
 
 - Primary CSV
@@ -118,8 +145,23 @@ class methods are limited to the same template methods defined in
   - Includes a final `TOTAL` row with run and record tallies.
 
 - Upload delta files
-  - Built automatically when `build_uploads` is enabled and one prior matching
-    dated primary output exists.
+  - Built automatically when `build_uploads` is enabled and the ArcGIS primary
+    registry exists.
+  - Written to `outputs/to_upload/`.
+  - Include updated harvest-record rows from the current run.
+  - Include new dataset rows from the current run.
+  - Include retired dataset rows constructed from the primary registry.
+  - Include distribution add/delete files constructed by comparing the current
+    distributions output to the distributions registry.
+
+- Updated registry CSVs
+  - The harvester updates `registry/arcgis_primary_registry.csv` and
+    `registry/arcgis_distributions_registry.csv` after building upload deltas.
+  - `Date Accessioned` is preserved from the existing primary registry.
+  - Descriptive fields such as title, creator, publisher, temporal coverage,
+    and identifier are refreshed from the current harvest for active records.
+  - Missing records are marked with `registry_status = retired` and
+    `Date Retired`.
 
 ## ArcGIS-Specific Behavior
 
@@ -147,7 +189,17 @@ class methods are limited to the same template methods defined in
   - Read directly from the workflow input CSV.
   - Appended to the primary output after setting `Last Harvested` to the current
     run date.
+  - Included in the primary upload delta file on each run.
   - No parent website records are updated by this harvester.
+
+- Registry-based retirement
+  - Active registry records missing from the current harvest are treated as
+    retired.
+  - Retired upload rows preserve compact citation fields from the registry.
+  - Retired upload rows set `Publication State` to `unpublished`,
+    `Access Rights` to `Public`, and `Resource Class` to `Web services`.
+  - Retired records stay in the primary registry with `registry_status =
+    retired`, so they are not repeatedly emitted as newly retired on later runs.
 
 ## Code Organization
 
