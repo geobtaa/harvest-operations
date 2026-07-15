@@ -1398,13 +1398,14 @@ def test_pasda_parse_collects_errors_and_summary(tmp_path: Path) -> None:
     assert any(row["metadata_profile"] == "fgdc_csdgm" for row in harvester.profile_summary)
 
 
-def test_pasda_aardvark_draft_crosswalk_leaves_provider_blank(tmp_path: Path) -> None:
+def test_pasda_aardvark_draft_crosswalk_sets_pasda_defaults(tmp_path: Path) -> None:
     _, record = parse_pasda_manifest_row(_manifest_row(tmp_path, "bedrock.xml", FGDC_XML))
     record["lineage"] = "Test lineage."
 
     rows = build_pasda_aardvark_draft_records([record], accession_date="2026-07-03")
 
-    assert rows[0]["Provider"] == ""
+    assert rows[0]["Provider"] == "Pennsylvania State University"
+    assert rows[0]["Code"] == "08a-04"
     assert rows[0]["ID"] == "pasda-bedrock"
     assert rows[0]["Title"] == "Pennsylvania Bedrock Geology"
     assert rows[0]["Alternative Title"] == "Pennsylvania Bedrock Geology"
@@ -1426,7 +1427,7 @@ def test_pasda_aardvark_draft_crosswalk_leaves_provider_blank(tmp_path: Path) ->
     assert rows[0]["Last Harvested"] == ""
     assert rows[0]["Endpoint Description"] == ""
     assert rows[0]["Endpoint URL"] == ""
-    assert rows[0]["Member Of"] == ""
+    assert rows[0]["Member Of"] == "08a-04"
     assert rows[0]["Is Part Of"] == ""
     assert rows[0]["Provenance"] == (
         "Harvested from https://www.pasda.psu.edu/metadata/bedrock.xml on 2026-07-03. "

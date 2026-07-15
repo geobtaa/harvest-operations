@@ -1,6 +1,7 @@
 import base64
 from io import BytesIO
 import json
+from pathlib import Path
 import tarfile
 
 import pandas as pd
@@ -265,19 +266,41 @@ def test_commit_mode_writes_delta_outputs_and_deletion_manifest(tmp_path, monkey
     assert results["distributions_csv"].endswith(
         "_ogmWisc_commit_delta_distributions.csv"
     )
+    assert results["primary_upload_csv"].endswith(
+        "_ogmWisc_commit_delta_primary_upload.csv"
+    )
     assert results["distributions_new_csv"].endswith(
-        "_ogmWisc_distributions_new.csv"
+        "_ogmWisc_commit_delta_distributions_new.csv"
     )
     assert results["distributions_delete_csv"].endswith(
-        "_ogmWisc_distributions_delete.csv"
+        "_ogmWisc_commit_delta_distributions_delete.csv"
     )
     assert results["deleted_files_csv"].endswith("_ogmWisc_commit_deletions.csv")
+    assert results["deleted_ids_upload_csv"].endswith(
+        "_ogmWisc_commit_delta_deleted_ids.csv"
+    )
+    assert results["upload_manifest_csv"].endswith(
+        "_ogmWisc_commit_delta_upload_manifest.csv"
+    )
     assert results["processed_count"] == 1
     assert results["deleted_count"] == 1
     assert results["distribution_new_count"] == 1
     assert results["distribution_delete_count"] == 0
+    assert results["upload_summary"]["status"] == "created"
+    assert results["upload_summary"]["primary_upload_count"] == 1
+    assert results["upload_summary"]["deleted_id_count"] == 1
+
+    assert Path(results["primary_upload_csv"]).parent.name == "to_upload"
+    assert Path(results["distributions_new_csv"]).parent.name == "to_upload"
+    assert Path(results["distributions_delete_csv"]).parent.name == "to_upload"
+    assert Path(results["deleted_ids_upload_csv"]).parent.name == "to_upload"
+    assert Path(results["upload_manifest_csv"]).parent.name == "outputs"
 
     primary_out = pd.read_csv(results["primary_csv"], dtype=str).fillna("")
+    primary_upload_out = pd.read_csv(
+        results["primary_upload_csv"],
+        dtype=str,
+    ).fillna("")
     distribution_out = pd.read_csv(results["distributions_csv"], dtype=str).fillna("")
     distributions_new_out = pd.read_csv(
         results["distributions_new_csv"],
@@ -288,14 +311,30 @@ def test_commit_mode_writes_delta_outputs_and_deletion_manifest(tmp_path, monkey
         dtype=str,
     ).fillna("")
     deletions_out = pd.read_csv(results["deleted_files_csv"], dtype=str).fillna("")
+    deleted_ids_out = pd.read_csv(
+        results["deleted_ids_upload_csv"],
+        dtype=str,
+    ).fillna("")
+    upload_manifest_out = pd.read_csv(
+        results["upload_manifest_csv"],
+        dtype=str,
+    ).fillna("")
 
     assert list(primary_out["ID"]) == ["new-record"]
+    assert list(primary_upload_out["ID"]) == ["new-record"]
     assert list(distribution_out["friendlier_id"]) == ["new-record"]
     assert list(distributions_new_out["distribution_url"]) == [
         "https://example.com/new-record.zip"
     ]
     assert distributions_delete_out.empty
     assert list(deletions_out["inferred_id"]) == ["deleted-record"]
+    assert list(deleted_ids_out["ID"]) == ["deleted-record"]
+    assert set(upload_manifest_out["file_role"]) == {
+        "primary_upload_csv",
+        "distributions_new_csv",
+        "distributions_delete_csv",
+        "deleted_ids_upload_csv",
+    }
 
 
 def test_commit_mode_writes_deleted_distribution_links(tmp_path, monkeypatch):

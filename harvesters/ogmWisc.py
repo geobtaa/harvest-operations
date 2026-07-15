@@ -540,19 +540,32 @@ def write_commit_delta_outputs(primary_df, distributions_df, harvester):
         f"{commit_delta_basename(harvester.config['output_distributions_csv'], 'distributions')}",
     )
     deletions_filename = os.path.join(output_dir, f"{today}_ogmWisc_commit_deletions.csv")
+    primary_upload_filename = os.path.join(
+        upload_dir,
+        f"{today}_ogmWisc_commit_delta_primary_upload.csv",
+    )
     distributions_new_filename = os.path.join(
         upload_dir,
-        f"{today}_ogmWisc_distributions_new.csv",
+        f"{today}_ogmWisc_commit_delta_distributions_new.csv",
     )
     distributions_delete_filename = os.path.join(
         upload_dir,
-        f"{today}_ogmWisc_distributions_delete.csv",
+        f"{today}_ogmWisc_commit_delta_distributions_delete.csv",
+    )
+    deleted_ids_upload_filename = os.path.join(
+        upload_dir,
+        f"{today}_ogmWisc_commit_delta_deleted_ids.csv",
+    )
+    upload_manifest_filename = os.path.join(
+        output_dir,
+        f"{today}_ogmWisc_commit_delta_upload_manifest.csv",
     )
 
     primary_out = primary_df.reindex(
         columns=[col for col in PRIMARY_FIELD_ORDER if col in primary_df.columns]
     )
     primary_out.to_csv(primary_filename, index=False, encoding="utf-8")
+    primary_out.to_csv(primary_upload_filename, index=False, encoding="utf-8")
 
     if distributions_df.empty:
         distributions_df = empty_distribution_delta_df()
@@ -569,18 +582,69 @@ def write_commit_delta_outputs(primary_df, distributions_df, harvester):
         columns=COMMIT_DELETION_COLUMNS,
     )
     deletions_df.to_csv(deletions_filename, index=False, encoding="utf-8")
+    deleted_ids_df = build_deleted_ids_upload_df(deletions_df)
+    deleted_ids_df.to_csv(deleted_ids_upload_filename, index=False, encoding="utf-8")
+
+    manifest_df = build_commit_upload_manifest(
+        [
+            (
+                "primary_upload_csv",
+                primary_upload_filename,
+                len(primary_out),
+                "Upload changed or newly added primary records from selected commits.",
+            ),
+            (
+                "distributions_new_csv",
+                distributions_new_filename,
+                len(dist_new_df),
+                "Add these distribution rows.",
+            ),
+            (
+                "distributions_delete_csv",
+                distributions_delete_filename,
+                len(dist_delete_df),
+                "Delete these replaced distribution rows.",
+            ),
+            (
+                "deleted_ids_upload_csv",
+                deleted_ids_upload_filename,
+                len(deleted_ids_df),
+                "Retire or delete records with these IDs.",
+            ),
+        ]
+    )
+    manifest_df.to_csv(upload_manifest_filename, index=False, encoding="utf-8")
+
+    upload_summary = {
+        "status": "created",
+        "source": "ogmWisc_commit_delta",
+        "primary_upload_csv": primary_upload_filename,
+        "distributions_new_csv": distributions_new_filename,
+        "distributions_delete_csv": distributions_delete_filename,
+        "deleted_ids_upload_csv": deleted_ids_upload_filename,
+        "upload_manifest_csv": upload_manifest_filename,
+        "primary_upload_count": len(primary_out),
+        "deleted_id_count": len(deleted_ids_df),
+        "distribution_new_count": len(dist_new_df),
+        "distribution_delete_count": len(dist_delete_df),
+        "changed_distribution_ids": sorted(changed_distribution_ids),
+    }
 
     return {
         "primary_csv": primary_filename,
         "distributions_csv": distributions_filename,
+        "primary_upload_csv": primary_upload_filename,
         "distributions_new_csv": distributions_new_filename,
         "distributions_delete_csv": distributions_delete_filename,
         "deleted_files_csv": deletions_filename,
+        "deleted_ids_upload_csv": deleted_ids_upload_filename,
+        "upload_manifest_csv": upload_manifest_filename,
         "processed_count": len(primary_df),
         "deleted_count": len(deletions_df),
         "distribution_new_count": len(dist_new_df),
         "distribution_delete_count": len(dist_delete_df),
         "changed_distribution_ids": sorted(changed_distribution_ids),
+        "upload_summary": upload_summary,
     }
 
 
@@ -627,6 +691,35 @@ def ensure_distribution_delta_columns(df):
 
 def empty_distribution_delta_df():
     return pd.DataFrame(columns=DISTRIBUTION_DELTA_COLUMNS)
+
+
+def build_deleted_ids_upload_df(deletions_df):
+    if deletions_df.empty or "inferred_id" not in deletions_df.columns:
+        return pd.DataFrame(columns=["ID"])
+
+    deleted_ids = (
+        deletions_df["inferred_id"]
+        .astype(str)
+        .str.strip()
+        .loc[lambda series: series.ne("")]
+        .drop_duplicates()
+    )
+    return pd.DataFrame({"ID": deleted_ids})
+
+
+def build_commit_upload_manifest(file_rows):
+    return pd.DataFrame(
+        [
+            {
+                "file_role": file_role,
+                "path": path,
+                "row_count": row_count,
+                "action": action,
+            }
+            for file_role, path, row_count, action in file_rows
+        ],
+        columns=["file_role", "path", "row_count", "action"],
+    )
 
 
 def commit_delta_basename(configured_path, output_kind):

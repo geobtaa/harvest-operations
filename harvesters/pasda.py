@@ -3368,13 +3368,14 @@ def build_pasda_aardvark_draft_record(
     row.update(
         {
             "ID": pasda_record_id_from_source(source_record_id),
-            "Code": "08a-01",
+            "Code": "08a-04",
             "Title": title,
             "Alternative Title": pasda_alternative_title(record, original_title),
             "Description": pasda_description(record),
             "Language": "eng",
             "Creator": clean_text(record.get("creator", "")),
             "Publisher": "Pennsylvania Spatial Data Access (PASDA)",
+            "Provider": "Pennsylvania State University",
             "Resource Class": pasda_resource_class(record),
             "Resource Type": pasda_resource_type(record),
             "Keyword": pasda_keywords(record),
@@ -3395,6 +3396,7 @@ def build_pasda_aardvark_draft_record(
             "Format": pasda_format(record),
             "Display Note": display_note,
             "Local Collection": local_collection,
+            "Member Of": "08a-04",
             "Date Accessioned": accession_date,
             "Publication State": "draft",
             "Identifier": metadata_url,
