@@ -1,0 +1,76 @@
+# Template for the arcgis_curation_pipeline. Copy this file to
+# curation/jobs/<job-id>.yaml and replace every value in
+# angle brackets. Run all pipeline commands from the harvest-operations root.
+version: 1
+
+job:
+  # Unique, filesystem-friendly name for this curation batch.
+  id: "<job-id>"
+  # Paths are resolved relative to this YAML file. Keep generated work out of Git.
+  work_directory: "../work/<job-id>"
+
+# Curated datasets are held and served by the BTAA-GIN.
+provider: BTAA-GIN
+
+hub:
+  # These values appear in the archived-copy display note.
+  name: "<public-hub-name>"
+  landing_page: "https://<hub-hostname>/"
+  # ArcGIS Hub DCAT-US 1.1 catalog containing every selected record.
+  dcat_api: "https://<hub-hostname>/api/feed/dcat-us/1.1.json"
+  # ID or Code of this Hub's row in reference_data/websites.csv.
+  website_reference_id: "<website-reference-id>"
+  websites_csv: ../../reference_data/websites.csv
+
+coordinate_reference_system:
+  # GDAL/PROJ authority code used for the archived GeoPackages.
+  authority: "<AUTHORITY:CODE>"
+  # Public URI written to the Aardvark Coordinate Reference System field.
+  uri: "https://spatialreference.org/ref/<authority>/<code>"
+
+metadata:
+  # Always quote numeric-looking codes so YAML preserves underscores/hyphens.
+  code: "<urban-base-layer-code>"
+  # Collection membership shared by every record in this batch.
+  member_of: b1g_urbanBaseLayers
+  # Date represented in: Exported from {service} as GeoPackage on {date}.
+  export_date: "YYYY-MM-DD"
+
+selection_criteria:
+  # Remove types that should not be accepted for this batch.
+  allowed_resource_types:
+    - Polygon data
+    - Line data
+    - Point data
+
+manual_review:
+  # Review confirmation stops if any of these fields is blank. Add or remove
+  # fields to reflect the acceptance criteria for this particular batch.
+  required_fields:
+    - filename
+    - ID
+    - Title
+    - Description
+    - Creator
+    - Publisher
+    - Provider
+    - Resource Class
+    - Rights
+    - Access Rights
+
+derivatives:
+  # Copy this file for the job if PMTiles needs layer-specific field rules.
+  pmtiles_config: ../pmtiles_config.sample.json
+
+records:
+  # Repeat this block for every selected item.
+  # The ID is the ArcGIS item ID plus _<sublayer> when DCAT identifies a layer.
+  - id: "<arcgis-item-id>_<sublayer-number>"
+    # Omit .gpkg; the pipeline adds it. Use the final archived filename.
+    filename: "<prefix>_<basic-theme>_<yyyy>"
+    # Topic only, without place or date. Used in Title and Description.
+    basic_theme: "<basic-theme>"
+
+  # - id: "<next-arcgis-item-id>_<sublayer-number>"
+  #   filename: "<prefix>_<basic-theme>_<yyyy>"
+  #   basic_theme: "<basic-theme>"

@@ -1,0 +1,62 @@
+version: 1
+
+job:
+  id: stpaul-2026
+  work_directory: ../work/stpaul-2026
+
+provider: BTAA-GIN
+
+hub:
+  name: Open Information Saint Paul
+  landing_page: https://information.stpaul.gov/
+  dcat_api: https://information.stpaul.gov/api/feed/dcat-us/1.1.json
+  website_reference_id: 05c-02
+  websites_csv: ../../reference_data/websites.csv
+
+coordinate_reference_system:
+  authority: ESRI:103768
+  uri: https://spatialreference.org/ref/esri/103768
+
+metadata:
+  # Quote numeric-looking codes so YAML preserves the underscore.
+  code: "27_58000"
+  member_of: b1g_urbanBaseLayers
+  export_date: 2026-07-16
+
+selection_criteria:
+  allowed_resource_types:
+    - Polygon data
+    - Line data
+    - Point data
+
+manual_review:
+  required_fields:
+    - filename
+    - ID
+    - Title
+    - Description
+    - Creator
+    - Publisher
+    - Provider
+    - Resource Class
+    - Rights
+    - Access Rights
+
+derivatives:
+  # Copy and customize this file when layer-specific field filtering is needed.
+  pmtiles_config: ../pmtiles_config.sample.json
+
+records:
+  - id: 1ec9eb84c4fd41548946b1484d4f31ef_6
+    filename: stp_zoning_2026
+    basic_theme: Principal Zoning
+  - id: f03d32dc6dc8458ea3f0be92fab49318_0
+    filename: stp_boundary_2026
+    basic_theme: Municipal Boundary
+  - id: cc965c86c2904b8b9e2d53af3cd287d1_3
+    filename: stp_majorStreets_2026
+    basic_theme: Major Streets
+  - id: cc965c86c2904b8b9e2d53af3cd287d1_4
+    filename: stp_minorStreets_2026
+    basic_theme: Minor Streets
+

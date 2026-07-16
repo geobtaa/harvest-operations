@@ -1,0 +1,36 @@
+{
+  "default": {
+    "mode": "keep_all",
+    "always_keep": ["id", "name", "type", "class", "code"],
+    "include_patterns": [],
+    "exclude_patterns": [
+      "^shape_",
+      ".*_area$",
+      ".*_length$",
+      "description",
+      "notes",
+      "comments",
+      "metadata",
+      "url",
+      "website"
+    ],
+    "max_string_width": null
+  },
+  "layers": {
+    "parcels": {
+      "mode": "keep_only",
+      "keep": ["parcel_id", "pin", "address", "owner_type", "landuse", "zoning"],
+      "drop": []
+    },
+    "streets": {
+      "mode": "keep_only",
+      "keep": ["street_name", "full_name", "class", "surface", "oneway"],
+      "drop": []
+    },
+    "buildings": {
+      "mode": "keep_only",
+      "keep": ["building_id", "address", "use", "height", "stories"],
+      "drop": []
+    }
+  }
+}
