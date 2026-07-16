@@ -18,6 +18,10 @@ The repository includes:
 - `routers/` contains FastAPI router modules for job execution and schema-related endpoints.
 - `harvesters/` contains the source-specific harvester classes. Most harvesters inherit from `harvesters/base.py`, which defines the shared pipeline for fetching, parsing, flattening, building dataframes, cleaning, validating, and writing outputs.
 - `utils/` contains shared Python helpers used by harvesters and scripts.
+- `curation/` contains staged, YAML-driven dataset curation workflows and the
+  retained one-off curation utilities. These workflows reuse the repository's
+  harvester rules, schemas, and reference data while preserving manual review
+  checkpoints.
 
 
 
@@ -36,6 +40,8 @@ The repository includes:
 | `scripts/` | Standalone Python scripts for one-off jobs and operational tasks that are not all wired into FastAPI. This includes download helpers, comparison tools, report builders, and data transforms. |
 | `inputs/` | Local working inputs used by harvesters and scripts, usually CSVs or other source files supplied before a run. |
 | `reference_data/` | Lookup tables and enrichment data used during normalization and matching. |
+| `curation/` | Dataset acquisition and derivative workflows, including the staged ArcGIS Hub curation pipeline. |
+| `curation/run_records/` | Versioned portable run manifests, exact job YAML snapshots, and final metadata CSVs; large generated artifacts are excluded. |
 | `reports/` | Generated dashboard reports and related HTML/CSV report outputs. |
 | `tests/` | Pytest coverage for harvesters, scripts, report builders, and static admin pages. |
 | `requirements.txt` | Pip-installable dependency list for setting up a local Python environment. |
@@ -54,6 +60,12 @@ Depending on the page, the browser either:
 
 - calls a dedicated streaming endpoint such as `/run-arcgis-stream`, or
 - calls a more generic job endpoint such as `/jobs/{job_id}/run`.
+
+The staged ArcGIS dataset curation workflow has its own **ArcGIS Curation
+Pipeline** page. It reads YAML jobs from `curation/jobs/`, exposes each pipeline
+stage independently, preserves the manual metadata-review checkpoint, and can
+run all post-review tasks together. New YAML jobs can be created from the
+canonical template and edited directly on that page.
 
 In either case, the Python code reads the corresponding YAML in `config/`, creates the correct harvester class, runs the harvest pipeline, and writes outputs to the configured destination files.
 
@@ -156,6 +168,8 @@ Because `start-fastapi.command` sources `.secrets.local` before launching FastAP
 - Run tests with `pytest`.
 - Add new harvesters under `harvesters/` and define their job configuration in `config/`.
 - If a task does not fit the reusable harvester model, it may belong in `scripts/` instead.
+- See [`curation/README.md`](curation/README.md) for workflows that combine
+  automated file processing with required manual metadata review.
 
 ## Publishing Dashboard Reports On GitHub Pages
 

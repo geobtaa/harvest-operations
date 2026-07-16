@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 import yaml
 
 from harvesters.oai_qdc import OaiQdcHarvester
+from routers import arcgis_curation as arcgis_curation_router
 from routers import jobs as jobs_router
 from routers import schema as schema_router
 
@@ -152,6 +153,7 @@ def build_oai_qdc_ui_sources() -> list[dict]:
 # Register routers
 app.include_router(schema_router.router)
 app.include_router(jobs_router.router)
+app.include_router(arcgis_curation_router.router)
 
 # Mount static files at /static
 app.mount("/static", StaticFiles(directory="static"), name="static")
