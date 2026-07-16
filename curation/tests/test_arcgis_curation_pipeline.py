@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import sys
 from pathlib import Path
@@ -13,8 +14,10 @@ import yaml
 CURATION_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = CURATION_ROOT.parent
 sys.path.insert(0, str(CURATION_ROOT / "src"))
+sys.path.insert(0, str(CURATION_ROOT / "scripts"))
 
 import curation.arcgis_curation_pipeline as pipeline  # noqa: E402
+import build_pmtiles_from_gpkg as derivative_builder  # noqa: E402
 
 from curation.arcgis_curation_pipeline import (  # noqa: E402
     CurationConfigError,
@@ -22,6 +25,7 @@ from curation.arcgis_curation_pipeline import (  # noqa: E402
     load_job_config,
     mark_stage,
     mark_validation_stage,
+    migrate_resource_layout,
     require_confirmed_review,
     run_download_stage,
     run_enrich_stage,
@@ -118,6 +122,12 @@ def test_config_accepts_a_single_selected_record(tmp_path: Path) -> None:
     job = load_job_config(write_config(tmp_path))
 
     assert job.records[0].filename == "stp_zoning_2026.gpkg"
+    assert job.gpkg_path("stp_zoning_2026") == (
+        job.work_dir / "stp_zoning_2026" / "stp_zoning_2026.gpkg"
+    )
+    assert job.thumbnail_path("stp_zoning_2026.gpkg") == (
+        job.work_dir / "stp_zoning_2026" / "stp_zoning_2026.png"
+    )
     assert len(job.records) == 1
 
 
@@ -327,8 +337,8 @@ def test_download_skips_existing_geopackages_and_continues(
     job = load_job_config(write_config(tmp_path))
     run_metadata_stage(job, catalog=catalog_fixture())
     confirm_manual_review(job, confirmed=True)
-    job.gpkg_dir.mkdir(parents=True)
-    existing_path = job.gpkg_dir / "stp_zoning_2026.gpkg"
+    existing_path = job.gpkg_path("stp_zoning_2026.gpkg")
+    existing_path.parent.mkdir(parents=True)
     existing_path.write_bytes(b"existing")
 
     manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
@@ -365,10 +375,10 @@ def test_download_skips_existing_geopackages_and_continues(
     outputs = updated_manifest["stages"]["download"]["outputs"]
     assert outputs[0] == {
         "status": "skipped_existing",
-        "output": "gpkg/stp_zoning_2026.gpkg",
+        "output": "stp_zoning_2026/stp_zoning_2026.gpkg",
     }
     assert outputs[1]["status"] == "downloaded"
-    assert downloaded == [job.gpkg_dir / "stp_new_2026.gpkg"]
+    assert downloaded == [job.gpkg_path("stp_new_2026.gpkg")]
 
 
 def test_save_run_record_copies_small_inputs_and_describes_artifacts(
@@ -382,8 +392,8 @@ def test_save_run_record_copies_small_inputs_and_describes_artifacts(
         if stage != "metadata":
             mark_stage(job, stage)
 
-    job.gpkg_dir.mkdir(parents=True)
-    artifact_path = job.gpkg_dir / "stp_zoning_2026.gpkg"
+    artifact_path = job.gpkg_path("stp_zoning_2026.gpkg")
+    artifact_path.parent.mkdir(parents=True)
     artifact_path.write_bytes(b"portable artifact identity")
     run_records_root = tmp_path / "curation" / "run_records"
     monkeypatch.setattr(pipeline, "REPO_ROOT", tmp_path)
@@ -408,7 +418,7 @@ def test_save_run_record_copies_small_inputs_and_describes_artifacts(
     assert saved_manifest["artifacts"] == [
         {
             "role": "geopackage",
-            "path": "gpkg/stp_zoning_2026.gpkg",
+            "path": "stp_zoning_2026/stp_zoning_2026.gpkg",
             "size_bytes": artifact_path.stat().st_size,
             "sha256": pipeline.file_sha256(artifact_path),
         }
@@ -422,8 +432,9 @@ def test_enrich_adds_service_geometry_and_decimal_degree_bbox(tmp_path: Path) ->
     job = load_job_config(write_config(tmp_path))
     run_metadata_stage(job, catalog=catalog_fixture())
     confirm_manual_review(job, confirmed=True)
-    job.gpkg_dir.mkdir(parents=True)
-    (job.gpkg_dir / "stp_zoning_2026.gpkg").write_bytes(b"test placeholder")
+    gpkg_path = job.gpkg_path("stp_zoning_2026.gpkg")
+    gpkg_path.parent.mkdir(parents=True)
+    gpkg_path.write_bytes(b"test placeholder")
 
     def requester(url: str, params: dict | None, method: str) -> dict:
         if url == SERVICE_URL:
@@ -447,3 +458,83 @@ def test_enrich_adds_service_geometry_and_decimal_degree_bbox(tmp_path: Path) ->
     assert row["Bounding Box"] == "-93.2080,44.8875,-93.0037,44.9920"
     assert row["Centroid"] == "44.9398,-93.1059"
     require_confirmed_review(job)
+
+
+def test_migrate_resource_layout_moves_and_renames_legacy_outputs(tmp_path: Path) -> None:
+    job = load_job_config(write_config(tmp_path))
+    run_metadata_stage(job, catalog=catalog_fixture())
+    legacy_files = {
+        "gpkg/stp_zoning_2026.gpkg": b"gpkg",
+        "fgb/stp_zoning_2026.fgb": b"fgb",
+        "pmtiles/stp_zoning_2026.pmtiles": b"pmtiles",
+        "thumbnails/stp_zoning_2026.png": b"png",
+        "data_dictionaries/stp_zoning_2026.csv": b"csv",
+    }
+    for relative_path, content in legacy_files.items():
+        path = job.work_dir / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+    manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+    manifest["stages"]["download"] = {
+        "status": "completed",
+        "output": "gpkg/stp_zoning_2026.gpkg",
+    }
+    manifest["stages"]["snapshot"] = {"status": "completed"}
+    manifest["latest_run_record"] = {"run_id": "old"}
+    job.manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    moves = migrate_resource_layout(job)
+
+    assert len(moves) == 5
+    for suffix in pipeline.RESOURCE_ARTIFACT_ROLES:
+        assert job.resource_asset_path("stp_zoning_2026", suffix).is_file()
+    assert not any((job.work_dir / name).exists() for name in pipeline.LEGACY_ARTIFACT_DIRECTORIES)
+    updated = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+    assert updated["stages"]["download"]["output"] == (
+        "stp_zoning_2026/stp_zoning_2026.gpkg"
+    )
+    assert "snapshot" not in updated["stages"]
+    assert "latest_run_record" not in updated
+
+
+def test_derivatives_stage_uses_resource_folders(tmp_path: Path, monkeypatch) -> None:
+    job = load_job_config(write_config(tmp_path))
+    run_metadata_stage(job, catalog=catalog_fixture())
+    confirm_manual_review(job, confirmed=True)
+    commands: list[list[str]] = []
+    monkeypatch.setattr(pipeline, "_run_command", lambda command: commands.append(command))
+
+    pipeline.run_derivatives_stage(job)
+
+    command = commands[0]
+    assert str(CURATION_ROOT / "scripts" / "build_pmtiles_from_gpkg.py") in command
+    assert command[command.index("--input-dir") + 1] == str(job.work_dir)
+    assert "--outputs-next-to-input" in command
+
+
+def test_derivative_builder_writes_beside_input_and_preserves_stem(
+    tmp_path: Path, monkeypatch
+) -> None:
+    resource_dir = tmp_path / "stp_majorStreets_2026"
+    resource_dir.mkdir()
+    gpkg_path = resource_dir / "stp_majorStreets_2026.gpkg"
+    gpkg_path.write_bytes(b"placeholder")
+    monkeypatch.setattr(
+        derivative_builder,
+        "inspect_geopackage",
+        lambda *args: ([{"name": "stp_majorStreets_2026"}], []),
+    )
+
+    jobs = derivative_builder.discover_jobs(
+        tmp_path,
+        tmp_path,
+        tmp_path,
+        derivative_builder.DEFAULT_CONFIG,
+        "ogrinfo",
+        None,
+        logging.getLogger("test"),
+        outputs_next_to_input=True,
+    )
+
+    assert jobs[0].fgb_path == resource_dir / "stp_majorStreets_2026.fgb"
+    assert jobs[0].pmtiles_path == resource_dir / "stp_majorStreets_2026.pmtiles"

@@ -1,0 +1,292 @@
+{
+  "version": 1,
+  "job_id": "stpaul-2026",
+  "config_path": "curation/jobs/stpaul-2026.yaml",
+  "config_sha256": "4e244d9a601a7cadc68e2caa2eff70af7809439a715c060e8a863e87739e8abf",
+  "created_at": "2026-07-16T20:24:02+00:00",
+  "updated_at": "2026-07-16T21:09:46+00:00",
+  "manual_review": {
+    "status": "confirmed",
+    "confirmed_at": "2026-07-16T20:25:17+00:00",
+    "metadata_sha256": "97e69ae3cb20c97f891cae82d0da71c51ea64216b2ec273c311ae68b1537071c",
+    "pipeline_updated_at": "2026-07-16T20:30:10+00:00"
+  },
+  "stages": {
+    "validate": {
+      "status": "completed",
+      "completed_at": "2026-07-16T20:24:02+00:00"
+    },
+    "metadata": {
+      "status": "completed",
+      "completed_at": "2026-07-16T20:24:02+00:00"
+    },
+    "download": {
+      "status": "completed",
+      "completed_at": "2026-07-16T20:29:57+00:00",
+      "outputs": [
+        {
+          "status": "skipped_existing",
+          "output": "stp_zoning_2026/stp_zoning_2026.gpkg"
+        },
+        {
+          "status": "skipped_existing",
+          "output": "stp_boundary_2026/stp_boundary_2026.gpkg"
+        },
+        {
+          "feature_count": 1418,
+          "geometry_type": "esriGeometryPolyline",
+          "output": "stp_majorStreets_2026/stp_majorStreets_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 9914,
+          "geometry_type": "esriGeometryPolyline",
+          "output": "stp_minorStreets_2026/stp_minorStreets_2026.gpkg",
+          "status": "downloaded"
+        }
+      ]
+    },
+    "enrich": {
+      "status": "completed",
+      "completed_at": "2026-07-16T20:30:10+00:00",
+      "records": [
+        {
+          "filename": "stp_zoning_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-93.2080,44.8870,-93.0037,44.9925"
+        },
+        {
+          "filename": "stp_boundary_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-93.2080,44.8870,-93.0036,44.9925"
+        },
+        {
+          "filename": "stp_majorStreets_2026.gpkg",
+          "resource_type": "Line data",
+          "bounding_box": "-93.2077,44.8908,-93.0044,44.9921"
+        },
+        {
+          "filename": "stp_minorStreets_2026.gpkg",
+          "resource_type": "Line data",
+          "bounding_box": "-93.2078,44.8908,-93.0044,44.9920"
+        }
+      ]
+    },
+    "dictionaries": {
+      "status": "completed",
+      "completed_at": "2026-07-16T20:30:18+00:00",
+      "outputs": [
+        "stp_zoning_2026/stp_zoning_2026.csv",
+        "stp_boundary_2026/stp_boundary_2026.csv",
+        "stp_majorStreets_2026/stp_majorStreets_2026.csv",
+        "stp_minorStreets_2026/stp_minorStreets_2026.csv"
+      ]
+    },
+    "embed": {
+      "status": "completed",
+      "completed_at": "2026-07-16T20:30:24+00:00",
+      "outputs": [
+        "stp_boundary_2026.gpkg",
+        "stp_majorStreets_2026.gpkg",
+        "stp_minorStreets_2026.gpkg",
+        "stp_zoning_2026.gpkg"
+      ]
+    },
+    "thumbnails": {
+      "status": "completed",
+      "completed_at": "2026-07-16T20:30:28+00:00",
+      "outputs": [
+        "stp_zoning_2026/stp_zoning_2026.png",
+        "stp_boundary_2026/stp_boundary_2026.png",
+        "stp_majorStreets_2026/stp_majorStreets_2026.png",
+        "stp_minorStreets_2026/stp_minorStreets_2026.png"
+      ]
+    },
+    "derivatives": {
+      "status": "completed",
+      "completed_at": "2026-07-16T21:09:46+00:00",
+      "report": "reports/pmtiles_build_report.csv"
+    },
+    "snapshot": {
+      "status": "completed",
+      "completed_at": "2026-07-16T21:10:39+00:00"
+    }
+  },
+  "records": [
+    {
+      "source_id": "1ec9eb84c4fd41548946b1484d4f31ef_6",
+      "curated_id": "b1g_kTmDvvLfuXST",
+      "filename": "stp_zoning_2026.gpkg",
+      "landing_page": "https://information.stpaul.gov/datasets/stpaul::principal-zoning-1",
+      "service_url": "https://services1.arcgis.com/9meaaHE3uiba0zr8/arcgis/rest/services/PrincipalZoning_TEST/FeatureServer/6"
+    },
+    {
+      "source_id": "f03d32dc6dc8458ea3f0be92fab49318_0",
+      "curated_id": "b1g_MsIq4RphbNiG",
+      "filename": "stp_boundary_2026.gpkg",
+      "landing_page": "https://information.stpaul.gov/datasets/stpaul::saint-paul-city-boundary",
+      "service_url": "https://services1.arcgis.com/9meaaHE3uiba0zr8/arcgis/rest/services/Saint_Paul_Boundary/FeatureServer/0"
+    },
+    {
+      "source_id": "cc965c86c2904b8b9e2d53af3cd287d1_3",
+      "curated_id": "b1g_dMMiINsRmMiS",
+      "filename": "stp_majorStreets_2026.gpkg",
+      "landing_page": "https://information.stpaul.gov/datasets/stpaul::major-streets-1",
+      "service_url": "https://services1.arcgis.com/9meaaHE3uiba0zr8/arcgis/rest/services/StreetCenterlines/FeatureServer/3"
+    },
+    {
+      "source_id": "cc965c86c2904b8b9e2d53af3cd287d1_4",
+      "curated_id": "b1g_0FjkwvnywKuL",
+      "filename": "stp_minorStreets_2026.gpkg",
+      "landing_page": "https://information.stpaul.gov/datasets/stpaul::minor-streets",
+      "service_url": "https://services1.arcgis.com/9meaaHE3uiba0zr8/arcgis/rest/services/StreetCenterlines/FeatureServer/4"
+    }
+  ],
+  "work_directory": "curation/work/stpaul-2026",
+  "metadata_path": "metadata/metadata.csv",
+  "run_record": {
+    "run_id": "20260716T211039Z",
+    "saved_at": "2026-07-16T21:10:39+00:00",
+    "record_path": "curation/run_records/stpaul-2026/20260716T211039Z",
+    "metadata_csv": "metadata.csv",
+    "job_config": "job.yaml",
+    "git": {
+      "revision": "9d32b6a68819d98bfe320aecb471ff24f6f9d0b9",
+      "dirty": true
+    }
+  },
+  "artifacts": [
+    {
+      "role": "data_dictionary",
+      "path": "stp_zoning_2026/stp_zoning_2026.csv",
+      "size_bytes": 3289,
+      "sha256": "1a1104461c23380f05d2c9e7211cb89e82514b8859c56b06a15ec9e47a370252"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "stp_zoning_2026/stp_zoning_2026.fgb",
+      "size_bytes": 976320,
+      "sha256": "d63d11b06c4a811ea30b4ce8169e1a4150221e4b9dc51e2d9eee27cff99ca267"
+    },
+    {
+      "role": "geopackage",
+      "path": "stp_zoning_2026/stp_zoning_2026.gpkg",
+      "size_bytes": 1179648,
+      "sha256": "b8e06d3e6920a288d3b642ac4a20ea1f9e93937027eb9ba59da507b97ca7bbb9"
+    },
+    {
+      "role": "pmtiles",
+      "path": "stp_zoning_2026/stp_zoning_2026.pmtiles",
+      "size_bytes": 434329,
+      "sha256": "b0d83c41bd16a8db39e4e1927f39a6912e74786cf15716caf5dc66cba5155b6f"
+    },
+    {
+      "role": "thumbnail",
+      "path": "stp_zoning_2026/stp_zoning_2026.png",
+      "size_bytes": 22476,
+      "sha256": "4068c501c5bc70fd308c922e68ea3491da29deef88eae83b97f6a83d2f5b97f2"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "stp_boundary_2026/stp_boundary_2026.csv",
+      "size_bytes": 2494,
+      "sha256": "c9d91b7dd0dc8ae86d2c46ce57d20733641ceab9222573b7c3994b3aeb96b9ec"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "stp_boundary_2026/stp_boundary_2026.fgb",
+      "size_bytes": 8144,
+      "sha256": "8d6c193fd1eb764d50f3b3912214d6c61e4253cc9872290258ec61c66f35f0f7"
+    },
+    {
+      "role": "geopackage",
+      "path": "stp_boundary_2026/stp_boundary_2026.gpkg",
+      "size_bytes": 106496,
+      "sha256": "3ea63842c0ee556f0c8f053d5fc34a076623f23a5a732f08e5fee2d9936e04b2"
+    },
+    {
+      "role": "pmtiles",
+      "path": "stp_boundary_2026/stp_boundary_2026.pmtiles",
+      "size_bytes": 3083,
+      "sha256": "59548164773543096c872c8a6553e3c1ed0fa05521211ddb72fe8473524c24e8"
+    },
+    {
+      "role": "thumbnail",
+      "path": "stp_boundary_2026/stp_boundary_2026.png",
+      "size_bytes": 3003,
+      "sha256": "917ecb52f5cf329e5506eb99e79e485f15b9d4b30d5d7f1c78b63906804a1307"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "stp_majorStreets_2026/stp_majorStreets_2026.csv",
+      "size_bytes": 434400,
+      "sha256": "f6ce8c861a343d251f330ae6501f56e432302b894ba89e5529258ebbdee933cc"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "stp_majorStreets_2026/stp_majorStreets_2026.fgb",
+      "size_bytes": 1130672,
+      "sha256": "54349199fe93982c5be01acf7e65e5f96b4753a40bbe1a05fa253b5e174e642b"
+    },
+    {
+      "role": "geopackage",
+      "path": "stp_majorStreets_2026/stp_majorStreets_2026.gpkg",
+      "size_bytes": 983040,
+      "sha256": "d00bd01e1ca68557e327a136738ce094c48dcbfd9c7a8647cacd9761363f142b"
+    },
+    {
+      "role": "pmtiles",
+      "path": "stp_majorStreets_2026/stp_majorStreets_2026.pmtiles",
+      "size_bytes": 565464,
+      "sha256": "a9818023b95b516b1249fbf356da82c919aa7994ed72e24fc66d9426c11bcfe3"
+    },
+    {
+      "role": "thumbnail",
+      "path": "stp_majorStreets_2026/stp_majorStreets_2026.png",
+      "size_bytes": 4654,
+      "sha256": "2f611e839a14bf65f8bd345073e0664eb9ba585f95a924add9d4031f6a7f88e1"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "stp_minorStreets_2026/stp_minorStreets_2026.csv",
+      "size_bytes": 434400,
+      "sha256": "10bf059cb9323d6210de936de2e6605664beca1c47442d91121f2033f353ebef"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "stp_minorStreets_2026/stp_minorStreets_2026.fgb",
+      "size_bytes": 7641128,
+      "sha256": "126a1ea863729f4449bd1bb556240fab28550ac56b2a0e8dc76c7e938721da46"
+    },
+    {
+      "role": "geopackage",
+      "path": "stp_minorStreets_2026/stp_minorStreets_2026.gpkg",
+      "size_bytes": 5951488,
+      "sha256": "ec356c5df71c8f3dd1955fac4997043362a63d77d56ce4230725416fea923ff9"
+    },
+    {
+      "role": "pmtiles",
+      "path": "stp_minorStreets_2026/stp_minorStreets_2026.pmtiles",
+      "size_bytes": 3589576,
+      "sha256": "f3d0377d980a6991797586ca7004207250ba6b58aa745580b42bf9b93a602d64"
+    },
+    {
+      "role": "thumbnail",
+      "path": "stp_minorStreets_2026/stp_minorStreets_2026.png",
+      "size_bytes": 14746,
+      "sha256": "1ec83c5d99b5e9165be23525c917b5e8a8ed3ccd07b40e5b1a413f48b0a87a9b"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report.csv",
+      "size_bytes": 80604,
+      "sha256": "baddd94f7647c801cbefe29e99a112a3ca7b0422cff7c3a9ce8648c5b9058f77"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report_fields.csv",
+      "size_bytes": 36876,
+      "sha256": "5da04fea5df3b91e90fa5d4088a64e53a68bb0a81c747d6f38aed8b1bcf4b8da"
+    }
+  ]
+}

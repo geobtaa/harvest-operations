@@ -87,14 +87,20 @@ SNAPSHOT_REQUIRED_STAGES = (
     "thumbnails",
     "derivatives",
 )
-ARTIFACT_DIRECTORIES = {
-    "gpkg": "geopackage",
-    "fgb": "flatgeobuf",
-    "pmtiles": "pmtiles",
-    "thumbnails": "thumbnail",
-    "data_dictionaries": "data_dictionary",
-    "reports": "report",
+RESOURCE_ARTIFACT_ROLES = {
+    ".gpkg": "geopackage",
+    ".fgb": "flatgeobuf",
+    ".pmtiles": "pmtiles",
+    ".png": "thumbnail",
+    ".csv": "data_dictionary",
 }
+LEGACY_ARTIFACT_DIRECTORIES = (
+    "gpkg",
+    "fgb",
+    "pmtiles",
+    "thumbnails",
+    "data_dictionaries",
+)
 
 
 class CurationConfigError(ValueError):
@@ -149,25 +155,27 @@ class JobConfig:
     def manifest_path(self) -> Path:
         return self.work_dir / "manifest.json"
 
-    @property
-    def gpkg_dir(self) -> Path:
-        return self.work_dir / "gpkg"
+    def resource_dir(self, filename_or_stem: str) -> Path:
+        return self.work_dir / Path(filename_or_stem).stem
 
-    @property
-    def dictionary_dir(self) -> Path:
-        return self.work_dir / "data_dictionaries"
+    def resource_asset_path(self, filename_or_stem: str, suffix: str) -> Path:
+        stem = Path(filename_or_stem).stem
+        return self.resource_dir(stem) / f"{stem}{suffix}"
 
-    @property
-    def thumbnail_dir(self) -> Path:
-        return self.work_dir / "thumbnails"
+    def gpkg_path(self, filename_or_stem: str) -> Path:
+        return self.resource_asset_path(filename_or_stem, ".gpkg")
 
-    @property
-    def fgb_dir(self) -> Path:
-        return self.work_dir / "fgb"
+    def dictionary_path(self, filename_or_stem: str) -> Path:
+        return self.resource_asset_path(filename_or_stem, ".csv")
 
-    @property
-    def pmtiles_dir(self) -> Path:
-        return self.work_dir / "pmtiles"
+    def thumbnail_path(self, filename_or_stem: str) -> Path:
+        return self.resource_asset_path(filename_or_stem, ".png")
+
+    def fgb_path(self, filename_or_stem: str) -> Path:
+        return self.resource_asset_path(filename_or_stem, ".fgb")
+
+    def pmtiles_path(self, filename_or_stem: str) -> Path:
+        return self.resource_asset_path(filename_or_stem, ".pmtiles")
 
     @property
     def report_dir(self) -> Path:
@@ -782,13 +790,20 @@ def file_sha256(path: Path) -> str:
 def collect_artifact_records(job: JobConfig) -> list[dict[str, Any]]:
     """Describe generated artifacts without copying them into the run record."""
     artifacts: list[dict[str, Any]] = []
-    for directory_name, role in ARTIFACT_DIRECTORIES.items():
-        directory = job.work_dir / directory_name
+    artifact_locations = [
+        (job.resource_dir(record.filename_stem), RESOURCE_ARTIFACT_ROLES)
+        for record in job.records
+    ]
+    artifact_locations.append((job.report_dir, {}))
+    for directory, roles in artifact_locations:
         if not directory.is_dir():
             continue
         for artifact_path in sorted(path for path in directory.rglob("*") if path.is_file()):
             if artifact_path.name == ".DS_Store":
                 continue
+            role = roles.get(artifact_path.suffix.casefold(), "resource_artifact")
+            if directory == job.report_dir:
+                role = "report"
             relative_path = artifact_path.relative_to(job.work_dir).as_posix()
             size_bytes = artifact_path.stat().st_size
             LOGGER.info(
@@ -1146,7 +1161,7 @@ def run_download_stage(
     manifest = require_confirmed_review(job)
     results = []
     for record in manifest["records"]:
-        output_path = job.gpkg_dir / record["filename"]
+        output_path = job.gpkg_path(record["filename"])
         if output_path.is_file() and not overwrite:
             LOGGER.info("Skipping existing GeoPackage: %s", output_path)
             results.append(
@@ -1201,7 +1216,7 @@ def run_enrich_stage(
     dataframe = dataframe.set_index("filename", drop=False)
     details = []
     for record in manifest["records"]:
-        gpkg_path = job.gpkg_dir / record["filename"]
+        gpkg_path = job.gpkg_path(record["filename"])
         if not gpkg_path.is_file():
             raise RuntimeError(f"GeoPackage is missing; run download first: {gpkg_path}")
         service_url = record["service_url"]
@@ -1262,14 +1277,14 @@ def run_dictionary_stage(
 ) -> None:
     manifest = require_confirmed_review(job)
     metadata = validate_reviewed_metadata(job).set_index("filename")
-    job.dictionary_dir.mkdir(parents=True, exist_ok=True)
     outputs: list[str] = []
     for record in manifest["records"]:
         layer_metadata = requester(record["service_url"], {"f": "pjson"}, "GET")
         fields = layer_metadata.get("fields") or []
         if not isinstance(fields, list):
             raise RuntimeError(f"ArcGIS fields are not a list: {record['service_url']}")
-        output_path = job.dictionary_dir / f"{Path(record['filename']).stem}.csv"
+        output_path = job.dictionary_path(record["filename"])
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w", newline="", encoding="utf-8") as handle:
             writer = csv.DictWriter(handle, fieldnames=DICTIONARY_COLUMNS)
             writer.writeheader()
@@ -1296,16 +1311,18 @@ def run_embed_stage(job: JobConfig) -> None:
     require_confirmed_review(job)
     validate_enriched_metadata(job)
     expected = {record.filename for record in job.records}
-    missing = sorted(filename for filename in expected if not (job.gpkg_dir / filename).is_file())
+    missing = sorted(filename for filename in expected if not job.gpkg_path(filename).is_file())
     if missing:
         raise RuntimeError(f"GeoPackages are missing before metadata embedding: {', '.join(missing)}")
-    summary = embed_metadata_directory(
-        job.gpkg_dir,
-        job.metadata_path,
-        get_default_template_path(),
-        match_column="filename",
-    )
-    processed = set(summary.processed_files)
+    processed: set[str] = set()
+    for record in job.records:
+        summary = embed_metadata_directory(
+            job.resource_dir(record.filename_stem),
+            job.metadata_path,
+            get_default_template_path(),
+            match_column="filename",
+        )
+        processed.update(summary.processed_files)
     if not expected.issubset(processed):
         raise RuntimeError(
             f"Metadata was not embedded in every selected GeoPackage: {sorted(expected - processed)}"
@@ -1315,13 +1332,13 @@ def run_embed_stage(job: JobConfig) -> None:
 
 def run_thumbnail_stage(job: JobConfig) -> None:
     require_confirmed_review(job)
-    job.thumbnail_dir.mkdir(parents=True, exist_ok=True)
     outputs = []
     for record in job.records:
-        gpkg_path = job.gpkg_dir / record.filename
+        gpkg_path = job.gpkg_path(record.filename)
         if not gpkg_path.is_file():
             raise RuntimeError(f"GeoPackage is missing before thumbnail creation: {gpkg_path}")
-        thumbnail_path = job.thumbnail_dir / f"{record.filename_stem}.png"
+        thumbnail_path = job.thumbnail_path(record.filename_stem)
+        thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
         create_vector_thumbnail(gpkg_path, thumbnail_path)
         outputs.append(str(thumbnail_path))
     mark_stage(job, "thumbnails", details={"outputs": outputs})
@@ -1329,17 +1346,18 @@ def run_thumbnail_stage(job: JobConfig) -> None:
 
 def run_derivatives_stage(job: JobConfig, *, overwrite: bool = False) -> None:
     require_confirmed_review(job)
-    script_path = REPO_ROOT / "curation" / "build_pmtiles_from_gpkg.py"
+    script_path = REPO_ROOT / "curation" / "scripts" / "build_pmtiles_from_gpkg.py"
     report_path = job.report_dir / "pmtiles_build_report.csv"
     command = [
         sys.executable,
         str(script_path),
         "--input-dir",
-        str(job.gpkg_dir),
+        str(job.work_dir),
         "--fgb-dir",
-        str(job.fgb_dir),
+        str(job.work_dir),
         "--pmtiles-dir",
-        str(job.pmtiles_dir),
+        str(job.work_dir),
+        "--outputs-next-to-input",
         "--report",
         str(report_path),
     ]
@@ -1348,6 +1366,94 @@ def run_derivatives_stage(job: JobConfig, *, overwrite: bool = False) -> None:
     command.append("--overwrite" if overwrite else "--skip-existing")
     _run_command(command)
     mark_stage(job, "derivatives", details={"report": str(report_path)})
+
+
+def _replace_path_strings(value: Any, replacements: dict[str, str]) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _replace_path_strings(item, replacements)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_replace_path_strings(item, replacements) for item in value]
+    if not isinstance(value, str):
+        return value
+    return replacements.get(value, value)
+
+
+def migrate_resource_layout(job: JobConfig) -> list[tuple[Path, Path]]:
+    """Move artifacts from legacy format folders into per-resource folders."""
+    suffix_directories = {
+        ".gpkg": "gpkg",
+        ".fgb": "fgb",
+        ".pmtiles": "pmtiles",
+        ".png": "thumbnails",
+        ".csv": "data_dictionaries",
+    }
+    moves: list[tuple[Path, Path]] = []
+    replacements: dict[str, str] = {}
+
+    for record in job.records:
+        for suffix, directory_name in suffix_directories.items():
+            legacy_dir = job.work_dir / directory_name
+            if not legacy_dir.is_dir():
+                continue
+            expected_name = f"{record.filename_stem}{suffix}"
+            source = legacy_dir / expected_name
+            if not source.is_file():
+                matches = [
+                    path
+                    for path in legacy_dir.glob(f"*{suffix}")
+                    if path.stem.casefold() == record.filename_stem.casefold()
+                ]
+                if len(matches) != 1:
+                    continue
+                source = matches[0]
+            target = job.resource_asset_path(record.filename_stem, suffix)
+            if target.exists():
+                if file_sha256(source) != file_sha256(target):
+                    raise RuntimeError(
+                        f"Cannot migrate {source}; a different target already exists: {target}"
+                    )
+                source.unlink()
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                source.replace(target)
+            moves.append((source, target))
+            replacements[source.relative_to(job.work_dir).as_posix()] = (
+                target.relative_to(job.work_dir).as_posix()
+            )
+            replacements[str(source)] = str(target)
+
+    for directory_name in LEGACY_ARTIFACT_DIRECTORIES:
+        directory = job.work_dir / directory_name
+        ds_store = directory / ".DS_Store"
+        if ds_store.is_file():
+            ds_store.unlink()
+        if directory.is_dir() and not any(directory.iterdir()):
+            directory.rmdir()
+
+    if job.manifest_path.is_file():
+        manifest = _replace_path_strings(load_manifest(job), replacements)
+        manifest.get("stages", {}).pop("snapshot", None)
+        manifest.pop("latest_run_record", None)
+        write_manifest(job, manifest)
+
+    report_paths = job.report_dir.glob("*") if job.report_dir.is_dir() else ()
+    for report_path in report_paths:
+        if not report_path.is_file():
+            continue
+        try:
+            content = report_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        updated = content
+        for old_path, new_path in replacements.items():
+            updated = updated.replace(old_path, new_path)
+        if updated != content:
+            report_path.write_text(updated, encoding="utf-8")
+
+    return moves
 
 
 def run_postprocess(
@@ -1391,6 +1497,10 @@ def build_parser() -> argparse.ArgumentParser:
         "snapshot",
         help="Save a portable run record with metadata and artifact checksums",
     )
+    subparsers.add_parser(
+        "migrate-layout",
+        help="Move legacy format-folder outputs into per-resource folders",
+    )
     subparsers.add_parser("status")
     return parser
 
@@ -1429,6 +1539,9 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "snapshot":
             path = save_run_record(job)
             LOGGER.info("Saved portable run record: %s", path)
+        elif args.command == "migrate-layout":
+            moves = migrate_resource_layout(job)
+            LOGGER.info("Migrated %s artifact(s) into resource folders", len(moves))
         elif args.command == "status":
             print(json.dumps(load_manifest(job), indent=2))
     except (CurationConfigError, RuntimeError, OSError) as exc:

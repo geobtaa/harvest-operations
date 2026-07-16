@@ -202,6 +202,44 @@ uv run --project curation python curation/scripts/arcgis_curation_pipeline.py \
 6. Calls `build_pmtiles_from_gpkg.py` to create EPSG:4326 FlatGeoBuf and PMTiles
    derivatives and a build report.
 
+Outputs are grouped by resource rather than by file format. The configured
+filename becomes both the resource directory and the shared asset basename:
+
+```text
+curation/work/stpaul-2026/
+├── manifest.json
+├── metadata/
+│   └── metadata.csv
+├── reports/
+│   ├── pmtiles_build_report.csv
+│   └── pmtiles_build_report_fields.csv
+├── stp_boundary_2026/
+│   ├── stp_boundary_2026.gpkg
+│   ├── stp_boundary_2026.png
+│   ├── stp_boundary_2026.csv
+│   ├── stp_boundary_2026.fgb
+│   └── stp_boundary_2026.pmtiles
+└── stp_zoning_2026/
+    ├── stp_zoning_2026.gpkg
+    ├── stp_zoning_2026.png
+    ├── stp_zoning_2026.csv
+    ├── stp_zoning_2026.fgb
+    └── stp_zoning_2026.pmtiles
+```
+
+For jobs created by an earlier version of the pipeline, migrate existing
+format-based folders without regenerating assets:
+
+```sh
+uv run --project curation python curation/scripts/arcgis_curation_pipeline.py \
+  curation/jobs/<job-id>.yaml migrate-layout
+```
+
+The migration preserves `metadata/` and `reports/`, updates paths in the live
+manifest and text reports, and clears only the live Snapshot completion marker
+so a new run record can describe the reorganized files. Existing saved run
+records remain unchanged as historical records of their original layout.
+
 Each operation is also available as an individual command: `download`,
 `enrich`, `dictionaries`, `embed`, `thumbnails`, and `derivatives`. Use
 `status` to print the manifest, and use `--overwrite` with `download`,
@@ -432,7 +470,7 @@ brew install gdal tippecanoe
 Start with a field inventory report so you can review large attribute tables:
 
 ```sh
-python build_pmtiles_from_gpkg.py \
+python scripts/build_pmtiles_from_gpkg.py \
   --input-dir ./gpkg \
   --fgb-dir ./fgb \
   --pmtiles-dir ./pmtiles \
@@ -447,7 +485,7 @@ rules and field keep/drop settings.
 Run the conversion:
 
 ```sh
-python build_pmtiles_from_gpkg.py \
+python scripts/build_pmtiles_from_gpkg.py \
   --input-dir ./gpkg \
   --fgb-dir ./fgb \
   --pmtiles-dir ./pmtiles \
@@ -458,7 +496,7 @@ python build_pmtiles_from_gpkg.py \
 Rerun without rebuilding completed outputs:
 
 ```sh
-python build_pmtiles_from_gpkg.py \
+python scripts/build_pmtiles_from_gpkg.py \
   --input-dir ./gpkg \
   --fgb-dir ./fgb \
   --pmtiles-dir ./pmtiles \
