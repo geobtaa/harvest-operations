@@ -10,6 +10,9 @@
       --muted: #5f6f82;
       --border: #e0b08b;
       --accent: #a95d3f;
+      --success: #5f7f68;
+      --success-soft: #edf7ef;
+      --line: #d7e1ec;
     }
     body {
       font-family: "Segoe UI", sans-serif;
@@ -22,11 +25,44 @@
     .workflow {
       border: 3px solid var(--border);
       padding: 0.75rem 1rem;
+      margin-top: 1rem;
     }
     h1 { margin-bottom: 0.35rem; }
     h2 { font-size: 1.1rem; margin: 0 0 0.5rem; }
-    ol { margin: 0; padding-left: 1.5rem; }
-    li { margin: 0.6rem 0; }
+    h3 { font-size: 1rem; margin: 0 0 0.25rem; }
+    ol { margin: 0; padding: 0; list-style: none; counter-reset: workflow-step; }
+    ol > li {
+      position: relative;
+      margin: 0;
+      padding: 0.8rem 0 0.8rem 3rem;
+      border-top: 1px solid var(--line);
+      counter-increment: workflow-step;
+    }
+    ol > li:first-child { border-top: 0; }
+    ol > li::before {
+      content: counter(workflow-step);
+      position: absolute;
+      left: 0;
+      top: 0.75rem;
+      display: grid;
+      place-items: center;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      color: #fff;
+      background-color: var(--success);
+      font-weight: 700;
+    }
+    ol p { margin: 0.2rem 0 0; color: var(--muted); }
+    .workflow-intro { margin-bottom: 0.75rem; }
+    .important {
+      border: 2px solid var(--success);
+      padding: 0.75rem 0.9rem;
+      margin: 1rem 0;
+      background-color: var(--success-soft);
+    }
+    .important strong { display: block; margin-bottom: 0.2rem; }
+    .finish-work { border-color: #9fbfd0; }
     .tag-reference { margin-top: 1rem; border-color: #abc7ae; }
     .tag-reference ul { margin: 0; padding-left: 1.5rem; }
     .tag-reference li { margin: 0.45rem 0; }
@@ -39,21 +75,70 @@
   </style>
 </head>
 <body>
-  <h1>Workflow Overview</h1>
+  <h1>Harvest Task Workflow</h1>
   <p><a href="/static/task-dashboard.html">Back to Harvest Task Dashboard</a></p>
+  <p class="workflow-intro">Use this checklist at the start of each work session and repeat the refresh steps after changing Harvest records.</p>
 
-  <section class="workflow">
-    <h2>Harvest task workflow</h2>
+  <section class="workflow" aria-labelledby="regular-workflow-heading">
+    <h2 id="regular-workflow-heading">Regular workflow</h2>
     <ol>
-      <li>Open Harvest Dashboard and run the Triage task.</li>
-      <li>Open the Triage view and identify sets to work on next.</li>
-      <li>Open the set’s Harvest record in GEOMG and add <code>queue:pending_*</code> and <code>due:yyyy-mm-dd</code> tags.</li>
-      <li>Download the harvest records again and rerun the Triage task.</li>
-      <li>Open the To do view.</li>
-      <li>Create a GitHub issue for a task.</li>
-      <li>Complete the task and close the GitHub issue.</li>
-      <li>Open the Harvest record, update the Last Harvested field, and remove the tags.</li>
+      <li>
+        <h3>Open the Harvest Task Dashboard</h3>
+        <p>Keep the dashboard open while you work through the remaining steps.</p>
+      </li>
+      <li>
+        <h3>Download both current CSVs</h3>
+        <p>Use the dashboard links and save the files as <code>inputs/harvest-records.csv</code> and <code>reference_data/websites.csv</code>.</p>
+      </li>
+      <li>
+        <h3>Generate Workflow Inputs</h3>
+        <p>Select the dashboard button and wait until its status says Completed.</p>
+      </li>
+      <li>
+        <h3>Run Triage</h3>
+        <p>Select the dashboard button and wait until its status says Completed.</p>
+      </li>
+      <li>
+        <h3>Open Triage and decide what should be worked on next</h3>
+        <p>Start with Reharvest due. Monthly, quarterly, and annual records need to be reharvested on their schedule; irregular records need review. A highlighted review flag shows when a <code>review:Ny</code> review is upcoming or overdue. Use Last Harvested and Admin Notes as additional clues.</p>
+      </li>
+      <li>
+        <h3>Update the selected Harvest records</h3>
+        <p>In GEOMG, add the appropriate <code>queue:pending_*</code> tag and a <code>due:YYYY-MM-DD</code> tag. Save and sync each record.</p>
+      </li>
+      <li>
+        <h3>Refresh the dashboard data</h3>
+        <p>Download both CSVs again, Generate Workflow Inputs again, and Run Triage again. Confirm the selected tasks now appear in To do.</p>
+      </li>
+      <li>
+        <h3>Open To do and create the GitHub issues</h3>
+        <p>Use the issue button for each new task, then assign the issue to the project lead or to yourself.</p>
+      </li>
     </ol>
+  </section>
+
+  <div class="important">
+    <strong>Do not create a new issue directly from Triage.</strong>
+    Update and sync the Harvest record first, refresh the CSVs and Triage, and then create the issue from To do.
+  </div>
+
+  <section class="workflow finish-work">
+    <h2>When a task is finished</h2>
+    <ol>
+      <li>
+        <h3>Update the Harvest record</h3>
+        <p>Update the Last Harvested field when appropriate, remove the completed queue and due tags, and sync the record.</p>
+      </li>
+      <li>
+        <h3>Close the GitHub issue</h3>
+        <p>Add any useful completion notes before closing it.</p>
+      </li>
+      <li>
+        <h3>Refresh again</h3>
+        <p>Repeat the CSV download, Generate Workflow Inputs, and Run Triage steps so the dashboards reflect the completed work.</p>
+      </li>
+    </ol>
+    <p><strong>Reports and Lists:</strong> run Reports at the end of a work session when updated summaries are needed. Run Lists only when those reference views need refreshing.</p>
   </section>
 
   <section class="workflow tag-reference">

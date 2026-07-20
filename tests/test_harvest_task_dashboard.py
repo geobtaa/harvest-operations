@@ -201,6 +201,17 @@ def test_harvest_task_dashboard_triage_groups_only_unqueued_individual_records(
                 "Harvest Workflow": "py_pasda",
                 "Last Harvested": "2026-01-01",
                 "Accrual Periodicity": "Monthly",
+                "Admin Note": "Confirm source changes before assigning this task.",
+            },
+            {
+                "ID": "annual-due-record",
+                "Title": (
+                    "An Exceptionally Long Individual Annual Due Record Title That Needs "
+                    "To Be Shortened For A Balanced Triage Table"
+                ),
+                "Harvest Workflow": "py_pasda",
+                "Last Harvested": "2024-01-01",
+                "Accrual Periodicity": "Annual",
             },
             {
                 "ID": "scheduled-record",
@@ -215,6 +226,22 @@ def test_harvest_task_dashboard_triage_groups_only_unqueued_individual_records(
                 "Harvest Workflow": "py_isgs",
                 "Last Harvested": "2026-01-01",
                 "Accrual Periodicity": "Irregular",
+            },
+            {
+                "ID": "review-due-record",
+                "Title": "Irregular Review Due Record",
+                "Harvest Workflow": "py_isgs",
+                "Last Harvested": "2025-04-01",
+                "Accrual Periodicity": "Irregular",
+                "Tags": "review:1y",
+            },
+            {
+                "ID": "review-upcoming-record",
+                "Title": "Irregular Review Upcoming Record",
+                "Harvest Workflow": "py_isgs",
+                "Last Harvested": "2025-08-01",
+                "Accrual Periodicity": "Irregular",
+                "Tags": "review:1y",
             },
             {
                 "ID": "todo-record",
@@ -265,16 +292,74 @@ def test_harvest_task_dashboard_triage_groups_only_unqueued_individual_records(
     )
     triage_html = job._render_dashboard_html(
         triage_tasks,
-        report_title="Harvest Task Triage",
+        report_title="Collections Triage",
         section_mode="review",
     )
 
-    assert "Review Due (1)" in triage_html
-    assert "Review Scheduled (1)" in triage_html
-    assert "No Schedule (1)" in triage_html
+    assert "Reharvest due (2)" in triage_html
+    assert "Reharvest upcoming (1)" in triage_html
+    assert "Irregular reviews (3)" in triage_html
     assert "Individual Due Record" in triage_html
+    assert "An Exceptionally Long Individual Annual Due Record Title That Needs…" in triage_html
     assert "Individual Scheduled Record" in triage_html
     assert "Individual Unscheduled Record" in triage_html
+    assert "<h3>Monthly</h3>" in triage_html
+    assert "<h3>Annual</h3>" in triage_html
+    assert "<h3>Irregular</h3>" in triage_html
+    assert triage_html.index("<h3>Monthly</h3>") < triage_html.index("<h3>Annual</h3>")
+    assert '<th class="admin-notes">Admin notes</th>' in triage_html
+    assert '<th class="actions">Update Harvest record</th>' in triage_html
+    assert "Confirm source changes before assigning this task." in triage_html
+    assert "Dashboard tag cheat sheet" in triage_html
+    assert "Harvest cycle workload" in triage_html
+    assert "3 scheduled reharvest records" in triage_html
+    assert "<strong>2</strong> Due now" in triage_html
+    assert "<strong>1</strong> Next 30 days" in triage_html
+    assert "<strong>0</strong> Current" in triage_html
+    assert "--current: #2e7d32;" in triage_html
+    assert ".workload-segment--current { background: var(--current); color: #ffffff; }" in triage_html
+    assert '<nav class="triage-toc" aria-label="Triage sections">' in triage_html
+    assert ".triage-toc strong { margin-right: 0.2rem; font-size: 1.08rem; }" in triage_html
+    assert "font-size: 0.94rem; font-weight: 700;" in triage_html
+    assert 'href="#triage-harvests">Harvests' in triage_html
+    assert 'href="#triage-reviews">Reviews' in triage_html
+    assert 'href="#triage-reharvest-due">Reharvest due' in triage_html
+    assert 'href="#triage-reharvest-upcoming">Reharvest upcoming' in triage_html
+    assert '<header id="triage-harvests" class="triage-area-heading">' in triage_html
+    assert "<h2>Harvests (3)</h2>" in triage_html
+    assert '<header id="triage-reviews" class="triage-area-heading triage-area-heading--reviews">' in triage_html
+    assert "<h2>Reviews (3)</h2>" in triage_html
+    assert 'id="triage-reharvest-due"' in triage_html
+    assert 'id="triage-irregular-reviews"' in triage_html
+    assert triage_html.index('<header id="triage-harvests"') < triage_html.index(
+        '<header id="triage-reviews"'
+    )
+    assert triage_html.index('<header id="triage-harvests"') < triage_html.index(
+        '<section class="triage-overview"'
+    )
+    assert triage_html.index('<section class="triage-overview"') < triage_html.index(
+        'id="triage-reharvest-due"'
+    )
+    assert triage_html.index("Reharvest due (2)") < triage_html.index(
+        "Reharvest upcoming (1)"
+    )
+    assert triage_html.index("Reharvest upcoming (1)") < triage_html.index(
+        "Irregular reviews (3)"
+    )
+    assert "queue:pending_harvest" in triage_html
+    assert "harvest_due:YYYY-MM-DD" in triage_html
+    assert "review:Ny" in triage_html
+    assert 'class="review-flag review-flag--due">Review overdue · 2026-04-01' in triage_html
+    assert 'class="review-flag review-flag--upcoming">Review upcoming · 2026-08-01' in triage_html
+    assert "Review as needed" in triage_html
+    assert '<span class="status-pill' not in triage_html
+    assert ">Update</a>" in triage_html
+    assert ".triage-view--review .action-link { border-color: var(--accent); border-radius: 6px; background-color: var(--accent); color: #ffffff; }" in triage_html
+    assert 'class="task-name task-name--truncated"' in triage_html
+    assert (
+        'title="An Exceptionally Long Individual Annual Due Record Title That Needs '
+        'To Be Shortened For A Balanced Triage Table"'
+    ) in triage_html
     assert "Queued To Do Record" not in triage_html
     assert "ArcGIS Hub Record" not in triage_html
     assert "Socrata Record" not in triage_html
@@ -1027,7 +1112,7 @@ def test_harvest_task_dashboard_generates_outputs_and_workflow_splits(
     )
     assert fetch_calls == 1
     assert "Harvest Tasks Due Now" in due_dashboard_html
-    assert "Harvest Task Triage" in review_dashboard_html
+    assert "Collections Triage" in review_dashboard_html
     assert "Harvest Tasks To Do" in todo_dashboard_html
     assert "Get Latest Source CSVs" not in due_dashboard_html
     assert "Reviews due" in due_dashboard_html
@@ -1535,9 +1620,9 @@ def test_harvest_task_dashboard_splits_review_and_todo_views(
     assert tag_future["Tag Due Date"] == "2026-04-15"
     assert tag_future["Tag Due Status"] == "Scheduled"
 
-    assert "Harvest Task Triage" in review_html
-    assert "Review Due (2)" in review_html
-    assert "Review Scheduled (1)" in review_html
+    assert "Collections Triage" in review_html
+    assert "Reharvest due (2)" in review_html
+    assert "Reharvest upcoming (1)" in review_html
     assert "Calendar Due Task" in review_html
     assert "Calendar Future Task" in review_html
     assert "Calendar No Last Harvested Task" in review_html
@@ -1550,7 +1635,8 @@ def test_harvest_task_dashboard_splits_review_and_todo_views(
     assert "Reviews due" not in review_html
     assert "Harvests due" not in review_html
     assert 'class="summary"' not in review_html
-    assert 'class="action-link" href="https://geomg.lib.umn.edu/admin/documents/calendar-due/edit" target="_blank" rel="noreferrer">Harvest record</a>' in review_html
+    assert '<th class="actions">Update Harvest record</th>' in review_html
+    assert 'class="action-link" href="https://geomg.lib.umn.edu/admin/documents/calendar-due/edit" target="_blank" rel="noreferrer">Update</a>' in review_html
 
     assert "Harvest Tasks To Do" in todo_html
     assert "To do (2)" in todo_html

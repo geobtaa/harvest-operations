@@ -46,10 +46,86 @@
       transform: translateY(-1px);
       border-color: var(--ink);
     }
+    .task-button:disabled {
+      cursor: wait;
+      transform: none;
+    }
+    .task-button[data-state="running"] {
+      border-color: var(--accent);
+      background-color: #fff0d6;
+    }
+    .task-button[data-state="success"] {
+      border-color: #3f704d;
+      background-color: #cfe8d4;
+    }
+    .task-button[data-state="error"] {
+      border-color: var(--danger);
+      background-color: #f6dfda;
+    }
+    .task-control {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.55rem;
+    }
+    .task-run-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      min-height: 1.65rem;
+      padding: 0.1rem 0.6rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background-color: #f7f9fb;
+      font-size: 0.84rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .task-run-status::before {
+      content: "○";
+      line-height: 1;
+    }
+    .task-run-status[data-state="running"] {
+      border-color: var(--border-orange);
+      color: #7a4a20;
+      background-color: #fff7e8;
+    }
+    .task-run-status[data-state="running"]::before {
+      content: "";
+      width: 0.7rem;
+      height: 0.7rem;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: task-status-spin 0.75s linear infinite;
+    }
+    .task-run-status[data-state="success"] {
+      border-color: var(--border-green);
+      color: #315f3e;
+      background-color: #edf7ef;
+    }
+    .task-run-status[data-state="success"]::before { content: "✓"; }
+    .task-run-status[data-state="error"] {
+      border-color: var(--border-red);
+      color: #8b3d31;
+      background-color: #fff0ed;
+    }
+    .task-run-status[data-state="error"]::before { content: "!"; }
+    @keyframes task-status-spin {
+      to { transform: rotate(360deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .task-run-status[data-state="running"]::before { animation: none; }
+    }
     h1 {
       margin-bottom: 0.5rem;
     }
     a { color: var(--link); }
+    .dashboard-intro {
+      margin: 0 0 1rem;
+      color: var(--muted);
+    }
     #status {
       margin: 1rem 0;
       font-weight: bold;
@@ -72,20 +148,94 @@
       margin: 1rem 0 0.35rem;
       font-size: 1rem;
     }
-    .source-box {
-      border: 3px solid var(--border-blue);
-      border-radius: 0;
-      padding: 0.75rem 1rem;
-      margin: 0.75rem 0 1rem;
+    .priority-workflow {
+      border: 4px solid var(--border-green);
+      padding: 1rem 1.1rem;
+      margin-bottom: 1.5rem;
     }
-    .frequent-harvesters-section { border-color: var(--border-green); }
-    .source-box h2 {
-      margin-top: 0;
-      margin-bottom: 0.5rem;
+    .priority-workflow > h2 {
+      margin: 0 0 0.2rem;
+      font-size: 1.35rem;
+    }
+    .priority-workflow > p { margin: 0 0 0.65rem; }
+    .workflow-steps {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: dashboard-step;
+    }
+    .workflow-step {
+      display: grid;
+      grid-template-columns: 2.4rem minmax(0, 1fr);
+      gap: 0.75rem;
+      padding: 0.9rem 0;
+      border-top: 1px solid var(--line);
+      counter-increment: dashboard-step;
+    }
+    .workflow-step::before {
+      content: counter(dashboard-step);
+      display: grid;
+      place-items: center;
+      width: 2.2rem;
+      height: 2.2rem;
+      border-radius: 50%;
+      color: #fff;
+      background-color: var(--success);
+      font-weight: 700;
+    }
+    .workflow-step h3 {
+      margin: 0 0 0.25rem;
+      font-size: 1.05rem;
+    }
+    .workflow-step p { margin: 0 0 0.6rem; }
+    .workflow-step ul {
+      margin: 0.4rem 0 0.7rem;
+      padding-left: 1.25rem;
+    }
+    .workflow-step li { margin: 0.3rem 0; }
+    .workflow-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      align-items: center;
+    }
+    .workflow-link {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.55rem 0.85rem;
+      border: 1px solid var(--success);
+      color: #315f3e;
+      background-color: #edf7ef;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .workflow-link--primary {
+      color: #fff;
+      background-color: var(--success);
+    }
+    .workflow-link:hover { border-color: var(--ink); }
+    .secondary-tools {
+      border: 3px solid var(--border-orange);
+      padding: 0.9rem;
+    }
+    .secondary-tools > h2 {
+      margin: 0 0 0.25rem;
+      font-size: 1.2rem;
+    }
+    .secondary-tools > p { margin: 0 0 0.8rem; }
+    .technical-output {
+      margin-top: 1rem;
+      border: 1px solid var(--line);
+      padding: 0.75rem;
+    }
+    .technical-output summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-weight: 700;
     }
     .dashboard-layout {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(15rem, 20rem);
+      grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr);
       gap: 1rem;
       align-items: start;
     }
@@ -117,35 +267,22 @@
     .task-actions {
       display: grid;
       gap: 0.75rem;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      margin: 0.75rem 0;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin: 0;
     }
     .task-action {
       border: 3px solid var(--border-blue);
       border-radius: 0;
       padding: 0.75rem;
     }
-    .task-action:nth-child(2) { border-color: var(--border-orange); }
-    .task-action:nth-child(3) { border-color: var(--border-purple); }
-    .task-action h2 {
+    .task-action:nth-child(2) { border-color: var(--border-purple); }
+    .task-action h3 {
       margin: 0 0 0.4rem;
       font-size: 1.1rem;
     }
     .task-action p {
       margin: 0 0 0.9rem;
     }
-    .report-columns {
-      display: grid;
-      gap: 0.75rem;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      margin: 0.75rem 0;
-    }
-    .report-columns > section {
-      border: 3px solid var(--border-blue);
-      padding: 0.75rem;
-    }
-    .report-columns > section:nth-child(2) { border-color: var(--border-orange); }
-    .report-columns > section:nth-child(3) { border-color: var(--border-purple); }
     .all-harvesters {
       border-top: 3px solid var(--border-red);
       margin-top: 1rem;
@@ -158,15 +295,11 @@
     .all-harvester-links li {
       margin: 0.2rem 0;
     }
-    .report-columns h2 {
-      font-size: 1rem;
-      margin: 0 0 0.35rem;
-    }
-    .report-columns ul {
-      margin: 0;
+    .secondary-links {
+      margin: 0.75rem 0 0;
       padding-left: 1.25rem;
     }
-    .report-columns li {
+    .secondary-links li {
       margin: 0.35rem 0;
     }
     .report-meta {
@@ -223,9 +356,6 @@
       color: var(--muted);
     }
     @media (max-width: 760px) {
-      .report-columns {
-        grid-template-columns: minmax(0, 1fr);
-      }
       .task-actions {
         grid-template-columns: minmax(0, 1fr);
       }
@@ -266,69 +396,97 @@
 <body>
   <h1>Harvest Task Dashboard</h1>
 
-  <p><a href="/static/workflow-overview.html">Workflow Overview</a></p>
+  <p class="dashboard-intro">Start every work session with the four steps below. <a href="/static/workflow-overview.html">Read the full Workflow Overview</a>.</p>
 
   <main class="dashboard-layout">
     <div class="dashboard-primary">
-      <div class="source-box source-downloads">
-        <h2>Get Latest Source CSVs</h2>
-        <p>Download both CSVs before running the dashboard:</p>
-        <ul>
-          <li><a href="https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=draft&f%5Bgbl_resourceClass_sm%5D%5B%5D=Series" target="_blank" rel="noreferrer"><code>harvest-records.csv</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span> -> save as <code>inputs/harvest-records.csv</code></li>
-          <li><a href="https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites" target="_blank" rel="noreferrer"><code>websites.csv</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span> -> save as <code>reference_data/websites.csv</code></li>
-        </ul>
-        <p class="muted">Then generate the updated workflow input folder before running Triage, Reports, or Lists.</p>
-        <button class="task-button" onclick="runDashboardTask('source-csvs', 'Generate Workflow Inputs')">Generate Workflow Inputs</button>
-      </div>
-
-      <div class="task-actions" aria-label="Dashboard tasks">
-        <section class="task-action">
-          <h2>Triage</h2>
-          <p class="muted">Refresh the current review and to-do queues.</p>
-          <button class="task-button" onclick="runDashboardTask('triage')">Run Triage</button>
-        </section>
-        <section class="task-action">
-          <h2>Reports</h2>
-          <p class="muted">Refresh retrospective and workflow report views.</p>
-          <button class="task-button" onclick="runDashboardTask('reports')">Run Reports</button>
-        </section>
-        <section class="task-action">
-          <h2>Lists</h2>
-          <p class="muted">Refresh institution, map collection, and standalone lists.</p>
-          <button class="task-button" onclick="runDashboardTask('lists')">Run Lists</button>
-        </section>
-      </div>
-
-      <div class="report-columns">
-        <section>
-          <h2>Triage</h2>
+      <section id="priority-workflow" class="priority-workflow" aria-labelledby="priority-workflow-heading">
+    <h2 id="priority-workflow-heading">Start here: refresh Triage</h2>
+    <p class="muted">Complete these steps in order. Repeat them after you update Harvest records.</p>
+    <ol class="workflow-steps">
+      <li id="workflow-step-downloads" class="workflow-step">
+        <div>
+          <h3>Download both current CSVs</h3>
+          <p>Save them with the exact filenames shown below, replacing the older copies.</p>
           <ul>
-            <li><a id="review-report-link" href="/jobs/harvest-task-dashboard/view?report=review" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Triage</a></li>
-            <li><a id="todo-report-link" href="/jobs/harvest-task-dashboard/view?report=todo" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">To do</a></li>
+            <li><a href="https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=draft&f%5Bgbl_resourceClass_sm%5D%5B%5D=Series" target="_blank" rel="noreferrer"><code>harvest-records.csv</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span> -> save as <code>inputs/harvest-records.csv</code></li>
+            <li><a href="https://geomg.lib.umn.edu/admin/documents?f%5Bb1g_publication_state_s%5D%5B%5D=published&f%5Bgbl_resourceClass_sm%5D%5B%5D=Websites" target="_blank" rel="noreferrer"><code>websites.csv</code></a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span> -> save as <code>reference_data/websites.csv</code></li>
           </ul>
-        </section>
-        <section>
-          <h2>Reports</h2>
-          <ul>
-            <li><a id="retrospective-report-link" href="/jobs/harvest-task-dashboard/view?report=retrospective" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Retrospective report</a></li>
-        <li><a id="arcgis-hub-report-link" href="/jobs/harvest-task-dashboard/reports/py_arcgis_hub" target="_blank" rel="noreferrer">ArcGIS Hub reports</a></li>
-        <li><a id="socrata-report-link" href="/jobs/harvest-task-dashboard/reports/py_socrata" target="_blank" rel="noreferrer">Socrata reports</a></li>
-        <li><a id="ckan-report-link" href="/jobs/harvest-task-dashboard/reports/py_ckan" target="_blank" rel="noreferrer">CKAN reports</a></li>
-          </ul>
-        </section>
-        <section>
-          <h2>Lists</h2>
-          <ul>
-            <li><a id="institutions-report-link" href="/jobs/harvest-task-dashboard/view?report=institutions" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">By institution</a></li>
-            <li><a id="map-collections-report-link" href="/jobs/harvest-task-dashboard/view?report=map-collections" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Map collections only</a></li>
-            <li><a id="standalone-report-link" href="/jobs/harvest-task-dashboard/view?report=standalone" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Standalone websites</a></li>
-          </ul>
-        </section>
-      </div>
+        </div>
+      </li>
+      <li id="workflow-step-inputs" class="workflow-step">
+        <div>
+          <h3>Generate Workflow Inputs</h3>
+          <p class="muted">Prepare fresh per-workflow files from the CSVs you just downloaded.</p>
+          <div class="task-control">
+            <button class="task-button" data-dashboard-task="source-csvs" data-state="idle" onclick="runDashboardTask('source-csvs', 'Generate Workflow Inputs')">Generate Workflow Inputs</button>
+            <span class="task-run-status" data-task-status="source-csvs" data-state="idle" role="status" aria-live="polite">Not run yet</span>
+          </div>
+        </div>
+      </li>
+      <li id="workflow-step-triage" class="workflow-step">
+        <div>
+          <h3>Run Triage</h3>
+          <p class="muted">Refresh the review and to-do queues, then wait for Completed.</p>
+          <div class="task-control">
+            <button class="task-button" data-dashboard-task="triage" data-state="idle" onclick="runDashboardTask('triage', 'Triage')">Run Triage</button>
+            <span class="task-run-status" data-task-status="triage" data-state="idle" role="status" aria-live="polite">Not run yet</span>
+          </div>
+        </div>
+      </li>
+      <li id="workflow-step-open-triage" class="workflow-step">
+        <div>
+          <h3>Open Triage and choose the next work</h3>
+          <p>Assess the tasks, update and sync the selected Harvest records, then repeat steps 1–3. Create GitHub issues from To do only after the refreshed tasks appear there.</p>
+          <div class="workflow-links">
+            <a class="workflow-link workflow-link--primary" id="review-report-link" href="/jobs/harvest-task-dashboard/view?report=review" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Open Triage</a>
+            <a class="workflow-link" id="todo-report-link" href="/jobs/harvest-task-dashboard/view?report=todo" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Open To do</a>
+          </div>
+        </div>
+      </li>
+    </ol>
+      </section>
 
-      <div id="status"></div>
-      <h2 id="task-output-label">Triage Output</h2>
-      <pre id="output" aria-labelledby="task-output-label"></pre>
+      <section id="secondary-tools" class="secondary-tools" aria-labelledby="secondary-tools-heading">
+        <h2 id="secondary-tools-heading">End-of-session and occasional tools</h2>
+        <p class="muted">Reports and Lists do not need to run before Triage. Refresh them at the end of a work session or when an updated reference view is needed.</p>
+        <div class="task-actions" aria-label="Secondary dashboard tasks">
+          <section class="task-action">
+            <h3>Reports</h3>
+            <p class="muted">Refresh retrospective and workflow report views.</p>
+            <div class="task-control">
+              <button class="task-button" data-dashboard-task="reports" data-state="idle" onclick="runDashboardTask('reports', 'Reports')">Run Reports</button>
+              <span class="task-run-status" data-task-status="reports" data-state="idle" role="status" aria-live="polite">Not run yet</span>
+            </div>
+            <ul class="secondary-links">
+              <li><a id="retrospective-report-link" href="/jobs/harvest-task-dashboard/view?report=retrospective" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Retrospective report</a></li>
+              <li><a id="arcgis-hub-report-link" href="/jobs/harvest-task-dashboard/reports/py_arcgis_hub" target="_blank" rel="noreferrer">ArcGIS Hub reports</a></li>
+              <li><a id="socrata-report-link" href="/jobs/harvest-task-dashboard/reports/py_socrata" target="_blank" rel="noreferrer">Socrata reports</a></li>
+              <li><a id="ckan-report-link" href="/jobs/harvest-task-dashboard/reports/py_ckan" target="_blank" rel="noreferrer">CKAN reports</a></li>
+            </ul>
+          </section>
+          <section class="task-action">
+            <h3>Lists</h3>
+            <p class="muted">Refresh institution, map collection, and standalone lists.</p>
+            <div class="task-control">
+              <button class="task-button" data-dashboard-task="lists" data-state="idle" onclick="runDashboardTask('lists', 'Lists')">Run Lists</button>
+              <span class="task-run-status" data-task-status="lists" data-state="idle" role="status" aria-live="polite">Not run yet</span>
+            </div>
+            <ul class="secondary-links">
+              <li><a id="institutions-report-link" href="/jobs/harvest-task-dashboard/view?report=institutions" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">By institution</a></li>
+              <li><a id="map-collections-report-link" href="/jobs/harvest-task-dashboard/view?report=map-collections" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Map collections only</a></li>
+              <li><a id="standalone-report-link" href="/jobs/harvest-task-dashboard/view?report=standalone" target="_blank" rel="noreferrer" onclick="refreshReportLinks()">Standalone websites</a></li>
+            </ul>
+          </section>
+        </div>
+      </section>
+
+      <details id="technical-output" class="technical-output">
+        <summary>Technical task output</summary>
+        <div id="status"></div>
+        <h2 id="task-output-label">Triage Output</h2>
+        <pre id="output" aria-labelledby="task-output-label"></pre>
+      </details>
     </div>
 
     <aside class="dashboard-sidebar" aria-label="Harvesters">
@@ -355,8 +513,12 @@
       const status = document.getElementById("status");
       const output = document.getElementById("output");
       const outputLabel = document.getElementById("task-output-label");
+      const technicalOutput = document.getElementById("technical-output");
       const displayName = taskLabel || taskName;
+      const taskButton = document.querySelector(`[data-dashboard-task="${taskName}"]`);
+      const taskStatus = document.querySelector(`[data-task-status="${taskName}"]`);
 
+      setTaskRunState(taskButton, taskStatus, "running", "Running...");
       status.dataset.state = "running";
       status.textContent = `Running ${displayName}...`;
       outputLabel.textContent = `${displayName} Output`;
@@ -372,14 +534,32 @@
 
         status.dataset.state = "success";
         status.textContent = `${displayName} completed.`;
+        setTaskRunState(taskButton, taskStatus, "success", `Completed at ${formatRunTime()}`);
         output.textContent = JSON.stringify(data, null, 2);
         refreshReportLinks();
         loadFrequentHarvesters();
       } catch (error) {
         status.dataset.state = "error";
         status.textContent = `${displayName} task failed.`;
+        setTaskRunState(taskButton, taskStatus, "error", `Failed at ${formatRunTime()}`);
         output.textContent = error.message;
+        technicalOutput.open = true;
       }
+    }
+
+    function setTaskRunState(button, taskStatus, state, message) {
+      button.dataset.state = state;
+      button.disabled = state === "running";
+      button.setAttribute("aria-busy", state === "running" ? "true" : "false");
+      taskStatus.dataset.state = state;
+      taskStatus.textContent = message;
+    }
+
+    function formatRunTime() {
+      return new Intl.DateTimeFormat([], {
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(new Date());
     }
 
     async function loadFrequentHarvesters() {

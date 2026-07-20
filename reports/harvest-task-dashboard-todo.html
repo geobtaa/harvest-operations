@@ -74,12 +74,58 @@
     .action-link:hover { border-color: var(--accent); }
     .source-box { border: 1px solid var(--line); border-radius: 16px; padding: 1rem; margin: 1rem 0 1.4rem; }
     .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }
+    .tag-cheat-sheet { margin: 1rem 0 1.5rem; padding: 0.9rem 1rem; border: 1px solid var(--line-strong); border-left: 5px solid var(--accent); border-radius: 10px; background: var(--panel-soft); }
+    .tag-cheat-sheet h2 { margin-bottom: 0.35rem; font-size: 1.05rem; }
+    .tag-cheat-sheet p { margin-bottom: 0.65rem; color: var(--muted); font-size: 0.88rem; }
+    .tag-cheat-sheet dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.38rem 0.7rem; margin: 0; font-size: 0.86rem; }
+    .tag-cheat-sheet dt { font-weight: 700; }
+    .tag-cheat-sheet dd { margin: 0; color: var(--muted); }
+    .triage-overview { --current: #2e7d32; margin: 1.1rem 0 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-soft); }
+    .triage-overview h2 { margin-bottom: 0.2rem; }
+    .triage-overview-intro { margin-bottom: 0.8rem; color: var(--muted); font-size: 0.88rem; }
+    .workload-bar { display: flex; min-height: 2.5rem; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel); }
+    .workload-segment { display: flex; align-items: center; justify-content: center; min-width: 2.3rem; padding: 0.35rem; font-weight: 800; }
+    .workload-segment--due { background: var(--due); color: #ffffff; }
+    .workload-segment--soon { background: var(--scheduled); color: #ffffff; }
+    .workload-segment--next { background: var(--scheduled-soft); color: var(--ink); }
+    .workload-segment--current { background: var(--current); color: #ffffff; }
+    .workload-legend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.45rem; margin: 0.65rem 0 0; padding: 0; list-style: none; font-size: 0.82rem; }
+    .workload-legend li { display: flex; align-items: flex-start; gap: 0.35rem; }
+    .workload-key { flex: 0 0 auto; width: 0.75rem; height: 0.75rem; margin-top: 0.17rem; border-radius: 2px; }
+    .workload-key--due { background: var(--due); }
+    .workload-key--soon { background: var(--scheduled); }
+    .workload-key--next { background: var(--scheduled-soft); border: 1px solid var(--line-strong); }
+    .workload-key--current { background: var(--current); }
+    .triage-toc { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem; margin: 1rem 0 1.15rem; padding: 0.9rem 1rem; border: 1px solid var(--line-strong); border-radius: 10px; background: rgba(255, 255, 255, 0.97); box-shadow: 0 2px 8px rgba(23, 50, 77, 0.08); }
+    .triage-toc strong { margin-right: 0.2rem; font-size: 1.08rem; }
+    .triage-toc a { display: inline-flex; gap: 0.35rem; padding: 0.42rem 0.68rem; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel-soft); color: var(--ink); text-decoration: none; font-size: 0.94rem; font-weight: 700; }
+    .triage-toc a:hover { border-color: var(--accent); color: var(--accent); }
+    .triage-toc .triage-toc-group { background: var(--accent-soft); border-color: var(--accent); }
+    .triage-toc-count { color: var(--muted); font-weight: 600; }
+    .triage-area-heading { margin: 2rem 0 0.8rem; padding: 0.8rem 0 0.55rem; border-bottom: 3px solid var(--accent); scroll-margin-top: 4.3rem; }
+    .triage-area-heading h2 { margin-bottom: 0.15rem; font-size: 1.65rem; }
+    .triage-area-heading p { margin-bottom: 0; color: var(--muted); }
+    .triage-area-heading--reviews { border-bottom-color: var(--reviews); }
     .triage-view .due-section { margin-top: 1.4rem; }
+    .triage-view--review .due-section { scroll-margin-top: 4.3rem; }
     .triage-view .workflow-block { margin: 0; border-radius: 0; }
-    .triage-view .section-pill, .triage-view .status-pill, .triage-view .action-link, .triage-view code { border-radius: 0; }
+    .triage-view .section-pill, .triage-view .status-pill, .triage-view code { border-radius: 0; }
+    .triage-view--review .action-link { border-color: var(--accent); border-radius: 6px; background-color: var(--accent); color: #ffffff; }
+    .triage-view--review .action-link:hover { border-color: var(--ink); background-color: var(--ink); }
+    .triage-work-date { font-weight: 700; }
+    .triage-work-date--due { color: var(--due); }
+    .review-flag { display: inline-flex; align-items: center; margin-bottom: 0.28rem; padding: 0.28rem 0.5rem; border: 2px solid currentColor; border-radius: 6px; font-size: 0.78rem; font-weight: 800; }
+    .review-flag--due { color: var(--due); background: var(--due-soft); }
+    .review-flag--upcoming { color: var(--scheduled); background: var(--scheduled-soft); }
+    .triage-view--review table { table-layout: fixed; }
+    .triage-view--review .task-column { width: 31%; }
+    .triage-view--review .timing-column { width: 22%; }
+    .triage-view--review .admin-notes { width: 31%; overflow-wrap: anywhere; }
+    .triage-view--review .actions { width: 16%; min-width: 0; }
+    .admin-note { color: var(--ink); white-space: pre-wrap; }
     .todo-issue-actions { display: grid; justify-items: start; gap: 0.45rem; }
     .todo-issue-actions .action-link { margin: 0; }
-    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .workflow-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } .actions { min-width: 0; padding-top: 0.25rem; } }
+    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .workflow-header { align-items: flex-start; flex-direction: column; } .tag-cheat-sheet dl { grid-template-columns: 1fr; gap: 0.2rem; } .tag-cheat-sheet dd { margin-bottom: 0.35rem; } .workload-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); } .triage-toc { position: static; } .triage-area-heading { scroll-margin-top: 1rem; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } .actions, .triage-view--review .task-column, .triage-view--review .timing-column, .triage-view--review .admin-notes, .triage-view--review .actions { width: auto; min-width: 0; } .actions { padding-top: 0.25rem; } }
   </style>
 </head>
 <body class="triage-view">
@@ -93,8 +139,8 @@
       <table>
         <thead>
           <tr>
-            <th>Task</th>
-            <th>Timing</th>
+            <th class="task-column">Task</th>
+            <th class="timing-column">Timing</th>
             <th class="actions">Harvest record</th>
             <th class="actions">GitHub issues</th>
           </tr>

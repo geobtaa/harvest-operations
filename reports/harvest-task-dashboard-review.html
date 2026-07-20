@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Harvest Task Triage</title>
+  <title>Collections Triage</title>
   <style>
     :root {
       color-scheme: light;
@@ -74,436 +74,656 @@
     .action-link:hover { border-color: var(--accent); }
     .source-box { border: 1px solid var(--line); border-radius: 16px; padding: 1rem; margin: 1rem 0 1.4rem; }
     .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }
+    .tag-cheat-sheet { margin: 1rem 0 1.5rem; padding: 0.9rem 1rem; border: 1px solid var(--line-strong); border-left: 5px solid var(--accent); border-radius: 10px; background: var(--panel-soft); }
+    .tag-cheat-sheet h2 { margin-bottom: 0.35rem; font-size: 1.05rem; }
+    .tag-cheat-sheet p { margin-bottom: 0.65rem; color: var(--muted); font-size: 0.88rem; }
+    .tag-cheat-sheet dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.38rem 0.7rem; margin: 0; font-size: 0.86rem; }
+    .tag-cheat-sheet dt { font-weight: 700; }
+    .tag-cheat-sheet dd { margin: 0; color: var(--muted); }
+    .triage-overview { --current: #2e7d32; margin: 1.1rem 0 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-soft); }
+    .triage-overview h2 { margin-bottom: 0.2rem; }
+    .triage-overview-intro { margin-bottom: 0.8rem; color: var(--muted); font-size: 0.88rem; }
+    .workload-bar { display: flex; min-height: 2.5rem; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel); }
+    .workload-segment { display: flex; align-items: center; justify-content: center; min-width: 2.3rem; padding: 0.35rem; font-weight: 800; }
+    .workload-segment--due { background: var(--due); color: #ffffff; }
+    .workload-segment--soon { background: var(--scheduled); color: #ffffff; }
+    .workload-segment--next { background: var(--scheduled-soft); color: var(--ink); }
+    .workload-segment--current { background: var(--current); color: #ffffff; }
+    .workload-legend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.45rem; margin: 0.65rem 0 0; padding: 0; list-style: none; font-size: 0.82rem; }
+    .workload-legend li { display: flex; align-items: flex-start; gap: 0.35rem; }
+    .workload-key { flex: 0 0 auto; width: 0.75rem; height: 0.75rem; margin-top: 0.17rem; border-radius: 2px; }
+    .workload-key--due { background: var(--due); }
+    .workload-key--soon { background: var(--scheduled); }
+    .workload-key--next { background: var(--scheduled-soft); border: 1px solid var(--line-strong); }
+    .workload-key--current { background: var(--current); }
+    .triage-toc { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem; margin: 1rem 0 1.15rem; padding: 0.9rem 1rem; border: 1px solid var(--line-strong); border-radius: 10px; background: rgba(255, 255, 255, 0.97); box-shadow: 0 2px 8px rgba(23, 50, 77, 0.08); }
+    .triage-toc strong { margin-right: 0.2rem; font-size: 1.08rem; }
+    .triage-toc a { display: inline-flex; gap: 0.35rem; padding: 0.42rem 0.68rem; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel-soft); color: var(--ink); text-decoration: none; font-size: 0.94rem; font-weight: 700; }
+    .triage-toc a:hover { border-color: var(--accent); color: var(--accent); }
+    .triage-toc .triage-toc-group { background: var(--accent-soft); border-color: var(--accent); }
+    .triage-toc-count { color: var(--muted); font-weight: 600; }
+    .triage-area-heading { margin: 2rem 0 0.8rem; padding: 0.8rem 0 0.55rem; border-bottom: 3px solid var(--accent); scroll-margin-top: 4.3rem; }
+    .triage-area-heading h2 { margin-bottom: 0.15rem; font-size: 1.65rem; }
+    .triage-area-heading p { margin-bottom: 0; color: var(--muted); }
+    .triage-area-heading--reviews { border-bottom-color: var(--reviews); }
     .triage-view .due-section { margin-top: 1.4rem; }
+    .triage-view--review .due-section { scroll-margin-top: 4.3rem; }
     .triage-view .workflow-block { margin: 0; border-radius: 0; }
-    .triage-view .section-pill, .triage-view .status-pill, .triage-view .action-link, .triage-view code { border-radius: 0; }
+    .triage-view .section-pill, .triage-view .status-pill, .triage-view code { border-radius: 0; }
+    .triage-view--review .action-link { border-color: var(--accent); border-radius: 6px; background-color: var(--accent); color: #ffffff; }
+    .triage-view--review .action-link:hover { border-color: var(--ink); background-color: var(--ink); }
+    .triage-work-date { font-weight: 700; }
+    .triage-work-date--due { color: var(--due); }
+    .review-flag { display: inline-flex; align-items: center; margin-bottom: 0.28rem; padding: 0.28rem 0.5rem; border: 2px solid currentColor; border-radius: 6px; font-size: 0.78rem; font-weight: 800; }
+    .review-flag--due { color: var(--due); background: var(--due-soft); }
+    .review-flag--upcoming { color: var(--scheduled); background: var(--scheduled-soft); }
+    .triage-view--review table { table-layout: fixed; }
+    .triage-view--review .task-column { width: 31%; }
+    .triage-view--review .timing-column { width: 22%; }
+    .triage-view--review .admin-notes { width: 31%; overflow-wrap: anywhere; }
+    .triage-view--review .actions { width: 16%; min-width: 0; }
+    .admin-note { color: var(--ink); white-space: pre-wrap; }
     .todo-issue-actions { display: grid; justify-items: start; gap: 0.45rem; }
     .todo-issue-actions .action-link { margin: 0; }
-    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .workflow-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } .actions { min-width: 0; padding-top: 0.25rem; } }
+    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .workflow-header { align-items: flex-start; flex-direction: column; } .tag-cheat-sheet dl { grid-template-columns: 1fr; gap: 0.2rem; } .tag-cheat-sheet dd { margin-bottom: 0.35rem; } .workload-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); } .triage-toc { position: static; } .triage-area-heading { scroll-margin-top: 1rem; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } .actions, .triage-view--review .task-column, .triage-view--review .timing-column, .triage-view--review .admin-notes, .triage-view--review .actions { width: auto; min-width: 0; } .actions { padding-top: 0.25rem; } }
   </style>
 </head>
-<body class="triage-view">
-  <h1>Harvest Task Triage</h1>
-  <p class="muted">Choose work here, then open its Harvest record and add a queue:pending_* tag with due:YYYY-MM-DD. Sync the record and rerun Triage to add it to To do.</p>
-  <section class="due-section section-pill--reviews">
+<body class="triage-view triage-view--review">
+  <h1>Collections Triage</h1>
+  <p class="muted">Choose work here by Accrual Periodicity. Monthly, quarterly, annual, and other scheduled records need reharvesting; irregular records need review. Update the Harvest record with a queue tag and due date, sync it, and rerun Triage to add it to To do.</p>
+  <nav class="triage-toc" aria-label="Triage sections">
+    <strong>Jump to</strong>
+    <a class="triage-toc-group" href="#triage-harvests">Harvests <span class="triage-toc-count">(12)</span></a>
+    <a href="#triage-reharvest-upcoming">Reharvest upcoming <span class="triage-toc-count">(11)</span></a>
+    <a href="#triage-periodicity-needs-attention">Periodicity needs attention <span class="triage-toc-count">(1)</span></a>
+    <a class="triage-toc-group" href="#triage-reviews">Reviews <span class="triage-toc-count">(62)</span></a>
+  </nav>
+  <aside class="tag-cheat-sheet" aria-labelledby="tag-cheat-sheet-heading">
+    <h2 id="tag-cheat-sheet-heading">Dashboard tag cheat sheet</h2>
+    <p>Add these in the Harvest record’s Tags field. Separate multiple tags with a pipe, comma, or semicolon.</p>
+    <dl>
+      <dt><code>queue:pending_harvest</code></dt><dd>Queue a reharvest.</dd>
+      <dt><code>queue:pending_updates</code></dt><dd>Queue a Harvest record update.</dd>
+      <dt><code>queue:pending_review</code></dt><dd>Queue a review.</dd>
+      <dt><code>due:YYYY-MM-DD</code></dt><dd>Set the due date for queued work; <code>harvest_due:YYYY-MM-DD</code> is also accepted. Without a date, queued work is due today.</dd>
+      <dt><code>review:Ny</code></dt><dd>Review an irregular record every N years, such as <code>review:2y</code>. Triage highlights upcoming and overdue reviews.</dd>
+    </dl>
+  </aside>
+  <header id="triage-harvests" class="triage-area-heading">
+    <h2>Harvests (12)</h2>
+    <p>Scheduled reharvest cycles and records that need a periodicity.</p>
+  </header>
+  <section class="triage-overview" aria-labelledby="triage-overview-heading">
+    <h2 id="triage-overview-heading">Harvest cycle workload</h2>
+    <p class="triage-overview-intro">11 scheduled reharvest records. 1 additional record needs a periodicity set.</p>
+    <div class="workload-bar" role="img" aria-label="11 scheduled reharvest records: 0 due now, 2 in the next 30 days, 2 in 31 to 90 days, and 7 current with no reharvest needed in the next 90 days.">
+      <div class="workload-segment workload-segment--soon" style="flex-grow: 2" aria-hidden="true">2</div>
+      <div class="workload-segment workload-segment--next" style="flex-grow: 2" aria-hidden="true">2</div>
+      <div class="workload-segment workload-segment--current" style="flex-grow: 7" aria-hidden="true">7</div>
+    </div>
+    <ul class="workload-legend">
+      <li><span class="workload-key workload-key--due" aria-hidden="true"></span><span><strong>0</strong> Due now</span></li>
+      <li><span class="workload-key workload-key--soon" aria-hidden="true"></span><span><strong>2</strong> Next 30 days</span></li>
+      <li><span class="workload-key workload-key--next" aria-hidden="true"></span><span><strong>2</strong> 31–90 days</span></li>
+      <li><span class="workload-key workload-key--current" aria-hidden="true"></span><span><strong>7</strong> Current</span></li>
+    </ul>
+  </section>
+  <section id="triage-reharvest-upcoming" class="due-section section-pill--scheduled">
     <div class="section-header">
-      <h2>Review Due (20)</h2>
+      <h2>Reharvest upcoming (11)</h2>
     </div>
     <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>Monthly</h3>
+        <div class="workflow-meta">2 tasks</div>
+      </div>
       <table>
         <thead>
           <tr>
-            <th>Task</th>
-            <th>Timing</th>
-            <th class="actions">Actions</th>
+            <th class="task-column">Task</th>
+            <th class="timing-column">Timing</th>
+            <th class="admin-notes">Admin notes</th>
+            <th class="actions">Update Harvest record</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td data-label="Task"><div class="task-name">SimplyAnalytics</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/999-0004" target="_blank" rel="noreferrer"><code>999-0004</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=999-0004" target="_blank" rel="noreferrer"><code>999-0004</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--due">Due</span><span>2021-11-18</span></div><div class="timing-meta">Last harvested: 2020-11-18</div><div class="timing-meta">Periodicity: Annual</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_999-0004/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Humanitarian Data Exchange</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/99-1400" target="_blank" rel="noreferrer"><code>99-1400</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=99-1400" target="_blank" rel="noreferrer"><code>99-1400</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Next reharvest: 2026-07-30</div><div class="timing-meta">Last harvested: 2026-06-30</div><div class="timing-meta">Reharvest interval: Monthly</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_99-1400/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Polar Geospatial Center</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-06" target="_blank" rel="noreferrer"><code>05d-06</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-06" target="_blank" rel="noreferrer"><code>05d-06</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2022-04-26</span></div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-06/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">PASDA Geospatial Data Archive</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08a-04" target="_blank" rel="noreferrer"><code>08a-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08a-04" target="_blank" rel="noreferrer"><code>08a-04</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Next reharvest: 2026-08-15</div><div class="timing-meta">Last harvested: 2026-07-15</div><div class="timing-meta">Reharvest interval: Monthly</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_08a-04/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>Quarterly</h3>
+        <div class="workflow-meta">2 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th class="task-column">Task</th>
+            <th class="timing-column">Timing</th>
+            <th class="admin-notes">Admin notes</th>
+            <th class="actions">Update Harvest record</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Illinois Geospatial Data Clearinghouse</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/02a-01" target="_blank" rel="noreferrer"><code>02a-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=02a-01" target="_blank" rel="noreferrer"><code>02a-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Next reharvest: 2026-09-30</div><div class="timing-meta">Last harvested: 2026-06-30</div><div class="timing-meta">Reharvest interval: Quarterly</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">Python harvester for this script needs attention to generate all needed fields and provide more feedback.</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_02a-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">University of Minnesota Digital Conservancy DRUM</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-03" target="_blank" rel="noreferrer"><code>05d-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-03" target="_blank" rel="noreferrer"><code>05d-03</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2022-04-26</span></div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-03/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">PASDA: The Pennsylvania Geospatial Data Clearinghouse</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08a-01" target="_blank" rel="noreferrer"><code>08a-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08a-04" target="_blank" rel="noreferrer"><code>08a-04</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Next reharvest: 2026-09-30</div><div class="timing-meta">Last harvested: 2026-06-30</div><div class="timing-meta">Reharvest interval: Quarterly</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-04-29 ~ psu request to add web service layers to several records with &quot;Hamer&quot; in the description
+2026-07-03 ~ overhaul workflow to harvest from web directories instead of portal
+2026-07-15 ~ retired all child records</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_08a-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>Annual</h3>
+        <div class="workflow-meta">7 tasks</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th class="task-column">Task</th>
+            <th class="timing-column">Timing</th>
+            <th class="admin-notes">Admin notes</th>
+            <th class="actions">Update Harvest record</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Urban Base Layers - Philadelphia</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_42_60000" target="_blank" rel="noreferrer"><code>b1g_42_60000</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Next reharvest: 2026-12-09</div><div class="timing-meta">Last harvested: 2025-12-09</div><div class="timing-meta">Reharvest interval: Annual</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/b1g_42_60000/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Social Explorer</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/999-0001" target="_blank" rel="noreferrer"><code>999-0001</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=999-0001" target="_blank" rel="noreferrer"><code>999-0001</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2022-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_999-0001/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Urban Base Layers - Columbus</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_39_18000" target="_blank" rel="noreferrer"><code>b1g_39_18000</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Next reharvest: 2027-01-05</div><div class="timing-meta">Last harvested: 2026-01-05</div><div class="timing-meta">Reharvest interval: Annual</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/b1g_39_18000/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Clark Library Scanned Maps</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/07d-01" target="_blank" rel="noreferrer"><code>07d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=07d-01" target="_blank" rel="noreferrer"><code>07d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2023-04-16</span></div><div class="timing-meta">Last harvested: 2021-04-16</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_07d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Urban Base Layers - Baltimore</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_24_51000" target="_blank" rel="noreferrer"><code>b1g_24_51000</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Next reharvest: 2027-01-23</div><div class="timing-meta">Last harvested: 2026-01-23</div><div class="timing-meta">Reharvest interval: Annual</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/b1g_24_51000/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Minnesota Geological Survey County Atlas Series</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-04" target="_blank" rel="noreferrer"><code>05d-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-04" target="_blank" rel="noreferrer"><code>05d-04</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2023-04-26</span></div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-04/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">ORNL LandScan Viewer</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/88-0001" target="_blank" rel="noreferrer"><code>88-0001</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=88-0001" target="_blank" rel="noreferrer"><code>88-0001</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Next reharvest: 2027-04-04</div><div class="timing-meta">Last harvested: 2026-04-04</div><div class="timing-meta">Reharvest interval: Annual</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-04-04 ~ Landscan HD and US are not described on main page. In Downloads, they are listed as &quot;Archived&quot;; The Mosaic series is intended to replace them, but does not have metadata files yet. Add those next time this is reviewed.</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_88-0001/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Digital Sanborn Maps (Black &amp; White) [All States] {1867-1970}</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/999-0011" target="_blank" rel="noreferrer"><code>999-0011</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=999-0011" target="_blank" rel="noreferrer"><code>999-0011</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_999-0011/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Urban Base Layers - Milwaukee</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_55-53000" target="_blank" rel="noreferrer"><code>b1g_55-53000</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Next reharvest: 2027-06-23</div><div class="timing-meta">Last harvested: 2026-06-23</div><div class="timing-meta">Reharvest interval: Annual</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/b1g_55-53000/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Donald W. Hamer Center for Maps and Geospatial Information Digital Map Drawer of Penn State Rare Maps</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08d-01" target="_blank" rel="noreferrer"><code>08d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08d-01" target="_blank" rel="noreferrer"><code>08d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_08d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Urban Base Layers - Minneapolis</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_27_43000" target="_blank" rel="noreferrer"><code>b1g_27_43000</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Next reharvest: 2027-06-23</div><div class="timing-meta">Last harvested: 2026-06-23</div><div class="timing-meta">Reharvest interval: Annual</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/b1g_27_43000/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Early Modern Maps of the Americas</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12d-02" target="_blank" rel="noreferrer"><code>12d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12d-02" target="_blank" rel="noreferrer"><code>12d-02</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_12d-02/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Fire Insurance Maps Online (FIMo) [All States]</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/999-0010" target="_blank" rel="noreferrer"><code>999-0010</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=999-0010" target="_blank" rel="noreferrer"><code>999-0010</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_999-0010/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Sanborn Maps: Pennsylvania, 1884-1938</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08d-02" target="_blank" rel="noreferrer"><code>08d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08d-02" target="_blank" rel="noreferrer"><code>08d-02</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2023-04-27</span></div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_08d-02/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Minnesota Natural Resource Atlas</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-11" target="_blank" rel="noreferrer"><code>05d-11</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-11" target="_blank" rel="noreferrer"><code>05d-11</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2023-05-20</span></div><div class="timing-meta">Last harvested: 2022-05-20</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-11/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">University of Iowa Campus Map Features</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/03d-04" target="_blank" rel="noreferrer"><code>03d-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=03d-04" target="_blank" rel="noreferrer"><code>03d-04</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2023-09-25</span></div><div class="timing-meta">Last harvested: 2021-09-25</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_03d-04/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Iowa parcels</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/78ebcce3-6558-430f-8c3c-7be8cb1fbda2" target="_blank" rel="noreferrer"><code>78ebcce3-6558-430f-8c3c-7be8cb1fbda2</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=03d-06" target="_blank" rel="noreferrer"><code>03d-06</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2024-01-01</span></div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_03d-06/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">standalone resources</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=r00_01" target="_blank" rel="noreferrer"><code>r00_01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2024-01-01</span></div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_standalone_resources/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Center for Ancient Middle Eastern Landscapes, Institute for the Study of Ancient Cultures, University of Chicago</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12d-04" target="_blank" rel="noreferrer"><code>12d-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12d-04" target="_blank" rel="noreferrer"><code>12d-04</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2025-01-01</span></div><div class="timing-meta">Last harvested: 2024-01-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_12d-04/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Indiana Sanborn Maps</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/01d-05" target="_blank" rel="noreferrer"><code>01d-05</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=01d-05" target="_blank" rel="noreferrer"><code>01d-05</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2025-03-07</span></div><div class="timing-meta">Last harvested: 2024-03-07</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_01d-05/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">New Jersey Farmland Preservation Program Maps</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/14a-03" target="_blank" rel="noreferrer"><code>14a-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=14a-03" target="_blank" rel="noreferrer"><code>14a-03</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2025-03-13</span></div><div class="timing-meta">Last harvested: 2023-03-13</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_14a-03/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Dividing the City: Race-Restrictive Covenants in St. Louis and St. Louis County</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/b492921b-eebf-442f-acb4-1dc6b0d21cc8" target="_blank" rel="noreferrer"><code>b492921b-eebf-442f-acb4-1dc6b0d21cc8</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=03d-02" target="_blank" rel="noreferrer"><code>03d-02</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2025-05-11</span></div><div class="timing-meta">Last harvested: 2023-05-11</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_03d-02/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">GeoDa Data and Lab</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12d-05" target="_blank" rel="noreferrer"><code>12d-05</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12d-05" target="_blank" rel="noreferrer"><code>12d-05</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2026-03-01</span></div><div class="timing-meta">Last harvested: 2024-03-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_12d-05/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Urban Base Layers - St. Paul</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_27_58000" target="_blank" rel="noreferrer"><code>b1g_27_58000</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Next reharvest: 2027-07-16</div><div class="timing-meta">Last harvested: 2026-07-16</div><div class="timing-meta">Reharvest interval: Annual</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/b1g_27_58000/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
         </tbody>
       </table>
     </div>
   </section>
-  <section class="due-section section-pill--reviews">
+  <section id="triage-periodicity-needs-attention" class="due-section section-pill--no-schedule">
     <div class="section-header">
-      <h2>Review Scheduled (35)</h2>
+      <h2>Periodicity needs attention (1)</h2>
     </div>
     <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>Not provided</h3>
+        <div class="workflow-meta">1 task</div>
+      </div>
       <table>
         <thead>
           <tr>
-            <th>Task</th>
-            <th>Timing</th>
-            <th class="actions">Actions</th>
+            <th class="task-column">Task</th>
+            <th class="timing-column">Timing</th>
+            <th class="admin-notes">Admin notes</th>
+            <th class="actions">Update Harvest record</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td data-label="Task"><div class="task-name">Humanitarian Data Exchange</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/99-1400" target="_blank" rel="noreferrer"><code>99-1400</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=99-1400" target="_blank" rel="noreferrer"><code>99-1400</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2026-07-30</span></div><div class="timing-meta">Last harvested: 2026-06-30</div><div class="timing-meta">Periodicity: Monthly</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_99-1400/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">PASDA Geospatial Data Archive</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08a-04" target="_blank" rel="noreferrer"><code>08a-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08a-04" target="_blank" rel="noreferrer"><code>08a-04</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2026-08-15</span></div><div class="timing-meta">Last harvested: 2026-07-15</div><div class="timing-meta">Periodicity: Monthly</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_08a-04/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Geospatial Information Repository (CUGIR)</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/20d-0004" target="_blank" rel="noreferrer"><code>20d-0004</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=20d-0004" target="_blank" rel="noreferrer"><code>20d-0004</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2026-08-23</span></div><div class="timing-meta">Last harvested: 2025-08-23</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_20d-0004/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Harvard Geospatial Library</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/20d-0001" target="_blank" rel="noreferrer"><code>20d-0001</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=20d-0001" target="_blank" rel="noreferrer"><code>20d-0001</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2026-08-23</span></div><div class="timing-meta">Last harvested: 2025-08-23</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_20d-0001/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">ArcGIS Online at the University of Minnesota</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-07" target="_blank" rel="noreferrer"><code>05d-07</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-07" target="_blank" rel="noreferrer"><code>05d-07</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2026-08-24</span></div><div class="timing-meta">Last harvested: 2025-08-24</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-07/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Michiganology</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/06a-03" target="_blank" rel="noreferrer"><code>06a-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=06a-03" target="_blank" rel="noreferrer"><code>06a-03</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2026-08-24</span></div><div class="timing-meta">Last harvested: 2025-08-24</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_06a-03/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">DigitalCommons@University of Nebraska-Lincoln</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/13d-01" target="_blank" rel="noreferrer"><code>13d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=13d-01" target="_blank" rel="noreferrer"><code>13d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2026-09-19</span></div><div class="timing-meta">Last harvested: 2025-09-19</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_13d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">American Panorama</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/20d-0005" target="_blank" rel="noreferrer"><code>20d-0005</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=20d-0005" target="_blank" rel="noreferrer"><code>20d-0005</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2026-09-20</span></div><div class="timing-meta">Last harvested: 2025-09-20</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_20d-0005/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">The Newberry Library Digital Collections</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/77d-0004" target="_blank" rel="noreferrer"><code>77d-0004</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=77d-0004" target="_blank" rel="noreferrer"><code>77d-0004</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2026-09-20</span></div><div class="timing-meta">Last harvested: 2025-09-20</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_77d-0004/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">ERDDAP</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/14d-02" target="_blank" rel="noreferrer"><code>14d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=14d-02" target="_blank" rel="noreferrer"><code>14d-02</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2026-09-22</span></div><div class="timing-meta">Last harvested: 2025-09-22</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_14d-02/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Illinois Geospatial Data Clearinghouse</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/02a-01" target="_blank" rel="noreferrer"><code>02a-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=02a-01" target="_blank" rel="noreferrer"><code>02a-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2026-09-30</span></div><div class="timing-meta">Last harvested: 2026-06-30</div><div class="timing-meta">Periodicity: Quarterly</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_02a-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">PASDA: The Pennsylvania Geospatial Data Clearinghouse</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08a-01" target="_blank" rel="noreferrer"><code>08a-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08a-04" target="_blank" rel="noreferrer"><code>08a-04</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2026-09-30</span></div><div class="timing-meta">Last harvested: 2026-06-30</div><div class="timing-meta">Periodicity: Quarterly</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_08a-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Urban Base Layers - Philadelphia</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_42_60000" target="_blank" rel="noreferrer"><code>b1g_42_60000</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2026-12-09</span></div><div class="timing-meta">Last harvested: 2025-12-09</div><div class="timing-meta">Periodicity: Annual</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/b1g_42_60000/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Stanford Earthworks</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/20d-0003" target="_blank" rel="noreferrer"><code>20d-0003</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=20d-0003" target="_blank" rel="noreferrer"><code>20d-0003</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2026-12-31</span></div><div class="timing-meta">Last harvested: 2025-12-31</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_20d-0003/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Urban Base Layers - Columbus</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_39_18000" target="_blank" rel="noreferrer"><code>b1g_39_18000</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2027-01-05</span></div><div class="timing-meta">Last harvested: 2026-01-05</div><div class="timing-meta">Periodicity: Annual</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/b1g_39_18000/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Urban Base Layers - Baltimore</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_24_51000" target="_blank" rel="noreferrer"><code>b1g_24_51000</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2027-01-23</span></div><div class="timing-meta">Last harvested: 2026-01-23</div><div class="timing-meta">Periodicity: Annual</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/b1g_24_51000/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">EDGE Geodata datasets</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_30g-01" target="_blank" rel="noreferrer"><code>b1g_30g-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2027-03-06</span></div><div class="timing-meta">Last harvested: 2025-03-06</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_b1g_30g-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">16d-01 UW Digital Collections Skinner Maps</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16d-01" target="_blank" rel="noreferrer"><code>16d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2027-03-30</span></div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_16d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">17d-01 Oregon Digital Oregon Maps</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=17d-01" target="_blank" rel="noreferrer"><code>17d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2027-03-30</span></div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_17d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">ORNL LandScan Viewer</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/88-0001" target="_blank" rel="noreferrer"><code>88-0001</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=88-0001" target="_blank" rel="noreferrer"><code>88-0001</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2027-04-04</span></div><div class="timing-meta">Last harvested: 2026-04-04</div><div class="timing-meta">Periodicity: Annual</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_88-0001/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">General Land Office Township Plats: Minnesota</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05a-03" target="_blank" rel="noreferrer"><code>05a-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05a-03" target="_blank" rel="noreferrer"><code>05a-03</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2027-04-25</span></div><div class="timing-meta">Last harvested: 2026-04-25</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05a-03/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Hoosier Resilience Index: Indiana</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/01d-04" target="_blank" rel="noreferrer"><code>01d-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=01d-04" target="_blank" rel="noreferrer"><code>01d-04</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2027-05-04</span></div><div class="timing-meta">Last harvested: 2026-05-04</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_01d-04/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Urban Base Layers - Milwaukee</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_55-53000" target="_blank" rel="noreferrer"><code>b1g_55-53000</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2027-06-23</span></div><div class="timing-meta">Last harvested: 2026-06-23</div><div class="timing-meta">Periodicity: Annual</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/b1g_55-53000/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Urban Base Layers - Minneapolis</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_27_43000" target="_blank" rel="noreferrer"><code>b1g_27_43000</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2027-06-23</span></div><div class="timing-meta">Last harvested: 2026-06-23</div><div class="timing-meta">Periodicity: Annual</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/b1g_27_43000/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">American Geographical Society Library – UWM Libraries</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=20d-0006" target="_blank" rel="noreferrer"><code>20d-0006</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2027-06-30</span></div><div class="timing-meta">Last harvested: 2026-06-30</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_20d-0006/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">standalone websites</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=w00_01" target="_blank" rel="noreferrer"><code>w00_01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2027-07-13</span></div><div class="timing-meta">Last harvested: 2026-07-13</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_standalone_websites/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Urban Base Layers - St. Paul</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_27_58000" target="_blank" rel="noreferrer"><code>b1g_27_58000</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--scheduled">Scheduled</span><span>2027-07-16</span></div><div class="timing-meta">Last harvested: 2026-07-16</div><div class="timing-meta">Periodicity: Annual</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/b1g_27_58000/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Indiana University Digital Collections</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/01d-00" target="_blank" rel="noreferrer"><code>01d-00</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=01d-00" target="_blank" rel="noreferrer"><code>01d-00</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2027-08-06</span></div><div class="timing-meta">Last harvested: 2025-08-06</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_01d-00/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Land-Grab Universities project</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/landgrabu_org" target="_blank" rel="noreferrer"><code>landgrabu_org</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=77f-01" target="_blank" rel="noreferrer"><code>77f-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2028-04-22</span></div><div class="timing-meta">Last harvested: 2026-04-22</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_77f-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">International Conflict Research</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/55d-0001" target="_blank" rel="noreferrer"><code>55d-0001</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=55d-0001" target="_blank" rel="noreferrer"><code>55d-0001</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2028-04-24</span></div><div class="timing-meta">Last harvested: 2026-04-24</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_55d-0001/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Michigan State University Libraries Maps</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/06d-01" target="_blank" rel="noreferrer"><code>06d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=06d-01" target="_blank" rel="noreferrer"><code>06d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2028-06-15</span></div><div class="timing-meta">Last harvested: 2026-06-15</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_06d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">University of Maryland Digital Collections</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04d-01" target="_blank" rel="noreferrer"><code>04d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04d-01" target="_blank" rel="noreferrer"><code>04d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2028-06-15</span></div><div class="timing-meta">Last harvested: 2026-06-15</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_04d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">University of Maryland: U.S. Government Information, Maps, &amp; GIS Services</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04d-02" target="_blank" rel="noreferrer"><code>04d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04d-02" target="_blank" rel="noreferrer"><code>04d-02</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2028-06-25</span></div><div class="timing-meta">Last harvested: 2026-06-25</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_04d-02/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Purdue Campus Maps: West Lafayette, Indiana, 1890-2014</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/09d-02" target="_blank" rel="noreferrer"><code>09d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=09d-02" target="_blank" rel="noreferrer"><code>09d-02</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2029-06-14</span></div><div class="timing-meta">Last harvested: 2026-06-14</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_09d-02/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
-          </tr>
-          <tr>
-            <td data-label="Task"><div class="task-name">Wabash River Historical Maps and Imagery</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/09d-01" target="_blank" rel="noreferrer"><code>09d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=09d-01" target="_blank" rel="noreferrer"><code>09d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>2029-06-14</span></div><div class="timing-meta">Last harvested: 2026-06-14</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_09d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Wisconsin Geological and Natural History Survey</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10d-06" target="_blank" rel="noreferrer"><code>10d-06</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Set a periodicity</div><div class="timing-meta">Last harvested: 2026-04-01</div><div class="timing-meta">Reharvest interval: Not provided</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">Not part of edu.wisc repo, but present in geodata@wisc. JSON metadata sent directly via email.</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_10d-06/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
         </tbody>
       </table>
     </div>
   </section>
-  <section class="due-section section-pill--no-schedule">
+  <header id="triage-reviews" class="triage-area-heading triage-area-heading--reviews">
+    <h2>Reviews (62)</h2>
+    <p>Irregular records, with scheduled reviews ordered before as-needed reviews.</p>
+  </header>
+  <section id="triage-irregular-reviews" class="due-section section-pill--reviews">
     <div class="section-header">
-      <h2>No Schedule (19)</h2>
+      <h2>Irregular reviews (62)</h2>
     </div>
     <div class="workflow-block">
+      <div class="workflow-header">
+        <h3>Irregular</h3>
+        <div class="workflow-meta">62 tasks</div>
+      </div>
       <table>
         <thead>
           <tr>
-            <th>Task</th>
-            <th>Timing</th>
-            <th class="actions">Actions</th>
+            <th class="task-column">Task</th>
+            <th class="timing-column">Timing</th>
+            <th class="admin-notes">Admin notes</th>
+            <th class="actions">Update Harvest record</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td data-label="Task"><div class="task-name">Bituminous coal mine maps of Pennsylvania</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08d-03" target="_blank" rel="noreferrer"><code>08d-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08d-03" target="_blank" rel="noreferrer"><code>08d-03</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2023-09-01</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_08d-03/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Polar Geospatial Center</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-06" target="_blank" rel="noreferrer"><code>05d-06</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-06" target="_blank" rel="noreferrer"><code>05d-06</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2022-04-26</div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">There are many additional maps, but we do not have a harvester for this custom site. Prioritize GeoTIFFs.</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-06/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Carlton County Open Data</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27017" target="_blank" rel="noreferrer"><code>05b-27017</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27017" target="_blank" rel="noreferrer"><code>05b-27017</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: Not yet harvested</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27017/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">University of Minnesota Digital Conservancy DRUM</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-03" target="_blank" rel="noreferrer"><code>05d-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-03" target="_blank" rel="noreferrer"><code>05d-03</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2022-04-26</div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">Review to see what has been added; contact Melinda about this</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-03/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Digital Collections at the University of Illinois at Urbana-Champaign Library</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/02d-01" target="_blank" rel="noreferrer"><code>02d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=02d-01" target="_blank" rel="noreferrer"><code>02d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-07-15</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_02d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Social Explorer</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/999-0001" target="_blank" rel="noreferrer"><code>999-0001</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=999-0001" target="_blank" rel="noreferrer"><code>999-0001</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2022-04-27</div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">Licensed data - check for new layers and contact Team to see who has access</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_999-0001/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Geodata@Wisconsin</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10d-03" target="_blank" rel="noreferrer"><code>10d-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10d_00" target="_blank" rel="noreferrer"><code>10d_00</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-07-15</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_10d_00/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Clark Library Scanned Maps</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/07d-01" target="_blank" rel="noreferrer"><code>07d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=07d-01" target="_blank" rel="noreferrer"><code>07d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2023-04-16</div><div class="timing-meta">Last harvested: 2021-04-16</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">Test links, make sure things are working</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_07d-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Geology Library and Map Room: The Ohio State University</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11d-02" target="_blank" rel="noreferrer"><code>11d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11d-02" target="_blank" rel="noreferrer"><code>11d-02</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-07-15</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_11d-02/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Minnesota Geological Survey County Atlas Series</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-04" target="_blank" rel="noreferrer"><code>05d-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-04" target="_blank" rel="noreferrer"><code>05d-04</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2023-04-26</div><div class="timing-meta">Last harvested: 2021-04-26</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-04/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">HUD Geodata</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_30g-02" target="_blank" rel="noreferrer"><code>b1g_30g-02</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-04-04</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_b1g_30g-02/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Digital Sanborn Maps (Black &amp; White) [All States] {1867-1970}</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/999-0011" target="_blank" rel="noreferrer"><code>999-0011</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=999-0011" target="_blank" rel="noreferrer"><code>999-0011</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2023-04-27</div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_999-0011/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Image and Multimedia Collections at the University of Nebraska-Lincoln</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/13d-02" target="_blank" rel="noreferrer"><code>13d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=13d-02" target="_blank" rel="noreferrer"><code>13d-02</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2021-05-25</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_13d-02/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name task-name--truncated" title="Donald W. Hamer Center for Maps and Geospatial Information Digital Map Drawer of Penn State Rare Maps" aria-label="Donald W. Hamer Center for Maps and Geospatial Information Digital Map Drawer of Penn State Rare Maps">Donald W. Hamer Center for Maps and Geospatial Information Digital…</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08d-01" target="_blank" rel="noreferrer"><code>08d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08d-01" target="_blank" rel="noreferrer"><code>08d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2023-04-27</div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_08d-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">MN Digital Library CSV submissions</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-13" target="_blank" rel="noreferrer"><code>05d-13</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-13" target="_blank" rel="noreferrer"><code>05d-13</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-03-16</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-13_csv/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Early Modern Maps of the Americas</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12d-02" target="_blank" rel="noreferrer"><code>12d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12d-02" target="_blank" rel="noreferrer"><code>12d-02</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2023-04-27</div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_12d-02/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Maps of New Jersey</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/14d-01" target="_blank" rel="noreferrer"><code>14d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=14d-01" target="_blank" rel="noreferrer"><code>14d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-07-15</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_14d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Fire Insurance Maps Online (FIMo) [All States]</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/999-0010" target="_blank" rel="noreferrer"><code>999-0010</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=999-0010" target="_blank" rel="noreferrer"><code>999-0010</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2023-04-27</div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_999-0010/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">National Historical Geographic Information System (NHGIS)</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-10" target="_blank" rel="noreferrer"><code>05d-10</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-10" target="_blank" rel="noreferrer"><code>05d-10</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-07-15</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-10/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Sanborn Maps: Pennsylvania, 1884-1938</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08d-02" target="_blank" rel="noreferrer"><code>08d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08d-02" target="_blank" rel="noreferrer"><code>08d-02</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2023-04-27</div><div class="timing-meta">Last harvested: 2021-04-27</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_08d-02/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Northwestern University Digital Collections</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/15d-01" target="_blank" rel="noreferrer"><code>15d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=15d-01" target="_blank" rel="noreferrer"><code>15d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2024-02-28</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_15d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Minnesota Natural Resource Atlas</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-11" target="_blank" rel="noreferrer"><code>05d-11</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-11" target="_blank" rel="noreferrer"><code>05d-11</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2023-05-20</div><div class="timing-meta">Last harvested: 2022-05-20</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-11/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Pennsylvania Aerial Photo Collection</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/psu-3b601cb48c1e4b2fa00cc8f14eb188e2" target="_blank" rel="noreferrer"><code>psu-3b601cb48c1e4b2fa00cc8f14eb188e2</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08d-05" target="_blank" rel="noreferrer"><code>08d-05</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-07-05</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_08d-05/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">University of Iowa Campus Map Features</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/03d-04" target="_blank" rel="noreferrer"><code>03d-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=03d-04" target="_blank" rel="noreferrer"><code>03d-04</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2023-09-25</div><div class="timing-meta">Last harvested: 2021-09-25</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">Don&#x27;t recall adding this - could make layers for the services</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_03d-04/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Princeton University Libraries Digital Maps &amp; Geospatial Data</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/20d-0002" target="_blank" rel="noreferrer"><code>20d-0002</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=20d-0002" target="_blank" rel="noreferrer"><code>20d-0002</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-06-30</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_20d-0002/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Iowa parcels</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/78ebcce3-6558-430f-8c3c-7be8cb1fbda2" target="_blank" rel="noreferrer"><code>78ebcce3-6558-430f-8c3c-7be8cb1fbda2</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=03d-06" target="_blank" rel="noreferrer"><code>03d-06</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2024-01-01</div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">Submitted by Jay Bowen along with guide on filtering c8996c0d-278b-4006-ad68-40009e0217e2</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_03d-06/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Social Scientists Map Chicago Collection</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12d-01" target="_blank" rel="noreferrer"><code>12d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12d-01" target="_blank" rel="noreferrer"><code>12d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-07-15</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_12d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">standalone resources</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=r00_01" target="_blank" rel="noreferrer"><code>r00_01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2024-01-01</div><div class="timing-meta">Last harvested: 2023-01-01</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_standalone_resources/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">UMedia: University of Minnesota CSVs</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-01" target="_blank" rel="noreferrer"><code>05d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-01" target="_blank" rel="noreferrer"><code>05d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-03-15</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-01_csv/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name task-name--truncated" title="Center for Ancient Middle Eastern Landscapes, Institute for the Study of Ancient Cultures, University of Chicago" aria-label="Center for Ancient Middle Eastern Landscapes, Institute for the Study of Ancient Cultures, University of Chicago">Center for Ancient Middle Eastern Landscapes, Institute for the Study…</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12d-04" target="_blank" rel="noreferrer"><code>12d-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12d-04" target="_blank" rel="noreferrer"><code>12d-04</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2025-01-01</div><div class="timing-meta">Last harvested: 2024-01-01</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_12d-04/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">UMedia: University of Minnesota python harvest</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-01" target="_blank" rel="noreferrer"><code>05d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-01" target="_blank" rel="noreferrer"><code>05d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2025-12-31</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-01_py/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">Indiana Sanborn Maps</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/01d-05" target="_blank" rel="noreferrer"><code>01d-05</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=01d-05" target="_blank" rel="noreferrer"><code>01d-05</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2025-03-07</div><div class="timing-meta">Last harvested: 2024-03-07</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_01d-05/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">University of Iowa Digital Library: Atlases and Maps</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/03d-01" target="_blank" rel="noreferrer"><code>03d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=03d-01" target="_blank" rel="noreferrer"><code>03d-01</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-04-15</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_03d-01/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">New Jersey Farmland Preservation Program Maps</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/14a-03" target="_blank" rel="noreferrer"><code>14a-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=14a-03" target="_blank" rel="noreferrer"><code>14a-03</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2025-03-13</div><div class="timing-meta">Last harvested: 2023-03-13</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">https://github.com/geobtaa/metadata/issues/169</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_14a-03/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">Wisconsin Geological and Natural History Survey</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10d-06" target="_blank" rel="noreferrer"><code>10d-06</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-04-01</div><div class="timing-meta">Periodicity: Not provided</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_10d-06/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name task-name--truncated" title="Dividing the City: Race-Restrictive Covenants in St. Louis and St. Louis County" aria-label="Dividing the City: Race-Restrictive Covenants in St. Louis and St. Louis County">Dividing the City: Race-Restrictive Covenants in St. Louis and St.…</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/b492921b-eebf-442f-acb4-1dc6b0d21cc8" target="_blank" rel="noreferrer"><code>b492921b-eebf-442f-acb4-1dc6b0d21cc8</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=03d-02" target="_blank" rel="noreferrer"><code>03d-02</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2025-05-11</div><div class="timing-meta">Last harvested: 2023-05-11</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_03d-02/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
           <tr>
-            <td data-label="Task"><div class="task-name">edu.utexas</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=20d-0007" target="_blank" rel="noreferrer"><code>20d-0007</code></a></div></td>
-            <td data-label="Timing"><div class="date-line"><span class="status-pill status-pill--no-schedule">No Schedule</span><span>No schedule</span></div><div class="timing-meta">Last harvested: 2026-06-04</div><div class="timing-meta">Periodicity: Irregular</div></td>
-            <td class="actions" data-label="Actions"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_20d-0007/edit" target="_blank" rel="noreferrer">Harvest record</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+            <td class="task-column" data-label="Task"><div class="task-name">GeoDa Data and Lab</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12d-05" target="_blank" rel="noreferrer"><code>12d-05</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12d-05" target="_blank" rel="noreferrer"><code>12d-05</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--due">Review overdue · 2026-03-01</div><div class="timing-meta">Last harvested: 2024-03-01</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_12d-05/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Geospatial Information Repository (CUGIR)</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/20d-0004" target="_blank" rel="noreferrer"><code>20d-0004</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=20d-0004" target="_blank" rel="noreferrer"><code>20d-0004</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2026-08-23</div><div class="timing-meta">Last harvested: 2025-08-23</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_20d-0004/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Harvard Geospatial Library</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/20d-0001" target="_blank" rel="noreferrer"><code>20d-0001</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=20d-0001" target="_blank" rel="noreferrer"><code>20d-0001</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2026-08-23</div><div class="timing-meta">Last harvested: 2025-08-23</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_20d-0001/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">ArcGIS Online at the University of Minnesota</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-07" target="_blank" rel="noreferrer"><code>05d-07</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-07" target="_blank" rel="noreferrer"><code>05d-07</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2026-08-24</div><div class="timing-meta">Last harvested: 2025-08-24</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-07/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Michiganology</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/06a-03" target="_blank" rel="noreferrer"><code>06a-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=06a-03" target="_blank" rel="noreferrer"><code>06a-03</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2026-08-24</div><div class="timing-meta">Last harvested: 2025-08-24</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_06a-03/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">DigitalCommons@University of Nebraska-Lincoln</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/13d-01" target="_blank" rel="noreferrer"><code>13d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=13d-01" target="_blank" rel="noreferrer"><code>13d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2026-09-19</div><div class="timing-meta">Last harvested: 2025-09-19</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_13d-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">American Panorama</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/20d-0005" target="_blank" rel="noreferrer"><code>20d-0005</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=20d-0005" target="_blank" rel="noreferrer"><code>20d-0005</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2026-09-20</div><div class="timing-meta">Last harvested: 2025-09-20</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_20d-0005/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">The Newberry Library Digital Collections</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/77d-0004" target="_blank" rel="noreferrer"><code>77d-0004</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=77d-0004" target="_blank" rel="noreferrer"><code>77d-0004</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2026-09-20</div><div class="timing-meta">Last harvested: 2025-09-20</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_77d-0004/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">ERDDAP</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/14d-02" target="_blank" rel="noreferrer"><code>14d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=14d-02" target="_blank" rel="noreferrer"><code>14d-02</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2026-09-22</div><div class="timing-meta">Last harvested: 2025-09-22</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">Updated from https://hfr.marine.rutgers.edu/erddap/index.html September 22, 2025</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_14d-02/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Stanford Earthworks</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/20d-0003" target="_blank" rel="noreferrer"><code>20d-0003</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=20d-0003" target="_blank" rel="noreferrer"><code>20d-0003</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2026-12-31</div><div class="timing-meta">Last harvested: 2025-12-31</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">Partially harvested - only adding public, nationwide or international datasets. (Not adding California records yet (2025-12-31)</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_20d-0003/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">EDGE Geodata datasets</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_30g-01" target="_blank" rel="noreferrer"><code>b1g_30g-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2027-03-06</div><div class="timing-meta">Last harvested: 2025-03-06</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-04-04 / b1g_Htz4Bc8Guzln and b1g_TCEo2ltd2AKo not published as datasets are larger than 500 MB; Some data dictionaries have over 255 fields, likely lost data when downloaded shapefile, could revisit</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_b1g_30g-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">16d-01 UW Digital Collections Skinner Maps</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=16d-01" target="_blank" rel="noreferrer"><code>16d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2027-03-30</div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_16d-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">17d-01 Oregon Digital Oregon Maps</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=17d-01" target="_blank" rel="noreferrer"><code>17d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2027-03-30</div><div class="timing-meta">Last harvested: 2026-03-30</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">CORS not set for IIIF yet; Used Link Klipper to download all 213 links to desktop as a CSV. The CSV will be used as an Input.</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_17d-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">General Land Office Township Plats: Minnesota</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05a-03" target="_blank" rel="noreferrer"><code>05a-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05a-03" target="_blank" rel="noreferrer"><code>05a-03</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2027-04-25</div><div class="timing-meta">Last harvested: 2026-04-25</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-04-22 ~ site changed to ArcGIS; all links redirect; check again after Mn Commons migration</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05a-03/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Hoosier Resilience Index: Indiana</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/01d-04" target="_blank" rel="noreferrer"><code>01d-04</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=01d-04" target="_blank" rel="noreferrer"><code>01d-04</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2027-05-04</div><div class="timing-meta">Last harvested: 2026-05-04</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_01d-04/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">American Geographical Society Library – UWM Libraries</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=20d-0006" target="_blank" rel="noreferrer"><code>20d-0006</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2027-06-30</div><div class="timing-meta">Last harvested: 2026-06-30</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_20d-0006/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">standalone websites</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=w00_01" target="_blank" rel="noreferrer"><code>w00_01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2027-07-13</div><div class="timing-meta">Last harvested: 2026-07-13</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_standalone_websites/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Indiana University Digital Collections</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/01d-00" target="_blank" rel="noreferrer"><code>01d-00</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=01d-00" target="_blank" rel="noreferrer"><code>01d-00</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2027-08-06</div><div class="timing-meta">Last harvested: 2025-08-06</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-04-25 ~ PURLs now working</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_01d-00/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Land-Grab Universities project</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/landgrabu_org" target="_blank" rel="noreferrer"><code>landgrabu_org</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=77f-01" target="_blank" rel="noreferrer"><code>77f-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2028-04-22</div><div class="timing-meta">Last harvested: 2026-04-22</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_77f-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">International Conflict Research</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/55d-0001" target="_blank" rel="noreferrer"><code>55d-0001</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=55d-0001" target="_blank" rel="noreferrer"><code>55d-0001</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2028-04-24</div><div class="timing-meta">Last harvested: 2026-04-24</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">Original issue https://github.com/geobtaa/metadata/issues/29|2026-04-13 ~ site is not loading
+2026-04-24 ~ site loading but slow</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_55d-0001/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Michigan State University Libraries Maps</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/06d-01" target="_blank" rel="noreferrer"><code>06d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=06d-01" target="_blank" rel="noreferrer"><code>06d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2028-06-15</div><div class="timing-meta">Last harvested: 2026-06-15</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-04-09 ~ IIIF links seem to be broken
+|2026-06-15 ~ IIIF links OK; updated some Spatial Coverage formats, unpublished 59 non spatial records (advertising pages from atlases), copied CC license present in Rights field to License field as well</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_06d-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">University of Maryland Digital Collections</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04d-01" target="_blank" rel="noreferrer"><code>04d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04d-01" target="_blank" rel="noreferrer"><code>04d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2028-06-15</div><div class="timing-meta">Last harvested: 2026-06-15</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2024-06-26 / no IIIF links, Cors errors
+2026-06-15 ~ no change, no download links, removed 2 stray IIIF links; consider reaching out or unpublishing</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_04d-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name task-name--truncated" title="University of Maryland: U.S. Government Information, Maps, &amp; GIS Services" aria-label="University of Maryland: U.S. Government Information, Maps, &amp; GIS Services">University of Maryland: U.S. Government Information, Maps, &amp; GIS…</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/04d-02" target="_blank" rel="noreferrer"><code>04d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=04d-02" target="_blank" rel="noreferrer"><code>04d-02</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2028-06-25</div><div class="timing-meta">Last harvested: 2026-06-25</div><div class="timing-meta">Review interval: every 2 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-06-18 ~ creating COGs from the GeoTIFFs; the original download packages feature multiple files and are very large; replacing bounding boxes based upon GeoTIFFs, as they were frequently incorrect. We think these were georeferenced by East View - should confirm.</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_04d-02/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Purdue Campus Maps: West Lafayette, Indiana, 1890-2014</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/09d-02" target="_blank" rel="noreferrer"><code>09d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=09d-02" target="_blank" rel="noreferrer"><code>09d-02</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2029-06-14</div><div class="timing-meta">Last harvested: 2026-06-14</div><div class="timing-meta">Review interval: every 3 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-06-14 ~ remove broken web service link; create COGs</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_09d-02/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Wabash River Historical Maps and Imagery</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/09d-01" target="_blank" rel="noreferrer"><code>09d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=09d-01" target="_blank" rel="noreferrer"><code>09d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="review-flag review-flag--upcoming">Review upcoming · 2029-06-14</div><div class="timing-meta">Last harvested: 2026-06-14</div><div class="timing-meta">Review interval: every 3 years</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-04-15 ~ web service link is not working</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_09d-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Bituminous coal mine maps of Pennsylvania</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/08d-03" target="_blank" rel="noreferrer"><code>08d-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08d-03" target="_blank" rel="noreferrer"><code>08d-03</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2023-09-01</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_08d-03/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Carlton County Open Data</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05b-27017" target="_blank" rel="noreferrer"><code>05b-27017</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05b-27017" target="_blank" rel="noreferrer"><code>05b-27017</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: Not yet harvested</div><div class="timing-meta">Review interval: every 1 year</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-02 ~ Harvests many unwanted records. Data portal home page is published, but endpoint is excluded from hub harvest list.</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05b-27017/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name task-name--truncated" title="Digital Collections at the University of Illinois at Urbana-Champaign Library" aria-label="Digital Collections at the University of Illinois at Urbana-Champaign Library">Digital Collections at the University of Illinois at Urbana-Champaign…</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/02d-01" target="_blank" rel="noreferrer"><code>02d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=02d-01" target="_blank" rel="noreferrer"><code>02d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2026-07-15</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">Historical maps set is 810d3fa0-e3fb-012f-c5b6-0019b9e633c5-a
+2026-07-15 ~ removed IIIF links not working; simple to reconstruct by just adding /manifest to the end of the landing page links</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_02d-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Geodata@Wisconsin</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/10d-03" target="_blank" rel="noreferrer"><code>10d-03</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=10d_00" target="_blank" rel="noreferrer"><code>10d_00</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2026-07-15</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-06-30 ~ updated harvester to pull directly from GitHub</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_10d_00/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Geology Library and Map Room: The Ohio State University</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/11d-02" target="_blank" rel="noreferrer"><code>11d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=11d-02" target="_blank" rel="noreferrer"><code>11d-02</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2026-07-15</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-07-15 ~ create thumbnails</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_11d-02/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">HUD Geodata</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=b1g_30g-02" target="_blank" rel="noreferrer"><code>b1g_30g-02</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2026-04-04</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">Curated rows identified by Data Rescue sprint; omitted any file over 500 MB by default, over 200 MB only if high priority</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_b1g_30g-02/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Image and Multimedia Collections at the University of Nebraska-Lincoln</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/13d-02" target="_blank" rel="noreferrer"><code>13d-02</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=13d-02" target="_blank" rel="noreferrer"><code>13d-02</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2021-05-25</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_13d-02/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">MN Digital Library CSV submissions</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-13" target="_blank" rel="noreferrer"><code>05d-13</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-13" target="_blank" rel="noreferrer"><code>05d-13</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2026-03-16</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-05-12 ~ all Duluth records have a broken landing page and IIIF link</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-13_csv/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Maps of New Jersey</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/14d-01" target="_blank" rel="noreferrer"><code>14d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=14d-01" target="_blank" rel="noreferrer"><code>14d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2026-07-15</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-06-07 ~ change items from maps to imagery (Search Aerial photographic map in description). Especially. https://geo.btaa.org/search?include_filters%5Bb1g_localCollectionLabel_sm%5D%5B%5D=New+Jersey+Environmental+Digital+Library&amp;view=list</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_14d-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">National Historical Geographic Information System (NHGIS)</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-10" target="_blank" rel="noreferrer"><code>05d-10</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-10" target="_blank" rel="noreferrer"><code>05d-10</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2026-07-15</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-10/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Northwestern University Digital Collections</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/15d-01" target="_blank" rel="noreferrer"><code>15d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=15d-01" target="_blank" rel="noreferrer"><code>15d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2024-02-28</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_15d-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Pennsylvania Aerial Photo Collection</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/psu-3b601cb48c1e4b2fa00cc8f14eb188e2" target="_blank" rel="noreferrer"><code>psu-3b601cb48c1e4b2fa00cc8f14eb188e2</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=08d-05" target="_blank" rel="noreferrer"><code>08d-05</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2026-07-05</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-06-05 ~ some web services do not display</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_08d-05/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Princeton University Libraries Digital Maps &amp; Geospatial Data</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/20d-0002" target="_blank" rel="noreferrer"><code>20d-0002</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=20d-0002" target="_blank" rel="noreferrer"><code>20d-0002</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2026-06-30</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-06-30 ~ harvest, cleanup of language, subject &amp; theme terms, removed 851 suppressed records without titles/descriptions</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_20d-0002/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">SimplyAnalytics</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/999-0004" target="_blank" rel="noreferrer"><code>999-0004</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=999-0004" target="_blank" rel="noreferrer"><code>999-0004</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2020-11-18</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">Licensed data - look for new layers and poll the Team on which schools have access</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_999-0004/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">Social Scientists Map Chicago Collection</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/12d-01" target="_blank" rel="noreferrer"><code>12d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=12d-01" target="_blank" rel="noreferrer"><code>12d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2026-07-15</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">This set of 46 items was contributed while the library was still using Django. We enriched the metadata and shared the records in several places. We will keep the original IDs and records and exclude them from U.Chicago 12d-00 harvests.|2026-07-15 ~ IIIF links broken; remove</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_12d-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">UMedia: University of Minnesota CSVs</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-01" target="_blank" rel="noreferrer"><code>05d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-01" target="_blank" rel="noreferrer"><code>05d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2026-03-15</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-01_csv/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">UMedia: University of Minnesota python harvest</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/05d-01" target="_blank" rel="noreferrer"><code>05d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=05d-01" target="_blank" rel="noreferrer"><code>05d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2025-12-31</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_05d-01_py/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">University of Iowa Digital Library: Atlases and Maps</div><div class="task-meta">Identifier: <a href="https://geo.btaa.org/resources/03d-01" target="_blank" rel="noreferrer"><code>03d-01</code></a></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=03d-01" target="_blank" rel="noreferrer"><code>03d-01</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2026-04-15</div></td>
+            <td class="admin-notes" data-label="Admin notes"><div class="admin-note">2026-04-09 ~ needed to work with Iowa&#x27;s IT and contracted developer to whitelist my IP address and open their CORS headings
+2026-04-13 ~ many new atlas records: remediated Spatial Coverage and matched bboxes
+2026-05-18 ~ IIIF fixed and replaced old records with new IDs intended to be stable; manually removed hundreds of non-map records from atlases</div></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_03d-01/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
+          </tr>
+          <tr>
+            <td class="task-column" data-label="Task"><div class="task-name">edu.utexas</div><div class="task-meta">Identifier: <code>None</code></div><div class="task-meta">Geoportal link: <a href="https://geo.btaa.org/search?include_filters%5Bb1g_code_s%5D%5B%5D=20d-0007" target="_blank" rel="noreferrer"><code>20d-0007</code></a></div></td>
+            <td class="timing-column" data-label="Timing"><div class="triage-work-date">Review as needed</div><div class="timing-meta">Last harvested: 2026-06-04</div></td>
+            <td class="admin-notes" data-label="Admin notes"><span class="muted">—</span></td>
+            <td class="actions" data-label="Update Harvest record"><a class="action-link" href="https://geomg.lib.umn.edu/admin/documents/harvest_20d-0007/edit" target="_blank" rel="noreferrer">Update</a><span class="restricted-login-glyph" title="Restricted login required" aria-label="restricted login required">🔒</span></td>
           </tr>
         </tbody>
       </table>

@@ -175,6 +175,7 @@ DEFAULT_ARCGIS_REPORTS_DIR = "reports/arcgis"
 DEFAULT_SOCRATA_REPORTS_DIR = "reports/socrata"
 DEFAULT_CKAN_REPORTS_DIR = "reports/ckan"
 DEFAULT_PUBLIC_DASHBOARD_SITE_BASE_PATH = "/harvest-operations"
+TRIAGE_TITLE_MAX_LENGTH = 72
 VALID_DASHBOARD_TASKS = {"all", "source_csvs", "triage", "reports", "lists"}
 LEGACY_DATED_DASHBOARD_REPORT_PATTERN = re.compile(
     r"^\d{4}-\d{2}-\d{2}_harvest-task-dashboard"
@@ -2567,6 +2568,11 @@ class HarvestTaskDashboardJob:
         sections = self._build_dashboard_sections(task_df, section_mode=section_mode)
         is_triage_view = section_mode in {"review", "todo"}
         show_summary = not is_triage_view
+        body_class = ""
+        if section_mode == "review":
+            body_class = ' class="triage-view triage-view--review"'
+        elif section_mode == "todo":
+            body_class = ' class="triage-view"'
 
         html_parts = [
             "<!DOCTYPE html>",
@@ -2645,15 +2651,61 @@ class HarvestTaskDashboardJob:
             "    .action-link:hover { border-color: var(--accent); }",
             "    .source-box { border: 1px solid var(--line); border-radius: 16px; padding: 1rem; margin: 1rem 0 1.4rem; }",
             "    .source-box ul { margin: 0.5rem 0 0; padding-left: 1.15rem; }",
+            "    .tag-cheat-sheet { margin: 1rem 0 1.5rem; padding: 0.9rem 1rem; border: 1px solid var(--line-strong); border-left: 5px solid var(--accent); border-radius: 10px; background: var(--panel-soft); }",
+            "    .tag-cheat-sheet h2 { margin-bottom: 0.35rem; font-size: 1.05rem; }",
+            "    .tag-cheat-sheet p { margin-bottom: 0.65rem; color: var(--muted); font-size: 0.88rem; }",
+            "    .tag-cheat-sheet dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.38rem 0.7rem; margin: 0; font-size: 0.86rem; }",
+            "    .tag-cheat-sheet dt { font-weight: 700; }",
+            "    .tag-cheat-sheet dd { margin: 0; color: var(--muted); }",
+            "    .triage-overview { --current: #2e7d32; margin: 1.1rem 0 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-soft); }",
+            "    .triage-overview h2 { margin-bottom: 0.2rem; }",
+            "    .triage-overview-intro { margin-bottom: 0.8rem; color: var(--muted); font-size: 0.88rem; }",
+            "    .workload-bar { display: flex; min-height: 2.5rem; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--panel); }",
+            "    .workload-segment { display: flex; align-items: center; justify-content: center; min-width: 2.3rem; padding: 0.35rem; font-weight: 800; }",
+            "    .workload-segment--due { background: var(--due); color: #ffffff; }",
+            "    .workload-segment--soon { background: var(--scheduled); color: #ffffff; }",
+            "    .workload-segment--next { background: var(--scheduled-soft); color: var(--ink); }",
+            "    .workload-segment--current { background: var(--current); color: #ffffff; }",
+            "    .workload-legend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.45rem; margin: 0.65rem 0 0; padding: 0; list-style: none; font-size: 0.82rem; }",
+            "    .workload-legend li { display: flex; align-items: flex-start; gap: 0.35rem; }",
+            "    .workload-key { flex: 0 0 auto; width: 0.75rem; height: 0.75rem; margin-top: 0.17rem; border-radius: 2px; }",
+            "    .workload-key--due { background: var(--due); }",
+            "    .workload-key--soon { background: var(--scheduled); }",
+            "    .workload-key--next { background: var(--scheduled-soft); border: 1px solid var(--line-strong); }",
+            "    .workload-key--current { background: var(--current); }",
+            "    .triage-toc { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem; margin: 1rem 0 1.15rem; padding: 0.9rem 1rem; border: 1px solid var(--line-strong); border-radius: 10px; background: rgba(255, 255, 255, 0.97); box-shadow: 0 2px 8px rgba(23, 50, 77, 0.08); }",
+            "    .triage-toc strong { margin-right: 0.2rem; font-size: 1.08rem; }",
+            "    .triage-toc a { display: inline-flex; gap: 0.35rem; padding: 0.42rem 0.68rem; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel-soft); color: var(--ink); text-decoration: none; font-size: 0.94rem; font-weight: 700; }",
+            "    .triage-toc a:hover { border-color: var(--accent); color: var(--accent); }",
+            "    .triage-toc .triage-toc-group { background: var(--accent-soft); border-color: var(--accent); }",
+            "    .triage-toc-count { color: var(--muted); font-weight: 600; }",
+            "    .triage-area-heading { margin: 2rem 0 0.8rem; padding: 0.8rem 0 0.55rem; border-bottom: 3px solid var(--accent); scroll-margin-top: 4.3rem; }",
+            "    .triage-area-heading h2 { margin-bottom: 0.15rem; font-size: 1.65rem; }",
+            "    .triage-area-heading p { margin-bottom: 0; color: var(--muted); }",
+            "    .triage-area-heading--reviews { border-bottom-color: var(--reviews); }",
             "    .triage-view .due-section { margin-top: 1.4rem; }",
+            "    .triage-view--review .due-section { scroll-margin-top: 4.3rem; }",
             "    .triage-view .workflow-block { margin: 0; border-radius: 0; }",
-            "    .triage-view .section-pill, .triage-view .status-pill, .triage-view .action-link, .triage-view code { border-radius: 0; }",
+            "    .triage-view .section-pill, .triage-view .status-pill, .triage-view code { border-radius: 0; }",
+            "    .triage-view--review .action-link { border-color: var(--accent); border-radius: 6px; background-color: var(--accent); color: #ffffff; }",
+            "    .triage-view--review .action-link:hover { border-color: var(--ink); background-color: var(--ink); }",
+            "    .triage-work-date { font-weight: 700; }",
+            "    .triage-work-date--due { color: var(--due); }",
+            "    .review-flag { display: inline-flex; align-items: center; margin-bottom: 0.28rem; padding: 0.28rem 0.5rem; border: 2px solid currentColor; border-radius: 6px; font-size: 0.78rem; font-weight: 800; }",
+            "    .review-flag--due { color: var(--due); background: var(--due-soft); }",
+            "    .review-flag--upcoming { color: var(--scheduled); background: var(--scheduled-soft); }",
+            "    .triage-view--review table { table-layout: fixed; }",
+            "    .triage-view--review .task-column { width: 31%; }",
+            "    .triage-view--review .timing-column { width: 22%; }",
+            "    .triage-view--review .admin-notes { width: 31%; overflow-wrap: anywhere; }",
+            "    .triage-view--review .actions { width: 16%; min-width: 0; }",
+            "    .admin-note { color: var(--ink); white-space: pre-wrap; }",
             "    .todo-issue-actions { display: grid; justify-items: start; gap: 0.45rem; }",
             "    .todo-issue-actions .action-link { margin: 0; }",
-            "    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .workflow-header { align-items: flex-start; flex-direction: column; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } .actions { min-width: 0; padding-top: 0.25rem; } }",
+            "    @media (max-width: 840px) { body { padding: 0 0.7rem 2rem; } .workflow-header { align-items: flex-start; flex-direction: column; } .tag-cheat-sheet dl { grid-template-columns: 1fr; gap: 0.2rem; } .tag-cheat-sheet dd { margin-bottom: 0.35rem; } .workload-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); } .triage-toc { position: static; } .triage-area-heading { scroll-margin-top: 1rem; } table, thead, tbody, th, td, tr { display: block; } thead { display: none; } tbody tr { padding: 0.45rem 0.7rem; } td { border-bottom: none; padding: 0.25rem 0; } td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.1rem; } .actions, .triage-view--review .task-column, .triage-view--review .timing-column, .triage-view--review .admin-notes, .triage-view--review .actions { width: auto; min-width: 0; } .actions { padding-top: 0.25rem; } }",
             "  </style>",
             "</head>",
-            f"<body{' class=\"triage-view\"' if is_triage_view else ''}>",
+            f"<body{body_class}>",
         ]
 
         if embedded:
@@ -2661,10 +2713,11 @@ class HarvestTaskDashboardJob:
         else:
             if report_title == "Harvest Tasks Due Now":
                 subtitle = "This view lists harvest and review tasks that are currently due."
-            elif report_title == "Harvest Task Triage":
+            elif section_mode == "review":
                 subtitle = (
-                    "Choose work here, then open its Harvest record and add a "
-                    "queue:pending_* tag with due:YYYY-MM-DD. Sync the record and rerun "
+                    "Choose work here by Accrual Periodicity. Monthly, quarterly, annual, and "
+                    "other scheduled records need reharvesting; irregular records need review. "
+                    "Update the Harvest record with a queue tag and due date, sync it, and rerun "
                     "Triage to add it to To do."
                 )
             elif report_title == "Harvest Tasks To Do":
@@ -2684,6 +2737,13 @@ class HarvestTaskDashboardJob:
                     f"  <p class=\"muted\">{subtitle}</p>",
                 ]
             )
+            if section_mode == "review":
+                html_parts.extend(
+                    [
+                        self._render_triage_table_of_contents(sections),
+                        self._render_dashboard_tag_cheat_sheet(),
+                    ]
+                )
             if not is_triage_view:
                 html_parts.append(
                     "  <p class=\"muted\">Use the issue buttons to open a prefilled GitHub issue from the harvest-task template.</p>"
@@ -2734,13 +2794,44 @@ class HarvestTaskDashboardJob:
             )
             return "\n".join(html_parts)
 
+        rendered_triage_group = ""
+        triage_harvest_count, triage_review_count = self._triage_group_counts(sections)
         for due_label, workflow_groups in sections:
+            if section_mode == "review":
+                triage_group = "Reviews" if due_label == "Irregular reviews" else "Harvests"
+                if triage_group != rendered_triage_group:
+                    is_review_group = triage_group == "Reviews"
+                    group_count = triage_review_count if is_review_group else triage_harvest_count
+                    group_id = "triage-reviews" if is_review_group else "triage-harvests"
+                    group_class = (
+                        "triage-area-heading triage-area-heading--reviews"
+                        if is_review_group
+                        else "triage-area-heading"
+                    )
+                    group_description = (
+                        "Irregular records, with scheduled reviews ordered before as-needed reviews."
+                        if is_review_group
+                        else "Scheduled reharvest cycles and records that need a periodicity."
+                    )
+                    html_parts.extend(
+                        [
+                            f'  <header id="{group_id}" class="{group_class}">',
+                            f"    <h2>{triage_group} ({group_count})</h2>",
+                            f"    <p>{group_description}</p>",
+                            "  </header>",
+                        ]
+                    )
+                    if not is_review_group:
+                        html_parts.append(self._render_triage_overview(sections))
+                    rendered_triage_group = triage_group
             total_in_section = sum(len(group) for _, group in workflow_groups)
             section_class = self._section_class_name(due_label)
-            action_heading = "Actions"
+            section_id = self._triage_section_id(due_label) if section_mode == "review" else ""
+            section_id_attribute = f' id="{escape(section_id, quote=True)}"' if section_id else ""
+            action_heading = "Update Harvest record" if section_mode == "review" else "Actions"
             html_parts.extend(
                 [
-                    f"  <section class=\"due-section {section_class}\">",
+                    f"  <section{section_id_attribute} class=\"due-section {section_class}\">",
                     "    <div class=\"section-header\">",
                     f"      <h2>{escape(due_label)} ({total_in_section})</h2>",
                     "    </div>",
@@ -2763,8 +2854,13 @@ class HarvestTaskDashboardJob:
                         "      <table>",
                         "        <thead>",
                         "          <tr>",
-                        "            <th>Task</th>",
-                        "            <th>Timing</th>",
+                        "            <th class=\"task-column\">Task</th>",
+                        "            <th class=\"timing-column\">Timing</th>",
+                        *(
+                            ["            <th class=\"admin-notes\">Admin notes</th>"]
+                            if section_mode == "review"
+                            else []
+                        ),
                         *(
                             [
                                 "            <th class=\"actions\">Harvest record</th>",
@@ -2785,7 +2881,7 @@ class HarvestTaskDashboardJob:
                             row, public=public, template_choices=True
                         )
                     elif is_triage_view:
-                        action_html = self._render_harvest_record_action_link(row)
+                        action_html = self._render_harvest_record_action_link(row, label="Update")
                     else:
                         action_html = self._render_issue_links(row, public=public)
                     if section_mode == "todo":
@@ -2800,12 +2896,19 @@ class HarvestTaskDashboardJob:
                             ]
                         )
                     else:
+                        admin_note_cell = (
+                            f'            <td class="admin-notes" data-label="Admin notes">'
+                            f"{self._render_admin_note_cell(row)}</td>"
+                            if section_mode == "review"
+                            else ""
+                        )
                         html_parts.extend(
                             [
                                 "          <tr>",
-                                f"            <td data-label=\"Task\">{self._render_task_cell(row, public=public, include_harvest_record=not is_triage_view)}</td>",
-                                f"            <td data-label=\"Timing\">{self._render_timing_cell(row, due_label)}</td>",
-                                f"            <td class=\"actions\" data-label=\"Actions\">{action_html}</td>",
+                                f"            <td class=\"task-column\" data-label=\"Task\">{self._render_task_cell(row, public=public, include_harvest_record=not is_triage_view, truncate_title=section_mode == 'review')}</td>",
+                                f"            <td class=\"timing-column\" data-label=\"Timing\">{self._render_triage_timing_cell(row) if section_mode == 'review' else self._render_timing_cell(row, due_label)}</td>",
+                                *([admin_note_cell] if admin_note_cell else []),
+                                f"            <td class=\"actions\" data-label=\"{escape(action_heading)}\">{action_html}</td>",
                                 "          </tr>",
                             ]
                         )
@@ -2867,30 +2970,47 @@ class HarvestTaskDashboardJob:
             schedule_status = triage_group.get(
                 "Schedule Due Status", pd.Series("", index=triage_group.index)
             )
-            triage_group["__triage_group"] = "No Schedule"
-            triage_group.loc[schedule_status == "Scheduled", "__triage_group"] = "Review Scheduled"
-            triage_group.loc[schedule_status == "Due", "__triage_group"] = "Review Due"
-            triage_group.loc[review_status == "Scheduled", "__triage_group"] = "Review Scheduled"
-            triage_group.loc[review_status == "Due", "__triage_group"] = "Review Due"
-            triage_group["__triage_sort"] = triage_group["__review_sort"].combine_first(
-                triage_group["__schedule_due_sort"]
+            is_irregular = triage_group["Accrual Periodicity"].map(
+                lambda value: self._normalize_periodicity(value) == "irregular"
             )
+            triage_group["__triage_group"] = "Periodicity needs attention"
+            triage_group.loc[
+                ~is_irregular & (schedule_status == "Scheduled"), "__triage_group"
+            ] = "Reharvest upcoming"
+            triage_group.loc[
+                ~is_irregular & (schedule_status == "Due"), "__triage_group"
+            ] = "Reharvest due"
+            triage_group.loc[is_irregular, "__triage_group"] = "Irregular reviews"
+            triage_group["__triage_sort"] = triage_group["__schedule_due_sort"]
+            triage_group.loc[is_irregular, "__triage_sort"] = triage_group.loc[
+                is_irregular, "__review_sort"
+            ]
             triage_group["__section_date_display"] = triage_group["Review Date"].where(
-                triage_group["Review Date"].map(self._clean_value).astype(bool),
+                is_irregular & triage_group["Review Date"].map(self._clean_value).astype(bool),
                 triage_group["Schedule Due Date"],
             )
-            group_order = ("Review Due", "Review Scheduled", "No Schedule")
+            triage_group["__review_status_sort"] = review_status.map(
+                {"Due": 0, "Scheduled": 1, "No Review": 2}
+            ).fillna(2)
+            group_order = (
+                "Reharvest due",
+                "Reharvest upcoming",
+                "Periodicity needs attention",
+                "Irregular reviews",
+            )
             sections = []
             for label in group_order:
                 status_group = triage_group.loc[
                     triage_group["__triage_group"] == label
                 ].sort_values(
-                    by=["__triage_sort", "Title"],
-                    ascending=[True, True],
+                    by=["__review_status_sort", "__triage_sort", "Title"],
+                    ascending=[True, True, True],
                     na_position="last",
                 )
                 if not status_group.empty:
-                    sections.append((label, [("", status_group)]))
+                    sections.append(
+                        (label, self._group_triage_by_periodicity(status_group))
+                    )
             return sections
 
         if section_mode == "todo":
@@ -2967,11 +3087,35 @@ class HarvestTaskDashboardJob:
         workflow_groups.sort(key=lambda item: item[0])
         return workflow_groups
 
+    def _group_triage_by_periodicity(
+        self,
+        section_df: pd.DataFrame,
+    ) -> list[tuple[str, pd.DataFrame]]:
+        grouped_df = section_df.copy()
+        grouped_df["__periodicity_group"] = grouped_df["Accrual Periodicity"].map(
+            self._periodicity_group_label
+        )
+        periodicity_groups = [
+            (group_label, group)
+            for group_label, group in grouped_df.groupby(
+                "__periodicity_group",
+                sort=False,
+                dropna=False,
+            )
+        ]
+        periodicity_groups.sort(
+            key=lambda item: self._periodicity_group_sort_key(item[0])
+        )
+        return periodicity_groups
+
     def _section_class_name(self, label: str) -> str:
         section_classes = {
             "Triage": "section-pill--reviews",
             "Review Due": "section-pill--reviews",
             "Review Scheduled": "section-pill--reviews",
+            "Reharvest due": "section-pill--due",
+            "Reharvest upcoming": "section-pill--scheduled",
+            "Irregular reviews": "section-pill--reviews",
             "To be reviewed": "section-pill--reviews",
             "To be harvested": "section-pill--due",
             "To do": "section-pill--due",
@@ -3088,8 +3232,25 @@ class HarvestTaskDashboardJob:
         row: pd.Series | dict[str, Any],
         public: bool = False,
         include_harvest_record: bool = True,
+        truncate_title: bool = False,
     ) -> str:
-        display_name = escape(self._build_display_name(row))
+        full_display_name = self._build_display_name(row)
+        visible_display_name = (
+            self._truncate_text(full_display_name, TRIAGE_TITLE_MAX_LENGTH)
+            if truncate_title
+            else full_display_name
+        )
+        display_name = escape(visible_display_name)
+        title_attributes = ""
+        if visible_display_name != full_display_name:
+            escaped_full_display_name = escape(full_display_name, quote=True)
+            title_attributes = (
+                f' class="task-name task-name--truncated" '
+                f'title="{escaped_full_display_name}" '
+                f'aria-label="{escaped_full_display_name}"'
+            )
+        else:
+            title_attributes = ' class="task-name"'
         task_id = self._clean_value(row.get("ID", ""))
         identifier = self._clean_value(row.get("Identifier", ""))
         identifier_html = self._render_identifier_links(identifier)
@@ -3100,7 +3261,7 @@ class HarvestTaskDashboardJob:
             else ""
         )
 
-        task_parts = [f'<div class="task-name">{display_name}</div>']
+        task_parts = [f"<div{title_attributes}>{display_name}</div>"]
         if include_harvest_record:
             harvest_record_html = self._render_record_link(task_id, self._harvest_record_url(task_id))
             task_parts.append(f'<div class="task-meta">Harvest record: {harvest_record_html}</div>')
@@ -3111,6 +3272,16 @@ class HarvestTaskDashboardJob:
             ]
         )
         return "".join(task_parts)
+
+    def _render_admin_note_cell(self, row: pd.Series | dict[str, Any]) -> str:
+        admin_note = self._first_non_empty(
+            row.get("Admin Note", ""),
+            row.get("Admin Notes", ""),
+            row.get("Website Admin Note", ""),
+        )
+        if not admin_note:
+            return '<span class="muted">—</span>'
+        return f'<div class="admin-note">{escape(admin_note)}</div>'
 
     def _render_admin_record_list_task_cell(self, row: pd.Series | dict[str, Any]) -> str:
         display_name = escape(self._build_display_name(row))
@@ -3212,6 +3383,208 @@ class HarvestTaskDashboardJob:
             f"{tag_line}"
         )
 
+    def _render_triage_timing_cell(self, row: pd.Series | dict[str, Any]) -> str:
+        last_harvested = self._clean_value(row.get("Last Harvested", "")) or "Not yet harvested"
+        periodicity = self._clean_value(row.get("Accrual Periodicity", "")) or "Not provided"
+        normalized_periodicity = self._normalize_periodicity(periodicity)
+
+        if normalized_periodicity == "irregular":
+            review_interval = self._review_interval_years(row)
+            review_date = self._clean_value(row.get("Review Date", ""))
+            review_status = self._clean_value(row.get("Review Status", ""))
+            if review_interval is not None and review_date and review_status == "Due":
+                parsed_review_date = pd.to_datetime(review_date, errors="coerce")
+                review_label = (
+                    "Review due today"
+                    if not pd.isna(parsed_review_date) and parsed_review_date.normalize() == self.today
+                    else "Review overdue"
+                )
+                primary_line = (
+                    f'<div class="review-flag review-flag--due">'
+                    f'{escape(review_label)} · {escape(review_date)}</div>'
+                )
+            elif review_interval is not None and review_date and review_status == "Scheduled":
+                primary_line = (
+                    f'<div class="review-flag review-flag--upcoming">'
+                    f'Review upcoming · {escape(review_date)}</div>'
+                )
+            else:
+                primary_line = '<div class="triage-work-date">Review as needed</div>'
+
+            interval_line = ""
+            if review_interval is not None:
+                year_label = "year" if review_interval == 1 else "years"
+                interval_line = (
+                    f'<div class="timing-meta">Review interval: every '
+                    f'{review_interval} {year_label}</div>'
+                )
+            return (
+                f"{primary_line}"
+                f'<div class="timing-meta">Last harvested: {escape(last_harvested)}</div>'
+                f"{interval_line}"
+            )
+
+        schedule_date = self._clean_value(row.get("Schedule Due Date", ""))
+        schedule_status = self._clean_value(row.get("Schedule Due Status", ""))
+        if schedule_date:
+            date_class = " triage-work-date--due" if schedule_status == "Due" else ""
+            primary_line = (
+                f'<div class="triage-work-date{date_class}">'
+                f'Next reharvest: {escape(schedule_date)}</div>'
+            )
+        else:
+            primary_line = '<div class="triage-work-date">Set a periodicity</div>'
+        return (
+            f"{primary_line}"
+            f'<div class="timing-meta">Last harvested: {escape(last_harvested)}</div>'
+            f'<div class="timing-meta">Reharvest interval: {escape(periodicity)}</div>'
+        )
+
+    def _render_dashboard_tag_cheat_sheet(self) -> str:
+        return "\n".join(
+            [
+                '  <aside class="tag-cheat-sheet" aria-labelledby="tag-cheat-sheet-heading">',
+                '    <h2 id="tag-cheat-sheet-heading">Dashboard tag cheat sheet</h2>',
+                "    <p>Add these in the Harvest record’s Tags field. Separate multiple tags with a pipe, comma, or semicolon.</p>",
+                "    <dl>",
+                "      <dt><code>queue:pending_harvest</code></dt><dd>Queue a reharvest.</dd>",
+                "      <dt><code>queue:pending_updates</code></dt><dd>Queue a Harvest record update.</dd>",
+                "      <dt><code>queue:pending_review</code></dt><dd>Queue a review.</dd>",
+                "      <dt><code>due:YYYY-MM-DD</code></dt><dd>Set the due date for queued work; <code>harvest_due:YYYY-MM-DD</code> is also accepted. Without a date, queued work is due today.</dd>",
+                "      <dt><code>review:Ny</code></dt><dd>Review an irregular record every N years, such as <code>review:2y</code>. Triage highlights upcoming and overdue reviews.</dd>",
+                "    </dl>",
+                "  </aside>",
+            ]
+        )
+
+    def _render_triage_overview(
+        self,
+        sections: list[tuple[str, list[tuple[str, pd.DataFrame]]]],
+    ) -> str:
+        section_frames = {
+            label: pd.concat(
+                [group for _, group in workflow_groups],
+                ignore_index=True,
+            )
+            for label, workflow_groups in sections
+            if workflow_groups
+        }
+        due_count = len(section_frames.get("Reharvest due", pd.DataFrame()))
+        upcoming_df = section_frames.get("Reharvest upcoming", pd.DataFrame())
+        upcoming_dates = pd.to_datetime(
+            upcoming_df.get("Schedule Due Date", pd.Series(dtype=str)),
+            errors="coerce",
+        )
+        next_30_cutoff = self.today + pd.Timedelta(days=30)
+        next_90_cutoff = self.today + pd.Timedelta(days=90)
+        next_30_count = int((upcoming_dates <= next_30_cutoff).sum())
+        next_90_count = int(
+            ((upcoming_dates > next_30_cutoff) & (upcoming_dates <= next_90_cutoff)).sum()
+        )
+        current_count = int((upcoming_dates > next_90_cutoff).sum())
+        harvest_total = due_count + next_30_count + next_90_count + current_count
+
+        attention_count = len(section_frames.get("Periodicity needs attention", pd.DataFrame()))
+
+        buckets = [
+            ("due", "Due now", due_count),
+            ("soon", "Next 30 days", next_30_count),
+            ("next", "31–90 days", next_90_count),
+            ("current", "Current", current_count),
+        ]
+        bar_parts = []
+        legend_parts = []
+        for class_name, label, count in buckets:
+            if count:
+                bar_parts.append(
+                    f'<div class="workload-segment workload-segment--{class_name}" '
+                    f'style="flex-grow: {count}" aria-hidden="true">{count}</div>'
+                )
+            legend_parts.append(
+                f'<li><span class="workload-key workload-key--{class_name}" '
+                f'aria-hidden="true"></span><span><strong>{count}</strong> {escape(label)}</span></li>'
+            )
+        if not bar_parts:
+            bar_parts.append(
+                '<div class="workload-segment workload-segment--current" '
+                'style="flex-grow: 1" aria-hidden="true">0</div>'
+            )
+
+        chart_label = (
+            f"{harvest_total} scheduled reharvest records: {due_count} due now, "
+            f"{next_30_count} in the next 30 days, {next_90_count} in 31 to 90 days, "
+            f"and {current_count} current with no reharvest needed in the next 90 days."
+        )
+        attention_text = (
+            f" {attention_count} additional record{' needs' if attention_count == 1 else 's need'} "
+            "a periodicity set."
+            if attention_count
+            else ""
+        )
+        return "\n".join(
+            [
+                '  <section class="triage-overview" aria-labelledby="triage-overview-heading">',
+                '    <h2 id="triage-overview-heading">Harvest cycle workload</h2>',
+                f'    <p class="triage-overview-intro">{harvest_total} scheduled reharvest record{"s" if harvest_total != 1 else ""}.{attention_text}</p>',
+                f'    <div class="workload-bar" role="img" aria-label="{escape(chart_label, quote=True)}">',
+                *[f"      {part}" for part in bar_parts],
+                "    </div>",
+                '    <ul class="workload-legend">',
+                *[f"      {part}" for part in legend_parts],
+                "    </ul>",
+                "  </section>",
+            ]
+        )
+
+    def _render_triage_table_of_contents(
+        self,
+        sections: list[tuple[str, list[tuple[str, pd.DataFrame]]]],
+    ) -> str:
+        harvest_count, review_count = self._triage_group_counts(sections)
+        links = [
+            f'<a class="triage-toc-group" href="#triage-harvests">Harvests '
+            f'<span class="triage-toc-count">({harvest_count})</span></a>'
+        ]
+        for label, workflow_groups in sections:
+            if label == "Irregular reviews":
+                continue
+            count = sum(len(group) for _, group in workflow_groups)
+            section_id = self._triage_section_id(label)
+            links.append(
+                f'<a href="#{escape(section_id, quote=True)}">{escape(label)} '
+                f'<span class="triage-toc-count">({count})</span></a>'
+            )
+        links.append(
+            f'<a class="triage-toc-group" href="#triage-reviews">Reviews '
+            f'<span class="triage-toc-count">({review_count})</span></a>'
+        )
+        return "\n".join(
+            [
+                '  <nav class="triage-toc" aria-label="Triage sections">',
+                "    <strong>Jump to</strong>",
+                *[f"    {link}" for link in links],
+                "  </nav>",
+            ]
+        )
+
+    def _triage_group_counts(
+        self,
+        sections: list[tuple[str, list[tuple[str, pd.DataFrame]]]],
+    ) -> tuple[int, int]:
+        harvest_count = 0
+        review_count = 0
+        for label, workflow_groups in sections:
+            count = sum(len(group) for _, group in workflow_groups)
+            if label == "Irregular reviews":
+                review_count += count
+            else:
+                harvest_count += count
+        return harvest_count, review_count
+
+    def _triage_section_id(self, label: str) -> str:
+        slug = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+        return f"triage-{slug}"
+
     def _render_record_metadata_cell(self, row: pd.Series | dict[str, Any]) -> str:
         if self._clean_value(row.get("Hide Record Metadata", "")).lower() in {
             "1",
@@ -3300,7 +3673,11 @@ class HarvestTaskDashboardJob:
             f"<code>{escaped_label}</code></a>{restricted_glyph}"
         )
 
-    def _render_harvest_record_action_link(self, row: pd.Series | dict[str, Any]) -> str:
+    def _render_harvest_record_action_link(
+        self,
+        row: pd.Series | dict[str, Any],
+        label: str = "Harvest record",
+    ) -> str:
         task_id = self._clean_value(row.get("ID", ""))
         record_url = self._harvest_record_url(task_id)
         if not task_id or not record_url:
@@ -3308,7 +3685,7 @@ class HarvestTaskDashboardJob:
         restricted_glyph = self._restricted_login_glyph(record_url)
         return (
             f'<a class="action-link" href="{escape(record_url, quote=True)}" '
-            f'target="_blank" rel="noreferrer">Harvest record</a>{restricted_glyph}'
+            f'target="_blank" rel="noreferrer">{escape(label)}</a>{restricted_glyph}'
         )
 
     def _restricted_login_glyph(self, url: str | None) -> str:
@@ -3536,6 +3913,17 @@ class HarvestTaskDashboardJob:
                     r"^\s*Harvest record for\s+", "", value, flags=re.IGNORECASE
                 ) or value
         return "Unnamed task"
+
+    def _truncate_text(self, value: str, max_length: int) -> str:
+        cleaned_value = self._clean_value(value)
+        if len(cleaned_value) <= max_length:
+            return cleaned_value
+
+        candidate = cleaned_value[: max_length - 1].rstrip()
+        word_boundary = candidate.rfind(" ")
+        if word_boundary >= max_length // 2:
+            candidate = candidate[:word_boundary].rstrip()
+        return f"{candidate}…"
 
     def _build_website_name(self, row: pd.Series | dict[str, Any]) -> str:
         candidates = [
@@ -4669,7 +5057,7 @@ class HarvestTaskDashboardJob:
         elif report_type == "due":
             base_title = "Harvest Tasks Due Now"
         elif report_type in {"review", "to-be-reviewed", "to_be_reviewed"}:
-            base_title = "Harvest Task Triage"
+            base_title = "Collections Triage"
         elif report_type in {"todo", "to-do", "to_do"}:
             base_title = "Harvest Tasks To Do"
         elif report_type == "records":
