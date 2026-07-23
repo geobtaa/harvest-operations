@@ -44,8 +44,7 @@ The repository includes:
 | `curation/run_records/` | Versioned portable run manifests, exact job YAML snapshots, and final metadata CSVs; large generated artifacts are excluded. |
 | `reports/` | Generated dashboard reports and related HTML/CSV report outputs. |
 | `tests/` | Pytest coverage for harvesters, scripts, report builders, and static admin pages. |
-| `requirements.txt` | Pip-installable dependency list for setting up a local Python environment. |
-| `pyproject.toml` and `uv.lock` | Project metadata and `uv`-based dependency management files used by the local launcher workflow. |
+| `pyproject.toml` and `uv.lock` | The single dependency definition and lockfile for the harvester, curation workflows, and local launcher. |
 | `start-fastapi.command` | Convenience launcher that starts the FastAPI app locally and sources `.secrets.local` if present. |
 
 ## How Harvesters Run
@@ -95,24 +94,18 @@ Some scripts are recurring operational tools, and some are ad hoc utilities kept
 ### Requirements
 
 - Python `3.12` is the expected local version in this repository (`.python-version`).
-- `pip` is needed to install `requirements.txt`.
-- `uv` is also recommended because `start-fastapi.command` uses `uv run` to launch the FastAPI server.
+- `uv` manages Python dependencies and the shared repository environment.
 
 ### Set up a local environment
 
-Create and activate a virtual environment, then install the Python dependencies:
+Create the repository environment from the committed lockfile:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+uv sync --locked
 ```
 
-If `uv` is not already installed on your machine, install it as well so the launcher script works:
-
-```bash
-pip install uv
-```
+This creates one `.venv` at the repository root for both the harvester and
+`curation/`. Activation is optional; the commands below use `uv run`.
 
 ### Start the FastAPI app
 
@@ -126,7 +119,7 @@ That script:
 
 - changes into the repository root,
 - sources `.secrets.local` if the file exists,
-- runs `uv run uvicorn main:app --reload`.
+- runs `uv run --locked uvicorn main:app --reload`.
 
 After startup, the main local URLs are:
 
@@ -136,7 +129,7 @@ After startup, the main local URLs are:
 If you prefer to start the app yourself, run:
 
 ```bash
-uv run uvicorn main:app --reload
+uv run --locked uvicorn main:app --reload
 ```
 
 ## Configuration and Inputs

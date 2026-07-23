@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Download HDX datasets with has_geodata:true and save to inputs/hdx_has_geodata.json
-This script requires hdx-python-api. Use `pip install hdx-python-api` if needed
+This script requires hdx-python-api. Run `uv sync` from the repository root.
 """
 
 import os

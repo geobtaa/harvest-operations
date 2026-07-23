@@ -6,15 +6,12 @@ cd "$SCRIPT_DIR" || exit 1
 
 [ -f ".secrets.local" ] && source ".secrets.local"
 
-if [ -x ".venv/bin/python" ]; then
-  ".venv/bin/python" -m uvicorn main:app --reload
-elif command -v uv >/dev/null 2>&1; then
-  uv run uvicorn main:app --reload
+if command -v uv >/dev/null 2>&1; then
+  uv run --locked uvicorn main:app --reload
 else
-  echo "Could not find .venv/bin/python or uv."
-  echo "Create the local environment first:"
-  echo "  python3 -m venv .venv"
-  echo "  source .venv/bin/activate"
-  echo "  pip install -r requirements.txt"
+  echo "Could not find uv."
+  echo "Install uv, then create the repository environment:"
+  echo "  brew install uv"
+  echo "  uv sync"
   exit 1
 fi

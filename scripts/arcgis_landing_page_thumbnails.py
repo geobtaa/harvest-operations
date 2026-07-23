@@ -79,7 +79,7 @@ class PlaywrightThumbnailFetcher:
             from playwright.sync_api import sync_playwright
         except ImportError as exc:
             raise RuntimeError(
-                "Playwright is not installed. Install it with `pip install playwright` "
+                "Playwright is not installed. Run `uv sync` from the repository root "
                 "and then run `playwright install chromium`."
             ) from exc
 

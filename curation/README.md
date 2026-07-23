@@ -4,16 +4,16 @@ Python scripts replacing the original notebooks for the curation pipeline.
 
 ## Setup
 
+Run setup once from the `harvest-operations` repository root:
+
 ```sh
-uv python install 3.12
-uv python pin 3.12
-uv venv --python 3.12
-source .venv/bin/activate
-uv pip install -e .
+uv sync --locked
 ```
 
 Notes:
 
+- Curation uses the repository root `.venv`, `pyproject.toml`, and `uv.lock`.
+  It does not have a separate Python environment or lockfile.
 - Python 3.12 is recommended. Python 3.13+ (including 3.14) may try to build `fiona` from source and require a local GDAL install.
 - GDAL is required for `osgeo` bindings and for CLI tools like `ogr2ogr`.
 
@@ -35,7 +35,7 @@ bindings. Install a version matching the system library only when running those
 scripts:
 
 ```sh
-uv pip install "gdal==$(gdal-config --version)"
+uv run --with "gdal==$(gdal-config --version)" python curation/scripts/<legacy-script>.py
 ```
 
 ## `arcgis_curation_pipeline`
@@ -112,7 +112,7 @@ block for each selected ArcGIS item or sublayer. In particular, verify:
 Validate the completed job before contacting the source:
 
 ```sh
-uv run --project curation python curation/scripts/arcgis_curation_pipeline.py \
+uv run --locked python curation/scripts/arcgis_curation_pipeline.py \
   curation/jobs/<job-id>.yaml validate
 ```
 
@@ -127,10 +127,10 @@ particular user's home directory.
 Run commands from the `harvest-operations` repository root:
 
 ```sh
-uv run --project curation python curation/scripts/arcgis_curation_pipeline.py \
+uv run --locked python curation/scripts/arcgis_curation_pipeline.py \
   curation/jobs/stpaul-2026.yaml validate
 
-uv run --project curation python curation/scripts/arcgis_curation_pipeline.py \
+uv run --locked python curation/scripts/arcgis_curation_pipeline.py \
   curation/jobs/stpaul-2026.yaml metadata
 ```
 
@@ -177,14 +177,14 @@ the later enrichment stage derives them from the selected service layer.
 After reviewing the CSV, record the checkpoint:
 
 ```sh
-uv run --project curation python curation/scripts/arcgis_curation_pipeline.py \
+uv run --locked python curation/scripts/arcgis_curation_pipeline.py \
   curation/jobs/stpaul-2026.yaml review --confirm
 ```
 
 Run the remaining stages together:
 
 ```sh
-uv run --project curation python curation/scripts/arcgis_curation_pipeline.py \
+uv run --locked python curation/scripts/arcgis_curation_pipeline.py \
   curation/jobs/stpaul-2026.yaml postprocess
 ```
 
@@ -215,7 +215,7 @@ definitions remain versioned inputs. After Postprocess, save a portable run
 record from the browser or command line:
 
 ```sh
-uv run --project curation python curation/scripts/arcgis_curation_pipeline.py \
+uv run --locked python curation/scripts/arcgis_curation_pipeline.py \
   curation/jobs/stpaul-2026.yaml snapshot
 ```
 
@@ -318,7 +318,7 @@ GeoPackage metadata extension tables.
 For the Milwaukee urban base layers:
 
 ```sh
-uv run python scripts/embed_qgis_metadata.py \
+uv run --locked python curation/scripts/embed_qgis_metadata.py \
   mke-ubl \
   mke-ubl/b1g_55-53000_primary.csv
 ```
@@ -327,7 +327,7 @@ The third positional argument is optional and can point to a different XML
 template:
 
 ```sh
-uv run python scripts/embed_qgis_metadata.py \
+uv run --locked python curation/scripts/embed_qgis_metadata.py \
   path/to/geopackages \
   path/to/metadata.csv \
   path/to/qgis-metadata.xml
@@ -351,7 +351,7 @@ template references them.
 Use `--match-column` if the filename is stored in a different column:
 
 ```sh
-uv run python scripts/embed_qgis_metadata.py \
+uv run --locked python curation/scripts/embed_qgis_metadata.py \
   path/to/geopackages \
   path/to/metadata.csv \
   --match-column "Identifier"
@@ -432,7 +432,7 @@ brew install gdal tippecanoe
 Start with a field inventory report so you can review large attribute tables:
 
 ```sh
-python build_pmtiles_from_gpkg.py \
+uv run --locked python curation/scripts/build_pmtiles_from_gpkg.py \
   --input-dir ./gpkg \
   --fgb-dir ./fgb \
   --pmtiles-dir ./pmtiles \
@@ -447,7 +447,7 @@ rules and field keep/drop settings.
 Run the conversion:
 
 ```sh
-python build_pmtiles_from_gpkg.py \
+uv run --locked python curation/scripts/build_pmtiles_from_gpkg.py \
   --input-dir ./gpkg \
   --fgb-dir ./fgb \
   --pmtiles-dir ./pmtiles \
@@ -458,7 +458,7 @@ python build_pmtiles_from_gpkg.py \
 Rerun without rebuilding completed outputs:
 
 ```sh
-python build_pmtiles_from_gpkg.py \
+uv run --locked python curation/scripts/build_pmtiles_from_gpkg.py \
   --input-dir ./gpkg \
   --fgb-dir ./fgb \
   --pmtiles-dir ./pmtiles \

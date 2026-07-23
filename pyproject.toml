@@ -11,12 +11,20 @@ dependencies = [
   "pydantic",
   "python-multipart",
 
-  # Harvesting & data processing
+  # Harvesting, curation & data processing
   "requests",
   "pandas",
   "pyyaml",
   "beautifulsoup4",
   "playwright",
+  "fiona",
+  "geopandas",
+  "matplotlib",
+  "nanoid",
+  "numpy",
+  "rasterio",
+  "shapely",
+  "tqdm",
 
   # External platforms
   "hdx-python-api",
