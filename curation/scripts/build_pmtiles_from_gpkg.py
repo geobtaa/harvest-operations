@@ -13,8 +13,10 @@ import logging
 import re
 import shlex
 import shutil
+import sqlite3
 import subprocess
 import sys
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -86,8 +88,10 @@ class LayerJob:
     pmtiles_path: Path
     feature_count: str = ""
     geometry_type: str = ""
+    geometry_column: str = ""
     source_crs: str = ""
     extent: list[float] | None = None
+    empty_geometry_count: int | None = None
     fields: list[dict[str, Any]] = field(default_factory=list)
     field_decisions: list[FieldDecision] = field(default_factory=list)
     field_mode: str = "keep_all"
@@ -262,9 +266,12 @@ def select_fields_for_layer(
     max_string_width = merged.get("max_string_width")
     existing_names = {field_name(field).lower() for field in job.fields}
 
-    for missing in sorted((keep_names | always_keep) - existing_names):
+    # ``always_keep`` contains optional generic field names that should survive
+    # filtering when present. Their absence is normal for heterogeneous source
+    # data. Only warn for fields explicitly required with ``keep``.
+    for missing in sorted(keep_names - existing_names):
         message = (
-            f"Configured keep field {missing!r} is missing from "
+            f"Explicitly requested field {missing!r} is missing from "
             f"{job.source_path.name}:{job.source_layer}."
         )
         job.warnings.append(message)
@@ -363,6 +370,14 @@ def layer_geometry_type(layer: dict[str, Any]) -> str:
     return ""
 
 
+def layer_geometry_column(layer: dict[str, Any]) -> str:
+    """Extract the source geometry column name from ogrinfo JSON."""
+    geometry_fields = layer.get("geometryFields") or []
+    if geometry_fields and isinstance(geometry_fields[0], dict):
+        return str(geometry_fields[0].get("name") or "")
+    return ""
+
+
 def layer_crs(layer: dict[str, Any]) -> str:
     """Extract a CRS/auth code from ogrinfo JSON when available."""
     geometry_fields = layer.get("geometryFields") or []
@@ -387,6 +402,10 @@ def layer_crs(layer: dict[str, Any]) -> str:
 def layer_extent(layer: dict[str, Any]) -> list[float] | None:
     """Extract layer extent as [minx, miny, maxx, maxy]."""
     extent = layer.get("extent")
+    if extent is None:
+        geometry_fields = layer.get("geometryFields") or []
+        if geometry_fields and isinstance(geometry_fields[0], dict):
+            extent = geometry_fields[0].get("extent")
     if isinstance(extent, list) and len(extent) == 4:
         return [float(value) for value in extent]
     if isinstance(extent, dict):
@@ -434,6 +453,110 @@ def parse_ogrinfo_layers(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return []
 
 
+def quote_sqlite_identifier(value: str) -> str:
+    """Quote an SQLite identifier."""
+    return f'"{value.replace(chr(34), chr(34) * 2)}"'
+
+
+def geopackage_layers_from_sqlite(gpkg_path: Path) -> list[dict[str, Any]]:
+    """Read spatial layer metadata directly from GeoPackage system tables."""
+    uri = f"{gpkg_path.resolve().as_uri()}?mode=ro"
+    connection = sqlite3.connect(uri, uri=True)
+    connection.row_factory = sqlite3.Row
+    try:
+        rows = connection.execute(
+            """
+            SELECT
+                contents.table_name,
+                contents.min_x,
+                contents.min_y,
+                contents.max_x,
+                contents.max_y,
+                geometry.column_name,
+                geometry.geometry_type_name,
+                srs.organization,
+                srs.organization_coordsys_id,
+                srs.definition
+            FROM gpkg_contents AS contents
+            JOIN gpkg_geometry_columns AS geometry
+              ON geometry.table_name = contents.table_name
+            LEFT JOIN gpkg_spatial_ref_sys AS srs
+              ON srs.srs_id = geometry.srs_id
+            WHERE contents.data_type = 'features'
+            ORDER BY contents.table_name
+            """
+        ).fetchall()
+
+        layers: list[dict[str, Any]] = []
+        for row in rows:
+            table_name = str(row["table_name"])
+            geometry_column = str(row["column_name"])
+            table_info = connection.execute(
+                "SELECT name, type, pk FROM pragma_table_info(?) ORDER BY cid",
+                (table_name,),
+            ).fetchall()
+            fields = [
+                {"name": str(column["name"]), "type": str(column["type"] or "")}
+                for column in table_info
+                if str(column["name"]) != geometry_column and not column["pk"]
+            ]
+            quoted_table = quote_sqlite_identifier(table_name)
+            feature_count = connection.execute(
+                f"SELECT COUNT(*) FROM {quoted_table}"
+            ).fetchone()[0]
+
+            extent_values = [
+                row["min_x"],
+                row["min_y"],
+                row["max_x"],
+                row["max_y"],
+            ]
+            extent = (
+                [float(value) for value in extent_values]
+                if all(value is not None for value in extent_values)
+                else None
+            )
+            coordinate_system: dict[str, Any] = {}
+            organization = str(row["organization"] or "")
+            organization_code = row["organization_coordsys_id"]
+            if organization and organization.upper() != "NONE" and organization_code:
+                coordinate_system.update(
+                    {"authority": organization, "code": organization_code}
+                )
+            if row["definition"]:
+                coordinate_system["wkt"] = str(row["definition"])
+
+            layers.append(
+                {
+                    "name": table_name,
+                    "featureCount": feature_count,
+                    "geometryType": str(row["geometry_type_name"] or ""),
+                    "geometryFields": [
+                        {
+                            "name": geometry_column,
+                            "type": str(row["geometry_type_name"] or ""),
+                            "extent": extent,
+                            "coordinateSystem": coordinate_system,
+                        }
+                    ],
+                    "fields": fields,
+                }
+            )
+        return layers
+    finally:
+        connection.close()
+
+
+def command_failure_message(result: CommandResult) -> str:
+    """Describe a failed subprocess even when it produced no stderr."""
+    detail = result.stderr.strip()
+    if result.returncode < 0:
+        status = f"terminated by signal {-result.returncode}"
+    else:
+        status = f"exited with code {result.returncode}"
+    return f"{status}: {detail}" if detail else status
+
+
 def inspect_geopackage(
     gpkg_path: Path,
     ogrinfo: str,
@@ -444,14 +567,23 @@ def inspect_geopackage(
     command = [ogrinfo, "-json", "-ro", str(gpkg_path)]
     result = run_command(command, timeout=timeout)
     if result.returncode != 0:
-        warning = f"ogrinfo failed for {gpkg_path}: {result.stderr.strip()}"
-        logger.error(warning)
-        return [], [warning]
+        failure = command_failure_message(result)
+        warning = f"ogrinfo JSON inspection failed for {gpkg_path}: {failure}"
+        try:
+            layers = geopackage_layers_from_sqlite(gpkg_path)
+        except (OSError, sqlite3.Error, ValueError) as exc:
+            fallback_warning = (
+                f"GeoPackage metadata fallback failed for {gpkg_path}: {exc}"
+            )
+            return [], [warning, fallback_warning]
+        fallback_warning = (
+            f"Used read-only GeoPackage metadata fallback for {gpkg_path}."
+        )
+        return layers, [warning, fallback_warning]
     try:
         payload = json.loads(result.stdout)
     except json.JSONDecodeError as exc:
         warning = f"Could not parse ogrinfo JSON for {gpkg_path}: {exc}"
-        logger.error(warning)
         return [], [warning]
 
     layers = []
@@ -469,6 +601,45 @@ def inspect_geopackage(
             continue
         layers.append(layer)
     return layers, warnings
+
+
+def empty_geometry_count(
+    gpkg_path: Path,
+    layer_name: str,
+    geometry_column: str,
+    ogrinfo: str,
+    timeout: float | None,
+) -> tuple[int | None, str]:
+    """Count null or empty geometries with SQLite spatial SQL."""
+    if not geometry_column:
+        return None, "Source geometry column name is unavailable."
+    quoted_layer = quote_sqlite_identifier(layer_name)
+    quoted_geometry = quote_sqlite_identifier(geometry_column)
+    sql = (
+        f"SELECT COUNT(*) AS empty_geometry_count FROM {quoted_layer} "
+        f"WHERE {quoted_geometry} IS NULL OR ST_IsEmpty({quoted_geometry})"
+    )
+    command = [
+        ogrinfo,
+        "-ro",
+        "-q",
+        "-dialect",
+        "SQLite",
+        "-sql",
+        sql,
+        str(gpkg_path),
+    ]
+    result = run_command(command, timeout=timeout)
+    if result.returncode != 0:
+        return None, command_failure_message(result)
+    match = re.search(
+        r"empty_geometry_count\s+\([^)]+\)\s*=\s*(\d+)",
+        result.stdout,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None, "Could not parse empty geometry count from ogrinfo output."
+    return int(match.group(1)), ""
 
 
 def discover_jobs(
@@ -495,6 +666,29 @@ def discover_jobs(
         for layer in layers:
             source_layer = str(layer.get("name") or layer.get("layerName"))
             layer_slug = slugify(source_layer)
+            geometry_column = layer_geometry_column(layer)
+            omitted_count, count_warning = empty_geometry_count(
+                gpkg_path,
+                source_layer,
+                geometry_column,
+                ogrinfo,
+                timeout,
+            )
+            layer_warnings = warnings.copy()
+            if count_warning:
+                message = (
+                    f"Could not count empty geometries in "
+                    f"{gpkg_path.name}:{source_layer}: {count_warning}"
+                )
+                layer_warnings.append(message)
+                logger.warning(message)
+            elif omitted_count:
+                message = (
+                    f"Omitting {omitted_count} feature(s) with null or empty "
+                    f"geometry from {gpkg_path.name}:{source_layer}."
+                )
+                layer_warnings.append(message)
+                logger.warning(message)
             output_stem = (
                 source_stem_slug
                 if layer_count == 1
@@ -511,10 +705,12 @@ def discover_jobs(
                     pmtiles_path=pmtiles_dir / f"{output_stem}.pmtiles",
                     feature_count=str(layer.get("featureCount", "")),
                     geometry_type=layer_geometry_type(layer),
+                    geometry_column=geometry_column,
                     source_crs=layer_crs(layer),
                     extent=layer_extent(layer),
+                    empty_geometry_count=omitted_count,
                     fields=layer_fields(layer),
-                    warnings=warnings.copy(),
+                    warnings=layer_warnings,
                 )
             )
 
@@ -580,28 +776,47 @@ def nonempty(path: Path) -> bool:
     return path.exists() and path.stat().st_size > 0
 
 
+def temporary_output_path(path: Path) -> Path:
+    """Return a unique sibling path suitable for an atomic output replacement."""
+    token = uuid.uuid4().hex
+    return path.with_name(f".{path.stem}.{token}.tmp{path.suffix}")
+
+
+def nonempty_geometry_filter(geometry_column: str) -> str:
+    """Return an OGR attribute filter that excludes null and empty geometry."""
+    quoted_geometry = quote_sqlite_identifier(geometry_column)
+    return (
+        f"{quoted_geometry} IS NOT NULL "
+        f"AND NOT ST_IsEmpty({quoted_geometry})"
+    )
+
+
 def build_fgb_command(
-    job: LayerJob, ogr2ogr: str, overwrite: bool
+    job: LayerJob,
+    ogr2ogr: str,
+    output_path: Path | None = None,
 ) -> list[str]:
     """Build the ogr2ogr command for one FlatGeoBuf output."""
     command = [
         ogr2ogr,
         "-f",
         "FlatGeobuf",
-        str(job.fgb_path),
+        str(output_path or job.fgb_path),
         str(job.source_path),
         job.source_layer,
         "-t_srs",
         "EPSG:4326",
         "-makevalid",
         "-nlt",
+        "CONVERT_TO_LINEAR",
+        "-nlt",
         "PROMOTE_TO_MULTI",
         "-lco",
         "SPATIAL_INDEX=YES",
     ]
+    if job.geometry_column:
+        command.extend(["-where", nonempty_geometry_filter(job.geometry_column)])
     command.extend(select_args(job))
-    if overwrite:
-        command.append("-overwrite")
     return command
 
 
@@ -638,6 +853,7 @@ def empty_layer_report(job: LayerJob) -> dict[str, Any]:
         "output_fgb": str(job.fgb_path),
         "output_pmtiles": str(job.pmtiles_path),
         "feature_count": job.feature_count,
+        "empty_geometry_count": job.empty_geometry_count,
         "geometry_type": job.geometry_type,
         "source_crs": job.source_crs,
         "source_extent": json.dumps(job.extent or []),
@@ -684,8 +900,11 @@ def process_job(
     warnings = list(job.warnings)
     errors: list[str] = []
     status_parts: list[str] = []
+    fgb_output_path = (
+        temporary_output_path(job.fgb_path) if args.overwrite else job.fgb_path
+    )
     row["fgb_command"] = command_to_string(
-        build_fgb_command(job, ogr2ogr, args.overwrite)
+        build_fgb_command(job, ogr2ogr, fgb_output_path)
     )
     row["tippecanoe_command"] = command_to_string(
         build_tippecanoe_command(job, tippecanoe, extra_tippecanoe_args)
@@ -720,7 +939,7 @@ def process_job(
             )
             return row
     else:
-        fgb_command = build_fgb_command(job, ogr2ogr, args.overwrite)
+        fgb_command = build_fgb_command(job, ogr2ogr, fgb_output_path)
         row["fgb_command"] = command_to_string(fgb_command)
         logger.info("Creating FGB %s", job.fgb_path)
         fgb_result = run_command(fgb_command, timeout=args.timeout)
@@ -731,6 +950,7 @@ def process_job(
         row["fgb_stdout"] = fgb_result.stdout
         row["fgb_stderr"] = fgb_result.stderr
         if fgb_result.returncode != 0:
+            fgb_output_path.unlink(missing_ok=True)
             errors.append(f"ogr2ogr failed: {fgb_result.stderr.strip()}")
             row.update(
                 {
@@ -742,6 +962,22 @@ def process_job(
                 }
             )
             return row
+        if fgb_output_path != job.fgb_path:
+            try:
+                fgb_output_path.replace(job.fgb_path)
+            except OSError as exc:
+                fgb_output_path.unlink(missing_ok=True)
+                errors.append(f"Could not replace FGB output: {exc}")
+                row.update(
+                    {
+                        "status": "failed",
+                        "errors": json.dumps(errors),
+                        "elapsed_seconds": round(
+                            (dt.datetime.now(dt.UTC) - start).total_seconds(), 3
+                        ),
+                    }
+                )
+                return row
         status_parts.append("fgb created")
 
     valid, validation_message, validation_result = validate_fgb(
