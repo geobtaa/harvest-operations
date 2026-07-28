@@ -28,6 +28,12 @@
     <li><code>outputs/YYYY-MM-DD_ckan_distributions.csv</code>: distribution links derived from the primary output.</li>
     <li><code>reports/ckan/YYYY-MM-DD_ckan_report.csv</code>: per-site run status, record counts, and totals.</li>
   </ul>
+  <p>When registry uploads are enabled, it also compares the current harvest
+    with <code>registry/ckan_primary_registry.csv</code> and
+    <code>registry/ckan_distributions_registry.csv</code>. Upload-ready new and
+    retired primary records, plus added and deleted distribution rows for
+    changed records, are written under <code>outputs/to_upload/</code>. The
+    registries are then replaced with the current active snapshot.</p>
 
   <h3>Run CKAN Harvester</h3>
   <button onclick="runHarvester()">Run Harvester</button>

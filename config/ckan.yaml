@@ -8,3 +8,6 @@ output_primary_csv: outputs/ckan_primary.csv
 output_distributions_csv: outputs/ckan_distributions.csv
 output_report_csv: reports/ckan/ckan_report.csv
 build_uploads: true
+use_registry: true
+primary_registry_csv: registry/ckan_primary_registry.csv
+distributions_registry_csv: registry/ckan_distributions_registry.csv

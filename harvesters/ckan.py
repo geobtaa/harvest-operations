@@ -23,6 +23,7 @@ from utils.harvester_helpers import (
     required_config_path,
 )
 from utils.output_naming import infer_upload_source_prefix
+from utils.registry_uploads import build_uploads_from_registry
 from utils.temporal_fields import create_date_range, infer_temporal_coverage_from_title
 
 
@@ -30,6 +31,12 @@ class CkanHarvester(BaseHarvester):
     def __init__(self, config):
         config = dict(config)
         config.setdefault("build_uploads", True)
+        config.setdefault("use_registry", True)
+        config.setdefault("primary_registry_csv", "registry/ckan_primary_registry.csv")
+        config.setdefault(
+            "distributions_registry_csv",
+            "registry/ckan_distributions_registry.csv",
+        )
         config.setdefault("output_report_csv", "reports/ckan/ckan_report.csv")
         super().__init__(config)
         self.workflow_input_path = self.config.get("input_csv", "")
@@ -273,10 +280,22 @@ class CkanHarvester(BaseHarvester):
         return results
 
     def build_uploads(self, results: dict) -> dict | None:
+        if self.config.get("use_registry", True):
+            return build_ckan_uploads_from_registry(results, self.config)
         return super().build_uploads(results)
 
 
 # Custom functions for this harvester
+
+
+def build_ckan_uploads_from_registry(results: dict, config: dict) -> dict | None:
+    return build_uploads_from_registry(
+        results,
+        config,
+        source_label="CKAN",
+        default_source="ckan",
+        retired_resource_class="Datasets",
+    )
 
 
 def ckan_map_to_schema(df: pd.DataFrame, config: dict, base_url: str) -> pd.DataFrame:

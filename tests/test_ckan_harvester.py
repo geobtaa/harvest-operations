@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from datetime import date
 import time
 import inspect
 
@@ -7,6 +8,7 @@ import pandas as pd
 
 from harvesters.ckan import (
     CkanHarvester,
+    build_ckan_uploads_from_registry,
     ckan_package_search_endpoint,
     write_ckan_harvest_report,
 )
@@ -59,6 +61,201 @@ def test_ckan_harvester_build_uploads_enabled_by_default() -> None:
     )
 
     assert harvester.config["build_uploads"] is True
+    assert harvester.config["use_registry"] is True
+
+
+def test_ckan_registry_uploads_preserve_accessioned_dates_and_prune_state(
+    tmp_path,
+) -> None:
+    outputs_dir = tmp_path / "outputs"
+    registry_dir = tmp_path / "registry"
+    outputs_dir.mkdir()
+    registry_dir.mkdir()
+    current_primary_path = outputs_dir / "2026-07-15_ckan_primary.csv"
+    current_distributions_path = outputs_dir / "2026-07-15_ckan_distributions.csv"
+    primary_registry_path = registry_dir / "ckan_primary_registry.csv"
+    distributions_registry_path = registry_dir / "ckan_distributions_registry.csv"
+    today = date.today().isoformat()
+
+    pd.DataFrame(
+        [
+            {
+                "Title": "Shared Old Title",
+                "Alternative Title": "Shared",
+                "Creator": "Shared Creator",
+                "Publisher": "Shared Publisher",
+                "Resource Class": "Datasets",
+                "Temporal Coverage": "2020",
+                "Date Issued": "2020-01-01",
+                "Date Accessioned": "2026-01-08",
+                "ID": "shared-id",
+                "Identifier": "shared",
+                "Code": "07c-02",
+                "last_seen": "2026-07-13",
+            },
+            {
+                "Title": "Retired Title",
+                "Alternative Title": "Retired",
+                "Creator": "Retired Creator",
+                "Publisher": "Retired Publisher",
+                "Resource Class": "Datasets",
+                "Temporal Coverage": "2019",
+                "Date Issued": "2019-01-01",
+                "Date Accessioned": "2026-01-09",
+                "ID": "retired-id",
+                "Identifier": "retired",
+                "Code": "07c-02",
+                "last_seen": "2026-07-13",
+            },
+        ]
+    ).to_csv(primary_registry_path, index=False)
+    pd.DataFrame(
+        [
+            {
+                "friendlier_id": "shared-id",
+                "reference_type": "download",
+                "distribution_url": "https://example.org/old.zip",
+                "label": "ZIP",
+                "last_seen": "2026-07-13",
+            },
+            {
+                "friendlier_id": "retired-id",
+                "reference_type": "download",
+                "distribution_url": "https://example.org/retired.zip",
+                "label": "ZIP",
+                "last_seen": "2026-07-13",
+            },
+        ]
+    ).to_csv(distributions_registry_path, index=False)
+
+    pd.DataFrame(
+        [
+            {
+                "Title": "Harvest record for Site",
+                "Resource Class": "Websites",
+                "Publication State": "published",
+                "Access Rights": "Public",
+                "Date Accessioned": "2026-07-15",
+                "ID": "07c-02",
+                "Identifier": "https://example.org/site",
+                "Code": "07c-02",
+            },
+            {
+                "Title": "Shared New Title",
+                "Alternative Title": "Shared",
+                "Creator": "Shared Creator",
+                "Publisher": "Shared Publisher",
+                "Resource Class": "Datasets",
+                "Temporal Coverage": "2021",
+                "Date Issued": "2021-01-01",
+                "Publication State": "published",
+                "Access Rights": "Public",
+                "Date Accessioned": "2026-07-15",
+                "ID": "shared-id",
+                "Identifier": "shared",
+                "Code": "07c-02",
+            },
+            {
+                "Title": "New Title",
+                "Alternative Title": "New",
+                "Creator": "New Creator",
+                "Publisher": "New Publisher",
+                "Resource Class": "Datasets",
+                "Temporal Coverage": "2022",
+                "Date Issued": "2022-01-01",
+                "Publication State": "published",
+                "Access Rights": "Public",
+                "Date Accessioned": "2026-07-15",
+                "ID": "new-id",
+                "Identifier": "new",
+                "Code": "07c-02",
+            },
+        ]
+    ).to_csv(current_primary_path, index=False)
+    pd.DataFrame(
+        [
+            {
+                "friendlier_id": "shared-id",
+                "reference_type": "download",
+                "distribution_url": "https://example.org/new.zip",
+                "label": "ZIP",
+            },
+            {
+                "friendlier_id": "new-id",
+                "reference_type": "download",
+                "distribution_url": "https://example.org/new-record.zip",
+                "label": "ZIP",
+            },
+        ]
+    ).to_csv(current_distributions_path, index=False)
+
+    summary = build_ckan_uploads_from_registry(
+        {
+            "primary_csv": str(current_primary_path),
+            "distributions_csv": str(current_distributions_path),
+        },
+        {
+            "build_uploads": True,
+            "output_primary_csv": "outputs/ckan_primary.csv",
+            "primary_registry_csv": str(primary_registry_path),
+            "distributions_registry_csv": str(distributions_registry_path),
+        },
+    )
+
+    assert summary["status"] == "created"
+    assert summary["new_count"] == 1
+    assert summary["retired_count"] == 1
+    assert summary["distribution_new_count"] == 2
+    assert summary["distribution_delete_count"] == 1
+    assert summary["changed_distribution_ids"] == ["shared-id"]
+
+    primary_upload = pd.read_csv(
+        summary["primary_upload_csv"],
+        dtype=str,
+        keep_default_na=False,
+    ).fillna("")
+    assert set(primary_upload["ID"]) == {"07c-02", "new-id", "retired-id"}
+    retired_row = primary_upload.loc[primary_upload["ID"] == "retired-id"].iloc[0]
+    assert retired_row["Title"] == "Retired Title"
+    assert retired_row["Date Accessioned"] == "2026-01-09"
+    assert retired_row["Publication State"] == "unpublished"
+    assert retired_row["Date Retired"] == today
+    assert retired_row["Resource Class"] == "Datasets"
+    assert retired_row["Access Rights"] == "Public"
+
+    updated_registry = pd.read_csv(
+        primary_registry_path,
+        dtype=str,
+        keep_default_na=False,
+    ).fillna("")
+    assert set(updated_registry["ID"]) == {"shared-id", "new-id"}
+    assert "last_seen" not in updated_registry.columns
+    assert "registry_status" not in updated_registry.columns
+    assert "Date Retired" not in updated_registry.columns
+    shared_registry_row = updated_registry.loc[
+        updated_registry["ID"] == "shared-id"
+    ].iloc[0]
+    new_registry_row = updated_registry.loc[
+        updated_registry["ID"] == "new-id"
+    ].iloc[0]
+    assert shared_registry_row["Title"] == "Shared New Title"
+    assert shared_registry_row["Date Accessioned"] == "2026-01-08"
+    assert new_registry_row["Date Accessioned"] == "2026-07-15"
+
+    updated_distributions_registry = pd.read_csv(
+        distributions_registry_path,
+        dtype=str,
+        keep_default_na=False,
+    ).fillna("")
+    assert "last_seen" not in updated_distributions_registry.columns
+    assert set(updated_distributions_registry["friendlier_id"]) == {
+        "shared-id",
+        "new-id",
+    }
+    assert set(updated_distributions_registry["distribution_url"]) == {
+        "https://example.org/new.zip",
+        "https://example.org/new-record.zip",
+    }
 
 
 def test_ckan_fetch_paginates_and_maps_core_fields() -> None:
