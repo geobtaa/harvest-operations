@@ -19,6 +19,10 @@ class StandaloneWebsiteLinkChecker(BaseHarvester):
             "inputs/harvest-records.csv",
         )
         config.setdefault("output_primary_csv", "outputs/standalone-websites_primary.csv")
+        config.setdefault(
+            "output_report_csv",
+            "reports/standalone-websites/standalone_websites_report.csv",
+        )
         config.setdefault("standalone_website_code", "w00_01")
         config.setdefault("timeout", 20)
         config.setdefault("user_agent", "harvest-operations standalone website link checker")
@@ -26,6 +30,7 @@ class StandaloneWebsiteLinkChecker(BaseHarvester):
         self.websites_path = Path(self.config["websites_csv"])
         self.harvest_records_path = Path(self.config["harvest_records_csv"])
         self.primary_output_path = Path(self.config["output_primary_csv"])
+        self.report_output_path = Path(self.config["output_report_csv"])
         self.standalone_website_code = str(self.config["standalone_website_code"])
         self.timeout = int(self.config["timeout"])
         self.today = str(self.config.get("today") or datetime.now().strftime("%Y-%m-%d"))
@@ -99,11 +104,31 @@ class StandaloneWebsiteLinkChecker(BaseHarvester):
         )
         output_df.to_csv(dated_primary_path, index=False, encoding="utf-8")
 
+        checked_count = int(
+            link_check_df["Link Status"].isin(["Active", "Inactive"]).sum()
+        )
+        inactive_count = int(link_check_df["Link Status"].eq("Inactive").sum())
+        report_df = pd.DataFrame(
+            [
+                {
+                    "Run Date": self.today,
+                    "Sites Checked": checked_count,
+                    "Broken Links": inactive_count,
+                }
+            ]
+        )
+        self.report_output_path.parent.mkdir(parents=True, exist_ok=True)
+        dated_report_path = self.report_output_path.with_name(
+            f"{self.today}_{self.report_output_path.name}"
+        )
+        report_df.to_csv(dated_report_path, index=False, encoding="utf-8")
+
         return {
             "primary_csv": str(dated_primary_path),
-            "checked_count": int(link_check_df["Link Status"].isin(["Active", "Inactive"]).sum()),
+            "report_csv": str(dated_report_path),
+            "checked_count": checked_count,
             "active_count": int(link_check_df["Link Status"].eq("Active").sum()),
-            "inactive_count": int(link_check_df["Link Status"].eq("Inactive").sum()),
+            "inactive_count": inactive_count,
             "skipped_count": int(link_check_df["Link Status"].eq("Skipped").sum()),
         }
 

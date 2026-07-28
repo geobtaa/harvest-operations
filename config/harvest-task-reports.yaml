@@ -10,6 +10,7 @@ output_retrospective_dashboard_html: reports/harvest-task-dashboard-retrospectiv
 arcgis_reports_dir: reports/arcgis
 socrata_reports_dir: reports/socrata
 ckan_reports_dir: reports/ckan
+standalone_websites_reports_dir: reports/standalone-websites
 dedicated_workflow_views:
   - py_arcgis_hub
   - py_socrata

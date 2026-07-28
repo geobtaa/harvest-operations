@@ -143,7 +143,7 @@ FREQUENT_HARVESTERS = (
         "label": "Standalone Websites",
         "group": "Batch tasks",
         "static_page": HARVEST_WORKFLOW_STATIC_PAGES["standalone-websites"],
-        "last_run_glob": "outputs/????-??-??_standalone-websites_primary.csv",
+        "standalone_website_report": True,
     },
     {
         "workflow": "pasda-metadata",
@@ -174,6 +174,7 @@ OTHER_INSTITUTION_LABEL = "Other"
 DEFAULT_ARCGIS_REPORTS_DIR = "reports/arcgis"
 DEFAULT_SOCRATA_REPORTS_DIR = "reports/socrata"
 DEFAULT_CKAN_REPORTS_DIR = "reports/ckan"
+DEFAULT_STANDALONE_WEBSITES_REPORTS_DIR = "reports/standalone-websites"
 DEFAULT_PUBLIC_DASHBOARD_SITE_BASE_PATH = "/harvest-operations"
 TRIAGE_TITLE_MAX_LENGTH = 72
 VALID_DASHBOARD_TASKS = {"all", "source_csvs", "triage", "reports", "lists"}
@@ -194,6 +195,9 @@ DATED_WORKFLOW_DASHBOARD_REPORT_PATTERN = re.compile(
 ARCGIS_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_arcgis_report\.csv$")
 SOCRATA_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_socrata_report\.csv$")
 CKAN_REPORT_FILENAME_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})_ckan_report\.csv$")
+STANDALONE_WEBSITES_REPORT_FILENAME_PATTERN = re.compile(
+    r"^(\d{4}-\d{2}-\d{2})_standalone_websites_report\.csv$"
+)
 ARCGIS_REPORT_NUMBER_COLUMNS = (
     "Total Records Found",
     "New Records",
@@ -321,6 +325,12 @@ class HarvestTaskDashboardJob:
         )
         self.ckan_reports_dir = Path(
             config.get("ckan_reports_dir", DEFAULT_CKAN_REPORTS_DIR)
+        )
+        self.standalone_websites_reports_dir = Path(
+            config.get(
+                "standalone_websites_reports_dir",
+                DEFAULT_STANDALONE_WEBSITES_REPORTS_DIR,
+            )
         )
         self.public_dashboard_site_base_path = (
             self._clean_value(
@@ -766,6 +776,13 @@ class HarvestTaskDashboardJob:
             elif report_workflow:
                 report_path = self._latest_harvest_report_path(report_workflow)
                 last_run = self._harvest_report_date_from_path(report_path) or "Not available"
+            elif harvester.get("standalone_website_report"):
+                report_paths = self._standalone_website_report_paths()
+                last_run = (
+                    report_paths[0][0].strftime("%Y-%m-%d")
+                    if report_paths
+                    else "Not available"
+                )
             elif last_run_glob:
                 latest_output = max(
                     Path().glob(last_run_glob),
@@ -2289,6 +2306,39 @@ class HarvestTaskDashboardJob:
     def _build_arcgis_retrospective_rows(self) -> list[dict[str, str]]:
         return self._build_harvest_report_retrospective_rows("py_arcgis_hub")
 
+    def _build_standalone_website_retrospective_rows(self) -> list[dict[str, str]]:
+        action_rows: list[dict[str, str]] = []
+        for report_date, report_path in self._standalone_website_report_paths():
+            report_df = self._load_csv(report_path)
+            if report_df.empty:
+                continue
+            summary = report_df.iloc[-1]
+            report_date_string = report_date.strftime("%Y-%m-%d")
+            sites_checked = self._clean_value(summary.get("Sites Checked", ""))
+            broken_links = self._clean_value(summary.get("Broken Links", ""))
+            action_rows.append(
+                {
+                    "Action Month": report_date.strftime("%B %Y"),
+                    "Action Date": report_date_string,
+                    "Type": "Review",
+                    "Title": (
+                        "Standalone Website Link Check Report"
+                        f" - {report_date_string}"
+                    ),
+                    "ID": "harvest_standalone_websites",
+                    "Identifier": "",
+                    "Code": "w00_01",
+                    "Harvest Workflow": "standalone-websites",
+                    "Details": (
+                        f"Sites Checked: {sites_checked or 'Not available'}; "
+                        f"Broken Links: {broken_links or 'Not available'}"
+                    ),
+                    "Report Href": "",
+                    "Public Report Href": "",
+                }
+            )
+        return action_rows
+
     def _build_harvest_report_retrospective_rows(self, workflow: str) -> list[dict[str, str]]:
         workflow_name = self._clean_value(workflow)
         action_rows: list[dict[str, str]] = []
@@ -2337,6 +2387,7 @@ class HarvestTaskDashboardJob:
         action_rows: list[dict[str, str]] = []
         for workflow_name in HARVEST_REPORT_WORKFLOW_CONFIG:
             action_rows.extend(self._build_harvest_report_retrospective_rows(workflow_name))
+        action_rows.extend(self._build_standalone_website_retrospective_rows())
 
         if not harvest_df.empty:
             working_df = harvest_df.copy()
@@ -4865,6 +4916,21 @@ class HarvestTaskDashboardJob:
             candidates.append((report_date, report_path))
         return sorted(candidates, key=lambda item: (item[0], item[1].name), reverse=True)
 
+    def _standalone_website_report_paths(self) -> list[tuple[pd.Timestamp, Path]]:
+        if not self.standalone_websites_reports_dir.exists():
+            return []
+
+        candidates: list[tuple[pd.Timestamp, Path]] = []
+        for report_path in self.standalone_websites_reports_dir.glob("*.csv"):
+            match = STANDALONE_WEBSITES_REPORT_FILENAME_PATTERN.match(report_path.name)
+            if match is None:
+                continue
+            report_date = pd.to_datetime(match.group(1), errors="coerce")
+            if pd.isna(report_date):
+                continue
+            candidates.append((report_date, report_path))
+        return sorted(candidates, key=lambda item: (item[0], item[1].name), reverse=True)
+
     def _harvest_report_path_for_date(self, workflow: str, report_date: str) -> Path | None:
         normalized_date = self._clean_value(report_date)
         for date_value, report_path in self._harvest_report_paths(workflow):
@@ -5097,6 +5163,7 @@ if __name__ == "__main__":
         "output_dashboard_html": "reports/harvest-task-dashboard.html",
         "output_workflow_dir": "inputs/harvest-workflow-inputs",
         "socrata_reports_dir": DEFAULT_SOCRATA_REPORTS_DIR,
+        "standalone_websites_reports_dir": DEFAULT_STANDALONE_WEBSITES_REPORTS_DIR,
         "dedicated_workflow_views": ["py_arcgis_hub", "py_socrata"],
         "issue_repositories": [
             {

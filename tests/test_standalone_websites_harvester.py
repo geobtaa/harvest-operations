@@ -38,6 +38,7 @@ def test_standalone_website_link_checker_checks_public_urls_and_skips_restricted
 ) -> None:
     websites_path = tmp_path / "websites.csv"
     output_path = tmp_path / "outputs" / "standalone-websites_primary.csv"
+    report_path = tmp_path / "reports" / "standalone_websites_report.csv"
     harvest_records_path = tmp_path / "harvest-records.csv"
     websites_df = pd.DataFrame(
         [
@@ -124,6 +125,7 @@ def test_standalone_website_link_checker_checks_public_urls_and_skips_restricted
             "websites_csv": str(websites_path),
             "harvest_records_csv": str(harvest_records_path),
             "output_primary_csv": str(output_path),
+            "output_report_csv": str(report_path),
             "today": "2026-07-13",
         }
     ).harvest_pipeline()
@@ -158,6 +160,17 @@ def test_standalone_website_link_checker_checks_public_urls_and_skips_restricted
     assert results["active_count"] == 2
     assert results["inactive_count"] == 1
     assert results["skipped_count"] == 1
+    assert results["report_csv"] == str(
+        report_path.with_name("2026-07-13_standalone_websites_report.csv")
+    )
+    report_df = pd.read_csv(results["report_csv"], dtype=str).fillna("")
+    assert report_df.to_dict(orient="records") == [
+        {
+            "Run Date": "2026-07-13",
+            "Sites Checked": "3",
+            "Broken Links": "1",
+        }
+    ]
     assert not output_path.exists()
 
 

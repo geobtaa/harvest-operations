@@ -9,6 +9,7 @@ output_due_dashboard_html: reports/harvest-task-dashboard-due.html
 output_review_dashboard_html: reports/harvest-task-dashboard-review.html
 output_todo_dashboard_html: reports/harvest-task-dashboard-todo.html
 output_retrospective_dashboard_html: reports/harvest-task-dashboard-retrospective.html
+standalone_websites_reports_dir: reports/standalone-websites
 output_workflow_dir: inputs/harvest-workflow-inputs
 arcgis_reports_dir: reports/arcgis
 socrata_reports_dir: reports/socrata

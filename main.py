@@ -501,6 +501,7 @@ async def run_standalone_websites_stream():
                         f"{results['skipped_count']} skipped."
                     )
                     print(f"[Standalone websites] Output: {results['primary_csv']}")
+                    print(f"[Standalone websites] Report: {results['report_csv']}")
             except Exception as exc:
                 print(f"[Standalone websites] ERROR: {exc}")
             finally:

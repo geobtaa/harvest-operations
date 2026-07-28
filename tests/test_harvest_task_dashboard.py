@@ -33,6 +33,7 @@ def test_harvest_task_dashboard_lists_frequent_harvesters(
     arcgis_reports_dir = tmp_path / "reports" / "arcgis"
     socrata_reports_dir = tmp_path / "reports" / "socrata"
     ckan_reports_dir = tmp_path / "reports" / "ckan"
+    standalone_reports_dir = tmp_path / "reports" / "standalone-websites"
     for reports_dir, filename in (
         (arcgis_reports_dir, "2026-06-01_arcgis_report.csv"),
         (socrata_reports_dir, "2026-06-02_socrata_report.csv"),
@@ -40,6 +41,13 @@ def test_harvest_task_dashboard_lists_frequent_harvesters(
     ):
         reports_dir.mkdir(parents=True)
         reports_dir.joinpath(filename).write_text("Code\nTOTAL\n", encoding="utf-8")
+    standalone_reports_dir.mkdir(parents=True)
+    standalone_reports_dir.joinpath(
+        "2026-06-06_standalone_websites_report.csv"
+    ).write_text(
+        "Run Date,Sites Checked,Broken Links\n2026-06-06,102,13\n",
+        encoding="utf-8",
+    )
 
     hdx_output_path = tmp_path / "outputs" / "hdx_primary.csv"
     pasda_registry_path = tmp_path / "registry" / "pasda_metadata_registry.csv"
@@ -75,6 +83,7 @@ def test_harvest_task_dashboard_lists_frequent_harvesters(
             "arcgis_reports_dir": str(arcgis_reports_dir),
             "socrata_reports_dir": str(socrata_reports_dir),
             "ckan_reports_dir": str(ckan_reports_dir),
+            "standalone_websites_reports_dir": str(standalone_reports_dir),
         }
     ).build_frequent_harvesters()["harvesters"]
 
@@ -91,7 +100,7 @@ def test_harvest_task_dashboard_lists_frequent_harvesters(
         "2026-06-02",
         "2026-06-30",
         "2026-06-03",
-        "Not available",
+        "2026-06-06",
         "2026-07-05",
     ]
     assert [harvester["group"] for harvester in harvesters] == [
@@ -186,6 +195,30 @@ def test_harvest_task_dashboard_lists_and_renders_historical_workflow_reports(
     assert Path(dedicated_outputs["py_arcgis_hub"]).name == (
         "2026-06-01_harvest-task-dashboard-py-arcgis-hub.html"
     )
+
+
+def test_harvest_task_dashboard_adds_standalone_link_checks_to_retrospective(
+    tmp_path: Path,
+) -> None:
+    reports_dir = tmp_path / "reports" / "standalone-websites"
+    reports_dir.mkdir(parents=True)
+    reports_dir.joinpath("2026-07-13_standalone_websites_report.csv").write_text(
+        "Run Date,Sites Checked,Broken Links\n2026-07-13,102,13\n",
+        encoding="utf-8",
+    )
+
+    job = HarvestTaskDashboardJob(
+        {
+            "standalone_websites_reports_dir": str(reports_dir),
+            "today": "2026-07-28",
+        }
+    )
+
+    retrospective_html = job._render_retrospective_html(pd.DataFrame())
+
+    assert "Standalone Website Link Check Report - 2026-07-13" in retrospective_html
+    assert "Sites Checked: 102; Broken Links: 13" in retrospective_html
+    assert ">Review</span>" in retrospective_html
 
 
 def test_harvest_task_dashboard_triage_groups_only_unqueued_individual_records(
