@@ -23,6 +23,7 @@ from utils.harvester_helpers import (
     required_config_path,
 )
 from utils.output_naming import infer_upload_source_prefix
+from utils.registry_uploads import build_uploads_from_registry
 from utils.resource_type_match import match_resource_type
 from utils.temporal_fields import infer_temporal_coverage_from_title, create_date_range
 
@@ -31,6 +32,12 @@ class SocrataHarvester(BaseHarvester):
     def __init__(self, config):
         config = dict(config)
         config.setdefault("build_uploads", True)
+        config.setdefault("use_registry", True)
+        config.setdefault("primary_registry_csv", "registry/socrata_primary_registry.csv")
+        config.setdefault(
+            "distributions_registry_csv",
+            "registry/socrata_distributions_registry.csv",
+        )
         config.setdefault("hub_metadata_csv", "reference_data/websites.csv")
         config.setdefault("output_report_csv", "reports/socrata/socrata_report.csv")
         super().__init__(config)
@@ -64,6 +71,14 @@ class SocrataHarvester(BaseHarvester):
                     harvest_record.get("ID", ""),
                 )
                 endpoint_url = harvest_record.get('Endpoint URL', '')
+                hub_title = first_non_empty(
+                    hub_defaults.get("Title", ""),
+                    harvest_record.get("Title", ""),
+                )
+                yield (
+                    f"[Socrata] Fetching {website_id} — "
+                    f"{hub_title or 'No Title'} from {endpoint_url}."
+                )
                 try:
                     resp = requests.get(endpoint_url, timeout=30)
                     resp.raise_for_status()
@@ -80,10 +95,6 @@ class SocrataHarvester(BaseHarvester):
                     yield f"[Socrata] Error fetching {website_id}: {e}"
                     continue
 
-                hub_title = first_non_empty(
-                    hub_defaults.get("Title", ""),
-                    harvest_record.get("Title", ""),
-                )
                 datasets = json_api.get("dataset", [])
                 total_found = len(datasets) if isinstance(datasets, list) else 0
                 message = f"[Socrata] Fetched {website_id} — {hub_title or 'No Title'}"
@@ -213,6 +224,9 @@ class SocrataHarvester(BaseHarvester):
         return results
 
     def build_uploads(self, results: dict) -> dict | None:
+        if self.config.get("use_registry", True):
+            return build_socrata_uploads_from_registry(results, self.config)
+
         upload_summary = super().build_uploads(results)
         if upload_summary is None or upload_summary.get("status") != "created":
             return upload_summary
@@ -225,6 +239,16 @@ class SocrataHarvester(BaseHarvester):
         return upload_summary
 
 # Custom functions for this harvester
+
+
+def build_socrata_uploads_from_registry(results: dict, config: dict) -> dict | None:
+    return build_uploads_from_registry(
+        results,
+        config,
+        source_label="Socrata",
+        default_source="socrata",
+        retired_resource_class="Web services",
+    )
 
 
 def socrata_filter_rows(df):

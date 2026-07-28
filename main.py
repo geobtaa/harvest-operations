@@ -303,56 +303,125 @@ async def run_arcgis_stream(test_run: bool = Query(default=False)):
 @app.get("/run-socrata-stream")
 async def run_socrata_stream():
     from harvesters.socrata import SocrataHarvester
-    import yaml
 
     async def event_stream():
-        config_path = "config/socrata.yaml"
-        with open(config_path, "r") as f:
-            config = yaml.safe_load(f)
+        stage = "loading configuration"
+        try:
+            yield format_sse_message(
+                "Starting Socrata harvest. Progress and output paths will appear here."
+            )
+            config = load_yaml_config("config/socrata.yaml")
+            harvester = SocrataHarvester(config)
 
-        harvester = SocrataHarvester(config)
-        harvester.load_reference_data()
+            stage = "loading reference data"
+            yield format_sse_message("Loading themes and website metadata defaults...")
+            harvester.load_reference_data()
 
-        fetched_records = []
-        for item in harvester.fetch():
-            if isinstance(item, str):
-                # Just yield the message — it was already formatted in arcgis.py
-                yield f"data: {item}\n\n"
-            else:
-                fetched_records.append(item)
+            stage = "fetching Socrata portals"
+            fetched_records = []
+            for item in harvester.fetch():
+                if isinstance(item, str):
+                    yield format_sse_message(item)
+                else:
+                    fetched_records.append(item)
+                await asyncio.sleep(0.1)
 
-            await asyncio.sleep(0.1)  # <— allow the event loop to yield control
+            yield format_sse_message(
+                f"Finished fetching {len(fetched_records)} portal responses. "
+                "Flattening dataset metadata..."
+            )
+            stage = "flattening fetched metadata"
+            parsed = harvester.parse(fetched_records)
+            flat = harvester.flatten(parsed)
+            yield format_sse_message(
+                f"Found {len(flat)} dataset candidates across the fetched portals."
+            )
 
+            stage = "mapping and deriving metadata"
+            df = harvester.build_dataframe(flat)
+            yield format_sse_message(
+                f"Kept {len(df)} GIS/map datasets after Socrata filtering. "
+                "Deriving normalized metadata fields..."
+            )
+            df = harvester.derive_fields(df)
+            df = harvester.add_defaults(df)
+            df = harvester.add_provenance(df)
 
-        # Proceed with the remaining steps
-        yield f"data: Finished fetching {len(fetched_records)} records. Now parsing...\n\n"
-        parsed = harvester.parse(fetched_records)
-        flat = harvester.flatten(parsed)
-        df = harvester.build_dataframe(flat)
-        df = harvester.derive_fields(df)
-        df = harvester.add_defaults(df)
-        df = harvester.add_provenance(df)
-        df = harvester.clean(df)
-        harvester.validate(df)
-        results = harvester.write_outputs(df)
-        upload_summary = harvester.build_uploads(results)
-        if upload_summary is not None:
-            results["upload_summary"] = upload_summary
-            if upload_summary.get("status") == "created":
-                yield (
-                    "data: Built upload files: "
-                    f"{upload_summary['primary_upload_csv']}, "
-                    f"{upload_summary['distributions_new_csv']}, "
-                    f"{upload_summary['distributions_delete_csv']}.\n\n"
+            stage = "cleaning and validating metadata"
+            yield format_sse_message(
+                f"Cleaning and validating {len(df)} primary output rows..."
+            )
+            df = harvester.clean(df)
+            harvester.validate(df)
+
+            stage = "checking GeoJSON links and writing outputs"
+            yield format_sse_message(
+                "Checking GeoJSON links and writing full output files. "
+                "This network-validation stage can take several minutes."
+            )
+            results = harvester.write_outputs(df)
+            output_lines = [
+                f"Primary output ({len(df)} rows): {results['primary_csv']}",
+            ]
+            if results.get("distributions_csv"):
+                output_lines.append(
+                    f"Distribution output: {results['distributions_csv']}"
                 )
+            if results.get("report_csv"):
+                output_lines.append(f"Harvest report: {results['report_csv']}")
+            yield format_sse_message("\n".join(output_lines))
+
+            stage = "building registry upload deltas"
+            yield format_sse_message(
+                "Comparing current outputs with the Socrata registries..."
+            )
+            upload_summary = harvester.build_uploads(results)
+            if upload_summary is not None:
+                results["upload_summary"] = upload_summary
+                if upload_summary.get("status") == "created":
+                    changed_count = len(
+                        upload_summary.get("changed_distribution_ids", [])
+                    )
+                    yield format_sse_message(
+                        "Upload deltas created: "
+                        f"{upload_summary.get('new_count', 0)} new primary, "
+                        f"{upload_summary.get('retired_count', 0)} retired primary, "
+                        f"{upload_summary.get('distribution_new_count', 0)} "
+                        "distribution rows added, "
+                        f"{upload_summary.get('distribution_delete_count', 0)} "
+                        "distribution rows deleted, "
+                        f"{changed_count} existing records with distribution changes."
+                    )
+                    yield format_sse_message(
+                        "Upload files:\n"
+                        f"{upload_summary['primary_upload_csv']}\n"
+                        f"{upload_summary['distributions_new_csv']}\n"
+                        f"{upload_summary['distributions_delete_csv']}"
+                    )
+                    yield format_sse_message(
+                        "Registry snapshots updated:\n"
+                        f"{upload_summary['primary_registry_csv']}\n"
+                        f"{upload_summary['distributions_registry_csv']}"
+                    )
+                else:
+                    yield format_sse_message(
+                        "Upload files not built: "
+                        f"{upload_summary.get('reason', 'No reason provided.')}."
+                    )
             else:
-                yield (
-                    "data: Upload files not built: "
-                    f"{upload_summary.get('reason', 'No reason provided.')}.\n\n"
+                yield format_sse_message(
+                    "Registry upload delta generation is disabled for this run."
                 )
 
-        yield "data: Harvester complete! Check the output folder.\n\n"
-        yield "data: DONE\n\n"
+            yield format_sse_message("Socrata harvest completed successfully.")
+        except Exception as exc:
+            message = (
+                f"ERROR during {stage}: {type(exc).__name__}: {exc}"
+            )
+            print(f"[Socrata stream] {message}")
+            yield format_sse_message(message)
+        finally:
+            yield format_sse_message("DONE")
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 

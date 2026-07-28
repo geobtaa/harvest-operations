@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import date
 import time
 from unittest.mock import patch
 
@@ -73,6 +74,7 @@ def test_socrata_uses_workflow_lifecycle_fields_and_website_defaults(tmp_path: P
     }
     harvester = SocrataHarvester(config)
     assert harvester.config["build_uploads"] is True
+    assert harvester.config["use_registry"] is True
 
     payload = {
         "dataset": [
@@ -122,6 +124,197 @@ def test_socrata_uses_workflow_lifecycle_fields_and_website_defaults(tmp_path: P
     harvest_record_row = df.loc[df["ID"] == "harvest_site-1"].iloc[0]
     assert harvest_record_row["Resource Class"] == "Series"
     assert harvest_record_row["Last Harvested"] == time.strftime("%Y-%m-%d")
+
+
+def test_socrata_registry_uploads_keep_new_retired_and_changed_records(
+    tmp_path: Path,
+) -> None:
+    outputs_dir = tmp_path / "outputs"
+    registry_dir = tmp_path / "registry"
+    outputs_dir.mkdir()
+    registry_dir.mkdir()
+    workflow_csv = tmp_path / "py-socrata.csv"
+    metadata_csv = tmp_path / "websites.csv"
+    workflow_csv.write_text("ID\n", encoding="utf-8")
+    metadata_csv.write_text("ID\n", encoding="utf-8")
+    current_primary_path = outputs_dir / "2026-07-15_socrata_primary.csv"
+    current_distributions_path = outputs_dir / "2026-07-15_socrata_distributions.csv"
+    primary_registry_path = registry_dir / "socrata_primary_registry.csv"
+    distributions_registry_path = registry_dir / "socrata_distributions_registry.csv"
+    today = date.today().isoformat()
+
+    pd.DataFrame(
+        [
+            {
+                "Title": "Shared Old Title",
+                "Alternative Title": "Shared",
+                "Creator": "Shared Creator",
+                "Publisher": "Shared Publisher",
+                "Resource Class": "Web services",
+                "Temporal Coverage": "2020",
+                "Date Issued": "2020-01-01",
+                "Date Accessioned": "2026-01-08",
+                "ID": "shared-id",
+                "Identifier": "https://example.org/views/shared-id",
+                "Code": "site-1",
+            },
+            {
+                "Title": "Retired Title",
+                "Alternative Title": "Retired",
+                "Creator": "Retired Creator",
+                "Publisher": "Retired Publisher",
+                "Resource Class": "Web services",
+                "Temporal Coverage": "2019",
+                "Date Issued": "2019-01-01",
+                "Date Accessioned": "2026-01-09",
+                "ID": "retired-id",
+                "Identifier": "https://example.org/views/retired-id",
+                "Code": "site-1",
+            },
+        ]
+    ).to_csv(primary_registry_path, index=False)
+    pd.DataFrame(
+        [
+            {
+                "friendlier_id": "shared-id",
+                "reference_type": "geo_json",
+                "distribution_url": "https://example.org/old.geojson",
+                "label": "",
+            },
+            {
+                "friendlier_id": "retired-id",
+                "reference_type": "documentation_external",
+                "distribution_url": "https://example.org/retired",
+                "label": "",
+            },
+        ]
+    ).to_csv(distributions_registry_path, index=False)
+
+    pd.DataFrame(
+        [
+            {
+                "Title": "Harvest record for Site",
+                "Resource Class": "Series",
+                "Publication State": "draft",
+                "Access Rights": "Public",
+                "Date Accessioned": "2026-07-15",
+                "ID": "harvest_site-1",
+                "Identifier": "site-1",
+                "Code": "site-1",
+            },
+            {
+                "Title": "Shared New Title",
+                "Alternative Title": "Shared",
+                "Creator": "Shared Creator",
+                "Publisher": "Shared Publisher",
+                "Resource Class": "Web services",
+                "Temporal Coverage": "2021",
+                "Date Issued": "2021-01-01",
+                "Publication State": "published",
+                "Access Rights": "Public",
+                "Date Accessioned": "2026-07-15",
+                "ID": "shared-id",
+                "Identifier": "https://example.org/views/shared-id",
+                "Code": "site-1",
+            },
+            {
+                "Title": "New Title",
+                "Alternative Title": "New",
+                "Creator": "New Creator",
+                "Publisher": "New Publisher",
+                "Resource Class": "Web services",
+                "Temporal Coverage": "2022",
+                "Date Issued": "2022-01-01",
+                "Publication State": "published",
+                "Access Rights": "Public",
+                "Date Accessioned": "2026-07-15",
+                "ID": "new-id",
+                "Identifier": "https://example.org/views/new-id",
+                "Code": "site-1",
+            },
+        ]
+    ).to_csv(current_primary_path, index=False)
+    pd.DataFrame(
+        [
+            {
+                "friendlier_id": "shared-id",
+                "reference_type": "geo_json",
+                "distribution_url": "https://example.org/new.geojson",
+                "label": "",
+            },
+            {
+                "friendlier_id": "new-id",
+                "reference_type": "documentation_external",
+                "distribution_url": "https://example.org/new",
+                "label": "",
+            },
+        ]
+    ).to_csv(current_distributions_path, index=False)
+
+    harvester = SocrataHarvester(
+        {
+            "input_csv": str(workflow_csv),
+            "hub_metadata_csv": str(metadata_csv),
+            "output_primary_csv": "outputs/socrata_primary.csv",
+            "output_distributions_csv": "outputs/socrata_distributions.csv",
+            "primary_registry_csv": str(primary_registry_path),
+            "distributions_registry_csv": str(distributions_registry_path),
+        }
+    )
+    summary = harvester.build_uploads(
+        {
+            "primary_csv": str(current_primary_path),
+            "distributions_csv": str(current_distributions_path),
+        }
+    )
+
+    assert summary["status"] == "created"
+    assert summary["new_count"] == 1
+    assert summary["retired_count"] == 1
+    assert summary["distribution_new_count"] == 2
+    assert summary["distribution_delete_count"] == 1
+    assert summary["changed_distribution_ids"] == ["shared-id"]
+
+    primary_upload = pd.read_csv(
+        summary["primary_upload_csv"],
+        dtype=str,
+        keep_default_na=False,
+    ).fillna("")
+    assert set(primary_upload["ID"]) == {
+        "harvest_site-1",
+        "new-id",
+        "retired-id",
+    }
+    retired_row = primary_upload.loc[primary_upload["ID"] == "retired-id"].iloc[0]
+    assert retired_row["Date Accessioned"] == "2026-01-09"
+    assert retired_row["Publication State"] == "unpublished"
+    assert retired_row["Date Retired"] == today
+    assert retired_row["Resource Class"] == "Web services"
+
+    updated_registry = pd.read_csv(
+        primary_registry_path,
+        dtype=str,
+        keep_default_na=False,
+    ).fillna("")
+    assert set(updated_registry["ID"]) == {"shared-id", "new-id"}
+    assert (
+        updated_registry.loc[
+            updated_registry["ID"] == "shared-id",
+            "Date Accessioned",
+        ].iloc[0]
+        == "2026-01-08"
+    )
+    assert "Date Retired" not in updated_registry.columns
+
+    updated_distributions_registry = pd.read_csv(
+        distributions_registry_path,
+        dtype=str,
+        keep_default_na=False,
+    ).fillna("")
+    assert set(updated_distributions_registry["friendlier_id"]) == {
+        "shared-id",
+        "new-id",
+    }
 
 
 def test_socrata_filters_invalid_geojson_distributions() -> None:

@@ -6,6 +6,7 @@
   <style>
     body { font-family: sans-serif; margin: 2em; }
     h2, h3 { margin-top: 1.5em; }
+    #run-status { font-weight: 600; }
   </style>
 </head>
 <body>
@@ -32,32 +33,75 @@
     <li><code>outputs/YYYY-MM-DD_socrata_distributions.csv</code>: distribution links derived from the primary output, with invalid GeoJSON links removed before writing.</li>
     <li><code>reports/socrata/YYYY-MM-DD_socrata_report.csv</code>: per-harvest-record run status, record counts, and totals.</li>
   </ul>
+  <p>When registry uploads are enabled, the harvester compares the current
+    outputs with <code>registry/socrata_primary_registry.csv</code> and
+    <code>registry/socrata_distributions_registry.csv</code>. It writes
+    upload-ready new and retired primary records and added/deleted distribution
+    rows for changed records under <code>outputs/to_upload/</code>, then
+    replaces the registries with the current active snapshot.</p>
 
   <h3>Run Socrata Harvester</h3>
-  <button onclick="runHarvester()">Run Harvester</button>
-  <pre id="stream-output" style="border:1px solid #ccc; padding:1em; margin-top:1em; height:300px; overflow:auto;"></pre>
+  <button id="run-button" onclick="runHarvester()">Run Harvester</button>
+  <p id="run-status" role="status">Ready.</p>
+  <pre id="stream-output" aria-live="polite" style="border:1px solid #ccc; padding:1em; margin-top:1em; height:300px; overflow:auto;"></pre>
 
   <script>
-    // Streaming harvester output
+    let activeEventSource = null;
+    let runFailed = false;
+
+    function appendMessage(output, message) {
+      const timestamp = new Date().toLocaleTimeString();
+      output.textContent += `[${timestamp}] ${message}\n`;
+      output.scrollTop = output.scrollHeight;
+    }
+
     function runHarvester() {
-    const output = document.getElementById("stream-output");
-    output.textContent = "Starting harvester...\n";
-    const eventSource = new EventSource("/run-socrata-stream");
+      if (activeEventSource) {
+        return;
+      }
 
-    eventSource.onmessage = function (event) {
+      const output = document.getElementById("stream-output");
+      const status = document.getElementById("run-status");
+      const button = document.getElementById("run-button");
+      output.textContent = "";
+      status.textContent = "Running Socrata harvest...";
+      button.disabled = true;
+      runFailed = false;
+      appendMessage(output, "Connecting to the Socrata harvest stream...");
+
+      activeEventSource = new EventSource("/run-socrata-stream");
+
+      activeEventSource.onmessage = function (event) {
         if (event.data === "DONE") {
-        // output.textContent += "Harvester completed successfully.\n";
-        eventSource.close();
+          activeEventSource.close();
+          activeEventSource = null;
+          button.disabled = false;
+          if (runFailed) {
+            status.textContent = "Socrata harvest failed. Review the error above.";
+          } else {
+            status.textContent = "Socrata harvest completed successfully.";
+            appendMessage(output, "Stream complete.");
+          }
         } else {
-        output.textContent += event.data + "\n";
-        output.scrollTop = output.scrollHeight;
+          if (event.data.startsWith("ERROR")) {
+            runFailed = true;
+            status.textContent = "Socrata harvest encountered an error.";
+          }
+          appendMessage(output, event.data);
         }
-    };
+      };
 
-    eventSource.onerror = function () {
-        output.textContent += "Stream closed. If the harvester did not complete, please check logs.\n";
-        eventSource.close();
-    };
+      activeEventSource.onerror = function () {
+        runFailed = true;
+        status.textContent = "Socrata stream disconnected.";
+        appendMessage(
+          output,
+          "The stream closed before reporting completion. Check the server log."
+        );
+        activeEventSource.close();
+        activeEventSource = null;
+        button.disabled = false;
+      };
     }
   </script>
 </body>

@@ -6,3 +6,6 @@ output_primary_csv: outputs/socrata_primary.csv
 output_distributions_csv: outputs/socrata_distributions.csv
 output_report_csv: reports/socrata/socrata_report.csv
 build_uploads: true
+use_registry: true
+primary_registry_csv: registry/socrata_primary_registry.csv
+distributions_registry_csv: registry/socrata_distributions_registry.csv

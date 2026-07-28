@@ -57,6 +57,17 @@ def test_static_ckan_page_runs_stream_endpoint_from_browser() -> None:
     assert "/run-ckan-stream" in page_html
 
 
+def test_static_socrata_page_shows_stream_progress_and_status() -> None:
+    page_html = (ROOT / "static" / "socrata.html").read_text(encoding="utf-8")
+
+    assert "/run-socrata-stream" in page_html
+    assert 'id="run-status"' in page_html
+    assert 'id="run-button"' in page_html
+    assert "Connecting to the Socrata harvest stream" in page_html
+    assert "Socrata harvest completed successfully" in page_html
+    assert "button.disabled = true" in page_html
+
+
 def test_static_pasda_page_runs_portal_stream_endpoint_from_browser() -> None:
     index_html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
     page_html = (ROOT / "static" / "pasda.html").read_text(encoding="utf-8")

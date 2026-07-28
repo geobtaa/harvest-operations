@@ -55,6 +55,10 @@ def test_app_registers_ckan_stream_route() -> None:
     assert any(route.path == "/run-ckan-stream" for route in app.routes)
 
 
+def test_app_registers_socrata_stream_route() -> None:
+    assert any(route.path == "/run-socrata-stream" for route in app.routes)
+
+
 def test_app_registers_pasda_portal_stream_route() -> None:
     assert any(route.path == "/run-pasda-portal-stream" for route in app.routes)
 
@@ -125,3 +129,104 @@ def test_hdx_stream_builds_upload_files(monkeypatch) -> None:
 
     assert "Built upload files:" in body
     assert "outputs/to_upload/2026-05-29_hdx_primary_upload.csv" in body
+
+
+def test_socrata_stream_reports_stages_outputs_and_registry_counts(monkeypatch) -> None:
+    class FakeSocrataHarvester:
+        def __init__(self, config):
+            self.config = config
+
+        def load_reference_data(self):
+            return None
+
+        def fetch(self):
+            yield "[Socrata] Fetching site-1 — Example Portal."
+            yield {
+                "fetched_catalog": {
+                    "dataset": [{"id": "one"}, {"id": "two"}],
+                }
+            }
+
+        def parse(self, raw):
+            return raw
+
+        def flatten(self, parsed):
+            return [{"id": "one"}, {"id": "two"}]
+
+        def build_dataframe(self, flat):
+            return flat
+
+        def derive_fields(self, df):
+            return df
+
+        def add_defaults(self, df):
+            return df
+
+        def add_provenance(self, df):
+            return [*df, {"id": "harvest_site-1"}]
+
+        def clean(self, df):
+            return df
+
+        def validate(self, df):
+            return df
+
+        def write_outputs(self, df):
+            return {
+                "primary_csv": "outputs/2026-07-28_socrata_primary.csv",
+                "distributions_csv": "outputs/2026-07-28_socrata_distributions.csv",
+                "report_csv": "reports/socrata/2026-07-28_socrata_report.csv",
+            }
+
+        def build_uploads(self, results):
+            return {
+                "status": "created",
+                "primary_upload_csv": (
+                    "outputs/to_upload/2026-07-28_socrata_primary_upload.csv"
+                ),
+                "distributions_new_csv": (
+                    "outputs/to_upload/2026-07-28_socrata_distributions_new.csv"
+                ),
+                "distributions_delete_csv": (
+                    "outputs/to_upload/2026-07-28_socrata_distributions_delete.csv"
+                ),
+                "primary_registry_csv": "registry/socrata_primary_registry.csv",
+                "distributions_registry_csv": (
+                    "registry/socrata_distributions_registry.csv"
+                ),
+                "new_count": 2,
+                "retired_count": 1,
+                "distribution_new_count": 3,
+                "distribution_delete_count": 4,
+                "changed_distribution_ids": ["one", "two"],
+            }
+
+    import harvesters.socrata
+    import main
+
+    monkeypatch.setattr(
+        harvesters.socrata,
+        "SocrataHarvester",
+        FakeSocrataHarvester,
+    )
+
+    async def collect_stream() -> str:
+        response = await main.run_socrata_stream()
+        chunks = []
+        async for chunk in response.body_iterator:
+            chunks.append(chunk.decode("utf-8") if isinstance(chunk, bytes) else chunk)
+        return "".join(chunks)
+
+    body = asyncio.run(collect_stream())
+
+    assert "Starting Socrata harvest" in body
+    assert "Found 2 dataset candidates" in body
+    assert "Checking GeoJSON links" in body
+    assert "Primary output (3 rows)" in body
+    assert "2 new primary, 1 retired primary" in body
+    assert "3 distribution rows added" in body
+    assert "4 distribution rows deleted" in body
+    assert "2 existing records with distribution changes" in body
+    assert "registry/socrata_primary_registry.csv" in body
+    assert "Socrata harvest completed successfully" in body
+    assert "data: DONE" in body
