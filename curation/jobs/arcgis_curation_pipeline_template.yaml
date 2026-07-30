@@ -6,7 +6,8 @@ version: 1
 job:
   # Unique, filesystem-friendly name for this curation batch.
   id: "<job-id>"
-  # Paths are resolved relative to this YAML file. Keep generated work out of Git.
+  # Paths are resolved relative to this YAML file. Each resource is written to
+  # <work_directory>/<record-filename-stem>/; keep generated work out of Git.
   work_directory: "../work/<job-id>"
 
 # Curated datasets are held and served by the BTAA-GIN.
@@ -63,13 +64,39 @@ derivatives:
   pmtiles_config: ../pmtiles_config.sample.json
 
 records:
-  # Repeat this block for every selected item.
-  # The ID is the ArcGIS item ID plus _<sublayer> when DCAT identifies a layer.
+  # Repeat this block for every selected item. By default the metadata stage
+  # resolves the ID from the Hub DCAT catalog.
+  # The ID is the ArcGIS item ID plus _<sublayer>.
   - id: "<arcgis-item-id>_<sublayer-number>"
     # Omit .gpkg; the pipeline adds it. Use the final archived filename.
     filename: "<prefix>_<basic-theme>_<yyyy>"
     # Topic only, without place or date. Used in Title and Description.
     basic_theme: "<basic-theme>"
+
+  # A vector layer omitted from the Hub catalog can be curated directly from
+  # its ArcGIS REST endpoint. Use the service item ID when REST provides one.
+  # - id: "<service-item-id>_<layer-number>"
+  #   filename: "<prefix>_<basic-theme>_<yyyy>"
+  #   basic_theme: "<basic-theme>"
+  #   # Use this when the REST/item title does not contain the dataset year.
+  #   temporal_year: "YYYY"
+  #   source:
+  #     type: arcgis_rest
+  #     # A layer URL is required; service-root URLs are not accepted.
+  #     service_url: "https://<host>/arcgis/rest/services/<service>/FeatureServer/0"
+  #     # Optional for ArcGIS Enterprise; defaults to https://www.arcgis.com.
+  #     # portal_url: "https://<enterprise-portal-host>"
+  #     # Optional when the service does not expose serviceItemId.
+  #     # item_id: "<service-item-id>"
+  #   # REST and item metadata are used first. Supply only missing or corrected
+  #   # values here; the generated CSV still stops for manual review.
+  #   metadata_overrides:
+  #     description: "<description>"
+  #     creator: "<creator>"
+  #     rights: "<rights>"
+  #     # keywords:
+  #     #   - "<keyword>"
+  #     # landing_page: "https://<public-information-page>"
 
   # - id: "<next-arcgis-item-id>_<sublayer-number>"
   #   filename: "<prefix>_<basic-theme>_<yyyy>"

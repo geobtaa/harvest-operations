@@ -23,9 +23,12 @@ from curation.arcgis_curation_pipeline import (  # noqa: E402
     mark_stage,
     mark_validation_stage,
     require_confirmed_review,
+    run_dictionary_stage,
     run_download_stage,
+    run_derivatives_stage,
     run_enrich_stage,
     run_metadata_stage,
+    run_thumbnail_stage,
     save_run_record,
 )
 
@@ -34,6 +37,16 @@ SOURCE_ID = "1ec9eb84c4fd41548946b1484d4f31ef_6"
 SERVICE_URL = (
     "https://services1.arcgis.com/9meaaHE3uiba0zr8/arcgis/rest/services/"
     "PrincipalZoning_TEST/FeatureServer/6"
+)
+DIRECT_ITEM_ID = "86f5c57fc5894dd7ad821578b772f1d9"
+DIRECT_SOURCE_ID = f"{DIRECT_ITEM_ID}_0"
+DIRECT_SERVICE_URL = (
+    "https://services1.arcgis.com/9meaaHE3uiba0zr8/ArcGIS/rest/services/"
+    "AddressPoints_Historic/FeatureServer/0"
+)
+DIRECT_SERVICE_ROOT = DIRECT_SERVICE_URL.rsplit("/", 1)[0]
+DIRECT_ITEM_API = (
+    f"https://www.arcgis.com/sharing/rest/content/items/{DIRECT_ITEM_ID}"
 )
 
 
@@ -121,6 +134,76 @@ def test_config_accepts_a_single_selected_record(tmp_path: Path) -> None:
     assert len(job.records) == 1
 
 
+def test_job_groups_artifact_paths_by_resource_filename(tmp_path: Path) -> None:
+    job = load_job_config(write_config(tmp_path))
+    resource_dir = tmp_path / "work" / "stp_zoning_2026"
+
+    assert job.resource_dir("stp_zoning_2026.gpkg") == resource_dir
+    assert job.gpkg_path("stp_zoning_2026.gpkg") == (
+        resource_dir / "stp_zoning_2026.gpkg"
+    )
+    assert job.dictionary_path("stp_zoning_2026.gpkg") == (
+        resource_dir / "stp_zoning_2026.csv"
+    )
+    assert job.thumbnail_path("stp_zoning_2026.gpkg") == (
+        resource_dir / "stp_zoning_2026.png"
+    )
+
+
+def test_config_accepts_direct_rest_source_and_metadata_overrides(tmp_path: Path) -> None:
+    job = load_job_config(
+        write_config(
+            tmp_path,
+            records=[
+                {
+                    "id": DIRECT_SOURCE_ID,
+                    "filename": "stp_addressPoints_2025",
+                    "basic_theme": "Address Points",
+                    "temporal_year": "2025",
+                    "source": {
+                        "type": "arcgis_rest",
+                        "service_url": DIRECT_SERVICE_URL + "/",
+                    },
+                    "metadata_overrides": {
+                        "creator": "City of Saint Paul",
+                        "rights": "Public Domain",
+                    },
+                }
+            ],
+        )
+    )
+
+    record = job.records[0]
+    assert record.source_type == "arcgis_rest"
+    assert record.service_url == DIRECT_SERVICE_URL
+    assert record.temporal_year == "2025"
+    assert record.metadata_overrides == {
+        "creator": "City of Saint Paul",
+        "rights": "Public Domain",
+    }
+
+
+def test_config_rejects_direct_rest_service_root_without_layer_id(
+    tmp_path: Path,
+) -> None:
+    path = write_config(
+        tmp_path,
+        records=[
+            {
+                "id": DIRECT_SOURCE_ID,
+                "filename": "stp_addressPoints_2025",
+                "source": {
+                    "type": "arcgis_rest",
+                    "service_url": DIRECT_SERVICE_ROOT,
+                },
+            }
+        ],
+    )
+
+    with pytest.raises(CurationConfigError, match="layer URL ending"):
+        load_job_config(path)
+
+
 def test_copyable_job_template_is_valid_yaml() -> None:
     template_path = (
         CURATION_ROOT / "jobs" / "arcgis_curation_pipeline_template.yaml"
@@ -197,6 +280,114 @@ def test_metadata_stage_reuses_arcgis_rules_and_applies_archive_exceptions(
     assert manifest["stages"]["metadata"]["status"] == "completed"
     assert manifest["records"][0]["curated_id"] == row["ID"]
     assert manifest["records"][0]["service_url"] == SERVICE_URL
+
+
+def test_metadata_stage_supports_mixed_dcat_and_direct_rest_records(
+    tmp_path: Path,
+) -> None:
+    path = write_config(
+        tmp_path,
+        records=[
+            {
+                "id": SOURCE_ID,
+                "filename": "stp_zoning_2026",
+                "basic_theme": "Principal Zoning",
+            },
+            {
+                "id": DIRECT_SOURCE_ID,
+                "filename": "stp_addressPoints_2025",
+                "basic_theme": "Address Points",
+                "temporal_year": "2025",
+                "source": {
+                    "type": "arcgis_rest",
+                    "service_url": DIRECT_SERVICE_URL,
+                },
+                "metadata_overrides": {
+                    "description": (
+                        "Historic address point locations in the City of Saint Paul."
+                    ),
+                    "creator": "City of Saint Paul",
+                    "rights": "Public Domain",
+                },
+            },
+        ],
+    )
+    job = load_job_config(path)
+    requested_urls: list[str] = []
+
+    def requester(url: str, params: dict | None, method: str) -> dict:
+        requested_urls.append(url)
+        if url == DIRECT_SERVICE_URL:
+            return {
+                "name": "StampAddress",
+                "geometryType": "esriGeometryPoint",
+                "capabilities": "Query",
+                "serviceItemId": DIRECT_ITEM_ID,
+                "editingInfo": {"dataLastEditDate": 1753104361052},
+            }
+        if url == DIRECT_SERVICE_ROOT:
+            return {
+                "serviceItemId": DIRECT_ITEM_ID,
+                "layers": [{"id": 0, "name": "StampAddress"}],
+            }
+        if url == DIRECT_ITEM_API:
+            return {
+                "id": DIRECT_ITEM_ID,
+                "owner": "CityofSaintPaul",
+                "created": 1652808986000,
+                "modified": 1652809292000,
+                "title": "Address Points (Historic)",
+                "snippet": (
+                    "This layer depicts historic address point locations "
+                    "in the City of Saint Paul."
+                ),
+                "tags": ["address", "historic"],
+                "extent": [
+                    [-93.2149999997, 44.8889999998],
+                    [-92.9959999997, 44.9969999998],
+                ],
+            }
+        raise AssertionError(f"Unexpected request: {method} {url} {params}")
+
+    output_path = run_metadata_stage(
+        job,
+        requester=requester,
+        catalog=catalog_fixture(),
+    )
+
+    dataframe = pd.read_csv(output_path, dtype=str, keep_default_na=False)
+    assert list(dataframe["filename"]) == [
+        "stp_zoning_2026.gpkg",
+        "stp_addressPoints_2025.gpkg",
+    ]
+    address_row = dataframe.iloc[1]
+    assert address_row["Title"] == "Address Points [Minnesota--Saint Paul] {2025}"
+    assert address_row["Description"] == (
+        "Historical dataset of Address Points in Saint Paul, Minnesota as of 2025. "
+        "Historic address point locations in the City of Saint Paul."
+    )
+    assert address_row["Creator"] == "City of Saint Paul"
+    assert address_row["Rights"] == "Public Domain"
+    assert address_row["Temporal Coverage"] == "2025"
+    assert address_row["Date Range"] == "2025-2025"
+    assert address_row["Identifier"] == (
+        f"https://hub.arcgis.com/datasets/{DIRECT_SOURCE_ID}"
+    )
+    assert address_row["Website Platform"] == "ArcGIS REST"
+    assert address_row["Endpoint Description"] == "ArcGIS REST layer"
+    assert address_row["Endpoint URL"] == DIRECT_SERVICE_URL
+    assert job.dcat_api not in requested_urls
+
+    manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+    direct_manifest = manifest["records"][1]
+    assert direct_manifest["source_id"] == DIRECT_SOURCE_ID
+    assert direct_manifest["service_url"] == DIRECT_SERVICE_URL
+    assert direct_manifest["source_type"] == "arcgis_rest"
+    assert direct_manifest["metadata_source"] == "arcgis_rest_item"
+    assert direct_manifest["item_id"] == DIRECT_ITEM_ID
+    assert direct_manifest["item_url"] == (
+        f"https://www.arcgis.com/home/item.html?id={DIRECT_ITEM_ID}"
+    )
 
 
 def test_validation_stage_is_recorded_before_metadata(tmp_path: Path) -> None:
@@ -327,8 +518,8 @@ def test_download_skips_existing_geopackages_and_continues(
     job = load_job_config(write_config(tmp_path))
     run_metadata_stage(job, catalog=catalog_fixture())
     confirm_manual_review(job, confirmed=True)
-    job.gpkg_dir.mkdir(parents=True)
-    existing_path = job.gpkg_dir / "stp_zoning_2026.gpkg"
+    existing_path = job.gpkg_path("stp_zoning_2026.gpkg")
+    existing_path.parent.mkdir(parents=True)
     existing_path.write_bytes(b"existing")
 
     manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
@@ -365,10 +556,84 @@ def test_download_skips_existing_geopackages_and_continues(
     outputs = updated_manifest["stages"]["download"]["outputs"]
     assert outputs[0] == {
         "status": "skipped_existing",
-        "output": "gpkg/stp_zoning_2026.gpkg",
+        "output": "stp_zoning_2026/stp_zoning_2026.gpkg",
     }
     assert outputs[1]["status"] == "downloaded"
-    assert downloaded == [job.gpkg_dir / "stp_new_2026.gpkg"]
+    assert downloaded == [job.gpkg_path("stp_new_2026.gpkg")]
+
+
+def test_derivatives_stage_runs_builder_from_curation_scripts(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    job = load_job_config(write_config(tmp_path))
+    run_metadata_stage(job, catalog=catalog_fixture())
+    confirm_manual_review(job, confirmed=True)
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        pipeline,
+        "_run_command",
+        lambda command: commands.append(command),
+    )
+
+    run_derivatives_stage(job)
+
+    assert len(commands) == 1
+    command = commands[0]
+    script_path = Path(command[1])
+    assert script_path == CURATION_ROOT / "scripts" / "build_pmtiles_from_gpkg.py"
+    assert script_path.is_file()
+    assert command[command.index("--input-dir") + 1] == str(job.work_dir)
+    assert command[command.index("--fgb-dir") + 1] == str(job.work_dir)
+    assert command[command.index("--pmtiles-dir") + 1] == str(job.work_dir)
+    assert "--resource-layout" in command
+    assert command[-1] == "--skip-existing"
+    manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+    assert manifest["stages"]["derivatives"]["status"] == "completed"
+
+
+def test_dictionary_and_thumbnail_stages_write_into_resource_directory(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    job = load_job_config(write_config(tmp_path))
+    run_metadata_stage(job, catalog=catalog_fixture())
+    confirm_manual_review(job, confirmed=True)
+
+    run_dictionary_stage(
+        job,
+        requester=lambda *args, **kwargs: {
+            "fields": [
+                {
+                    "name": "NAME",
+                    "type": "esriFieldTypeString",
+                    "alias": "Name",
+                }
+            ]
+        },
+    )
+    dictionary_path = job.dictionary_path("stp_zoning_2026.gpkg")
+    assert dictionary_path.is_file()
+
+    gpkg_path = job.gpkg_path("stp_zoning_2026.gpkg")
+    gpkg_path.write_bytes(b"placeholder")
+
+    def fake_thumbnail(source: Path, output: Path) -> None:
+        assert source == gpkg_path
+        output.write_bytes(b"thumbnail")
+
+    monkeypatch.setattr(pipeline, "create_vector_thumbnail", fake_thumbnail)
+    run_thumbnail_stage(job)
+
+    thumbnail_path = job.thumbnail_path("stp_zoning_2026.gpkg")
+    assert thumbnail_path.read_bytes() == b"thumbnail"
+    manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+    assert manifest["stages"]["dictionaries"]["outputs"] == [
+        "stp_zoning_2026/stp_zoning_2026.csv"
+    ]
+    assert manifest["stages"]["thumbnails"]["outputs"] == [
+        "stp_zoning_2026/stp_zoning_2026.png"
+    ]
 
 
 def test_save_run_record_copies_small_inputs_and_describes_artifacts(
@@ -382,8 +647,8 @@ def test_save_run_record_copies_small_inputs_and_describes_artifacts(
         if stage != "metadata":
             mark_stage(job, stage)
 
-    job.gpkg_dir.mkdir(parents=True)
-    artifact_path = job.gpkg_dir / "stp_zoning_2026.gpkg"
+    artifact_path = job.gpkg_path("stp_zoning_2026.gpkg")
+    artifact_path.parent.mkdir(parents=True)
     artifact_path.write_bytes(b"portable artifact identity")
     run_records_root = tmp_path / "curation" / "run_records"
     monkeypatch.setattr(pipeline, "REPO_ROOT", tmp_path)
@@ -408,7 +673,7 @@ def test_save_run_record_copies_small_inputs_and_describes_artifacts(
     assert saved_manifest["artifacts"] == [
         {
             "role": "geopackage",
-            "path": "gpkg/stp_zoning_2026.gpkg",
+            "path": "stp_zoning_2026/stp_zoning_2026.gpkg",
             "size_bytes": artifact_path.stat().st_size,
             "sha256": pipeline.file_sha256(artifact_path),
         }
@@ -422,8 +687,9 @@ def test_enrich_adds_service_geometry_and_decimal_degree_bbox(tmp_path: Path) ->
     job = load_job_config(write_config(tmp_path))
     run_metadata_stage(job, catalog=catalog_fixture())
     confirm_manual_review(job, confirmed=True)
-    job.gpkg_dir.mkdir(parents=True)
-    (job.gpkg_dir / "stp_zoning_2026.gpkg").write_bytes(b"test placeholder")
+    gpkg_path = job.gpkg_path("stp_zoning_2026.gpkg")
+    gpkg_path.parent.mkdir(parents=True)
+    gpkg_path.write_bytes(b"test placeholder")
 
     def requester(url: str, params: dict | None, method: str) -> dict:
         if url == SERVICE_URL:

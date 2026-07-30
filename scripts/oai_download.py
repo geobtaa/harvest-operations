@@ -25,9 +25,9 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 
 # Optional hardcoded defaults for one-off runs. CLI arguments still override these.
-DEFAULT_BASE_URL = "https://digital.lib.uiowa.edu/oai/request"
-DEFAULT_SETS_CSV = PROJECT_ROOT / "config" / "iowa-sets.csv"
-DEFAULT_NAME = "iowa-library"
+DEFAULT_BASE_URL = "https://conservancy.umn.edu/server/oai/request"
+DEFAULT_SETS_CSV = PROJECT_ROOT / "config" / "udc-sets.csv"
+DEFAULT_NAME = "umn-udc"
 
 
 def slugify(value: str) -> str:
@@ -267,7 +267,8 @@ def apply_config_and_defaults(args: argparse.Namespace, parser: argparse.Argumen
         args.metadata_prefix
         or job_cfg.get("metadata_prefix")
         or job_cfg.get("feed_type")
-        or "oai_qdc"
+        or "qdc"
+        # use oai-qdc for some sites
     )
     args.name = args.name or job_cfg.get("name") or DEFAULT_NAME
     args.sets_csv = args.sets_csv or job_cfg.get("sets_csv") or str(DEFAULT_SETS_CSV)

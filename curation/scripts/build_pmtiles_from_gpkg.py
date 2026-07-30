@@ -650,9 +650,19 @@ def discover_jobs(
     ogrinfo: str,
     timeout: float | None,
     logger: logging.Logger,
+    resource_layout: bool = False,
 ) -> list[LayerJob]:
     """Find GeoPackages, inspect layers, and build unique layer jobs."""
-    gpkg_paths = sorted(input_dir.rglob("*.gpkg"))
+    if resource_layout:
+        gpkg_paths = sorted(
+            path
+            for resource_dir in input_dir.iterdir()
+            if resource_dir.is_dir()
+            for path in resource_dir.glob("*.gpkg")
+            if path.stem == resource_dir.name
+        )
+    else:
+        gpkg_paths = sorted(input_dir.rglob("*.gpkg"))
     logger.info("Found %s GeoPackage file(s).", len(gpkg_paths))
     prelim_jobs: list[LayerJob] = []
 
@@ -689,11 +699,16 @@ def discover_jobs(
                 )
                 layer_warnings.append(message)
                 logger.warning(message)
-            output_stem = (
-                source_stem_slug
-                if layer_count == 1
-                else f"{source_stem_slug}__{layer_slug}"
+            resource_output_stem = (
+                gpkg_path.stem if resource_layout else source_stem_slug
             )
+            output_stem = (
+                resource_output_stem
+                if layer_count == 1
+                else f"{resource_output_stem}__{layer_slug}"
+            )
+            output_fgb_dir = gpkg_path.parent if resource_layout else fgb_dir
+            output_pmtiles_dir = gpkg_path.parent if resource_layout else pmtiles_dir
             prelim_jobs.append(
                 LayerJob(
                     source_path=gpkg_path,
@@ -701,8 +716,8 @@ def discover_jobs(
                     source_stem_slug=source_stem_slug,
                     layer_slug=layer_slug,
                     output_stem=output_stem,
-                    fgb_path=fgb_dir / f"{output_stem}.fgb",
-                    pmtiles_path=pmtiles_dir / f"{output_stem}.pmtiles",
+                    fgb_path=output_fgb_dir / f"{output_stem}.fgb",
+                    pmtiles_path=output_pmtiles_dir / f"{output_stem}.pmtiles",
                     feature_count=str(layer.get("featureCount", "")),
                     geometry_type=layer_geometry_type(layer),
                     geometry_column=geometry_column,
@@ -722,8 +737,8 @@ def discover_jobs(
             suffix = short_hash(f"{job.source_path}:{job.source_layer}")
             output_key = slugify(output_key, hash_suffix=suffix)
             job.output_stem = output_key
-            job.fgb_path = fgb_dir / f"{output_key}.fgb"
-            job.pmtiles_path = pmtiles_dir / f"{output_key}.pmtiles"
+            job.fgb_path = job.fgb_path.parent / f"{output_key}.fgb"
+            job.pmtiles_path = job.pmtiles_path.parent / f"{output_key}.pmtiles"
         used_output_keys.add(output_key)
         select_fields_for_layer(job, config, logger)
         jobs.append(job)
@@ -1152,6 +1167,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--input-dir", required=True, type=Path)
     parser.add_argument("--fgb-dir", required=True, type=Path)
     parser.add_argument("--pmtiles-dir", required=True, type=Path)
+    parser.add_argument(
+        "--resource-layout",
+        action="store_true",
+        help=(
+            "Read <input-dir>/<resource>/<resource>.gpkg and write FlatGeoBuf "
+            "and PMTiles siblings in each resource directory."
+        ),
+    )
     parser.add_argument("--config", type=Path)
     parser.add_argument("--report", type=Path)
     parser.add_argument("--overwrite", action="store_true")
@@ -1223,6 +1246,7 @@ def main(argv: list[str] | None = None) -> int:
         ogrinfo,
         args.timeout,
         logger,
+        resource_layout=args.resource_layout,
     )
 
     if args.report:

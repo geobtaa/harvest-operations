@@ -250,3 +250,53 @@ def test_empty_geometry_count_parses_ogrinfo_result(monkeypatch) -> None:
 
     assert count == 15
     assert warning == ""
+
+
+def test_resource_layout_discovers_named_resource_directories_and_writes_siblings(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    resource_dir = tmp_path / "stp_majorStreets_2026"
+    resource_dir.mkdir()
+    gpkg_path = resource_dir / "stp_majorStreets_2026.gpkg"
+    gpkg_path.write_bytes(b"placeholder")
+    legacy_dir = tmp_path / "gpkg"
+    legacy_dir.mkdir()
+    (legacy_dir / "legacy.gpkg").write_bytes(b"legacy")
+    monkeypatch.setattr(
+        builder,
+        "inspect_geopackage",
+        lambda *args, **kwargs: (
+            [
+                {
+                    "name": "stp_majorStreets_2026",
+                    "featureCount": 1,
+                    "geometryType": "Polygon",
+                    "geometryFields": [{"name": "geom", "type": "Polygon"}],
+                    "fields": [],
+                }
+            ],
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        builder,
+        "empty_geometry_count",
+        lambda *args, **kwargs: (0, ""),
+    )
+
+    jobs = builder.discover_jobs(
+        tmp_path,
+        tmp_path,
+        tmp_path,
+        builder.DEFAULT_CONFIG,
+        ogrinfo="/usr/bin/ogrinfo",
+        timeout=None,
+        logger=logging.getLogger("test_build_pmtiles"),
+        resource_layout=True,
+    )
+
+    assert len(jobs) == 1
+    assert jobs[0].source_path == gpkg_path
+    assert jobs[0].fgb_path == resource_dir / "stp_majorStreets_2026.fgb"
+    assert jobs[0].pmtiles_path == resource_dir / "stp_majorStreets_2026.pmtiles"

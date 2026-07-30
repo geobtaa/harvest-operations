@@ -71,6 +71,10 @@ Use `jobs/stpaul-2026.yaml` as the first working example. A job defines:
 - one unique ArcGIS item/sublayer ID and filename per selected record;
 - an optional source-specific `basic_theme` used in curated titles and
   descriptions (falling back to the DCAT title when omitted); and
+- an optional four-digit `temporal_year` for records whose source title does
+  not identify the archived dataset year;
+- an optional direct ArcGIS REST source and source metadata overrides for
+  vector layers that are absent from the Hub catalog; and
 - an optional PMTiles field-selection configuration.
 
 The records list must not be empty. Record IDs and filenames must be unique.
@@ -79,15 +83,41 @@ paths. Numeric-looking codes containing underscores must be quoted in YAML
 (for example, `code: "27_58000"`) so the YAML parser does not treat them as
 numbers.
 
-Service URLs are intentionally not entered in YAML. The metadata stage resolves
+By default, service URLs are not entered in YAML. The metadata stage resolves
 the matching DCAT records and records each current `ArcGIS GeoService` URL in
 the generated manifest.
+
+For a vector layer that exists on ArcGIS REST but is absent from the Hub DCAT
+catalog, add a `source` mapping to that record:
+
+```yaml
+- id: "<service-item-id>_<layer-number>"
+  filename: "<prefix>_<basic-theme>_<yyyy>"
+  basic_theme: "<basic-theme>"
+  temporal_year: "YYYY"
+  source:
+    type: arcgis_rest
+    service_url: "https://<host>/arcgis/rest/services/<service>/FeatureServer/0"
+  metadata_overrides:
+    description: "<description used when REST/item metadata is blank>"
+    creator: "<creator>"
+    rights: "<rights statement>"
+```
+
+The URL must identify a numbered `FeatureServer` or `MapServer` vector layer,
+not a service root. The pipeline loads layer and service metadata, follows the
+ArcGIS `serviceItemId` through `https://www.arcgis.com` when available, then
+applies the optional overrides. Set `source.portal_url` for ArcGIS Enterprise
+items or `source.item_id` when REST does not expose the item ID. Supported
+override keys are `title`, `description`, `creator`, `rights`, `keywords`, and
+`landing_page`. DCAT and direct REST records can be mixed in the same job.
 
 For this first iteration, an eligible record must pass the existing ArcGIS
 harvester distribution filter, expose a vector FeatureServer or MapServer layer
 through its `ArcGIS GeoService` distribution, and derive to one of the resource
-types allowed by the YAML job. Raster/ImageServer curation remains outside this
-pipeline.
+types allowed by the YAML job. Explicit direct REST records bypass the broad
+harvester distribution filter but must expose a queryable supported vector
+geometry. Raster/ImageServer curation remains outside this pipeline.
 
 ### Start a new harvest
 
@@ -211,8 +241,30 @@ continues downloading any missing records. This supports adding records to an
 existing job without rebuilding its earlier GeoPackages.
 
 Generated work is kept under `curation/work/` and ignored by Git. The YAML job
-definitions remain versioned inputs. After Postprocess, save a portable run
-record from the browser or command line:
+definitions remain versioned inputs. Dataset artifacts are grouped by resource
+filename rather than artifact type:
+
+```text
+curation/work/stpaul-2026/
+├── manifest.json
+├── metadata/
+│   └── metadata.csv
+├── reports/
+│   ├── pmtiles_build_report.csv
+│   └── pmtiles_build_report_fields.csv
+├── stp_boundary_2026/
+│   ├── stp_boundary_2026.csv
+│   ├── stp_boundary_2026.fgb
+│   ├── stp_boundary_2026.gpkg
+│   ├── stp_boundary_2026.pmtiles
+│   └── stp_boundary_2026.png
+└── <next-resource-filename-stem>/
+    └── ...
+```
+
+The manifest, reviewed metadata CSV, and aggregate derivative reports remain
+job-level files. After Postprocess, save a portable run record from the browser
+or command line:
 
 ```sh
 uv run --locked python curation/scripts/arcgis_curation_pipeline.py \
@@ -466,3 +518,8 @@ uv run --locked python curation/scripts/build_pmtiles_from_gpkg.py \
   --report pmtiles_build_report.csv \
   --skip-existing
 ```
+
+For the curation pipeline's resource-centric layout, place each GeoPackage at
+`<input-dir>/<resource>/<resource>.gpkg`, use the input directory as both
+derivative output roots, and add `--resource-layout`. FlatGeoBuf and PMTiles
+outputs will be written beside their source GeoPackage.

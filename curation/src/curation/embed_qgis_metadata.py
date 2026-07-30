@@ -471,7 +471,7 @@ def write_metadata_to_gpkg(gpkg_path: Path, metadata_xml: str) -> None:
 
 
 def iter_geopackages(gpkg_dir: Path) -> Iterable[Path]:
-    return sorted(path for path in gpkg_dir.iterdir() if path.suffix.lower() == ".gpkg")
+    return sorted(path for path in gpkg_dir.rglob("*") if path.suffix.lower() == ".gpkg")
 
 
 def embed_metadata_directory(

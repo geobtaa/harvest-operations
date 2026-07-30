@@ -21,9 +21,9 @@ OAI_NS = {"oai": "http://www.openarchives.org/OAI/2.0/"}
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 
-DEFAULT_BASE_URL = "https://digital.lib.uiowa.edu/oai/request"
+DEFAULT_BASE_URL = "https://conservancy.umn.edu/server/oai/request"
 DEFAULT_NAME = "oai"
-DEFAULT_MATCH_TERMS = ("atlas", "plat book")
+DEFAULT_MATCH_TERMS = ()
 
 
 def normalize_space(value: str) -> str:

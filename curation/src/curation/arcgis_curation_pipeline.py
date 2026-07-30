@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable
+from urllib.parse import urlsplit, urlunsplit
 
 import pandas as pd
 import requests
@@ -33,7 +34,9 @@ if str(REPO_ROOT) not in sys.path:
 
 from harvesters.arcgis import (  # noqa: E402
     ArcGISHarvester,
+    arcgis_extract_distributions,
     arcgis_harvest_identifier_and_id,
+    arcgis_map_to_schema,
 )
 from harvesters.base import BaseHarvester  # noqa: E402
 from utils.field_order import PRIMARY_FIELD_ORDER  # noqa: E402
@@ -87,13 +90,12 @@ SNAPSHOT_REQUIRED_STAGES = (
     "thumbnails",
     "derivatives",
 )
-ARTIFACT_DIRECTORIES = {
-    "gpkg": "geopackage",
-    "fgb": "flatgeobuf",
-    "pmtiles": "pmtiles",
-    "thumbnails": "thumbnail",
-    "data_dictionaries": "data_dictionary",
-    "reports": "report",
+RESOURCE_ARTIFACT_ROLES = {
+    ".gpkg": "geopackage",
+    ".fgb": "flatgeobuf",
+    ".pmtiles": "pmtiles",
+    ".png": "thumbnail",
+    ".csv": "data_dictionary",
 }
 
 
@@ -108,6 +110,12 @@ class RecordSpec:
     source_id: str
     filename_stem: str
     basic_theme: str = ""
+    temporal_year: str = ""
+    source_type: str = "dcat"
+    service_url: str = ""
+    portal_url: str = "https://www.arcgis.com"
+    item_id: str = ""
+    metadata_overrides: dict[str, Any] | None = None
 
     @property
     def filename(self) -> str:
@@ -149,25 +157,19 @@ class JobConfig:
     def manifest_path(self) -> Path:
         return self.work_dir / "manifest.json"
 
-    @property
-    def gpkg_dir(self) -> Path:
-        return self.work_dir / "gpkg"
+    def resource_dir(self, filename: str) -> Path:
+        return self.work_dir / Path(filename).stem
 
-    @property
-    def dictionary_dir(self) -> Path:
-        return self.work_dir / "data_dictionaries"
+    def gpkg_path(self, filename: str) -> Path:
+        return self.resource_dir(filename) / filename
 
-    @property
-    def thumbnail_dir(self) -> Path:
-        return self.work_dir / "thumbnails"
+    def dictionary_path(self, filename: str) -> Path:
+        stem = Path(filename).stem
+        return self.resource_dir(filename) / f"{stem}.csv"
 
-    @property
-    def fgb_dir(self) -> Path:
-        return self.work_dir / "fgb"
-
-    @property
-    def pmtiles_dir(self) -> Path:
-        return self.work_dir / "pmtiles"
+    def thumbnail_path(self, filename: str) -> Path:
+        stem = Path(filename).stem
+        return self.resource_dir(filename) / f"{stem}.png"
 
     @property
     def report_dir(self) -> Path:
@@ -175,6 +177,19 @@ class JobConfig:
 
 
 JsonRequester = Callable[[str, dict[str, Any] | None, str], dict[str, Any]]
+DIRECT_REST_SOURCE_TYPE = "arcgis_rest"
+DIRECT_REST_METADATA_OVERRIDE_KEYS = {
+    "title",
+    "description",
+    "creator",
+    "rights",
+    "keywords",
+    "landing_page",
+}
+ARCGIS_LAYER_URL_RE = re.compile(
+    r"/(?:FeatureServer|MapServer)/(?P<layer_id>\d+)/?$",
+    re.IGNORECASE,
+)
 
 
 def utc_now() -> str:
@@ -206,6 +221,36 @@ def _required_string(mapping: dict[str, Any], key: str, label: str) -> str:
 def _resolve_path(value: str, config_path: Path) -> Path:
     path = Path(value).expanduser()
     return path.resolve() if path.is_absolute() else (config_path.parent / path).resolve()
+
+
+def normalize_arcgis_layer_url(value: str, label: str) -> str:
+    """Validate and normalize a public ArcGIS vector layer URL."""
+    parsed = urlsplit(value.strip())
+    if (
+        parsed.scheme.casefold() not in {"http", "https"}
+        or not parsed.netloc
+        or parsed.query
+        or parsed.fragment
+        or not ARCGIS_LAYER_URL_RE.search(parsed.path)
+    ):
+        raise CurationConfigError(
+            f"{label} must be an HTTP(S) layer URL ending in "
+            "FeatureServer/<layer-id> or MapServer/<layer-id>"
+        )
+    normalized_path = parsed.path.rstrip("/")
+    return urlunsplit((parsed.scheme, parsed.netloc, normalized_path, "", ""))
+
+
+def normalize_portal_url(value: str, label: str) -> str:
+    parsed = urlsplit(value.strip())
+    if (
+        parsed.scheme.casefold() not in {"http", "https"}
+        or not parsed.netloc
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise CurationConfigError(f"{label} must be an HTTP(S) ArcGIS portal URL")
+    return urlunsplit((parsed.scheme, parsed.netloc, parsed.path.rstrip("/"), "", ""))
 
 
 def load_job_config(config_path: Path | str) -> JobConfig:
@@ -243,6 +288,89 @@ def load_job_config(config_path: Path | str) -> JobConfig:
             )
         filename_stem = filename_path.stem if filename_path.suffix.lower() == ".gpkg" else filename
         basic_theme = str(record_raw.get("basic_theme", "")).strip()
+        temporal_year = str(record_raw.get("temporal_year", "")).strip()
+        if temporal_year and not re.fullmatch(r"(?:19|20)\d{2}", temporal_year):
+            raise CurationConfigError(
+                f"records[{index}].temporal_year must be a four-digit year"
+            )
+
+        source_value = record_raw.get("source")
+        source_raw = (
+            _mapping(source_value, f"records[{index}].source")
+            if source_value is not None
+            else {}
+        )
+        unknown_source_keys = sorted(
+            set(source_raw) - {"type", "service_url", "portal_url", "item_id"}
+        )
+        if unknown_source_keys:
+            raise CurationConfigError(
+                f"Unsupported records[{index}].source keys: "
+                + ", ".join(unknown_source_keys)
+            )
+        source_type = str(source_raw.get("type", "dcat")).strip().casefold()
+        if source_type not in {"dcat", DIRECT_REST_SOURCE_TYPE}:
+            raise CurationConfigError(
+                f"records[{index}].source.type must be 'dcat' or "
+                f"'{DIRECT_REST_SOURCE_TYPE}'"
+            )
+        service_url = ""
+        portal_url = "https://www.arcgis.com"
+        item_id = str(source_raw.get("item_id", "")).strip()
+        if source_type == DIRECT_REST_SOURCE_TYPE:
+            service_url = normalize_arcgis_layer_url(
+                _required_text(
+                    source_raw,
+                    "service_url",
+                    f"records[{index}].source",
+                ),
+                f"records[{index}].source.service_url",
+            )
+            portal_url = normalize_portal_url(
+                str(source_raw.get("portal_url", portal_url)),
+                f"records[{index}].source.portal_url",
+            )
+        elif any(key in source_raw for key in ("service_url", "portal_url", "item_id")):
+            raise CurationConfigError(
+                f"records[{index}].source REST settings require "
+                f"type: {DIRECT_REST_SOURCE_TYPE}"
+            )
+
+        overrides_value = record_raw.get("metadata_overrides", {})
+        metadata_overrides = _mapping(
+            overrides_value,
+            f"records[{index}].metadata_overrides",
+        )
+        unknown_override_keys = sorted(
+            set(metadata_overrides) - DIRECT_REST_METADATA_OVERRIDE_KEYS
+        )
+        if unknown_override_keys:
+            raise CurationConfigError(
+                f"Unsupported records[{index}].metadata_overrides keys: "
+                + ", ".join(unknown_override_keys)
+            )
+        if metadata_overrides and source_type != DIRECT_REST_SOURCE_TYPE:
+            raise CurationConfigError(
+                f"records[{index}].metadata_overrides requires "
+                f"source.type: {DIRECT_REST_SOURCE_TYPE}"
+            )
+        keywords_override = metadata_overrides.get("keywords")
+        if keywords_override is not None and not isinstance(
+            keywords_override,
+            (str, list),
+        ):
+            raise CurationConfigError(
+                f"records[{index}].metadata_overrides.keywords must be a string or list"
+            )
+        for override_key in DIRECT_REST_METADATA_OVERRIDE_KEYS - {"keywords"}:
+            if override_key in metadata_overrides and not isinstance(
+                metadata_overrides[override_key],
+                str,
+            ):
+                raise CurationConfigError(
+                    f"records[{index}].metadata_overrides.{override_key} "
+                    "must be a string"
+                )
         if not filename_stem:
             raise CurationConfigError(f"records[{index}].filename is empty")
         if source_id in seen_ids:
@@ -256,6 +384,12 @@ def load_job_config(config_path: Path | str) -> JobConfig:
                 source_id=source_id,
                 filename_stem=filename_stem,
                 basic_theme=basic_theme,
+                temporal_year=temporal_year,
+                source_type=source_type,
+                service_url=service_url,
+                portal_url=portal_url,
+                item_id=item_id,
+                metadata_overrides=dict(metadata_overrides),
             )
         )
 
@@ -350,6 +484,172 @@ def default_request_json(
     return payload
 
 
+def _first_text(*values: Any) -> str:
+    for value in values:
+        if value is None:
+            continue
+        cleaned = str(value).strip()
+        if cleaned:
+            return cleaned
+    return ""
+
+
+def _arcgis_timestamp_date(value: Any) -> str:
+    try:
+        timestamp = int(value) / 1000
+    except (TypeError, ValueError):
+        return ""
+    return datetime.fromtimestamp(timestamp, timezone.utc).date().isoformat()
+
+
+def _direct_rest_keywords(value: Any, geometry_type: str) -> list[str]:
+    if isinstance(value, str):
+        keywords = [part.strip() for part in value.split("|")]
+    elif isinstance(value, list):
+        keywords = [str(part).strip() for part in value]
+    else:
+        keywords = []
+    geometry_keyword = {
+        "esrigeometrypolygon": "polygon",
+        "esrigeometrypolyline": "line",
+        "esrigeometrypoint": "point",
+        "esrigeometrymultipoint": "point",
+    }.get(geometry_type.casefold(), "")
+    if geometry_keyword:
+        keywords.append(geometry_keyword)
+    return list(dict.fromkeys(keyword for keyword in keywords if keyword))
+
+
+def _item_spatial_extent(value: Any) -> str:
+    try:
+        lower_left, upper_right = value
+        west, south = (float(coordinate) for coordinate in lower_left)
+        east, north = (float(coordinate) for coordinate in upper_right)
+    except (TypeError, ValueError):
+        return ""
+    return f"{west},{south},{east},{north}"
+
+
+def _arcgis_service_root(layer_url: str) -> str:
+    return ARCGIS_LAYER_URL_RE.sub(
+        lambda match: match.group(0).rsplit("/", 1)[0],
+        layer_url,
+    )
+
+
+def build_direct_rest_resource(
+    record: RecordSpec,
+    requester: JsonRequester,
+) -> dict[str, Any]:
+    """Build a DCAT-shaped resource from a configured ArcGIS REST layer."""
+    layer_url = record.service_url
+    layer_metadata = requester(layer_url, {"f": "pjson"}, "GET")
+    geometry_type = str(layer_metadata.get("geometryType", "")).casefold()
+    resource_type = GEOMETRY_RESOURCE_TYPES.get(geometry_type)
+    if not resource_type:
+        raise RuntimeError(
+            f"Direct ArcGIS REST source is not a supported vector layer: {layer_url}"
+        )
+    capabilities = str(layer_metadata.get("capabilities", "")).casefold()
+    if capabilities and "query" not in capabilities:
+        raise RuntimeError(f"Direct ArcGIS REST layer does not support Query: {layer_url}")
+
+    service_url = _arcgis_service_root(layer_url)
+    service_metadata = requester(service_url, {"f": "pjson"}, "GET")
+    item_id = _first_text(
+        record.item_id,
+        layer_metadata.get("serviceItemId"),
+        service_metadata.get("serviceItemId"),
+    )
+    item_metadata: dict[str, Any] = {}
+    item_api_url = ""
+    if item_id:
+        item_api_url = (
+            f"{record.portal_url}/sharing/rest/content/items/{item_id}"
+        )
+        try:
+            item_metadata = requester(item_api_url, {"f": "pjson"}, "GET")
+        except (requests.RequestException, RuntimeError, ValueError) as exc:
+            LOGGER.warning(
+                "Could not load ArcGIS item metadata for %s; using REST layer metadata: %s",
+                layer_url,
+                exc,
+            )
+
+    overrides = record.metadata_overrides or {}
+    item_page = (
+        f"{record.portal_url}/home/item.html?id={item_id}"
+        if item_id
+        else ""
+    )
+    layer_match = ARCGIS_LAYER_URL_RE.search(layer_url)
+    layer_id = layer_match.group("layer_id") if layer_match else ""
+    identifier = (
+        f"{item_page}&sublayer={layer_id}"
+        if item_page and layer_id
+        else layer_url
+    )
+    keywords_value = (
+        overrides["keywords"]
+        if "keywords" in overrides
+        else item_metadata.get("tags", [])
+    )
+    creator = _first_text(
+        overrides.get("creator"),
+        item_metadata.get("accessInformation"),
+        item_metadata.get("owner"),
+    )
+    description = _first_text(
+        overrides.get("description"),
+        item_metadata.get("description"),
+        item_metadata.get("snippet"),
+        layer_metadata.get("description"),
+        service_metadata.get("description"),
+        service_metadata.get("serviceDescription"),
+    )
+    rights = _first_text(
+        overrides.get("rights"),
+        item_metadata.get("licenseInfo"),
+    )
+    title = _first_text(
+        overrides.get("title"),
+        item_metadata.get("title"),
+        layer_metadata.get("name"),
+    )
+    landing_page = _first_text(
+        overrides.get("landing_page"),
+        item_page,
+        layer_url,
+    )
+
+    return {
+        "identifier": identifier,
+        "landingPage": landing_page,
+        "title": title,
+        "description": description,
+        "publisher": {"name": creator},
+        "keyword": _direct_rest_keywords(keywords_value, geometry_type),
+        "issued": _arcgis_timestamp_date(item_metadata.get("created")),
+        "modified": _arcgis_timestamp_date(
+            item_metadata.get("modified")
+            or (layer_metadata.get("editingInfo") or {}).get("dataLastEditDate")
+        ),
+        "license": rights,
+        "spatial": _item_spatial_extent(item_metadata.get("extent")),
+        "distribution": [
+            {
+                "title": "ArcGIS GeoService",
+                "accessURL": layer_url,
+            }
+        ],
+        "_curation_metadata_source": (
+            "arcgis_rest_item" if item_metadata else "arcgis_rest_layer"
+        ),
+        "_curation_item_id": item_id,
+        "_curation_item_url": item_page,
+    }
+
+
 def normalized_catalog_id(resource: dict[str, Any]) -> str:
     """Return the ArcGIS item ID with an optional sublayer suffix."""
     _, resource_id = arcgis_harvest_identifier_and_id(str(resource.get("identifier", "")))
@@ -378,6 +678,41 @@ def select_catalog_records(
             selected.append((record, resource))
     if missing:
         raise RuntimeError(f"Selected ArcGIS IDs not found in DCAT catalog: {', '.join(missing)}")
+    return selected
+
+
+def resolve_selected_records(
+    job: JobConfig,
+    *,
+    requester: JsonRequester,
+    catalog: dict[str, Any] | None = None,
+) -> list[tuple[RecordSpec, dict[str, Any]]]:
+    """Resolve configured records from DCAT or explicit ArcGIS REST layers."""
+    dcat_records = [
+        record for record in job.records if record.source_type == "dcat"
+    ]
+    selected_dcat: dict[str, dict[str, Any]] = {}
+    if dcat_records:
+        catalog_payload = (
+            catalog
+            if catalog is not None
+            else requester(job.dcat_api, None, "GET")
+        )
+        selected_dcat = {
+            record.source_id: resource
+            for record, resource in select_catalog_records(
+                catalog_payload,
+                dcat_records,
+            )
+        }
+
+    selected: list[tuple[RecordSpec, dict[str, Any]]] = []
+    for record in job.records:
+        if record.source_type == DIRECT_REST_SOURCE_TYPE:
+            resource = build_direct_rest_resource(record, requester)
+        else:
+            resource = selected_dcat[record.source_id]
+        selected.append((record, resource))
     return selected
 
 
@@ -511,13 +846,20 @@ def apply_historical_title_and_description(
         or str(resource.get("title", "")).strip()
         for record, resource in selected
     }
+    configured_years = {
+        record.source_id: record.temporal_year
+        for record, _ in selected
+        if record.temporal_year
+    }
 
     for index in dataframe.index:
         source_id = str(source_ids.loc[index])
         basic_theme = basic_themes.get(source_id, "").strip()
         controlled_place = str(dataframe.loc[index, "Spatial Coverage"]).split("|")[0].strip()
         description_place = humanize_spatial_coverage(controlled_place)
-        year = temporal_coverage_year(dataframe.loc[index, "Temporal Coverage"])
+        year = configured_years.get(source_id) or temporal_coverage_year(
+            dataframe.loc[index, "Temporal Coverage"]
+        )
         if not basic_theme or not controlled_place or not year:
             raise RuntimeError(
                 "Historical title inputs are incomplete for "
@@ -535,6 +877,9 @@ def apply_historical_title_and_description(
         dataframe.loc[index, "Description"] = (
             f"{prefix} {existing_description}" if existing_description else prefix
         )
+        if source_id in configured_years:
+            dataframe.loc[index, "Temporal Coverage"] = year
+            dataframe.loc[index, "Date Range"] = f"{year}-{year}"
 
     return dataframe
 
@@ -546,18 +891,13 @@ def build_metadata_dataframe(
 ) -> pd.DataFrame:
     """Apply ArcGIS harvester rules, followed by curation-specific exceptions."""
     website_defaults = load_website_defaults(job)
-    workflow = {
+    dcat_workflow = {
         "Endpoint URL": job.dcat_api,
         "Website Platform": "ArcGIS Hub",
         "Endpoint Description": "DCAT-US 1.1",
         "Accrual Method": "Manual curation",
         "Harvest Workflow": "Manual curation",
     }
-    flattened = [
-        {"workflow": workflow, "hub_defaults": website_defaults, "resource": resource}
-        for _, resource in selected
-    ]
-
     harvester = ArcGISHarvester(
         {
             "input_csv": str(job.config_path),
@@ -571,24 +911,54 @@ def build_metadata_dataframe(
     )
     harvester.theme_map = load_theme_map(REPO_ROOT / "reference_data" / "themes.csv")
 
-    dataframe = pd.DataFrame(flattened)
-    dataframe = harvester.build_dataframe(dataframe)
-    if len(dataframe) != len(selected):
-        retained_ids = set(dataframe.get("identifier_raw", pd.Series(dtype=str)).astype(str))
-        rejected = [
-            record.source_id
-            for record, resource in selected
-            if str(resource.get("identifier", "")) not in retained_ids
-        ]
+    mapped_records: list[pd.DataFrame] = []
+    rejected: list[str] = []
+    for record, resource in selected:
+        workflow = (
+            {
+                **dcat_workflow,
+                "Endpoint URL": record.service_url,
+                "Website Platform": "ArcGIS REST",
+                "Endpoint Description": "ArcGIS REST layer",
+            }
+            if record.source_type == DIRECT_REST_SOURCE_TYPE
+            else dcat_workflow
+        )
+        flattened_record = pd.DataFrame(
+            [
+                {
+                    "workflow": workflow,
+                    "hub_defaults": website_defaults,
+                    "resource": resource,
+                }
+            ]
+        )
+        if record.source_type == DIRECT_REST_SOURCE_TYPE:
+            mapped = (
+                flattened_record.pipe(arcgis_map_to_schema)
+                .pipe(arcgis_extract_distributions)
+            )
+        else:
+            mapped = harvester.build_dataframe(flattened_record)
+        if mapped.empty:
+            rejected.append(record.source_id)
+        else:
+            mapped_records.append(mapped)
+    if rejected:
         raise RuntimeError(
             "Selected records did not pass the ArcGIS harvester's distribution filter: "
             + ", ".join(rejected)
         )
+    dataframe = pd.concat(mapped_records, ignore_index=True)
 
     dataframe = harvester.derive_fields(dataframe)
     dataframe = harvester.add_defaults(dataframe)
     dataframe = BaseHarvester.add_provenance(harvester, dataframe)
-    source_ids = dataframe["ID"].copy()
+    source_ids = pd.Series(
+        [record.source_id for record, _ in selected],
+        index=dataframe.index,
+        dtype=str,
+    )
     service_urls = {
         record.source_id: arcgis_service_url(resource)
         for record, resource in selected
@@ -655,6 +1025,22 @@ def build_manifest(
                 "filename": record.filename,
                 "landing_page": str(resource.get("landingPage", "")).strip(),
                 "service_url": arcgis_service_url(resource),
+                "source_type": record.source_type,
+                "metadata_source": str(
+                    resource.get("_curation_metadata_source", "dcat")
+                ),
+                **(
+                    {
+                        "item_id": str(
+                            resource.get("_curation_item_id", "")
+                        ),
+                        "item_url": str(
+                            resource.get("_curation_item_url", "")
+                        ),
+                    }
+                    if record.source_type == DIRECT_REST_SOURCE_TYPE
+                    else {}
+                ),
             }
             for record, resource in selected
         ],
@@ -761,9 +1147,12 @@ def run_metadata_stage(
     requester: JsonRequester = default_request_json,
     catalog: dict[str, Any] | None = None,
 ) -> Path:
-    """Fetch selected DCAT records and write the manual-review metadata CSV."""
-    catalog_payload = catalog if catalog is not None else requester(job.dcat_api, None, "GET")
-    selected = select_catalog_records(catalog_payload, job.records)
+    """Resolve selected ArcGIS records and write the manual-review metadata CSV."""
+    selected = resolve_selected_records(
+        job,
+        requester=requester,
+        catalog=catalog,
+    )
     curated_ids = assign_curated_ids(job)
     dataframe = build_metadata_dataframe(job, selected, curated_ids)
     write_metadata_csv(dataframe, job.metadata_path)
@@ -782,29 +1171,41 @@ def file_sha256(path: Path) -> str:
 def collect_artifact_records(job: JobConfig) -> list[dict[str, Any]]:
     """Describe generated artifacts without copying them into the run record."""
     artifacts: list[dict[str, Any]] = []
-    for directory_name, role in ARTIFACT_DIRECTORIES.items():
-        directory = job.work_dir / directory_name
+    artifact_locations: list[tuple[Path, str]] = []
+    for record in job.records:
+        directory = job.resource_dir(record.filename)
         if not directory.is_dir():
             continue
         for artifact_path in sorted(path for path in directory.rglob("*") if path.is_file()):
             if artifact_path.name == ".DS_Store":
                 continue
-            relative_path = artifact_path.relative_to(job.work_dir).as_posix()
-            size_bytes = artifact_path.stat().st_size
-            LOGGER.info(
-                "Recording %s artifact (%s bytes): %s",
-                role,
-                size_bytes,
-                relative_path,
-            )
-            artifacts.append(
-                {
-                    "role": role,
-                    "path": relative_path,
-                    "size_bytes": size_bytes,
-                    "sha256": file_sha256(artifact_path),
-                }
-            )
+            role = RESOURCE_ARTIFACT_ROLES.get(artifact_path.suffix.casefold())
+            if role:
+                artifact_locations.append((artifact_path, role))
+    if job.report_dir.is_dir():
+        artifact_locations.extend(
+            (path, "report")
+            for path in sorted(job.report_dir.rglob("*"))
+            if path.is_file() and path.name != ".DS_Store"
+        )
+
+    for artifact_path, role in artifact_locations:
+        relative_path = artifact_path.relative_to(job.work_dir).as_posix()
+        size_bytes = artifact_path.stat().st_size
+        LOGGER.info(
+            "Recording %s artifact (%s bytes): %s",
+            role,
+            size_bytes,
+            relative_path,
+        )
+        artifacts.append(
+            {
+                "role": role,
+                "path": relative_path,
+                "size_bytes": size_bytes,
+                "sha256": file_sha256(artifact_path),
+            }
+        )
     return artifacts
 
 
@@ -1146,7 +1547,7 @@ def run_download_stage(
     manifest = require_confirmed_review(job)
     results = []
     for record in manifest["records"]:
-        output_path = job.gpkg_dir / record["filename"]
+        output_path = job.gpkg_path(record["filename"])
         if output_path.is_file() and not overwrite:
             LOGGER.info("Skipping existing GeoPackage: %s", output_path)
             results.append(
@@ -1201,7 +1602,7 @@ def run_enrich_stage(
     dataframe = dataframe.set_index("filename", drop=False)
     details = []
     for record in manifest["records"]:
-        gpkg_path = job.gpkg_dir / record["filename"]
+        gpkg_path = job.gpkg_path(record["filename"])
         if not gpkg_path.is_file():
             raise RuntimeError(f"GeoPackage is missing; run download first: {gpkg_path}")
         service_url = record["service_url"]
@@ -1262,14 +1663,14 @@ def run_dictionary_stage(
 ) -> None:
     manifest = require_confirmed_review(job)
     metadata = validate_reviewed_metadata(job).set_index("filename")
-    job.dictionary_dir.mkdir(parents=True, exist_ok=True)
     outputs: list[str] = []
     for record in manifest["records"]:
         layer_metadata = requester(record["service_url"], {"f": "pjson"}, "GET")
         fields = layer_metadata.get("fields") or []
         if not isinstance(fields, list):
             raise RuntimeError(f"ArcGIS fields are not a list: {record['service_url']}")
-        output_path = job.dictionary_dir / f"{Path(record['filename']).stem}.csv"
+        output_path = job.dictionary_path(record["filename"])
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w", newline="", encoding="utf-8") as handle:
             writer = csv.DictWriter(handle, fieldnames=DICTIONARY_COLUMNS)
             writer.writeheader()
@@ -1296,11 +1697,15 @@ def run_embed_stage(job: JobConfig) -> None:
     require_confirmed_review(job)
     validate_enriched_metadata(job)
     expected = {record.filename for record in job.records}
-    missing = sorted(filename for filename in expected if not (job.gpkg_dir / filename).is_file())
+    missing = sorted(
+        record.filename
+        for record in job.records
+        if not job.gpkg_path(record.filename).is_file()
+    )
     if missing:
         raise RuntimeError(f"GeoPackages are missing before metadata embedding: {', '.join(missing)}")
     summary = embed_metadata_directory(
-        job.gpkg_dir,
+        job.work_dir,
         job.metadata_path,
         get_default_template_path(),
         match_column="filename",
@@ -1308,20 +1713,25 @@ def run_embed_stage(job: JobConfig) -> None:
     processed = set(summary.processed_files)
     if not expected.issubset(processed):
         raise RuntimeError(
-            f"Metadata was not embedded in every selected GeoPackage: {sorted(expected - processed)}"
+            f"Metadata was not embedded in every selected GeoPackage: "
+            f"{sorted(expected - processed)}"
         )
-    mark_stage(job, "embed", details={"outputs": summary.processed_files})
+    outputs = [
+        str(job.gpkg_path(record.filename))
+        for record in job.records
+    ]
+    mark_stage(job, "embed", details={"outputs": outputs})
 
 
 def run_thumbnail_stage(job: JobConfig) -> None:
     require_confirmed_review(job)
-    job.thumbnail_dir.mkdir(parents=True, exist_ok=True)
     outputs = []
     for record in job.records:
-        gpkg_path = job.gpkg_dir / record.filename
+        gpkg_path = job.gpkg_path(record.filename)
         if not gpkg_path.is_file():
             raise RuntimeError(f"GeoPackage is missing before thumbnail creation: {gpkg_path}")
-        thumbnail_path = job.thumbnail_dir / f"{record.filename_stem}.png"
+        thumbnail_path = job.thumbnail_path(record.filename)
+        thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
         create_vector_thumbnail(gpkg_path, thumbnail_path)
         outputs.append(str(thumbnail_path))
     mark_stage(job, "thumbnails", details={"outputs": outputs})
@@ -1329,19 +1739,20 @@ def run_thumbnail_stage(job: JobConfig) -> None:
 
 def run_derivatives_stage(job: JobConfig, *, overwrite: bool = False) -> None:
     require_confirmed_review(job)
-    script_path = REPO_ROOT / "curation" / "build_pmtiles_from_gpkg.py"
+    script_path = REPO_ROOT / "curation" / "scripts" / "build_pmtiles_from_gpkg.py"
     report_path = job.report_dir / "pmtiles_build_report.csv"
     command = [
         sys.executable,
         str(script_path),
         "--input-dir",
-        str(job.gpkg_dir),
+        str(job.work_dir),
         "--fgb-dir",
-        str(job.fgb_dir),
+        str(job.work_dir),
         "--pmtiles-dir",
-        str(job.pmtiles_dir),
+        str(job.work_dir),
         "--report",
         str(report_path),
+        "--resource-layout",
     ]
     if job.pmtiles_config:
         command.extend(["--config", str(job.pmtiles_config)])
