@@ -1,0 +1,398 @@
+{
+  "version": 1,
+  "job_id": "champaign-2026",
+  "config_path": "curation/jobs/champaign-2026.yaml",
+  "work_directory": "curation/work/champaign-2026",
+  "metadata_path": "metadata/metadata.csv",
+  "config_sha256": "d67cb1c103a29772cd9b35bae44b8e680ba54e9e8e695f6a57bf158599556802",
+  "created_at": "2026-08-06T22:11:09+00:00",
+  "updated_at": "2026-08-06T22:34:56+00:00",
+  "manual_review": {
+    "status": "confirmed",
+    "confirmed_at": "2026-08-06T22:20:38+00:00",
+    "metadata_sha256": "07898c4530256f0c9673915bc57dac086429070752862cffda7e77dd7d04089a",
+    "pipeline_updated_at": "2026-08-06T22:21:59+00:00"
+  },
+  "stages": {
+    "validate": {
+      "status": "completed",
+      "completed_at": "2026-08-06T22:11:09+00:00"
+    },
+    "metadata": {
+      "status": "completed",
+      "completed_at": "2026-08-06T22:11:09+00:00"
+    },
+    "download": {
+      "status": "completed",
+      "completed_at": "2026-08-06T22:21:50+00:00",
+      "outputs": [
+        {
+          "feature_count": 55166,
+          "geometry_type": "esriGeometryPoint",
+          "output": "cmi_address_2026/cmi_address_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 33171,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "cmi_buildings_2026/cmi_buildings_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 1939,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "cmi_zoning_2026/cmi_zoning_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 5779,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "cmi_streetPavement_2026/cmi_streetPavement_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 29371,
+          "geometry_type": "esriGeometryPoint",
+          "output": "cmi_trees_2026/cmi_trees_2026.gpkg",
+          "status": "downloaded"
+        }
+      ]
+    },
+    "enrich": {
+      "status": "completed",
+      "completed_at": "2026-08-06T22:21:59+00:00",
+      "records": [
+        {
+          "filename": "cmi_address_2026.gpkg",
+          "resource_type": "Point data",
+          "bounding_box": "-88.3585,40.0538,-88.2087,40.1891"
+        },
+        {
+          "filename": "cmi_buildings_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-88.3503,40.0619,-88.2209,40.1861"
+        },
+        {
+          "filename": "cmi_zoning_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-88.3354,40.0619,-88.2212,40.1640"
+        },
+        {
+          "filename": "cmi_streetPavement_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-88.3336,40.0619,-88.2226,40.1709"
+        },
+        {
+          "filename": "cmi_trees_2026.gpkg",
+          "resource_type": "Point data",
+          "bounding_box": "-88.3330,40.0619,-88.2268,40.1634"
+        }
+      ]
+    },
+    "dictionaries": {
+      "status": "completed",
+      "completed_at": "2026-08-06T22:22:37+00:00",
+      "outputs": [
+        "cmi_address_2026/cmi_address_2026.csv",
+        "cmi_buildings_2026/cmi_buildings_2026.csv",
+        "cmi_zoning_2026/cmi_zoning_2026.csv",
+        "cmi_streetPavement_2026/cmi_streetPavement_2026.csv",
+        "cmi_trees_2026/cmi_trees_2026.csv"
+      ]
+    },
+    "embed": {
+      "status": "completed",
+      "completed_at": "2026-08-06T22:22:42+00:00",
+      "outputs": [
+        "cmi_address_2026/cmi_address_2026.gpkg",
+        "cmi_buildings_2026/cmi_buildings_2026.gpkg",
+        "cmi_zoning_2026/cmi_zoning_2026.gpkg",
+        "cmi_streetPavement_2026/cmi_streetPavement_2026.gpkg",
+        "cmi_trees_2026/cmi_trees_2026.gpkg"
+      ]
+    },
+    "thumbnails": {
+      "status": "completed",
+      "completed_at": "2026-08-06T22:22:53+00:00",
+      "outputs": [
+        "cmi_address_2026/cmi_address_2026.png",
+        "cmi_buildings_2026/cmi_buildings_2026.png",
+        "cmi_zoning_2026/cmi_zoning_2026.png",
+        "cmi_streetPavement_2026/cmi_streetPavement_2026.png",
+        "cmi_trees_2026/cmi_trees_2026.png"
+      ]
+    },
+    "derivatives": {
+      "status": "completed",
+      "completed_at": "2026-08-06T22:23:41+00:00",
+      "report": "reports/pmtiles_build_report.csv"
+    },
+    "zip": {
+      "status": "completed",
+      "completed_at": "2026-08-06T22:34:56+00:00",
+      "outputs": [
+        "cmi_address_2026/cmi_address_2026.gpkg.zip",
+        "cmi_buildings_2026/cmi_buildings_2026.gpkg.zip",
+        "cmi_zoning_2026/cmi_zoning_2026.gpkg.zip",
+        "cmi_streetPavement_2026/cmi_streetPavement_2026.gpkg.zip",
+        "cmi_trees_2026/cmi_trees_2026.gpkg.zip"
+      ]
+    },
+    "snapshot": {
+      "status": "completed",
+      "completed_at": "2026-08-06T22:48:24+00:00"
+    }
+  },
+  "records": [
+    {
+      "source_id": "7b2c48600f4f44dab4ccaab4a051ef4b_7",
+      "curated_id": "b1g_3PAMf6MhgCua",
+      "filename": "cmi_address_2026.gpkg",
+      "landing_page": "https://gis-cityofchampaign.opendata.arcgis.com/datasets/cityofchampaign::address-points",
+      "service_url": "https://gisportal.champaignil.gov/ms/rest/services/Open_Data/Open_Data/MapServer/7",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "72615ddaf485406f866f1a5d7fe12a66_9",
+      "curated_id": "b1g_dPAT5PTMftQi",
+      "filename": "cmi_buildings_2026.gpkg",
+      "landing_page": "https://gis-cityofchampaign.opendata.arcgis.com/datasets/cityofchampaign::building-footprints",
+      "service_url": "https://gisportal.champaignil.gov/ms/rest/services/Open_Data/Open_Data/MapServer/9",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "a24e403a9fa245dbaaaf46f766860c40_15",
+      "curated_id": "b1g_t5IIq8GBewtB",
+      "filename": "cmi_zoning_2026.gpkg",
+      "landing_page": "https://gis-cityofchampaign.opendata.arcgis.com/datasets/cityofchampaign::zoning-zoning-classifications",
+      "service_url": "https://gisportal.champaignil.gov/ms/rest/services/Open_Data/Open_Data/MapServer/15",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "4f06b4eeb5324323bb4219c82828324f_32",
+      "curated_id": "b1g_1ectFpAYHvI9",
+      "filename": "cmi_streetPavement_2026.gpkg",
+      "landing_page": "https://gis-cityofchampaign.opendata.arcgis.com/datasets/cityofchampaign::pavement",
+      "service_url": "https://gisportal.champaignil.gov/ms/rest/services/Open_Data/Open_Data/MapServer/32",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "979bbeefffea408e8f1cb7a397196c64_22",
+      "curated_id": "b1g_q4VciFpiMEmX",
+      "filename": "cmi_trees_2026.gpkg",
+      "landing_page": "https://gis-cityofchampaign.opendata.arcgis.com/datasets/cityofchampaign::city-owned-trees",
+      "service_url": "https://gisportal.champaignil.gov/ms/rest/services/Open_Data/Open_Data/MapServer/22",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    }
+  ],
+  "run_record": {
+    "run_id": "20260806T224824Z",
+    "saved_at": "2026-08-06T22:48:24+00:00",
+    "record_path": "curation/run_records/champaign-2026/20260806T224824Z",
+    "metadata_csv": "metadata.csv",
+    "job_config": "job.yaml",
+    "git": {
+      "revision": "8015c884114361bb3992c737efa3d8c0d4f6b0f8",
+      "dirty": true
+    }
+  },
+  "artifacts": [
+    {
+      "role": "data_dictionary",
+      "path": "cmi_address_2026/cmi_address_2026.csv",
+      "size_bytes": 6909,
+      "sha256": "08b7397ed71d17db13b50eb3b48ccfa93ded23874e06a56082f16a568f12dcce"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "cmi_address_2026/cmi_address_2026.fgb",
+      "size_bytes": 28373872,
+      "sha256": "ed8a57286a18825d4179fc49cf478eec9283d27702d9165d9e4bce8f41d5a5c2"
+    },
+    {
+      "role": "geopackage",
+      "path": "cmi_address_2026/cmi_address_2026.gpkg",
+      "size_bytes": 24915968,
+      "sha256": "308aae6d7c2cce36aff853968ff6e44f40deecfd496295f6cb4ca3500670e9de"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "cmi_address_2026/cmi_address_2026.gpkg.zip",
+      "size_bytes": 5393598,
+      "sha256": "5673d39138058ecbf08c2f8d8c0d74b1fb6d45f427d23e8ae899a8d332467a9e"
+    },
+    {
+      "role": "pmtiles",
+      "path": "cmi_address_2026/cmi_address_2026.pmtiles",
+      "size_bytes": 7313144,
+      "sha256": "f479d5bd26631a36070df69b0d269c041b9f8feb943bba1dabe03e30092c8db6"
+    },
+    {
+      "role": "thumbnail",
+      "path": "cmi_address_2026/cmi_address_2026.png",
+      "size_bytes": 23843,
+      "sha256": "93d442f2b02acd0d62f8c16206ad3b1a6863b56cbdea971db46e7d34510130bd"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "cmi_buildings_2026/cmi_buildings_2026.csv",
+      "size_bytes": 2233,
+      "sha256": "c3524caf7909ab196973617e378ee454f29fc7c3ea3ef70cd59096c2bfb11dcd"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "cmi_buildings_2026/cmi_buildings_2026.fgb",
+      "size_bytes": 15757696,
+      "sha256": "e25a3d790e4b36d0f66fdb546cc5711c00da8f3d918780dfc027dc7a3f1c5b87"
+    },
+    {
+      "role": "geopackage",
+      "path": "cmi_buildings_2026/cmi_buildings_2026.gpkg",
+      "size_bytes": 14434304,
+      "sha256": "db6edf72a41141159bd0d6b792b6070e687236e5d10299eeaa13415e2a3798e0"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "cmi_buildings_2026/cmi_buildings_2026.gpkg.zip",
+      "size_bytes": 7172658,
+      "sha256": "ab4443601f0f3602c2ddd8a72ed168f5e35a24b168171c9381301a611328e76b"
+    },
+    {
+      "role": "pmtiles",
+      "path": "cmi_buildings_2026/cmi_buildings_2026.pmtiles",
+      "size_bytes": 6979088,
+      "sha256": "4169487a38e28c02028168285a32084dc8a445586b6009c8aa651c9adc66fb77"
+    },
+    {
+      "role": "thumbnail",
+      "path": "cmi_buildings_2026/cmi_buildings_2026.png",
+      "size_bytes": 18526,
+      "sha256": "63241988d1101ce68cd141590870a2c6578c97ac5db54b51af1b23c293573902"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "cmi_zoning_2026/cmi_zoning_2026.csv",
+      "size_bytes": 3130,
+      "sha256": "dcb3563481e3a509b875317e95db8ee387cc9cdd55cd5e296b80c58657cff759"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "cmi_zoning_2026/cmi_zoning_2026.fgb",
+      "size_bytes": 2162704,
+      "sha256": "b1947e03e8417a31e5cc591c070732227f7e8f260c87d2a86a3f24eeade3d449"
+    },
+    {
+      "role": "geopackage",
+      "path": "cmi_zoning_2026/cmi_zoning_2026.gpkg",
+      "size_bytes": 2580480,
+      "sha256": "89a4cc63e454bcc6f902deeef75d8e176ba28de8d4168c6e8f3536361080bfa3"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "cmi_zoning_2026/cmi_zoning_2026.gpkg.zip",
+      "size_bytes": 1408207,
+      "sha256": "c0794ee7e446c47e5f1f5c833dc77f52462d1eb3b46c624651fa28cc3f2b4430"
+    },
+    {
+      "role": "pmtiles",
+      "path": "cmi_zoning_2026/cmi_zoning_2026.pmtiles",
+      "size_bytes": 1118487,
+      "sha256": "79acc256ec05bf72d91ba16c97b4013156623e200c6108a9289c1c9cc253d725"
+    },
+    {
+      "role": "thumbnail",
+      "path": "cmi_zoning_2026/cmi_zoning_2026.png",
+      "size_bytes": 27299,
+      "sha256": "9303f8acf812b83a93048daed6ae4f18cc7047481476f911de6cde300eeb77af"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "cmi_streetPavement_2026/cmi_streetPavement_2026.csv",
+      "size_bytes": 1865,
+      "sha256": "ba5022f85cface12f62406b3451c9ea596440415ded19a1e39215c84241725f7"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "cmi_streetPavement_2026/cmi_streetPavement_2026.fgb",
+      "size_bytes": 14337680,
+      "sha256": "01f726ba1fea867d19fa28e2133f672874362e44994c2657c836d0fef62598b0"
+    },
+    {
+      "role": "geopackage",
+      "path": "cmi_streetPavement_2026/cmi_streetPavement_2026.gpkg",
+      "size_bytes": 16609280,
+      "sha256": "4563625d5c8386cf3ed5aa90869f2e95bd457a4a3c32dbf94b669f7f52821824"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "cmi_streetPavement_2026/cmi_streetPavement_2026.gpkg.zip",
+      "size_bytes": 10003166,
+      "sha256": "f5a2117d9157c49f4786c2d309105f6ec0db875d22bfafa1e4b0eb8b3d6cc202"
+    },
+    {
+      "role": "pmtiles",
+      "path": "cmi_streetPavement_2026/cmi_streetPavement_2026.pmtiles",
+      "size_bytes": 4443581,
+      "sha256": "1bfb5718072c45291ef878a25374539b55a61e5701dce4c8418da69f5d3fbdbc"
+    },
+    {
+      "role": "thumbnail",
+      "path": "cmi_streetPavement_2026/cmi_streetPavement_2026.png",
+      "size_bytes": 20441,
+      "sha256": "3f8bccbe2eab5f587f8077ad658d1ae7c672dc5fffaa3ec06ec7ce619249b573"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "cmi_trees_2026/cmi_trees_2026.csv",
+      "size_bytes": 28704,
+      "sha256": "5cd0a06401f8cff5c78118fd220744de664d9c3f74e84136e5bc43954291c204"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "cmi_trees_2026/cmi_trees_2026.fgb",
+      "size_bytes": 14039192,
+      "sha256": "788050a0b394a05c8b2c78e1c117759694319a1e3ea1f4bc5c005e24a8cfb9ac"
+    },
+    {
+      "role": "geopackage",
+      "path": "cmi_trees_2026/cmi_trees_2026.gpkg",
+      "size_bytes": 11980800,
+      "sha256": "dd97c80b389758eadf1556be40e7f3dc698cba1a62788331d101e4091c0058c9"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "cmi_trees_2026/cmi_trees_2026.gpkg.zip",
+      "size_bytes": 4019335,
+      "sha256": "c592902ea2779edf0771c83bcf334c1a5ce93377e975fb69edd9e4600afbb181"
+    },
+    {
+      "role": "pmtiles",
+      "path": "cmi_trees_2026/cmi_trees_2026.pmtiles",
+      "size_bytes": 5924608,
+      "sha256": "13778b5b97edf97dc01cd733cd624c95d846f48b2d9b85a9dddbe77fb5ebcee0"
+    },
+    {
+      "role": "thumbnail",
+      "path": "cmi_trees_2026/cmi_trees_2026.png",
+      "size_bytes": 16650,
+      "sha256": "0aba13b9addb2878e38ef1fea9a1c2ce0292dce99de7bc0060b03c72c2697c71"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report.csv",
+      "size_bytes": 226983,
+      "sha256": "f316f4f1c32953a4e45978ab9c78a961b770a2017144a692f92f6a53e95171b4"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report_fields.csv",
+      "size_bytes": 20703,
+      "sha256": "b1b7d3d90f0dc139b54ee58c914f240c86fdc0ac0947a46e1eae2ccd3143d6ac"
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from zipfile import ZipFile
 
 import pandas as pd
 import pytest
@@ -29,6 +30,7 @@ from curation.arcgis_curation_pipeline import (  # noqa: E402
     run_enrich_stage,
     run_metadata_stage,
     run_thumbnail_stage,
+    run_zip_stage,
     save_run_record,
 )
 
@@ -214,7 +216,15 @@ def test_copyable_job_template_is_valid_yaml() -> None:
     assert template["provider"] == "BTAA-GIN"
     assert template["metadata"]["member_of"] == "b1g_urbanBaseLayers"
     assert set(template["selection_criteria"]) == {"allowed_resource_types"}
-    assert template["records"][0]["basic_theme"] == "<basic-theme>"
+    assert [record["basic_theme"] for record in template["records"]] == [
+        "Address Points",
+        "Building Footprints",
+        "Municipal Boundary",
+        "Parcels",
+        "Parks",
+        "Streets",
+        "Zoning",
+    ]
 
 
 def test_config_rejects_duplicate_output_filenames(tmp_path: Path) -> None:
@@ -590,6 +600,27 @@ def test_derivatives_stage_runs_builder_from_curation_scripts(
     assert command[-1] == "--skip-existing"
     manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
     assert manifest["stages"]["derivatives"]["status"] == "completed"
+
+
+def test_zip_stage_creates_one_upload_archive_per_geopackage(tmp_path: Path) -> None:
+    job = load_job_config(write_config(tmp_path))
+    run_metadata_stage(job, catalog=catalog_fixture())
+    confirm_manual_review(job, confirmed=True)
+    gpkg_path = job.gpkg_path("stp_zoning_2026.gpkg")
+    gpkg_path.parent.mkdir(parents=True)
+    gpkg_path.write_bytes(b"geopackage payload")
+
+    run_zip_stage(job)
+
+    archive_path = gpkg_path.with_name(f"{gpkg_path.name}.zip")
+    assert archive_path.is_file()
+    with ZipFile(archive_path) as archive:
+        assert archive.namelist() == [gpkg_path.name]
+        assert archive.read(gpkg_path.name) == b"geopackage payload"
+    manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+    assert manifest["stages"]["zip"]["outputs"] == [
+        "stp_zoning_2026/stp_zoning_2026.gpkg.zip"
+    ]
 
 
 def test_dictionary_and_thumbnail_stages_write_into_resource_directory(

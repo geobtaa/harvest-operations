@@ -167,6 +167,12 @@ def test_pipeline_command_uses_curation_project_and_stage_flags() -> None:
         overwrite=True,
         uv_executable="/usr/local/bin/uv",
     )
+    zip_command = arcgis_curation.build_pipeline_command(
+        config_path,
+        "zip",
+        overwrite=True,
+        uv_executable="/usr/local/bin/uv",
+    )
     snapshot_command = arcgis_curation.build_pipeline_command(
         config_path,
         "snapshot",
@@ -181,6 +187,7 @@ def test_pipeline_command_uses_curation_project_and_stage_flags() -> None:
     ]
     assert review_command[-2:] == ["review", "--confirm"]
     assert postprocess_command[-2:] == ["postprocess", "--overwrite"]
+    assert zip_command[-2:] == ["zip", "--overwrite"]
     assert snapshot_command[-1] == "snapshot"
 
 
@@ -223,6 +230,7 @@ def test_arcgis_curation_page_exposes_individual_and_postprocess_tasks() -> None
         "embed",
         "thumbnails",
         "derivatives",
+        "zip",
         "postprocess",
         "snapshot",
     ):
