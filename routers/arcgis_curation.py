@@ -39,11 +39,12 @@ PIPELINE_STAGES = frozenset(
         "embed",
         "thumbnails",
         "derivatives",
+        "zip",
         "postprocess",
         "snapshot",
     }
 )
-OVERWRITE_STAGES = frozenset({"download", "derivatives", "postprocess"})
+OVERWRITE_STAGES = frozenset({"download", "derivatives", "zip", "postprocess"})
 _active_jobs: set[str] = set()
 
 

@@ -9,7 +9,7 @@ from zipfile import ZipFile
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from curation.zip_geopackages import zip_geopackages
+from curation.zip_geopackages import zip_geopackages  # noqa: E402
 
 
 class ZipGeopackagesTests(unittest.TestCase):
@@ -30,17 +30,17 @@ class ZipGeopackagesTests(unittest.TestCase):
         summary = zip_geopackages(self.workdir)
 
         created_names = sorted(path.name for path in summary.created_archives)
-        self.assertEqual(["one.zip", "two.zip"], created_names)
+        self.assertEqual(["one.gpkg.zip", "two.gpkg.zip"], created_names)
         self.assertEqual([], summary.skipped_archives)
 
-        with ZipFile(self.workdir / "one.zip") as archive:
+        with ZipFile(self.workdir / "one.gpkg.zip") as archive:
             self.assertEqual(["one.gpkg"], archive.namelist())
             self.assertEqual(b"first geopackage payload", archive.read("one.gpkg"))
 
     def test_skips_existing_zip_without_overwrite(self) -> None:
         gpkg_path = self.workdir / "dataset.gpkg"
         gpkg_path.write_bytes(b"new content")
-        archive_path = self.workdir / "dataset.zip"
+        archive_path = self.workdir / "dataset.gpkg.zip"
 
         with ZipFile(archive_path, mode="w") as archive:
             archive.writestr("dataset.gpkg", b"old content")
@@ -67,7 +67,7 @@ class ZipGeopackagesTests(unittest.TestCase):
             delete_original=True,
         )
 
-        expected_archive = output_dir / "nested" / "dataset.zip"
+        expected_archive = output_dir / "nested" / "dataset.gpkg.zip"
         self.assertEqual([expected_archive], summary.created_archives)
         self.assertFalse(gpkg_path.exists())
 

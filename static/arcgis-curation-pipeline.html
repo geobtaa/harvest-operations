@@ -222,7 +222,7 @@
   <p>Run one task at a time. Stages after metadata will enforce the recorded manual-review checksum.</p>
   <label class="options">
     <input type="checkbox" id="overwrite-toggle" />
-    Overwrite existing downloads and derivatives when supported
+    Overwrite existing downloads, derivatives, and ZIP archives when supported
   </label>
 
   <div class="stage-grid">
@@ -290,9 +290,16 @@
       <span class="stage-status" data-stage-status="derivatives">Not run</span>
     </section>
 
+    <section class="stage-card" data-stage-card="zip" data-status="pending">
+      <h3>9. ZIP GeoPackages</h3>
+      <p>Create one upload-ready ZIP archive for each GeoPackage.</p>
+      <button type="button" data-stage-button onclick="runStage('zip')">ZIP GeoPackages</button>
+      <span class="stage-status" data-stage-status="zip">Not run</span>
+    </section>
+
     <section class="stage-card postprocess" data-stage-card="postprocess" data-status="pending">
       <h3>Postprocess</h3>
-      <p>Run Download, Enrich, Data Dictionaries, Embed Metadata, Thumbnails, and Derivatives in sequence after manual review is confirmed.</p>
+      <p>Run Download, Enrich, Data Dictionaries, Embed Metadata, Thumbnails, Derivatives, and ZIP GeoPackages in sequence after manual review is confirmed.</p>
       <button type="button" data-stage-button onclick="runStage('postprocess')">Run all postprocess tasks</button>
       <span class="stage-status" data-stage-status="postprocess">Not run</span>
     </section>
@@ -329,6 +336,7 @@
       "embed",
       "thumbnails",
       "derivatives",
+      "zip",
     ];
 
     function selectedJobId() {
@@ -401,6 +409,7 @@
         "embed",
         "thumbnails",
         "derivatives",
+        "zip",
         "snapshot",
       ];
       stageNames.forEach((stage) => {
@@ -425,7 +434,7 @@
       setStageVisual(
         "postprocess",
         postprocessCompleted ? "completed" : "pending",
-        postprocessCompleted ? stages.derivatives.completed_at : ""
+        postprocessCompleted ? stages.zip.completed_at : ""
       );
     }
 

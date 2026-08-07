@@ -47,6 +47,7 @@ from curation.embed_qgis_metadata import (  # noqa: E402
     get_default_template_path,
 )
 from curation.thumbnails import create_vector_thumbnail  # noqa: E402
+from curation.zip_geopackages import zip_one_geopackage  # noqa: E402
 
 
 LOGGER = logging.getLogger(__name__)
@@ -89,6 +90,7 @@ SNAPSHOT_REQUIRED_STAGES = (
     "embed",
     "thumbnails",
     "derivatives",
+    "zip",
 )
 RESOURCE_ARTIFACT_ROLES = {
     ".gpkg": "geopackage",
@@ -96,6 +98,7 @@ RESOURCE_ARTIFACT_ROLES = {
     ".pmtiles": "pmtiles",
     ".png": "thumbnail",
     ".csv": "data_dictionary",
+    ".zip": "geopackage_archive",
 }
 
 
@@ -1761,6 +1764,30 @@ def run_derivatives_stage(job: JobConfig, *, overwrite: bool = False) -> None:
     mark_stage(job, "derivatives", details={"report": str(report_path)})
 
 
+def run_zip_stage(job: JobConfig, *, overwrite: bool = False) -> None:
+    """Create one upload-ready ZIP archive for each selected GeoPackage."""
+    require_confirmed_review(job)
+    outputs: list[str] = []
+    for record in job.records:
+        gpkg_path = job.gpkg_path(record.filename)
+        if not gpkg_path.is_file():
+            raise RuntimeError(f"GeoPackage is missing before ZIP creation: {gpkg_path}")
+        result = zip_one_geopackage(
+            gpkg_path,
+            gpkg_path.parent,
+            gpkg_path.parent,
+            overwrite=overwrite,
+            delete_original=False,
+        )
+        archive_path = gpkg_path.with_name(f"{gpkg_path.name}.zip")
+        if not archive_path.is_file():
+            raise RuntimeError(f"GeoPackage ZIP was not created: {archive_path}")
+        outputs.append(str(archive_path))
+        if result is None:
+            LOGGER.info("Using existing GeoPackage ZIP: %s", archive_path)
+    mark_stage(job, "zip", details={"outputs": outputs})
+
+
 def run_postprocess(
     job: JobConfig,
     *,
@@ -1769,18 +1796,20 @@ def run_postprocess(
 ) -> None:
     """Run all automated stages after the manual metadata review checkpoint."""
     require_confirmed_review(job)
-    LOGGER.info("Postprocess 1/6: downloading GeoPackages")
+    LOGGER.info("Postprocess 1/7: downloading GeoPackages")
     run_download_stage(job, requester=requester, overwrite=overwrite)
-    LOGGER.info("Postprocess 2/6: enriching metadata")
+    LOGGER.info("Postprocess 2/7: enriching metadata")
     run_enrich_stage(job, requester=requester)
-    LOGGER.info("Postprocess 3/6: creating data dictionaries")
+    LOGGER.info("Postprocess 3/7: creating data dictionaries")
     run_dictionary_stage(job, requester=requester)
-    LOGGER.info("Postprocess 4/6: embedding GeoPackage metadata")
+    LOGGER.info("Postprocess 4/7: embedding GeoPackage metadata")
     run_embed_stage(job)
-    LOGGER.info("Postprocess 5/6: creating thumbnails")
+    LOGGER.info("Postprocess 5/7: creating thumbnails")
     run_thumbnail_stage(job)
-    LOGGER.info("Postprocess 6/6: creating FlatGeoBuf and PMTiles derivatives")
+    LOGGER.info("Postprocess 6/7: creating FlatGeoBuf and PMTiles derivatives")
     run_derivatives_stage(job, overwrite=overwrite)
+    LOGGER.info("Postprocess 7/7: zipping GeoPackages for upload")
+    run_zip_stage(job, overwrite=overwrite)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1791,7 +1820,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("metadata", help="Harvest selected DCAT metadata and pause")
     review_parser = subparsers.add_parser("review", help="Record completion of manual CSV review")
     review_parser.add_argument("--confirm", action="store_true")
-    for command_name in ("download", "postprocess", "derivatives"):
+    for command_name in ("download", "postprocess", "derivatives", "zip"):
         command_parser = subparsers.add_parser(command_name)
         command_parser.add_argument("--overwrite", action="store_true")
     subparsers.add_parser("enrich")
@@ -1835,6 +1864,8 @@ def main(argv: list[str] | None = None) -> int:
             run_thumbnail_stage(job)
         elif args.command == "derivatives":
             run_derivatives_stage(job, overwrite=args.overwrite)
+        elif args.command == "zip":
+            run_zip_stage(job, overwrite=args.overwrite)
         elif args.command == "postprocess":
             run_postprocess(job, overwrite=args.overwrite)
         elif args.command == "snapshot":

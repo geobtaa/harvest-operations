@@ -121,15 +121,18 @@ geometry. Raster/ImageServer curation remains outside this pipeline.
 
 ### Start a new harvest
 
-Copy the commented template and give the new batch its own job ID:
+Copy the compact template and give the new batch its own job ID:
 
 ```sh
 cp curation/jobs/arcgis_curation_pipeline_template.yaml \
   curation/jobs/<job-id>.yaml
 ```
 
-Fill every value in angle brackets, set the export date, and add one `records`
-block for each selected ArcGIS item or sublayer. In particular, verify:
+Detailed field notes and optional direct-REST examples are in
+[`jobs/arcgis_curation_pipeline_reference.md`](jobs/arcgis_curation_pipeline_reference.md).
+Fill every value in angle brackets, set the export date, delete unused starter
+themes, and add a `records` block for each additional ArcGIS item or sublayer.
+In particular, verify:
 
 - the Hub has a matching row in `reference_data/websites.csv` and enter its
   `ID` or `Code` as `website_reference_id`;
@@ -231,11 +234,13 @@ uv run --locked python curation/scripts/arcgis_curation_pipeline.py \
 5. Renders a PNG thumbnail from each GeoPackage.
 6. Calls `build_pmtiles_from_gpkg.py` to create EPSG:4326 FlatGeoBuf and PMTiles
    derivatives and a build report.
+7. Creates one upload-ready ZIP archive per GeoPackage, alongside the source
+   file and without deleting it.
 
 Each operation is also available as an individual command: `download`,
-`enrich`, `dictionaries`, `embed`, `thumbnails`, and `derivatives`. Use
+`enrich`, `dictionaries`, `embed`, `thumbnails`, `derivatives`, and `zip`. Use
 `status` to print the manifest, and use `--overwrite` with `download`,
-`derivatives`, or `postprocess` when generated outputs should be replaced.
+`derivatives`, `zip`, or `postprocess` when generated outputs should be replaced.
 Without `--overwrite`, Download skips GeoPackages that already exist and
 continues downloading any missing records. This supports adding records to an
 existing job without rebuilding its earlier GeoPackages.
@@ -257,7 +262,8 @@ curation/work/stpaul-2026/
 │   ├── stp_boundary_2026.fgb
 │   ├── stp_boundary_2026.gpkg
 │   ├── stp_boundary_2026.pmtiles
-│   └── stp_boundary_2026.png
+│   ├── stp_boundary_2026.png
+│   └── stp_boundary_2026.gpkg.zip
 └── <next-resource-filename-stem>/
     └── ...
 ```
@@ -340,9 +346,9 @@ From the browser page you can:
 - validate the selected YAML job;
 - harvest metadata;
 - explicitly confirm the manual CSV review checkpoint;
-- run `download`, `enrich`, `dictionaries`, `embed`, `thumbnails`, and
-  `derivatives` separately; or
-- run all six post-review stages with **Run all postprocess tasks**; and
+- run `download`, `enrich`, `dictionaries`, `embed`, `thumbnails`,
+  `derivatives`, and `zip` separately; or
+- run all seven post-review stages with **Run all postprocess tasks**; and
 - select **Save Run Record** to create a Git-friendly provenance snapshot after
   Postprocess completes.
 

@@ -1,0 +1,107 @@
+# Template for the arcgis_curation_pipeline. Copy this file to
+# curation/jobs/champaign-2026.yaml and replace every value in
+# angle brackets. Run all pipeline commands from the harvest-operations root.
+version: 1
+
+job:
+  id: "champaign-2026"
+  work_directory: "../work/champaign-2026"
+
+provider: BTAA-GIN
+
+hub:
+  name: "City of Champaign GIS"
+  landing_page: "https://gis-cityofchampaign.opendata.arcgis.com/"
+  dcat_api: "https://gis-cityofchampaign.opendata.arcgis.com/api/feed/dcat-us/1.1.json"
+  website_reference_id: "02c-02"
+  websites_csv: ../../reference_data/websites.csv
+
+coordinate_reference_system:
+  authority: "EPSG:3435"
+  uri: "https://spatialreference.org/ref/epsg/3435/"
+
+metadata:
+  code: "b1g_17_12385"
+  member_of: b1g_urbanBaseLayers
+  export_date: "2026-08-06"
+
+selection_criteria:
+  # Remove types that should not be accepted for this batch.
+  allowed_resource_types:
+    - Polygon data
+    - Line data
+    - Point data
+
+manual_review:
+  # Review confirmation stops if any of these fields is blank. Add or remove
+  # fields to reflect the acceptance criteria for this particular batch.
+  required_fields:
+    - filename
+    - ID
+    - Title
+    - Description
+    - Creator
+    - Publisher
+    - Provider
+    - Resource Class
+    - Rights
+    - Access Rights
+
+derivatives:
+  # Copy this file for the job if PMTiles needs layer-specific field rules.
+  pmtiles_config: ../pmtiles_config.sample.json
+
+records:
+  # Repeat this block for every selected item. By default the metadata stage
+  # resolves the ID from the Hub DCAT catalog.
+  # The ID is the ArcGIS item ID plus _<sublayer>.
+
+  - id: "7b2c48600f4f44dab4ccaab4a051ef4b_7"
+    filename: "cmi_address_2026"
+    basic_theme: "Address points"
+
+  - id: "72615ddaf485406f866f1a5d7fe12a66_9"
+    filename: "cmi_buildings_2026"
+    basic_theme: "Building footprints"
+
+  - id: "a24e403a9fa245dbaaaf46f766860c40_15"
+    filename: "cmi_zoning_2026"
+    basic_theme: "Zoning"
+
+  - id: "4f06b4eeb5324323bb4219c82828324f_32"
+    filename: "cmi_streetPavement_2026"
+    basic_theme: "Street Pavement"
+
+  - id: "979bbeefffea408e8f1cb7a397196c64_22"
+    filename: "cmi_trees_2026"
+    basic_theme: "City owned trees"
+
+
+  # A vector layer omitted from the Hub catalog can be curated directly from
+  # its ArcGIS REST endpoint. Use the service item ID when REST provides one.
+  # - id: "<service-item-id>_<layer-number>"
+  #   filename: "<prefix>_<basic-theme>_<yyyy>"
+  #   basic_theme: "<basic-theme>"
+  #   # Use this when the REST/item title does not contain the dataset year.
+  #   temporal_year: "YYYY"
+  #   source:
+  #     type: arcgis_rest
+  #     # A layer URL is required; service-root URLs are not accepted.
+  #     service_url: "https://<host>/arcgis/rest/services/<service>/FeatureServer/0"
+  #     # Optional for ArcGIS Enterprise; defaults to https://www.arcgis.com.
+  #     # portal_url: "https://<enterprise-portal-host>"
+  #     # Optional when the service does not expose serviceItemId.
+  #     # item_id: "<service-item-id>"
+  #   # REST and item metadata are used first. Supply only missing or corrected
+  #   # values here; the generated CSV still stops for manual review.
+  #   metadata_overrides:
+  #     description: "<description>"
+  #     creator: "<creator>"
+  #     rights: "<rights>"
+  #     # keywords:
+  #     #   - "<keyword>"
+  #     # landing_page: "https://<public-information-page>"
+
+  # - id: "<next-arcgis-item-id>_<sublayer-number>"
+  #   filename: "<prefix>_<basic-theme>_<yyyy>"
+  #   basic_theme: "<basic-theme>"
