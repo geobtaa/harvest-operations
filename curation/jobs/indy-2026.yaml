@@ -1,0 +1,74 @@
+# ArcGIS curation job template. Setup notes and optional fields:
+# arcgis_curation_pipeline_reference.md
+version: 1
+
+job:
+  id: "indy-2026"
+  work_directory: "../work/indy-2026"
+
+provider: BTAA-GIN
+
+hub:
+  name: "OpenIndy Data Portal"
+  landing_page: "https://data.indy.gov/"
+  dcat_api: "https://data.indy.gov/api/feed/dcat-us/1.1.json"
+  website_reference_id: "01c-02"
+  websites_csv: ../../reference_data/websites.csv
+
+coordinate_reference_system:
+  authority: "EPSG:2965"
+  uri: "https://spatialreference.org/ref/epsg/2965/"
+
+metadata:
+  code: "b1g_18_36003"
+  member_of: b1g_urbanBaseLayers
+  export_date: "2026-08-07"
+
+selection_criteria:
+  allowed_resource_types:
+    - Polygon data
+    - Line data
+    - Point data
+
+manual_review:
+  required_fields:
+    - filename
+    - ID
+    - Title
+    - Description
+    - Creator
+    - Publisher
+    - Provider
+    - Resource Class
+    - Rights
+    - Access Rights
+
+derivatives:
+  pmtiles_config: ../pmtiles_config.sample.json
+
+# Fill the layers the Hub provides and delete unused rows.
+records:
+
+  - id: "afd176a2272e4e7fa2ef058c10c2d8f7_12"
+    filename: "indy_buildings_2026"
+    basic_theme: Building footprints
+
+  - id: "4ff11b4054d84cb2ad3513f228624d2b_9"
+    filename: "indy_countyBoundary_2026"
+    basic_theme: County boundary
+
+  - id: "ac681286e2b84ebc9d03af728e99193d_14"
+    filename: "indy_cityBoundary_2026"
+    basic_theme: City boundary
+
+  - id: "106d14dad4864c4ea3a7bc80b7f73e3f_0"
+    filename: "indy_parks_2026"
+    basic_theme: Parks
+
+  - id: "fa9ec663cf25407a9b7645ff14334a7f_13"
+    filename: "indy_streets_2026"
+    basic_theme: Street centerlines
+
+  - id: "6029731768884e1abcaae6b7e564a3a6_9"
+    filename: "indy_zoning_2026"
+    basic_theme: Zoning
