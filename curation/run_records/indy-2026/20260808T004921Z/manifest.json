@@ -1,0 +1,458 @@
+{
+  "version": 1,
+  "job_id": "indy-2026",
+  "config_path": "curation/jobs/indy-2026.yaml",
+  "work_directory": "curation/work/indy-2026",
+  "metadata_path": "metadata/metadata.csv",
+  "config_sha256": "b5dc261075ec97ea9417564ed1d3a9325a8993689e858ded8935d29e15699ece",
+  "created_at": "2026-08-08T00:21:57+00:00",
+  "updated_at": "2026-08-08T00:43:17+00:00",
+  "manual_review": {
+    "status": "confirmed",
+    "confirmed_at": "2026-08-08T00:24:01+00:00",
+    "metadata_sha256": "d986a81acef33c8629161b3aa1e7fd730d605e732668244de352c6df5c4c3d40",
+    "pipeline_updated_at": "2026-08-08T00:40:06+00:00"
+  },
+  "stages": {
+    "validate": {
+      "status": "completed",
+      "completed_at": "2026-08-08T00:21:57+00:00"
+    },
+    "metadata": {
+      "status": "completed",
+      "completed_at": "2026-08-08T00:21:57+00:00"
+    },
+    "download": {
+      "status": "completed",
+      "completed_at": "2026-08-08T00:36:51+00:00",
+      "outputs": [
+        {
+          "feature_count": 519103,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "indy_buildings_2026/indy_buildings_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 1,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "indy_countyBoundary_2026/indy_countyBoundary_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 1,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "indy_cityBoundary_2026/indy_cityBoundary_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 402,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "indy_parks_2026/indy_parks_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 71015,
+          "geometry_type": "esriGeometryPolyline",
+          "output": "indy_streets_2026/indy_streets_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 8225,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "indy_zoning_2026/indy_zoning_2026.gpkg",
+          "status": "downloaded"
+        }
+      ]
+    },
+    "enrich": {
+      "status": "completed",
+      "completed_at": "2026-08-08T00:40:06+00:00",
+      "records": [
+        {
+          "filename": "indy_buildings_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-86.3473,39.6212,-85.9172,39.9418"
+        },
+        {
+          "filename": "indy_countyBoundary_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-86.3291,39.6322,-85.9369,39.9278"
+        },
+        {
+          "filename": "indy_cityBoundary_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-86.3050,39.6886,-85.9714,39.9020"
+        },
+        {
+          "filename": "indy_parks_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-86.3285,39.6335,-85.9474,39.9277"
+        },
+        {
+          "filename": "indy_streets_2026.gpkg",
+          "resource_type": "Line data",
+          "bounding_box": "-86.3553,39.6257,-85.9347,39.9512"
+        },
+        {
+          "filename": "indy_zoning_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-86.3291,39.6322,-85.9369,39.9278"
+        }
+      ]
+    },
+    "dictionaries": {
+      "status": "completed",
+      "completed_at": "2026-08-08T00:40:13+00:00",
+      "outputs": [
+        "indy_buildings_2026/indy_buildings_2026.csv",
+        "indy_countyBoundary_2026/indy_countyBoundary_2026.csv",
+        "indy_cityBoundary_2026/indy_cityBoundary_2026.csv",
+        "indy_parks_2026/indy_parks_2026.csv",
+        "indy_streets_2026/indy_streets_2026.csv",
+        "indy_zoning_2026/indy_zoning_2026.csv"
+      ]
+    },
+    "embed": {
+      "status": "completed",
+      "completed_at": "2026-08-08T00:40:21+00:00",
+      "outputs": [
+        "indy_buildings_2026/indy_buildings_2026.gpkg",
+        "indy_countyBoundary_2026/indy_countyBoundary_2026.gpkg",
+        "indy_cityBoundary_2026/indy_cityBoundary_2026.gpkg",
+        "indy_parks_2026/indy_parks_2026.gpkg",
+        "indy_streets_2026/indy_streets_2026.gpkg",
+        "indy_zoning_2026/indy_zoning_2026.gpkg"
+      ]
+    },
+    "thumbnails": {
+      "status": "completed",
+      "completed_at": "2026-08-08T00:40:44+00:00",
+      "outputs": [
+        "indy_buildings_2026/indy_buildings_2026.png",
+        "indy_countyBoundary_2026/indy_countyBoundary_2026.png",
+        "indy_cityBoundary_2026/indy_cityBoundary_2026.png",
+        "indy_parks_2026/indy_parks_2026.png",
+        "indy_streets_2026/indy_streets_2026.png",
+        "indy_zoning_2026/indy_zoning_2026.png"
+      ]
+    },
+    "derivatives": {
+      "status": "completed",
+      "completed_at": "2026-08-08T00:41:42+00:00",
+      "report": "reports/pmtiles_build_report.csv"
+    },
+    "zip": {
+      "status": "completed",
+      "completed_at": "2026-08-08T00:43:17+00:00",
+      "outputs": [
+        "indy_buildings_2026/indy_buildings_2026.gpkg.zip",
+        "indy_countyBoundary_2026/indy_countyBoundary_2026.gpkg.zip",
+        "indy_cityBoundary_2026/indy_cityBoundary_2026.gpkg.zip",
+        "indy_parks_2026/indy_parks_2026.gpkg.zip",
+        "indy_streets_2026/indy_streets_2026.gpkg.zip",
+        "indy_zoning_2026/indy_zoning_2026.gpkg.zip"
+      ]
+    },
+    "snapshot": {
+      "status": "completed",
+      "completed_at": "2026-08-08T00:49:21+00:00"
+    }
+  },
+  "records": [
+    {
+      "source_id": "afd176a2272e4e7fa2ef058c10c2d8f7_12",
+      "curated_id": "b1g_NNJ2xJwio5tN",
+      "filename": "indy_buildings_2026.gpkg",
+      "landing_page": "https://data.indy.gov/datasets/IndyGIS::building-footprints",
+      "service_url": "https://gis.indy.gov/server/rest/services/OpenData/OpenData_Boundaries/MapServer/12",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "4ff11b4054d84cb2ad3513f228624d2b_9",
+      "curated_id": "b1g_2vYWYcChBgXP",
+      "filename": "indy_countyBoundary_2026.gpkg",
+      "landing_page": "https://data.indy.gov/datasets/IndyGIS::marion-county-boundary",
+      "service_url": "https://gis.indy.gov/server/rest/services/OpenData/OpenData_Boundaries/MapServer/9",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "ac681286e2b84ebc9d03af728e99193d_14",
+      "curated_id": "b1g_zJOt2xfOKoUm",
+      "filename": "indy_cityBoundary_2026.gpkg",
+      "landing_page": "https://data.indy.gov/datasets/IndyGIS::old-indianapolis-city-legal-limits",
+      "service_url": "https://gis.indy.gov/server/rest/services/OpenData/OpenData_Boundaries/MapServer/14",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "106d14dad4864c4ea3a7bc80b7f73e3f_0",
+      "curated_id": "b1g_xz5mLF0I81W4",
+      "filename": "indy_parks_2026.gpkg",
+      "landing_page": "https://data.indy.gov/datasets/IndyGIS::indianapolis-parks",
+      "service_url": "https://gis.indy.gov/server/rest/services/OpenData/OpenData_Recreation/MapServer/0",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "fa9ec663cf25407a9b7645ff14334a7f_13",
+      "curated_id": "b1g_mhQLvxQj1jkn",
+      "filename": "indy_streets_2026.gpkg",
+      "landing_page": "https://data.indy.gov/datasets/IndyGIS::street-centerlines",
+      "service_url": "https://gis.indy.gov/server/rest/services/OpenData/OpenData_Transportation/MapServer/13",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "6029731768884e1abcaae6b7e564a3a6_9",
+      "curated_id": "b1g_pAx6uHzqkugj",
+      "filename": "indy_zoning_2026.gpkg",
+      "landing_page": "https://data.indy.gov/datasets/IndyGIS::zoning",
+      "service_url": "https://gis.indy.gov/server/rest/services/OpenData/OpenData_PlanningZoning/MapServer/9",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    }
+  ],
+  "run_record": {
+    "run_id": "20260808T004921Z",
+    "saved_at": "2026-08-08T00:49:21+00:00",
+    "record_path": "curation/run_records/indy-2026/20260808T004921Z",
+    "metadata_csv": "metadata.csv",
+    "job_config": "job.yaml",
+    "git": {
+      "revision": "08387cf3fe5fd747b8b20d8359a7da4c12066338",
+      "dirty": true
+    }
+  },
+  "artifacts": [
+    {
+      "role": "data_dictionary",
+      "path": "indy_buildings_2026/indy_buildings_2026.csv",
+      "size_bytes": 686,
+      "sha256": "7ee8339f04a8844ae3d220479e6b08e1be739e4126ae3de4a476440044c4be4b"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "indy_buildings_2026/indy_buildings_2026.fgb",
+      "size_bytes": 173545944,
+      "sha256": "3e09f7f232fdf9c60946692ef1724e0d6067b24c58f525e6f197d47b3e0d9739"
+    },
+    {
+      "role": "geopackage",
+      "path": "indy_buildings_2026/indy_buildings_2026.gpkg",
+      "size_bytes": 167895040,
+      "sha256": "309e87b10819b53b44e1169015b9a3097a6f7b3953178f14c311559fa16a613b"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "indy_buildings_2026/indy_buildings_2026.gpkg.zip",
+      "size_bytes": 89824692,
+      "sha256": "411483d0a66c30527726094d86d657701aca759931b7eabae9226565800a46dd"
+    },
+    {
+      "role": "pmtiles",
+      "path": "indy_buildings_2026/indy_buildings_2026.pmtiles",
+      "size_bytes": 56340396,
+      "sha256": "e23ce6358d9b2d8a866d6375d35b56ac2d2c99b0cd554363385729940a3c4e97"
+    },
+    {
+      "role": "thumbnail",
+      "path": "indy_buildings_2026/indy_buildings_2026.png",
+      "size_bytes": 36199,
+      "sha256": "7d0aa8b00ca34778f26a5b763e5e40174f5269513169e8dc2895428d91a60c4d"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "indy_countyBoundary_2026/indy_countyBoundary_2026.csv",
+      "size_bytes": 968,
+      "sha256": "a404767852f483104229cc48ef63fd92d479f7eb92bed9a87ca0f159c8861cdc"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "indy_countyBoundary_2026/indy_countyBoundary_2026.fgb",
+      "size_bytes": 8088,
+      "sha256": "135cc40853942a796f4996dfca27d4b72e5e55ba36f06f95a6f550352ba9380d"
+    },
+    {
+      "role": "geopackage",
+      "path": "indy_countyBoundary_2026/indy_countyBoundary_2026.gpkg",
+      "size_bytes": 110592,
+      "sha256": "faf7729a93ddd8269cb1a37f3c19ea9dac9863fe2ce51b9bce55411e579e4d82"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "indy_countyBoundary_2026/indy_countyBoundary_2026.gpkg.zip",
+      "size_bytes": 9229,
+      "sha256": "10c9a415237ac91037a9d76f0a48e888cac9d057e96b26f9e12f2b6717de2bae"
+    },
+    {
+      "role": "pmtiles",
+      "path": "indy_countyBoundary_2026/indy_countyBoundary_2026.pmtiles",
+      "size_bytes": 2176,
+      "sha256": "742ea99ec8a90e068d03e82c2ee4c2cf25877128fc30f49d0e37cde2399d5274"
+    },
+    {
+      "role": "thumbnail",
+      "path": "indy_countyBoundary_2026/indy_countyBoundary_2026.png",
+      "size_bytes": 2134,
+      "sha256": "3120effdbe58e3f1f543df1bfc0fef26665639e0d1fbcb47a7d3c500863aec83"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "indy_cityBoundary_2026/indy_cityBoundary_2026.csv",
+      "size_bytes": 822,
+      "sha256": "7c435a0f8a99228247dc0975d68f79f916cdd32793e627c2a27f25fb6783357a"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "indy_cityBoundary_2026/indy_cityBoundary_2026.fgb",
+      "size_bytes": 145040,
+      "sha256": "6e9e4807d68bc61dad7473073e8e6bdfc9804bcfcadf3642f402ff62d1c23a75"
+    },
+    {
+      "role": "geopackage",
+      "path": "indy_cityBoundary_2026/indy_cityBoundary_2026.gpkg",
+      "size_bytes": 245760,
+      "sha256": "c93b0cf407949d68e7e4e9b7e53cca5ba3267063a665dd6d1a2c966d7d7270b3"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "indy_cityBoundary_2026/indy_cityBoundary_2026.gpkg.zip",
+      "size_bytes": 117910,
+      "sha256": "f8992a1cb8e66781c06abbea658484e79d96fc932b5445a4307998e73602eb7d"
+    },
+    {
+      "role": "pmtiles",
+      "path": "indy_cityBoundary_2026/indy_cityBoundary_2026.pmtiles",
+      "size_bytes": 29882,
+      "sha256": "2b1c9696a73756da476a70f87fb45080a9fb4c525570a28cfe73289538a0f7fe"
+    },
+    {
+      "role": "thumbnail",
+      "path": "indy_cityBoundary_2026/indy_cityBoundary_2026.png",
+      "size_bytes": 7589,
+      "sha256": "c71b2ae6de2cab629e6b8f452c41cb09625caa979b74a1fd11c4097b5b88e743"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "indy_parks_2026/indy_parks_2026.csv",
+      "size_bytes": 1971,
+      "sha256": "71402e8265270e8ded02ec15183cdb5e2f82a62f6fc5468bb2b86d3fb8470f20"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "indy_parks_2026/indy_parks_2026.fgb",
+      "size_bytes": 1197552,
+      "sha256": "c3e53b65402c6e1970d3e3fa087353ae4282d07811bdb74d38e6fb1edf901eed"
+    },
+    {
+      "role": "geopackage",
+      "path": "indy_parks_2026/indy_parks_2026.gpkg",
+      "size_bytes": 1388544,
+      "sha256": "9bb5e1c9382356f7e8150745013f79d5b379f2eafd8e04834dc26f9c4c1dfaa6"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "indy_parks_2026/indy_parks_2026.gpkg.zip",
+      "size_bytes": 853447,
+      "sha256": "537926fc5514a93fd297e4992171d63cf293970d9ce3939b25119eea784026a6"
+    },
+    {
+      "role": "pmtiles",
+      "path": "indy_parks_2026/indy_parks_2026.pmtiles",
+      "size_bytes": 1153667,
+      "sha256": "59a50e32905c032dad8b47d37dad30a5b07d2100f3c439eb4c60a2eb75711d04"
+    },
+    {
+      "role": "thumbnail",
+      "path": "indy_parks_2026/indy_parks_2026.png",
+      "size_bytes": 13442,
+      "sha256": "9e03a6e7e0fdaad1d0c179e80f8882ae26dd0fd97416d1b974aaa064b34b3d3b"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "indy_streets_2026/indy_streets_2026.csv",
+      "size_bytes": 8536,
+      "sha256": "62384ecd2a339bd8a17f2a5f9fec418aa196339ea98652a2b04ba6dedeb19e20"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "indy_streets_2026/indy_streets_2026.fgb",
+      "size_bytes": 45243768,
+      "sha256": "c2e894c6a77806f8f5b5855886ee48259008ca8ef9e2dc60abe58623617cf84d"
+    },
+    {
+      "role": "geopackage",
+      "path": "indy_streets_2026/indy_streets_2026.gpkg",
+      "size_bytes": 35733504,
+      "sha256": "d3dd76cfe13676aff6b81764f6e01b0b1f324ea5a5d27e39943252e14c0d065a"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "indy_streets_2026/indy_streets_2026.gpkg.zip",
+      "size_bytes": 15203998,
+      "sha256": "107dfe3ff9e56cd5271811ed84b426d6984045de57faf7f9ab9ea8198eccaf5c"
+    },
+    {
+      "role": "pmtiles",
+      "path": "indy_streets_2026/indy_streets_2026.pmtiles",
+      "size_bytes": 17042424,
+      "sha256": "5458dc894f8dd80bd86978f036553ab6caca07316d838409789a5d62ed8494ed"
+    },
+    {
+      "role": "thumbnail",
+      "path": "indy_streets_2026/indy_streets_2026.png",
+      "size_bytes": 24405,
+      "sha256": "80dcd0ee44f7699efe165ca094a5cf69d1c6a375460744696f6f058f42105e57"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "indy_zoning_2026/indy_zoning_2026.csv",
+      "size_bytes": 1129,
+      "sha256": "ceaad03e2b6f4028a7e1a603b2403356f435642456775b7dc709dac1a23de8ae"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "indy_zoning_2026/indy_zoning_2026.fgb",
+      "size_bytes": 3889720,
+      "sha256": "2ffdb7c66b98fe5f5d5a74145b3347641715dd4880cbf89207febc12af426a31"
+    },
+    {
+      "role": "geopackage",
+      "path": "indy_zoning_2026/indy_zoning_2026.gpkg",
+      "size_bytes": 3878912,
+      "sha256": "719c53f238b8d91f023a8ec479ace7b11d2d2952b41d46fdfc6ccacad4769d32"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "indy_zoning_2026/indy_zoning_2026.gpkg.zip",
+      "size_bytes": 2356179,
+      "sha256": "1d9c9d47db7da74cc17221dfd01d784668816fac08a6b51537b75c66dbfccc81"
+    },
+    {
+      "role": "pmtiles",
+      "path": "indy_zoning_2026/indy_zoning_2026.pmtiles",
+      "size_bytes": 1855698,
+      "sha256": "b7bb68d1c419d673569f001088a279be35ae18914899e563c29f98574fea2320"
+    },
+    {
+      "role": "thumbnail",
+      "path": "indy_zoning_2026/indy_zoning_2026.png",
+      "size_bytes": 47790,
+      "sha256": "dfad8f93ba9d0fb69b38cba3573a6633aa6572d079cd605aef39a6f6e5754517"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report.csv",
+      "size_bytes": 338924,
+      "sha256": "76a30658a7be13e7dbe9c07e6619bf7d5fbc4d1ef15b60e8354b46e9eec4dbb3"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report_fields.csv",
+      "size_bytes": 15184,
+      "sha256": "7489a0c2b7252a23c805276c22a2d4061865c02917192808a4b0e981329df02f"
+    }
+  ]
+}
