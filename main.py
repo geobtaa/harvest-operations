@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import csv
+from datetime import date
 import os
 import random
 import sys
@@ -717,6 +718,78 @@ async def run_hdx_download_stream():
                 f"ERROR: hdx_download.py exited with status {return_code}."
             )
         yield format_sse_message("DONE")
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@app.get("/run-umedia-stream")
+async def run_umedia_stream(
+    date_added_on_or_after: date = Query(
+        ...,
+        description="Harvest records whose date_added value is on or after this date.",
+    ),
+):
+    from harvesters.umedia import UmediaHarvester
+
+    async def event_stream():
+        stage = "loading configuration"
+        try:
+            cutoff = date_added_on_or_after.isoformat()
+            yield format_sse_message(
+                f"Starting uMedia harvest for records added on or after {cutoff}."
+            )
+
+            config = dict(load_yaml_config("config/umedia.yaml"))
+            config["date_added_on_or_after"] = cutoff
+            harvester = UmediaHarvester(config)
+
+            stage = "loading reference data"
+            yield format_sse_message("Loading schemas, themes, and language mappings...")
+            harvester.load_reference_data()
+
+            stage = "fetching uMedia metadata"
+            yield format_sse_message(
+                "Fetching paginated uMedia metadata. Date filtering is applied from "
+                "each record's date_added field after retrieval."
+            )
+            raw = harvester.fetch()
+            yield format_sse_message(f"Fetched {len(raw)} source record(s).")
+
+            stage = "filtering and mapping metadata"
+            parsed = harvester.parse(raw)
+            flat = harvester.flatten(parsed)
+            yield format_sse_message(
+                f"Kept {len(flat)} record(s) added on or after {cutoff}. "
+                "Building schema fields..."
+            )
+            df = harvester.build_dataframe(flat)
+            df = harvester.derive_fields(df)
+            df = harvester.add_defaults(df)
+            df = harvester.add_provenance(df)
+
+            stage = "cleaning and validating metadata"
+            yield format_sse_message(f"Cleaning and validating {len(df)} row(s)...")
+            df = harvester.clean(df)
+            harvester.validate(df)
+
+            stage = "writing outputs"
+            results = harvester.write_outputs(df)
+            output_lines = [f"Primary output: {results['primary_csv']}"]
+            if results.get("distributions_csv"):
+                output_lines.append(
+                    f"Distribution output: {results['distributions_csv']}"
+                )
+            output_lines.append(
+                "Upload deltas were skipped because this is a date-filtered partial harvest."
+            )
+            yield format_sse_message("\n".join(output_lines))
+            yield format_sse_message("uMedia harvest completed successfully.")
+        except Exception as exc:
+            message = f"ERROR during {stage}: {type(exc).__name__}: {exc}"
+            print(f"[uMedia stream] {message}")
+            yield format_sse_message(message)
+        finally:
+            yield format_sse_message("DONE")
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 

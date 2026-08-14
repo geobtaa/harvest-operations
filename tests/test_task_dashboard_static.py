@@ -164,6 +164,7 @@ def test_task_dashboard_static_page_includes_frequent_harvesters() -> None:
     assert "harvest_queue_count" not in html
     assert "Other Harvesters" in html
     assert "OpenGeoMetadata Aardvark Harvester" in html
+    assert '<a href="/static/umedia.html">uMedia Harvester</a>' in html
     assert html.index("Other Harvesters") > html.index('id="output"')
     other_harvesters = html.split('<h2>Other Harvesters</h2>', maxsplit=1)[1]
     assert "/static/arcgis.html" not in other_harvesters

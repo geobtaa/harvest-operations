@@ -1,5 +1,6 @@
 import asyncio
 import csv
+from datetime import date
 import os
 from pathlib import Path
 
@@ -61,6 +62,81 @@ def test_app_registers_socrata_stream_route() -> None:
 
 def test_app_registers_pasda_portal_stream_route() -> None:
     assert any(route.path == "/run-pasda-portal-stream" for route in app.routes)
+
+
+def test_app_registers_umedia_stream_route() -> None:
+    assert any(route.path == "/run-umedia-stream" for route in app.routes)
+
+
+def test_umedia_stream_passes_date_added_cutoff_and_reports_outputs(monkeypatch) -> None:
+    initialized_configs = []
+
+    class FakeUmediaHarvester:
+        def __init__(self, config):
+            self.config = config
+            initialized_configs.append(config)
+
+        def load_reference_data(self):
+            return None
+
+        def fetch(self):
+            return [{"id": "before"}, {"id": "included"}]
+
+        def parse(self, raw):
+            return raw
+
+        def flatten(self, parsed):
+            return [{"id": "included"}]
+
+        def build_dataframe(self, flat):
+            return flat
+
+        def derive_fields(self, df):
+            return df
+
+        def add_defaults(self, df):
+            return df
+
+        def add_provenance(self, df):
+            return df
+
+        def clean(self, df):
+            return df
+
+        def validate(self, df):
+            return df
+
+        def write_outputs(self, df):
+            return {
+                "primary_csv": "outputs/2026-08-11_umedia_primary.csv",
+                "distributions_csv": "outputs/2026-08-11_umedia_distributions.csv",
+            }
+
+    import harvesters.umedia
+    import main
+
+    monkeypatch.setattr(
+        harvesters.umedia,
+        "UmediaHarvester",
+        FakeUmediaHarvester,
+    )
+
+    async def collect_stream() -> str:
+        response = await main.run_umedia_stream(date(2024, 5, 15))
+        chunks = []
+        async for chunk in response.body_iterator:
+            chunks.append(chunk.decode("utf-8") if isinstance(chunk, bytes) else chunk)
+        return "".join(chunks)
+
+    body = asyncio.run(collect_stream())
+
+    assert initialized_configs[0]["date_added_on_or_after"] == "2024-05-15"
+    assert "records added on or after 2024-05-15" in body
+    assert "Kept 1 record(s)" in body
+    assert "outputs/2026-08-11_umedia_primary.csv" in body
+    assert "Upload deltas were skipped" in body
+    assert "uMedia harvest completed successfully" in body
+    assert "data: DONE" in body
 
 
 def test_hdx_stream_builds_upload_files(monkeypatch) -> None:
