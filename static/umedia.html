@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>uMedia Harvester</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      line-height: 1.45;
+      margin: 2em;
+      max-width: 900px;
+    }
+    h2 { margin-top: 1.5em; }
+    code { background: #f4f4f4; padding: 0.1em 0.3em; }
+    .form-row {
+      align-items: end;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1em;
+      margin: 1em 0;
+    }
+    label {
+      display: grid;
+      font-weight: 600;
+      gap: 0.35em;
+    }
+    input, button { font: inherit; padding: 0.45em 0.6em; }
+    .status { color: #555; font-weight: 600; }
+    .note {
+      background: #f7f7f7;
+      border-left: 4px solid #555;
+      padding: 0.8em 1em;
+    }
+    #stream-output {
+      border: 1px solid #ccc;
+      height: 360px;
+      overflow: auto;
+      padding: 1em;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>uMedia Harvester</h1>
+
+  <p>
+    This runs the University of Minnesota uMedia JSON harvester using
+    <code>config/umedia.yaml</code>. It writes schema-ordered primary metadata and
+    a separate distributions CSV under <code>outputs/</code>.
+  </p>
+
+  <div class="note">
+    The cutoff is inclusive. Only records whose source <code>date_added</code>
+    value falls on or after the selected date are written. Upload deltas are
+    disabled for these partial harvests so older records are not treated as retired.
+  </div>
+
+  <h2>Run Harvest</h2>
+  <form id="harvest-form" onsubmit="runHarvester(event)">
+    <div class="form-row">
+      <label for="date-added-on-or-after">
+        Added on or after
+        <input
+          id="date-added-on-or-after"
+          name="date_added_on_or_after"
+          type="date"
+          required
+        />
+      </label>
+      <button id="run-button" type="submit">Run uMedia Harvester</button>
+      <span id="run-status" class="status" role="status" aria-live="polite">Idle</span>
+    </div>
+  </form>
+
+  <h2>Live Log</h2>
+  <pre id="stream-output" aria-live="polite"></pre>
+
+  <p><a href="/static/task-dashboard.html">Back to Harvest Task Dashboard</a></p>
+
+  <script>
+    let eventSource = null;
+
+    function runHarvester(event) {
+      event.preventDefault();
+
+      const dateInput = document.getElementById("date-added-on-or-after");
+      const output = document.getElementById("stream-output");
+      const status = document.getElementById("run-status");
+      const button = document.getElementById("run-button");
+
+      if (!dateInput.value) {
+        status.textContent = "Select a cutoff date";
+        dateInput.focus();
+        return;
+      }
+      if (eventSource) {
+        eventSource.close();
+      }
+
+      const params = new URLSearchParams({
+        date_added_on_or_after: dateInput.value,
+      });
+      output.textContent = `Connecting to uMedia harvest stream for ${dateInput.value}...\n`;
+      status.textContent = "Running";
+      button.disabled = true;
+      eventSource = new EventSource(`/run-umedia-stream?${params.toString()}`);
+
+      eventSource.onmessage = function (message) {
+        if (message.data === "DONE") {
+          output.textContent += "uMedia harvester stream complete.\n";
+          status.textContent = "Complete";
+          button.disabled = false;
+          eventSource.close();
+          eventSource = null;
+        } else {
+          output.textContent += message.data + "\n";
+        }
+        output.scrollTop = output.scrollHeight;
+      };
+
+      eventSource.onerror = function () {
+        output.textContent += "Stream closed before completion. Check server logs.\n";
+        output.scrollTop = output.scrollHeight;
+        status.textContent = "Stopped";
+        button.disabled = false;
+        eventSource.close();
+        eventSource = null;
+      };
+    }
+  </script>
+</body>
+</html>

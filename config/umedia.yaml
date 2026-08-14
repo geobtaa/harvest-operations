@@ -1,0 +1,24 @@
+name: uMedia
+type: umedia
+
+base_url: https://umedia.lib.umn.edu/search.json
+facets:
+  contributing_organization_name_s: University of Minnesota Libraries, John R. Borchert Map Library.
+max_items: 10000
+page_size: 20
+page_start: 0
+timeout: 60
+language_vocabulary_csv: reference_data/language-vocabulary.csv
+
+item_base_url: https://umedia.lib.umn.edu/item
+contentdm_base_url: https://cdm16022.contentdm.oclc.org
+
+code: 05d-01
+is_part_of: 05d-01
+member_of: 64bd8c4c-8e60-4956-b43d-bdc3f93db488
+resource_class: Maps
+format: JPEG
+build_uploads: true
+
+output_primary_csv: outputs/umedia_primary.csv
+output_distributions_csv: outputs/umedia_distributions.csv

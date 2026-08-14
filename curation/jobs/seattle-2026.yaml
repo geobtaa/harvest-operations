@@ -9,20 +9,20 @@ job:
 provider: BTAA-GIN
 
 hub:
-  name: "<public-hub-name>"
-  landing_page: "https://<hub-hostname>/"
-  dcat_api: "https://<hub-hostname>/api/feed/dcat-us/1.1.json"
-  website_reference_id: "<website-reference-id>"
+  name: "Seattle GeoData"
+  landing_page: "https://data-seattlecitygis.opendata.arcgis.com"
+  dcat_api: "https://data-seattlecitygis.opendata.arcgis.com/api/feed/dcat-us/1.1.json"
+  website_reference_id: "16c-01"
   websites_csv: ../../reference_data/websites.csv
 
 coordinate_reference_system:
-  authority: "<AUTHORITY:CODE>"
-  uri: "https://spatialreference.org/ref/<authority>/<code>/"
+  authority: "EPSG:2926"
+  uri: "https://spatialreference.org/ref/epsg/2926/"
 
 metadata:
-  code: "<urban-base-layer-code>"
+  code: "b1g_53_63000"
   member_of: b1g_urbanBaseLayers
-  export_date: "YYYY-MM-DD"
+  export_date: "2026-08-12"
 
 selection_criteria:
   allowed_resource_types:
@@ -48,30 +48,31 @@ derivatives:
 
 # Fill the layers the Hub provides and delete unused rows.
 records:
-  - id: "<address-item-id>_<layer-number>"
-    filename: "<prefix>_address_<yyyy>"
+  - id: "5ef414c3cf73436a84bff413129e67e7_0"
+    filename: "sea_address_2026"
     basic_theme: Address points
 
-  - id: "<buildings-item-id>_<layer-number>"
-    filename: "<prefix>_buildings_<yyyy>"
+  - id: "1ea2f226716e417e8a554476f4337c51_0"
+    filename: "sea_buildings_2023"
     basic_theme: Building footprints
 
-  - id: "<boundary-item-id>_<layer-number>"
-    filename: "<prefix>_boundary_<yyyy>"
+  - id: "c5f3575dd7d545ada27064c74ac74f52_0"
+    filename: "sea_boundary_2026"
     basic_theme: Municipal boundary
 
-  - id: "<parcels-item-id>_<layer-number>"
-    filename: "<prefix>_parcels_<yyyy>"
-    basic_theme: Parcels
-
-  - id: "<parks-item-id>_<layer-number>"
-    filename: "<prefix>_parks_<yyyy>"
+  - id: "9baab63b52df417a9b2a168e3f288b1b_2"
+    filename: "sea_parks_2026"
     basic_theme: Parks
 
-  - id: "<streets-item-id>_<layer-number>"
-    filename: "<prefix>_streets_<yyyy>"
+  - id: "f91318f1cc43489fb0e7aca2fde22899_0"
+    filename: "sea_streets_2026"
     basic_theme: Streets
 
-  - id: "<zoning-item-id>_<layer-number>"
-    filename: "<prefix>_zoning_<yyyy>"
+  - id: "dd29065b5d01420e9686570c2b77502b_0"
+    filename: "sea_zoning_2026"
     basic_theme: Zoning
+
+  - id: "db783659194f47ef8fbd8e010c102809_0"
+    filename: "sea_trees_2026"
+    basic_theme: Trees
+
