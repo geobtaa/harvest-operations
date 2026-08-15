@@ -1,0 +1,506 @@
+{
+  "version": 1,
+  "job_id": "evanston-2026",
+  "config_path": "curation/jobs/evanston-2026.yaml",
+  "work_directory": "curation/work/evanston-2026",
+  "metadata_path": "metadata/metadata.csv",
+  "config_sha256": "922f5c2ecf821ead315f989dc52f17f4a40313cf0d9d65f120fc222d535f36c2",
+  "created_at": "2026-08-14T23:36:32+00:00",
+  "updated_at": "2026-08-14T23:41:14+00:00",
+  "manual_review": {
+    "status": "confirmed",
+    "confirmed_at": "2026-08-14T23:36:37+00:00",
+    "metadata_sha256": "f4592c02691229a9c1b9e7b16f335ea56c99f348c74838e73692db144416a6b5",
+    "pipeline_updated_at": "2026-08-14T23:41:09+00:00"
+  },
+  "stages": {
+    "validate": {
+      "status": "completed",
+      "completed_at": "2026-08-14T23:36:32+00:00"
+    },
+    "metadata": {
+      "status": "completed",
+      "completed_at": "2026-08-14T23:36:32+00:00"
+    },
+    "download": {
+      "status": "completed",
+      "completed_at": "2026-08-14T23:41:07+00:00",
+      "outputs": [
+        {
+          "status": "skipped_existing",
+          "output": "eva_address_2026/eva_address_2026.gpkg"
+        },
+        {
+          "status": "skipped_existing",
+          "output": "eva_buildings_2026/eva_buildings_2026.gpkg"
+        },
+        {
+          "status": "skipped_existing",
+          "output": "eva_boundary_2026/eva_boundary_2026.gpkg"
+        },
+        {
+          "status": "skipped_existing",
+          "output": "eva_parks_2026/eva_parks_2026.gpkg"
+        },
+        {
+          "status": "skipped_existing",
+          "output": "eva_streets_2026/eva_streets_2026.gpkg"
+        },
+        {
+          "status": "skipped_existing",
+          "output": "eva_trees_2026/eva_trees_2026.gpkg"
+        },
+        {
+          "feature_count": 243,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "eva_zoning_2026/eva_zoning_2026.gpkg",
+          "status": "downloaded"
+        }
+      ]
+    },
+    "enrich": {
+      "status": "completed",
+      "completed_at": "2026-08-14T23:41:09+00:00",
+      "records": [
+        {
+          "filename": "eva_address_2026.gpkg",
+          "resource_type": "Point data",
+          "bounding_box": "-87.7327,42.0193,-87.6677,42.0719"
+        },
+        {
+          "filename": "eva_buildings_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-87.7329,42.0192,-87.6676,42.0720"
+        },
+        {
+          "filename": "eva_boundary_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-87.7329,42.0189,-87.6646,42.0720"
+        },
+        {
+          "filename": "eva_parks_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-87.7287,42.0207,-87.6645,42.0698"
+        },
+        {
+          "filename": "eva_streets_2026.gpkg",
+          "resource_type": "Line data",
+          "bounding_box": "-87.7329,42.0189,-87.6648,42.0720"
+        },
+        {
+          "filename": "eva_trees_2026.gpkg",
+          "resource_type": "Point data",
+          "bounding_box": "-87.7328,42.0191,-87.6646,42.0720"
+        },
+        {
+          "filename": "eva_zoning_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-87.7329,42.0189,-87.6645,42.0720"
+        }
+      ]
+    },
+    "dictionaries": {
+      "status": "completed",
+      "completed_at": "2026-08-14T23:41:10+00:00",
+      "outputs": [
+        "eva_address_2026/eva_address_2026.csv",
+        "eva_buildings_2026/eva_buildings_2026.csv",
+        "eva_boundary_2026/eva_boundary_2026.csv",
+        "eva_parks_2026/eva_parks_2026.csv",
+        "eva_streets_2026/eva_streets_2026.csv",
+        "eva_trees_2026/eva_trees_2026.csv",
+        "eva_zoning_2026/eva_zoning_2026.csv"
+      ]
+    },
+    "embed": {
+      "status": "completed",
+      "completed_at": "2026-08-14T23:41:10+00:00",
+      "outputs": [
+        "eva_address_2026/eva_address_2026.gpkg",
+        "eva_buildings_2026/eva_buildings_2026.gpkg",
+        "eva_boundary_2026/eva_boundary_2026.gpkg",
+        "eva_parks_2026/eva_parks_2026.gpkg",
+        "eva_streets_2026/eva_streets_2026.gpkg",
+        "eva_trees_2026/eva_trees_2026.gpkg",
+        "eva_zoning_2026/eva_zoning_2026.gpkg"
+      ]
+    },
+    "thumbnails": {
+      "status": "completed",
+      "completed_at": "2026-08-14T23:41:12+00:00",
+      "outputs": [
+        "eva_address_2026/eva_address_2026.png",
+        "eva_buildings_2026/eva_buildings_2026.png",
+        "eva_boundary_2026/eva_boundary_2026.png",
+        "eva_parks_2026/eva_parks_2026.png",
+        "eva_streets_2026/eva_streets_2026.png",
+        "eva_trees_2026/eva_trees_2026.png",
+        "eva_zoning_2026/eva_zoning_2026.png"
+      ]
+    },
+    "derivatives": {
+      "status": "completed",
+      "completed_at": "2026-08-14T23:41:14+00:00",
+      "report": "reports/pmtiles_build_report.csv"
+    },
+    "zip": {
+      "status": "completed",
+      "completed_at": "2026-08-14T23:41:14+00:00",
+      "outputs": [
+        "eva_address_2026/eva_address_2026.gpkg.zip",
+        "eva_buildings_2026/eva_buildings_2026.gpkg.zip",
+        "eva_boundary_2026/eva_boundary_2026.gpkg.zip",
+        "eva_parks_2026/eva_parks_2026.gpkg.zip",
+        "eva_streets_2026/eva_streets_2026.gpkg.zip",
+        "eva_trees_2026/eva_trees_2026.gpkg.zip",
+        "eva_zoning_2026/eva_zoning_2026.gpkg.zip"
+      ]
+    },
+    "snapshot": {
+      "status": "completed",
+      "completed_at": "2026-08-14T23:57:02+00:00"
+    }
+  },
+  "records": [
+    {
+      "source_id": "6d0b7733d4ee475ca8028b876ba6e605_4",
+      "curated_id": "b1g_K2tyozZioenf",
+      "filename": "eva_address_2026.gpkg",
+      "landing_page": "https://data.cityofevanston.org/datasets/evanston::addresses",
+      "service_url": "https://maps.cityofevanston.org/arcgis/rest/services/OpenData/ArcGISOpenData/MapServer/4",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "e7cfb3c1fb9848a2996b4e62a924ae01_5",
+      "curated_id": "b1g_a1ojALNfAhgd",
+      "filename": "eva_buildings_2026.gpkg",
+      "landing_page": "https://data.cityofevanston.org/datasets/evanston::buildings",
+      "service_url": "https://maps.cityofevanston.org/arcgis/rest/services/OpenData/ArcGISOpenData/MapServer/5",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "628c6bf92ce14c0f8bd47c3ccf60e9cc_13",
+      "curated_id": "b1g_MVgWpVJ7STCw",
+      "filename": "eva_boundary_2026.gpkg",
+      "landing_page": "https://data.cityofevanston.org/datasets/evanston::annexation-chronology",
+      "service_url": "https://maps.cityofevanston.org/arcgis/rest/services/OpenData/ArcGISOpenData2Administrative/MapServer/13",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "d638981fff6d402db87d2f825f498919_6",
+      "curated_id": "b1g_LfJ2iQvvom0p",
+      "filename": "eva_parks_2026.gpkg",
+      "landing_page": "https://data.cityofevanston.org/datasets/evanston::parks",
+      "service_url": "https://maps.cityofevanston.org/arcgis/rest/services/OpenData/ArcGISOpenData/MapServer/6",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "4ccfb697e22542578194ac0efaa09112_2",
+      "curated_id": "b1g_pbJd1araUPp3",
+      "filename": "eva_streets_2026.gpkg",
+      "landing_page": "https://data.cityofevanston.org/datasets/evanston::street-centerlines",
+      "service_url": "https://maps.cityofevanston.org/arcgis/rest/services/OpenData/ArcGISOpenData/MapServer/2",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "845a3acb3dc0442a80b219691889f992_8",
+      "curated_id": "b1g_cdReE3RwQQGE",
+      "filename": "eva_trees_2026.gpkg",
+      "landing_page": "https://data.cityofevanston.org/datasets/evanston::trees",
+      "service_url": "https://maps.cityofevanston.org/arcgis/rest/services/OpenData/ArcGISOpenData/MapServer/8",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "a31feef7fa5e4725b952d4fcc36c99a3_11",
+      "curated_id": "b1g_p3YN3ugAVOxG",
+      "filename": "eva_zoning_2026.gpkg",
+      "landing_page": "https://data.cityofevanston.org/datasets/evanston::zoning-districts",
+      "service_url": "https://maps.cityofevanston.org/arcgis/rest/services/OpenData/ArcGISOpenData2Administrative/MapServer/11",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    }
+  ],
+  "run_record": {
+    "run_id": "20260814T235702Z",
+    "saved_at": "2026-08-14T23:57:02+00:00",
+    "record_path": "curation/run_records/evanston-2026/20260814T235702Z",
+    "metadata_csv": "metadata.csv",
+    "job_config": "job.yaml",
+    "git": {
+      "revision": "82e745ff34b4a324087266d47b80b92853245faf",
+      "dirty": true
+    }
+  },
+  "artifacts": [
+    {
+      "role": "data_dictionary",
+      "path": "eva_address_2026/eva_address_2026.csv",
+      "size_bytes": 2565,
+      "sha256": "5f794393e30a9b6496a575a96e47319e83b19f5943a30556ffd3a7834dfe187e"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "eva_address_2026/eva_address_2026.fgb",
+      "size_bytes": 5324864,
+      "sha256": "6a67db53eece35f3697f576e4342bd86d2c0d90f9c5d04abcd36d589d06f0e3f"
+    },
+    {
+      "role": "geopackage",
+      "path": "eva_address_2026/eva_address_2026.gpkg",
+      "size_bytes": 4927488,
+      "sha256": "575cb04dde2300f88b2a3d0425c37f3d21ba6887dd8e9adfaddccf3302464499"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "eva_address_2026/eva_address_2026.gpkg.zip",
+      "size_bytes": 1665575,
+      "sha256": "83c47548de04192d63a11cecca5079955bb57a1f916e5070c0bfa8360716ac30"
+    },
+    {
+      "role": "pmtiles",
+      "path": "eva_address_2026/eva_address_2026.pmtiles",
+      "size_bytes": 3916947,
+      "sha256": "96c848f5265c814240e8418a713f3591f6111e5178705a5299f045a4eeeb6541"
+    },
+    {
+      "role": "thumbnail",
+      "path": "eva_address_2026/eva_address_2026.png",
+      "size_bytes": 17525,
+      "sha256": "80f49559bc1ac2d1c5935f79786553b91cb4aa6159b3d425ea6daf0238aeb4af"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "eva_buildings_2026/eva_buildings_2026.csv",
+      "size_bytes": 2474,
+      "sha256": "779ce2613ac8681d5c3f0e685caef2cdfeb1b0c9a4d51fdbc5773df7ba3c4f1f"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "eva_buildings_2026/eva_buildings_2026.fgb",
+      "size_bytes": 10932320,
+      "sha256": "7a4d746ddf734d8e71113bb84831fbfe6340d30587d925a45e3f87b1f3860b84"
+    },
+    {
+      "role": "geopackage",
+      "path": "eva_buildings_2026/eva_buildings_2026.gpkg",
+      "size_bytes": 10125312,
+      "sha256": "e477a31f2a865be8bbf0ec49c46ffeb0b4c59e1e16ea82f32e6a99799f7ee116"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "eva_buildings_2026/eva_buildings_2026.gpkg.zip",
+      "size_bytes": 5288169,
+      "sha256": "e3c492157a2739141b73c2e916ee04e79160faa8f2dd9453b6860089a977c12d"
+    },
+    {
+      "role": "pmtiles",
+      "path": "eva_buildings_2026/eva_buildings_2026.pmtiles",
+      "size_bytes": 6040439,
+      "sha256": "2a898787c26aff1d65662e4aaa8da08666c123ec5539cf0cc29d40d2c2743c54"
+    },
+    {
+      "role": "thumbnail",
+      "path": "eva_buildings_2026/eva_buildings_2026.png",
+      "size_bytes": 31429,
+      "sha256": "9e041c9d96bdd3914dc6d87a7ee0100b23cfd8b07275dcc2356176580b0bc3b3"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "eva_boundary_2026/eva_boundary_2026.csv",
+      "size_bytes": 1646,
+      "sha256": "8a678e089ba0c7e5f1c64fa3b224abd07b1e958753694bb93985816cd382f10e"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "eva_boundary_2026/eva_boundary_2026.fgb",
+      "size_bytes": 29664,
+      "sha256": "aef2fcd7bd16c5569819bb00c5c708346b933a979404be1366c0235a00b378f8"
+    },
+    {
+      "role": "geopackage",
+      "path": "eva_boundary_2026/eva_boundary_2026.gpkg",
+      "size_bytes": 135168,
+      "sha256": "b8fcd0235e8e0242766e516b6e39aeafe37f494251bfda8d025286635d32ac60"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "eva_boundary_2026/eva_boundary_2026.gpkg.zip",
+      "size_bytes": 23532,
+      "sha256": "d1e18550a2d7b6668da856e8000f21c6b4484824dda6c2816461f1a0157ddf0e"
+    },
+    {
+      "role": "pmtiles",
+      "path": "eva_boundary_2026/eva_boundary_2026.pmtiles",
+      "size_bytes": 12834,
+      "sha256": "d30482312b9b1cf2871465a48c9fcc9cb56aa5e2854cca0621a40ae4914a603d"
+    },
+    {
+      "role": "thumbnail",
+      "path": "eva_boundary_2026/eva_boundary_2026.png",
+      "size_bytes": 5480,
+      "sha256": "73d1183e8442fa8810c09b7b8147252eacb71b7305170ee402ae50c8beaee205"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "eva_parks_2026/eva_parks_2026.csv",
+      "size_bytes": 3560,
+      "sha256": "b73ab0b8fcc69900fe558f2a70dbd062391ef36f6e83c3edf7dbf4347903a371"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "eva_parks_2026/eva_parks_2026.fgb",
+      "size_bytes": 109344,
+      "sha256": "2e597fb473125fc9a24de67d233c667b8261d9ca9f3ac038df36cef496da021f"
+    },
+    {
+      "role": "geopackage",
+      "path": "eva_parks_2026/eva_parks_2026.gpkg",
+      "size_bytes": 217088,
+      "sha256": "7d08d0a1f01a044164282a98bcca61c85825e45b74c4290ae8146db8d913257c"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "eva_parks_2026/eva_parks_2026.gpkg.zip",
+      "size_bytes": 69702,
+      "sha256": "bb2c6b15b1720b677b87471ec14a754249e427e3ba84bafbe3cb2d200a57893b"
+    },
+    {
+      "role": "pmtiles",
+      "path": "eva_parks_2026/eva_parks_2026.pmtiles",
+      "size_bytes": 115272,
+      "sha256": "51f366465891e4dd4d03ff1ffa267cb0fb86abac4f485376cca41facbec2a855"
+    },
+    {
+      "role": "thumbnail",
+      "path": "eva_parks_2026/eva_parks_2026.png",
+      "size_bytes": 8443,
+      "sha256": "cfa01f94885d93da5fc04d479e0c871f59aefe698f1ed5122578e91db9657a49"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "eva_streets_2026/eva_streets_2026.csv",
+      "size_bytes": 6232,
+      "sha256": "cf65246bb5ac8b184462aa0925b0ac254b6e115495a0ace11c52ab6b41e2590e"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "eva_streets_2026/eva_streets_2026.fgb",
+      "size_bytes": 1122776,
+      "sha256": "456b16e01a66480cff9a1843c5be3124c016d38a8068f25a30dd3a9d8f3a21b8"
+    },
+    {
+      "role": "geopackage",
+      "path": "eva_streets_2026/eva_streets_2026.gpkg",
+      "size_bytes": 1032192,
+      "sha256": "f8c8439fdd9135285f0c354d854464c0483853240513e9eff8143bb7442acf77"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "eva_streets_2026/eva_streets_2026.gpkg.zip",
+      "size_bytes": 306019,
+      "sha256": "d63aa37a7987c96db42dd4382176fe7769276411a5d86331ef91379b91047e7a"
+    },
+    {
+      "role": "pmtiles",
+      "path": "eva_streets_2026/eva_streets_2026.pmtiles",
+      "size_bytes": 1034782,
+      "sha256": "57c66e3e3cdfcf43f3d450af176843c8575eedd2aa8f7b8e48705186145689a8"
+    },
+    {
+      "role": "thumbnail",
+      "path": "eva_streets_2026/eva_streets_2026.png",
+      "size_bytes": 13333,
+      "sha256": "c53e3fd583a325cbcbfa9eb1c10ad584944644dbce29dbfaceeee8c5496a3b83"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "eva_trees_2026/eva_trees_2026.csv",
+      "size_bytes": 28763,
+      "sha256": "2c21836102e908c4c2470d1642929de0f9e8558e284c0c70dba9f3971dbfce23"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "eva_trees_2026/eva_trees_2026.fgb",
+      "size_bytes": 11783320,
+      "sha256": "89c8680f64dc3e65665960f1a6fd5fd36a93b029af157a44a5fa7c24923182d4"
+    },
+    {
+      "role": "geopackage",
+      "path": "eva_trees_2026/eva_trees_2026.gpkg",
+      "size_bytes": 10375168,
+      "sha256": "83df2af0b99d6df015b558f14d17aea725e398b38daed7d340ed2a6020463d3a"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "eva_trees_2026/eva_trees_2026.gpkg.zip",
+      "size_bytes": 3359486,
+      "sha256": "44b730f4bc6a042eb032cdfc4c958a6f786598ca977589c690eb0c032ba97c53"
+    },
+    {
+      "role": "pmtiles",
+      "path": "eva_trees_2026/eva_trees_2026.pmtiles",
+      "size_bytes": 4390065,
+      "sha256": "45ef028c1e62647d4f2cab248346f8b25ebd09e08cd3165e136f82982a5eba56"
+    },
+    {
+      "role": "thumbnail",
+      "path": "eva_trees_2026/eva_trees_2026.png",
+      "size_bytes": 19589,
+      "sha256": "88b97b65c5c3866a9f05211aa1f4e8419321ae403ec96b3abac4dd9840d80a81"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "eva_zoning_2026/eva_zoning_2026.csv",
+      "size_bytes": 1658,
+      "sha256": "94c43342cbea9907ba2ed6704a556452d83d2d7fc2baee902a67a36db325d726"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "eva_zoning_2026/eva_zoning_2026.fgb",
+      "size_bytes": 305208,
+      "sha256": "caf87440575a2bc699e692e72ebc881a97fdd371f322122a347a9697111369b0"
+    },
+    {
+      "role": "geopackage",
+      "path": "eva_zoning_2026/eva_zoning_2026.gpkg",
+      "size_bytes": 442368,
+      "sha256": "8b6b6f2fa965bef9884aef38f5e772a3e98f410b8b44059008a09fce6cb236d7"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "eva_zoning_2026/eva_zoning_2026.gpkg.zip",
+      "size_bytes": 177259,
+      "sha256": "f3693ea41132282004def369e36ab1286f0a5a5d61791c63530ae79d9a3487c9"
+    },
+    {
+      "role": "pmtiles",
+      "path": "eva_zoning_2026/eva_zoning_2026.pmtiles",
+      "size_bytes": 110885,
+      "sha256": "be98fac0ef36b90de5e7b30794ff91ac3db35af967a1a789425d1e2a1edf2bd5"
+    },
+    {
+      "role": "thumbnail",
+      "path": "eva_zoning_2026/eva_zoning_2026.png",
+      "size_bytes": 17512,
+      "sha256": "5fd660c716395b671cbf42c91c928ad95b5cd416f3c316214dd0e7ce82a0a5da"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report.csv",
+      "size_bytes": 110096,
+      "sha256": "5fb335ad5b4045dc9710121dc56b599ff0be6550b06328fd33b0eda495ec4ae9"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report_fields.csv",
+      "size_bytes": 20001,
+      "sha256": "830e47c1d0877ff2b0f9088b25171330afa07b6a2fbcf9a11d8d979c776831de"
+    }
+  ]
+}
