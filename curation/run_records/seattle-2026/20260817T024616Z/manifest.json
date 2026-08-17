@@ -1,0 +1,517 @@
+{
+  "version": 1,
+  "job_id": "seattle-2026",
+  "config_path": "curation/jobs/seattle-2026.yaml",
+  "work_directory": "curation/work/seattle-2026",
+  "metadata_path": "metadata/metadata.csv",
+  "config_sha256": "7a8a32b31fc67ba8968ec39b43f3e6d451429cad84caaff4dc85d72aa391bcea",
+  "created_at": "2026-08-13T03:09:44+00:00",
+  "updated_at": "2026-08-13T03:26:28+00:00",
+  "manual_review": {
+    "status": "confirmed",
+    "confirmed_at": "2026-08-13T03:24:45+00:00",
+    "metadata_sha256": "dd043219e11e5972a84a50441b0be671c0091a9df99cdb800d092b5f1c106517"
+  },
+  "stages": {
+    "validate": {
+      "status": "completed",
+      "completed_at": "2026-08-13T03:09:44+00:00"
+    },
+    "metadata": {
+      "status": "completed",
+      "completed_at": "2026-08-13T03:09:44+00:00"
+    },
+    "download": {
+      "status": "completed",
+      "completed_at": "2026-08-13T03:19:13+00:00",
+      "outputs": [
+        {
+          "feature_count": 307779,
+          "geometry_type": "esriGeometryPoint",
+          "output": "sea_address_2026/sea_address_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 222349,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "sea_buildings_2023/sea_buildings_2023.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 5,
+          "geometry_type": "esriGeometryPolyline",
+          "output": "sea_boundary_2026/sea_boundary_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 2826,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "sea_parks_2026/sea_parks_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 23888,
+          "geometry_type": "esriGeometryPolyline",
+          "output": "sea_streets_2026/sea_streets_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 3627,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "sea_zoning_2026/sea_zoning_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 270543,
+          "geometry_type": "esriGeometryPoint",
+          "output": "sea_trees_2026/sea_trees_2026.gpkg",
+          "status": "downloaded"
+        }
+      ]
+    },
+    "enrich": {
+      "status": "completed",
+      "completed_at": "2026-08-13T03:20:30+00:00",
+      "records": [
+        {
+          "filename": "sea_address_2026.gpkg",
+          "resource_type": "Point data",
+          "bounding_box": "-122.4393,47.4441,-122.2177,47.7801"
+        },
+        {
+          "filename": "sea_buildings_2023.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-122.4380,47.4935,-122.2357,47.7355"
+        },
+        {
+          "filename": "sea_boundary_2026.gpkg",
+          "resource_type": "Line data",
+          "bounding_box": "-122.3827,47.4941,-122.2356,47.7359"
+        },
+        {
+          "filename": "sea_parks_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-122.4422,47.4965,-122.2405,47.7356"
+        },
+        {
+          "filename": "sea_streets_2026.gpkg",
+          "resource_type": "Line data",
+          "bounding_box": "-122.4360,47.4831,-122.2239,47.7358"
+        },
+        {
+          "filename": "sea_zoning_2026.gpkg",
+          "resource_type": "Polygon data",
+          "bounding_box": "-122.4435,47.4933,-122.2339,47.7359"
+        },
+        {
+          "filename": "sea_trees_2026.gpkg",
+          "resource_type": "Point data",
+          "bounding_box": "-122.4743,47.4931,-122.2382,47.7959"
+        }
+      ]
+    },
+    "dictionaries": {
+      "status": "completed",
+      "completed_at": "2026-08-13T03:24:49+00:00",
+      "outputs": [
+        "sea_address_2026/sea_address_2026.csv",
+        "sea_buildings_2023/sea_buildings_2023.csv",
+        "sea_boundary_2026/sea_boundary_2026.csv",
+        "sea_parks_2026/sea_parks_2026.csv",
+        "sea_streets_2026/sea_streets_2026.csv",
+        "sea_zoning_2026/sea_zoning_2026.csv",
+        "sea_trees_2026/sea_trees_2026.csv"
+      ]
+    },
+    "embed": {
+      "status": "completed",
+      "completed_at": "2026-08-13T03:24:51+00:00",
+      "outputs": [
+        "sea_address_2026/sea_address_2026.gpkg",
+        "sea_buildings_2023/sea_buildings_2023.gpkg",
+        "sea_boundary_2026/sea_boundary_2026.gpkg",
+        "sea_parks_2026/sea_parks_2026.gpkg",
+        "sea_streets_2026/sea_streets_2026.gpkg",
+        "sea_zoning_2026/sea_zoning_2026.gpkg",
+        "sea_trees_2026/sea_trees_2026.gpkg"
+      ]
+    },
+    "thumbnails": {
+      "status": "completed",
+      "completed_at": "2026-08-13T03:25:11+00:00",
+      "outputs": [
+        "sea_address_2026/sea_address_2026.png",
+        "sea_buildings_2023/sea_buildings_2023.png",
+        "sea_boundary_2026/sea_boundary_2026.png",
+        "sea_parks_2026/sea_parks_2026.png",
+        "sea_streets_2026/sea_streets_2026.png",
+        "sea_zoning_2026/sea_zoning_2026.png",
+        "sea_trees_2026/sea_trees_2026.png"
+      ]
+    },
+    "derivatives": {
+      "status": "completed",
+      "completed_at": "2026-08-13T03:26:20+00:00",
+      "report": "reports/pmtiles_build_report.csv"
+    },
+    "zip": {
+      "status": "completed",
+      "completed_at": "2026-08-13T03:26:28+00:00",
+      "outputs": [
+        "sea_address_2026/sea_address_2026.gpkg.zip",
+        "sea_buildings_2023/sea_buildings_2023.gpkg.zip",
+        "sea_boundary_2026/sea_boundary_2026.gpkg.zip",
+        "sea_parks_2026/sea_parks_2026.gpkg.zip",
+        "sea_streets_2026/sea_streets_2026.gpkg.zip",
+        "sea_zoning_2026/sea_zoning_2026.gpkg.zip",
+        "sea_trees_2026/sea_trees_2026.gpkg.zip"
+      ]
+    },
+    "snapshot": {
+      "status": "completed",
+      "completed_at": "2026-08-17T02:46:16+00:00"
+    }
+  },
+  "records": [
+    {
+      "source_id": "5ef414c3cf73436a84bff413129e67e7_0",
+      "curated_id": "b1g_vTHb5RcG150b",
+      "filename": "sea_address_2026.gpkg",
+      "landing_page": "https://data-seattlecitygis.opendata.arcgis.com/datasets/SeattleCityGIS::addresses-maf-1",
+      "service_url": "https://services.arcgis.com/ZOyb2t4B0UYuYNYH/arcgis/rest/services/TRANSPO_MAFDAP_PV/FeatureServer/0",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "1ea2f226716e417e8a554476f4337c51_0",
+      "curated_id": "b1g_xPqNHMpKv3qz",
+      "filename": "sea_buildings_2023.gpkg",
+      "landing_page": "https://data-seattlecitygis.opendata.arcgis.com/datasets/SeattleCityGIS::building-outlines-2023",
+      "service_url": "https://services.arcgis.com/ZOyb2t4B0UYuYNYH/arcgis/rest/services/Building_Outlines_2023/FeatureServer/0",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "c5f3575dd7d545ada27064c74ac74f52_0",
+      "curated_id": "b1g_0nz8vmfZxuqE",
+      "filename": "sea_boundary_2026.gpkg",
+      "landing_page": "https://data-seattlecitygis.opendata.arcgis.com/datasets/SeattleCityGIS::seattle-city-limits-2",
+      "service_url": "https://services.arcgis.com/ZOyb2t4B0UYuYNYH/arcgis/rest/services/Seattle_City_Limits/FeatureServer/0",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "9baab63b52df417a9b2a168e3f288b1b_2",
+      "curated_id": "b1g_KJli5h10iqXx",
+      "filename": "sea_parks_2026.gpkg",
+      "landing_page": "https://data-seattlecitygis.opendata.arcgis.com/datasets/SeattleCityGIS::parks",
+      "service_url": "https://services.arcgis.com/ZOyb2t4B0UYuYNYH/arcgis/rest/services/Park_Boundaries/FeatureServer/2",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "f91318f1cc43489fb0e7aca2fde22899_0",
+      "curated_id": "b1g_yDG2mXNRxbOi",
+      "filename": "sea_streets_2026.gpkg",
+      "landing_page": "https://data-seattlecitygis.opendata.arcgis.com/datasets/SeattleCityGIS::seattle-streets",
+      "service_url": "https://services.arcgis.com/ZOyb2t4B0UYuYNYH/arcgis/rest/services/Seattle_Streets_1/FeatureServer/0",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "dd29065b5d01420e9686570c2b77502b_0",
+      "curated_id": "b1g_DmMVomrc23Fj",
+      "filename": "sea_zoning_2026.gpkg",
+      "landing_page": "https://data-seattlecitygis.opendata.arcgis.com/datasets/SeattleCityGIS::current-land-use-zoning-detail",
+      "service_url": "https://services.arcgis.com/ZOyb2t4B0UYuYNYH/arcgis/rest/services/Current_Land_Use_Zoning_Detail_2/FeatureServer/0",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "db783659194f47ef8fbd8e010c102809_0",
+      "curated_id": "b1g_lFajJ725rV15",
+      "filename": "sea_trees_2026.gpkg",
+      "landing_page": "https://data-seattlecitygis.opendata.arcgis.com/datasets/SeattleCityGIS::sdot-trees",
+      "service_url": "https://services.arcgis.com/ZOyb2t4B0UYuYNYH/arcgis/rest/services/SDOT_Trees_CDL/FeatureServer/0",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    }
+  ],
+  "run_record": {
+    "run_id": "20260817T024616Z",
+    "saved_at": "2026-08-17T02:46:16+00:00",
+    "record_path": "curation/run_records/seattle-2026/20260817T024616Z",
+    "metadata_csv": "metadata.csv",
+    "job_config": "job.yaml",
+    "git": {
+      "revision": "f4d0883016612006b073595f4e4face0b7422c4d",
+      "dirty": false
+    }
+  },
+  "artifacts": [
+    {
+      "role": "data_dictionary",
+      "path": "sea_address_2026/sea_address_2026.csv",
+      "size_bytes": 2580,
+      "sha256": "d3039808c26a98e1c817ac4f019aef2c81be28b2970eb9f5a5a3cedc87460040"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "sea_address_2026/sea_address_2026.fgb",
+      "size_bytes": 78659376,
+      "sha256": "52c688e51b46a3beac18c6ff73ba36b3e5d84ec000cfe505d1ddc4de1dbce42a"
+    },
+    {
+      "role": "geopackage",
+      "path": "sea_address_2026/sea_address_2026.gpkg",
+      "size_bytes": 80105472,
+      "sha256": "1f53b1fde8f626f8b4faee1b51f2de21929f33c387b87467eae9d9184724014a"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "sea_address_2026/sea_address_2026.gpkg.zip",
+      "size_bytes": 20410397,
+      "sha256": "f0589c33a90ecb8e24cf29cb289816a2c824b4db18f1835d338beff94e3234d2"
+    },
+    {
+      "role": "pmtiles",
+      "path": "sea_address_2026/sea_address_2026.pmtiles",
+      "size_bytes": 29510507,
+      "sha256": "34eaaf06718758fc9a9428704fe49c7810d87f5d70c895032f5733c3be4ef921"
+    },
+    {
+      "role": "thumbnail",
+      "path": "sea_address_2026/sea_address_2026.png",
+      "size_bytes": 11468,
+      "sha256": "fb92ffa8d681629c8b6787046f83f6c34b8d8bf78a799c1cc3cae16c21c412c1"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "sea_buildings_2023/sea_buildings_2023.csv",
+      "size_bytes": 1605,
+      "sha256": "890098bb98d393950c970a641e4fa02d98a181ffc16d207ecc9b248d01083cad"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "sea_buildings_2023/sea_buildings_2023.fgb",
+      "size_bytes": 88962376,
+      "sha256": "39ac1c08892e8e05750a4088566be158813dc7d03093a0e54b6b81459a2e4566"
+    },
+    {
+      "role": "geopackage",
+      "path": "sea_buildings_2023/sea_buildings_2023.gpkg",
+      "size_bytes": 87277568,
+      "sha256": "21bdb9cc6a8fa1252ebbf4d88e2acd8a26d9cfcf6789d435ad24772c67f1020b"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "sea_buildings_2023/sea_buildings_2023.gpkg.zip",
+      "size_bytes": 50708650,
+      "sha256": "71d0b5e1fd9f64fd295afb5fc7358fc9e05ac0353d3195cc252381ed09ca2dc8"
+    },
+    {
+      "role": "pmtiles",
+      "path": "sea_buildings_2023/sea_buildings_2023.pmtiles",
+      "size_bytes": 29646624,
+      "sha256": "0ff04517a4f80d58aa3f2f920648f5108e39846bf9eb16a98ca8006c4e9753ce"
+    },
+    {
+      "role": "thumbnail",
+      "path": "sea_buildings_2023/sea_buildings_2023.png",
+      "size_bytes": 13691,
+      "sha256": "c224a7c878e1426a6f071f89418eaeb613eef06d859913e23127b2719539ff6f"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "sea_boundary_2026/sea_boundary_2026.csv",
+      "size_bytes": 771,
+      "sha256": "223ff09c221ca6fff0e87fb3f9cad35b789174b61b0b996c5c2af2c80594dae2"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "sea_boundary_2026/sea_boundary_2026.fgb",
+      "size_bytes": 26984,
+      "sha256": "2b635f6b48babc850cdf105d6b26b33a6dcebc7610337747fc514da511d069ce"
+    },
+    {
+      "role": "geopackage",
+      "path": "sea_boundary_2026/sea_boundary_2026.gpkg",
+      "size_bytes": 135168,
+      "sha256": "c752ae58a2d092b24b72448e4cdde9ecd987938049407a6c80e8652493c0294e"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "sea_boundary_2026/sea_boundary_2026.gpkg.zip",
+      "size_bytes": 24692,
+      "sha256": "9ddcd402047ae0a0e3eef33edce237e842c85208e020a2a582a8c7d1b38c5767"
+    },
+    {
+      "role": "pmtiles",
+      "path": "sea_boundary_2026/sea_boundary_2026.pmtiles",
+      "size_bytes": 13558,
+      "sha256": "46ec97b240d76894a8b041923957e9876c3fa39303c62e0405ed5f827e8b47f3"
+    },
+    {
+      "role": "thumbnail",
+      "path": "sea_boundary_2026/sea_boundary_2026.png",
+      "size_bytes": 1184,
+      "sha256": "9ca2ea16ed297831b21d907589068333876267916d3e001d4f047c942618eb08"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "sea_parks_2026/sea_parks_2026.csv",
+      "size_bytes": 5411,
+      "sha256": "92436dc0f2cd7991f8c30b70aae0c01a501b63abf56f4fdab24107a151322a3f"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "sea_parks_2026/sea_parks_2026.fgb",
+      "size_bytes": 3301104,
+      "sha256": "b78ec9a534eb4c975b5b4f1f06ad0129e90fb7a8b99c145efa529874b0f5eb89"
+    },
+    {
+      "role": "geopackage",
+      "path": "sea_parks_2026/sea_parks_2026.gpkg",
+      "size_bytes": 3452928,
+      "sha256": "17d74f1ef59c6395f13048f9796ac46a557245120b3ae3dc7bc00990f58e8cc2"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "sea_parks_2026/sea_parks_2026.gpkg.zip",
+      "size_bytes": 1900873,
+      "sha256": "59245950bde567f8d2b7ebaa27ce8172ed6c4f106fe56a3414286b66a65b6196"
+    },
+    {
+      "role": "pmtiles",
+      "path": "sea_parks_2026/sea_parks_2026.pmtiles",
+      "size_bytes": 1609419,
+      "sha256": "723af41b392b5bf8faa47d034e92058a7cac824cc4cd94675b4f977ff3cda717"
+    },
+    {
+      "role": "thumbnail",
+      "path": "sea_parks_2026/sea_parks_2026.png",
+      "size_bytes": 13657,
+      "sha256": "04dbfa5f6f63a49276e1b2652da92a091fe396ce522af67736b28b4c4ea6e641"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "sea_streets_2026/sea_streets_2026.csv",
+      "size_bytes": 8809,
+      "sha256": "fd49978b8dd2a1a7712103c69332c8afe3adfeeb77c1412148bc129d759289a8"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "sea_streets_2026/sea_streets_2026.fgb",
+      "size_bytes": 18687080,
+      "sha256": "87c8fa13c43a0f3cd9b3446cdb470c47d66eaceddcc35c22842e69ef1294d38e"
+    },
+    {
+      "role": "geopackage",
+      "path": "sea_streets_2026/sea_streets_2026.gpkg",
+      "size_bytes": 19865600,
+      "sha256": "ccff073951640e1948c667423612e79f12c207b2fea10b20005eec74510cd177"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "sea_streets_2026/sea_streets_2026.gpkg.zip",
+      "size_bytes": 5862463,
+      "sha256": "c9a83ad92996e3d71460a989bc8f0a05570233c98bfbdb3ad1c451ffe550997c"
+    },
+    {
+      "role": "pmtiles",
+      "path": "sea_streets_2026/sea_streets_2026.pmtiles",
+      "size_bytes": 14740415,
+      "sha256": "91369ca445e1976fb9837c2aef9df1a22fd7f2597e3f463ec2b13a6eac3fe848"
+    },
+    {
+      "role": "thumbnail",
+      "path": "sea_streets_2026/sea_streets_2026.png",
+      "size_bytes": 9946,
+      "sha256": "5edfe51a6a568e002b70cfd8c0a51f9f12975424ea1f8466f2ca4adabcac8844"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "sea_zoning_2026/sea_zoning_2026.csv",
+      "size_bytes": 6725,
+      "sha256": "8faeed0f935c36c24165cc8a3f9868f9d340ce8a2a64e9efb51c2f66af09630c"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "sea_zoning_2026/sea_zoning_2026.fgb",
+      "size_bytes": 5209000,
+      "sha256": "faa064651ae17f515d23c8d4534ed23988b4519efcf5753af78554f3ef983840"
+    },
+    {
+      "role": "geopackage",
+      "path": "sea_zoning_2026/sea_zoning_2026.gpkg",
+      "size_bytes": 5844992,
+      "sha256": "684d87f42d9d9c3d04da5728f88ad5694a9202b151af519ceeca8689008d1401"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "sea_zoning_2026/sea_zoning_2026.gpkg.zip",
+      "size_bytes": 2326725,
+      "sha256": "a289dc380a9da64a271b6421b07199dfa1ff6ef5f5bb42d1e28e2bbf326a5482"
+    },
+    {
+      "role": "pmtiles",
+      "path": "sea_zoning_2026/sea_zoning_2026.pmtiles",
+      "size_bytes": 1281984,
+      "sha256": "05b87ea74853120258856fab74661339c8581d56b7369238adcadee9a71e5b06"
+    },
+    {
+      "role": "thumbnail",
+      "path": "sea_zoning_2026/sea_zoning_2026.png",
+      "size_bytes": 19867,
+      "sha256": "028d2f862c2ff12d452d3fa86eb4f8aee37573fc474cdfbbb142775145b67429"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "sea_trees_2026/sea_trees_2026.csv",
+      "size_bytes": 8979,
+      "sha256": "e7205d649f3864b0c80548abedf586cc42090c0321bbd5c2edf51e850c8801f3"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "sea_trees_2026/sea_trees_2026.fgb",
+      "size_bytes": 135760368,
+      "sha256": "caec07c7f128459eb6088d320f1eb630349e6fdb0052233f69ddd613174d2219"
+    },
+    {
+      "role": "geopackage",
+      "path": "sea_trees_2026/sea_trees_2026.gpkg",
+      "size_bytes": 107401216,
+      "sha256": "59153a03216d6efca4a37385a9fa80fd98e0bd4b855f6d3bd4b92c279b852491"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "sea_trees_2026/sea_trees_2026.gpkg.zip",
+      "size_bytes": 31579433,
+      "sha256": "9f35efc374a027e0fa27f6d15000d5546dfad4d46e15258fc8007cb519533db5"
+    },
+    {
+      "role": "pmtiles",
+      "path": "sea_trees_2026/sea_trees_2026.pmtiles",
+      "size_bytes": 22820689,
+      "sha256": "5827f7fd7be6874867d0626140067a649c68d8b37a899df3df83ac04eaf4ede3"
+    },
+    {
+      "role": "thumbnail",
+      "path": "sea_trees_2026/sea_trees_2026.png",
+      "size_bytes": 10422,
+      "sha256": "d46073fef17053dc829b76712c6f2cccba8460fd74638385aebd163d8d7d2f16"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report.csv",
+      "size_bytes": 402282,
+      "sha256": "5026b3c562c614f06b3aa54d5702922948c95387ffae240a9942366447f9f11b"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report_fields.csv",
+      "size_bytes": 34235,
+      "sha256": "1d62f7f0979bc201dddd0da97b0dc2b5fd8fb7eb4e1bb1ce12f5c17039b96817"
+    }
+  ]
+}
