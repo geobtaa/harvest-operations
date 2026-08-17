@@ -16,13 +16,13 @@ hub:
   websites_csv: ../../reference_data/websites.csv
 
 coordinate_reference_system:
-  authority: "<AUTHORITY:CODE>"
-  uri: "https://spatialreference.org/ref/<authority>/<code>/"
+  authority: "EPSG:2927"
+  uri: "https://spatialreference.org/ref/epsg/2927/"
 
 metadata:
-  code: "<urban-base-layer-code>"
+  code: "b1g_53_70000"
   member_of: b1g_urbanBaseLayers
-  export_date: "YYYY-MM-DD"
+  export_date: "2026-08-16"
 
 selection_criteria:
   allowed_resource_types:
@@ -48,30 +48,22 @@ derivatives:
 
 # Fill the layers the Hub provides and delete unused rows.
 records:
-  - id: "<address-item-id>_<layer-number>"
-    filename: "<prefix>_address_<yyyy>"
+  - id: "eb529c650d754e459e6aa85c3b9c8b80_0"
+    filename: "tac_address_2026"
     basic_theme: Address points
 
-  - id: "<buildings-item-id>_<layer-number>"
-    filename: "<prefix>_buildings_<yyyy>"
+  - id: "b34daa51afa34dce85b0ec10124465f0_0"
+    filename: "tac_buildings_2026"
     basic_theme: Building footprints
 
-  - id: "<boundary-item-id>_<layer-number>"
-    filename: "<prefix>_boundary_<yyyy>"
+  - id: "019f4eb5dc6849c5966bdbdc18cab469_0"
+    filename: "tac_boundary_2026"
     basic_theme: Municipal boundary
 
-  - id: "<parcels-item-id>_<layer-number>"
-    filename: "<prefix>_parcels_<yyyy>"
-    basic_theme: Parcels
-
-  - id: "<parks-item-id>_<layer-number>"
-    filename: "<prefix>_parks_<yyyy>"
-    basic_theme: Parks
-
-  - id: "<streets-item-id>_<layer-number>"
-    filename: "<prefix>_streets_<yyyy>"
+  - id: "0c18107f9a774ab8a8e83b719a384e61_1"
+    filename: "tac_streets_2026"
     basic_theme: Streets
 
-  - id: "<zoning-item-id>_<layer-number>"
-    filename: "<prefix>_zoning_<yyyy>"
+  - id: "8e40c6c43021495f9ba243c1253a54a1_0"
+    filename: "tac_zoning_2026"
     basic_theme: Zoning
