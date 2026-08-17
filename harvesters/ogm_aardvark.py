@@ -20,7 +20,6 @@ from utils.dataframe_cleaner import (
 )
 from utils.distribution_writer import generate_secondary_table, load_distribution_types
 from utils.field_order import FIELD_ORDER, PRIMARY_FIELD_ORDER
-from utils.spatial_cleaner import spatial_cleaning
 
 
 GITHUB_API_ROOT = "https://api.github.com"
@@ -298,9 +297,6 @@ class OgmAardvarkHarvester(BaseHarvester):
             .pipe(clean_date_ranges)
             .pipe(self._reorder_columns_with_extras)
         )
-
-        if "Bounding Box" in df.columns:
-            df = spatial_cleaning(df)
 
         after_cols = list(df.columns)
         dropped = before_cols - set(after_cols)

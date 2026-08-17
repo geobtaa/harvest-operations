@@ -1,0 +1,69 @@
+# ArcGIS curation job template. Setup notes and optional fields:
+# arcgis_curation_pipeline_reference.md
+version: 1
+
+job:
+  id: "tacoma-2026"
+  work_directory: "../work/tacoma-2026"
+
+provider: BTAA-GIN
+
+hub:
+  name: "Tacoma Open Data"
+  landing_page: "https://tacomaopendata-tacoma.hub.arcgis.com"
+  dcat_api: "https://tacomaopendata-tacoma.hub.arcgis.com/api/feed/dcat-us/1.1.json"
+  website_reference_id: "16c-03"
+  websites_csv: ../../reference_data/websites.csv
+
+coordinate_reference_system:
+  authority: "EPSG:2927"
+  uri: "https://spatialreference.org/ref/epsg/2927/"
+
+metadata:
+  code: "b1g_53_70000"
+  member_of: b1g_urbanBaseLayers
+  export_date: "2026-08-16"
+
+selection_criteria:
+  allowed_resource_types:
+    - Polygon data
+    - Line data
+    - Point data
+
+manual_review:
+  required_fields:
+    - filename
+    - ID
+    - Title
+    - Description
+    - Creator
+    - Publisher
+    - Provider
+    - Resource Class
+    - Rights
+    - Access Rights
+
+derivatives:
+  pmtiles_config: ../pmtiles_config.sample.json
+
+# Fill the layers the Hub provides and delete unused rows.
+records:
+  - id: "eb529c650d754e459e6aa85c3b9c8b80_0"
+    filename: "tac_address_2026"
+    basic_theme: Address points
+
+  - id: "b34daa51afa34dce85b0ec10124465f0_0"
+    filename: "tac_buildings_2026"
+    basic_theme: Building footprints
+
+  - id: "019f4eb5dc6849c5966bdbdc18cab469_0"
+    filename: "tac_boundary_2026"
+    basic_theme: Municipal boundary
+
+  - id: "0c18107f9a774ab8a8e83b719a384e61_1"
+    filename: "tac_streets_2026"
+    basic_theme: Streets
+
+  - id: "8e40c6c43021495f9ba243c1253a54a1_0"
+    filename: "tac_zoning_2026"
+    basic_theme: Zoning

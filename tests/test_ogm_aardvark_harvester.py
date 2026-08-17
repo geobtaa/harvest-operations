@@ -357,6 +357,32 @@ def test_ogm_aardvark_derives_date_range_when_column_exists_but_row_value_is_mis
     assert date_ranges["record-missing-date-range"] == "1943-1943"
 
 
+def test_ogm_aardvark_preserves_source_bounding_box_coordinate_order():
+    harvester = OgmAardvarkHarvester(_config(str(ROOT / "inputs" / "edu.utexas")))
+    harvester.load_reference_data()
+    records = [
+        {
+            "id": "source-coordinate-order",
+            "dct_title_s": "Source Coordinate Order",
+            "dct_accessRights_s": "Public",
+            "gbl_resourceClass_sm": ["Datasets"],
+            "dcat_bbox": "ENVELOPE(-95.357,-95.362,29.754,29.759)",
+            "locn_geometry": "ENVELOPE(-95.357,-95.362,29.754,29.759)",
+        }
+    ]
+
+    df = harvester.build_dataframe(records)
+    df = harvester.derive_fields(df)
+    source_bbox = df.loc[0, "Bounding Box"]
+    source_geometry = df.loc[0, "Geometry"]
+
+    result = harvester.clean(df)
+
+    assert source_bbox == "-95.357,29.759,-95.362,29.754"
+    assert result.loc[0, "Bounding Box"] == source_bbox
+    assert result.loc[0, "Geometry"] == source_geometry
+
+
 def test_ogm_aardvark_github_tarball_filters_to_metadata_folder():
     inside_record = _load_sample_records()[0]
     outside_record = {

@@ -1,0 +1,77 @@
+# ArcGIS curation job template. Setup notes and optional fields:
+# arcgis_curation_pipeline_reference.md
+version: 1
+
+job:
+  id: "evanston-2026"
+  work_directory: "../work/evanston-2026"
+
+provider: BTAA-GIN
+
+hub:
+  name: "Evanston, Illinois Open Data Hub"
+  landing_page: "https://data.cityofevanston.org"
+  dcat_api: "https://data.cityofevanston.org/api/feed/dcat-us/1.1.json"
+  website_reference_id: "02c-01"
+  websites_csv: ../../reference_data/websites.csv
+
+coordinate_reference_system:
+  authority: "EPSG:3435"
+  uri: "https://spatialreference.org/ref/epsg/3435/"
+
+metadata:
+  code: "b1g_17_24582"
+  member_of: b1g_urbanBaseLayers
+  export_date: "2026-08-14"
+
+selection_criteria:
+  allowed_resource_types:
+    - Polygon data
+    - Line data
+    - Point data
+
+manual_review:
+  required_fields:
+    - filename
+    - ID
+    - Title
+    - Description
+    - Creator
+    - Publisher
+    - Provider
+    - Resource Class
+    - Rights
+    - Access Rights
+
+derivatives:
+  pmtiles_config: ../pmtiles_config.sample.json
+
+# Fill the layers the Hub provides and delete unused rows.
+records:
+  - id: "6d0b7733d4ee475ca8028b876ba6e605_4"
+    filename: "eva_address_2026"
+    basic_theme: Address points
+
+  - id: "e7cfb3c1fb9848a2996b4e62a924ae01_5"
+    filename: "eva_buildings_2026"
+    basic_theme: Building footprints
+
+  - id: "628c6bf92ce14c0f8bd47c3ccf60e9cc_13"
+    filename: "eva_boundary_2026"
+    basic_theme: Municipal boundary as annexations
+
+  - id: "d638981fff6d402db87d2f825f498919_6"
+    filename: "eva_parks_2026"
+    basic_theme: Parks
+
+  - id: "4ccfb697e22542578194ac0efaa09112_2"
+    filename: "eva_streets_2026"
+    basic_theme: Streets
+
+  - id: "845a3acb3dc0442a80b219691889f992_8"
+    filename: "eva_trees_2026"
+    basic_theme: Trees
+
+  - id: "a31feef7fa5e4725b952d4fcc36c99a3_11"
+    filename: "eva_zoning_2026"
+    basic_theme: Zoning

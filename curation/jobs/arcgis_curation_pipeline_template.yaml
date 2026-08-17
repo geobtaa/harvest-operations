@@ -60,10 +60,6 @@ records:
     filename: "<prefix>_boundary_<yyyy>"
     basic_theme: Municipal boundary
 
-  - id: "<parcels-item-id>_<layer-number>"
-    filename: "<prefix>_parcels_<yyyy>"
-    basic_theme: Parcels
-
   - id: "<parks-item-id>_<layer-number>"
     filename: "<prefix>_parks_<yyyy>"
     basic_theme: Parks
@@ -71,6 +67,10 @@ records:
   - id: "<streets-item-id>_<layer-number>"
     filename: "<prefix>_streets_<yyyy>"
     basic_theme: Streets
+    
+  - id: "<parcels-item-id>_<layer-number>"
+    filename: "<prefix>_trees_<yyyy>"
+    basic_theme: Trees
 
   - id: "<zoning-item-id>_<layer-number>"
     filename: "<prefix>_zoning_<yyyy>"
