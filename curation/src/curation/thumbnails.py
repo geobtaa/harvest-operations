@@ -1,9 +1,4 @@
 """Create consistently sized PNG previews of curated vector datasets.
-
-The curation pipeline calls :func:`create_vector_thumbnail` after building a
-GeoPackage.  The function reads every feature, lets GeoPandas draw the dataset
-at its natural aspect ratio, and saves only the occupied part of the figure.
-The background is transparent unless the caller supplies a background color.
 """
 
 from __future__ import annotations
@@ -12,17 +7,14 @@ import logging
 from pathlib import Path
 
 
-# These colors also appear in the repository's report dashboards.  Keeping the
-# palette here as named constants makes the choice visible and prevents one-off
-# hex values from drifting between thumbnail runs.
+# Feature colors
 POLYGON_FILL_COLOR = "#1F6FB2"
 POLYGON_EDGE_COLOR = "#17324D" 
 LINE_COLOR = "#1F6FB2"
 POINT_COLOR = "#1F6FB2"
 BACKGROUND_COLOR: str | None = None  # None keeps the PNG background transparent.
 
-# The initial canvas affects layout only.  The final DPI is calculated from the
-# cropped drawing below, so the saved image—not this working canvas—has a short
+
 # side of DEFAULT_MINIMUM_SIDE pixels.
 WORKING_FIGURE_SIZE_INCHES = 2
 WORKING_DPI = 100
@@ -84,9 +76,6 @@ def create_vector_thumbnail(
         dpi=WORKING_DPI,
     )
     try:
-        # Start with the polygon style, then replace the relevant options for a
-        # homogeneous line or point layer. Curation datasets normally contain
-        # one geometry family per file.
         plot_options: dict[str, object] = {
             "ax": axis,
             "color": polygon_fill_color,
@@ -117,7 +106,7 @@ def create_vector_thumbnail(
             )
         elif is_line_layer:
             # Lines have no interior-versus-edge distinction, so they receive
-            # one dedicated color and retain the standard thumbnail line width.
+            # one color and retain the standard thumbnail line width.
             plot_options.update(color=line_color, edgecolor="none")
 
         dataframe.plot(**plot_options)
