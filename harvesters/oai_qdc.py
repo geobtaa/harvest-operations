@@ -15,6 +15,7 @@ if __package__ in (None, ""):
 from harvesters.base import BaseHarvester
 from utils.distribution_writer import generate_secondary_table
 from utils.field_order import FIELD_ORDER, PRIMARY_FIELD_ORDER
+from utils.oai_pmh import load_configured_sets
 from utils.resource_type_match import split_resource_type_values
 from utils.spatial_match import (
     load_city_spatial_lookup,
@@ -30,14 +31,15 @@ from utils.spatial_match import (
 
 class OaiQdcHarvester(BaseHarvester):
     """
-    Harvester for qualified Dublin Core OAI-PMH records that have already been
-    downloaded to local XML files.
+    Harvester for standard or qualified Dublin Core OAI-PMH records that have
+    already been downloaded to local XML files.
     """
 
     OAI_NS = {
         "oai": "http://www.openarchives.org/OAI/2.0/",
         "dc": "http://purl.org/dc/elements/1.1/",
         "dcterms": "http://purl.org/dc/terms/",
+        "oai_dc": "http://www.openarchives.org/OAI/2.0/oai_dc/",
         "oai_qdc": "http://worldcat.org/xmlschemas/qdc-1.0/",
     }
     NS_PREFIXES = {uri: prefix for prefix, uri in OAI_NS.items() if prefix != "oai"}
@@ -114,7 +116,10 @@ class OaiQdcHarvester(BaseHarvester):
         self.state_spatial_alias_lookup = {}
         self.plss_lookup = {}
 
-        self.sets_csv = self.oai_resolve_path(self.config["sets_csv"])
+        sets_csv_value = self.config.get("sets_csv", "")
+        self.sets_csv = (
+            self.oai_resolve_path(sets_csv_value) if sets_csv_value else None
+        )
         self.set_column = self.config.get("sets_csv_set_column", "set")
         self.set_title_column = self.config.get("sets_csv_title_column", "title")
         self.download_dir = self.oai_resolve_path(
@@ -199,8 +204,9 @@ class OaiQdcHarvester(BaseHarvester):
 
     def fetch(self):
         sets = self.oai_load_sets()
+        sets_source = self.sets_csv or "inline YAML"
         print(
-            f"[OAI_QDC] Loaded {len(sets)} set definitions from {self.sets_csv} "
+            f"[OAI_QDC] Loaded {len(sets)} set definitions from {sets_source} "
             f"for {self.oai_base_url}"
         )
         if not sets:
@@ -288,7 +294,7 @@ class OaiQdcHarvester(BaseHarvester):
         df = self.oai_route_identifier_values(df)
         df = self.oai_ensure_output_columns(df)
         print(
-            f"[OAI_QDC] Crosswalked {len(df)} qualified Dublin Core records using "
+            f"[OAI_QDC] Crosswalked {len(df)} Dublin Core records using "
             f"metadataPrefix={self.metadata_prefix}."
         )
         return df
@@ -410,16 +416,7 @@ class OaiQdcHarvester(BaseHarvester):
         return aliases
 
     def oai_load_sets(self):
-        sets = []
-        with self.sets_csv.open(newline="", encoding="utf-8-sig") as handle:
-            reader = csv.DictReader(handle)
-            for row in reader:
-                set_spec = str(row.get(self.set_column, "")).strip()
-                set_title = str(row.get(self.set_title_column, "")).strip()
-                if not set_spec:
-                    continue
-                sets.append({"set_spec": set_spec, "set_title": set_title})
-        return sets
+        return load_configured_sets(self.config, self.project_root)
 
     def oai_load_crosswalk(self):
         if self.crosswalk_config:
@@ -1182,12 +1179,14 @@ class OaiQdcHarvester(BaseHarvester):
         if metadata_el is None:
             return None
 
-        qualifieddc_el = metadata_el.find("oai_qdc:qualifieddc", self.OAI_NS)
-        if qualifieddc_el is None:
+        dc_root = metadata_el.find("oai_qdc:qualifieddc", self.OAI_NS)
+        if dc_root is None:
+            dc_root = metadata_el.find("oai_dc:dc", self.OAI_NS)
+        if dc_root is None:
             return None
 
         fields = {}
-        for child in list(qualifieddc_el):
+        for child in list(dc_root):
             key = self.oai_tag_name(child.tag)
             if not key:
                 continue

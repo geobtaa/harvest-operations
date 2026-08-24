@@ -9,7 +9,10 @@ from local XML snapshots instead of repeatedly hitting the source endpoint.
 import argparse
 import csv
 import json
+import shutil
 import re
+import sys
+import tempfile
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -17,12 +20,23 @@ from typing import Optional
 from urllib.parse import urlparse
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import yaml
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from utils.oai_pmh import (  # noqa: E402
+    ALL_RECORDS_SET,
+    load_configured_sets,
+    raise_for_oai_status,
+)
 
 
 OAI_NS = {"oai": "http://www.openarchives.org/OAI/2.0/"}
-SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent
 
 # Optional hardcoded defaults for one-off runs. CLI arguments still override these.
 DEFAULT_BASE_URL = "https://conservancy.umn.edu/server/oai/request"
@@ -77,7 +91,7 @@ def load_sets_from_csv(csv_path: Path, set_column: str, title_column: str) -> li
 
 
 def load_sets(args: argparse.Namespace) -> list[dict]:
-    sets: list[dict] = []
+    sets: list[dict] = list(getattr(args, "inline_sets", []))
 
     if args.sets_csv:
         sets.extend(
@@ -113,6 +127,8 @@ def oai_params(
     metadata_prefix: str,
     set_spec: Optional[str] = None,
     resumption_token: Optional[str] = None,
+    from_date: Optional[str] = None,
+    until_date: Optional[str] = None,
 ) -> dict:
     if resumption_token:
         return {
@@ -124,8 +140,12 @@ def oai_params(
         "verb": "ListRecords",
         "metadataPrefix": metadata_prefix,
     }
-    if set_spec:
+    if set_spec and set_spec != ALL_RECORDS_SET:
         params["set"] = set_spec
+    if from_date:
+        params["from"] = from_date
+    if until_date:
+        params["until"] = until_date
     return params
 
 
@@ -157,7 +177,9 @@ def parse_oai_response(xml_text: str) -> tuple[Optional[str], list[dict]]:
 
 def write_text(path: Path, contents: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(contents, encoding="utf-8")
+    temporary_path = path.with_name(f".{path.name}.tmp")
+    temporary_path.write_text(contents, encoding="utf-8")
+    temporary_path.replace(path)
 
 
 def download_set(
@@ -169,52 +191,111 @@ def download_set(
     output_dir: Path,
     delay: float,
     timeout: int,
+    from_date: Optional[str] = None,
+    until_date: Optional[str] = None,
 ) -> dict:
     set_dir = output_dir / slugify(set_spec)
-    set_dir.mkdir(parents=True, exist_ok=True)
+    backup_dir = output_dir / f".{slugify(set_spec)}.previous"
+    if backup_dir.exists() and not set_dir.exists():
+        backup_dir.replace(set_dir)
+    staging_root = output_dir / ".staging"
+    staging_root.mkdir(parents=True, exist_ok=True)
+    staging_dir = Path(
+        tempfile.mkdtemp(prefix=f"{slugify(set_spec)}-", dir=staging_root)
+    )
 
     page = 1
     token = None
     downloaded_files: list[str] = []
     errors_seen: list[dict] = []
 
-    while True:
-        params = oai_params(
-            metadata_prefix=metadata_prefix,
-            set_spec=set_spec,
-            resumption_token=token,
-        )
-        response = session.get(base_url, params=params, timeout=timeout)
-        response.raise_for_status()
+    try:
+        while True:
+            params = oai_params(
+                metadata_prefix=metadata_prefix,
+                set_spec=set_spec,
+                resumption_token=token,
+                from_date=from_date,
+                until_date=until_date,
+            )
+            response = session.get(base_url, params=params, timeout=timeout)
+            raise_for_oai_status(response)
 
-        xml_path = set_dir / f"{page:04d}.xml"
-        write_text(xml_path, response.text)
-        downloaded_files.append(str(xml_path))
+            xml_path = staging_dir / f"{page:04d}.xml"
+            write_text(xml_path, response.text)
+            downloaded_files.append(str(set_dir / xml_path.name))
 
-        next_token, page_errors = parse_oai_response(response.text)
-        if page_errors:
-            errors_seen.extend(page_errors)
-            break
+            next_token, page_errors = parse_oai_response(response.text)
+            if page_errors:
+                errors_seen.extend(page_errors)
+                break
 
-        if not next_token:
-            break
+            if not next_token:
+                break
 
-        token = next_token
-        page += 1
-        if delay > 0:
-            time.sleep(delay)
+            token = next_token
+            page += 1
+            if delay > 0:
+                time.sleep(delay)
 
-    manifest = {
-        "set_spec": set_spec,
-        "set_title": set_title,
-        "metadata_prefix": metadata_prefix,
-        "base_url": base_url,
-        "downloaded_files": downloaded_files,
-        "error_count": len(errors_seen),
-        "errors": errors_seen,
-    }
-    write_text(set_dir / "manifest.json", json.dumps(manifest, indent=2))
-    return manifest
+        manifest = {
+            "set_spec": set_spec,
+            "set_title": set_title,
+            "metadata_prefix": metadata_prefix,
+            "base_url": base_url,
+            "from": from_date or "",
+            "until": until_date or "",
+            "downloaded_files": downloaded_files,
+            "error_count": len(errors_seen),
+            "errors": errors_seen,
+            "snapshot_replaced": not errors_seen,
+        }
+        write_text(staging_dir / "manifest.json", json.dumps(manifest, indent=2))
+
+        if errors_seen:
+            manifest["attempted_page_count"] = len(downloaded_files)
+            manifest["downloaded_files"] = []
+            write_text(
+                output_dir / f"{slugify(set_spec)}-failed-manifest.json",
+                json.dumps(manifest, indent=2),
+            )
+            return manifest
+
+        if backup_dir.exists():
+            shutil.rmtree(backup_dir)
+        if set_dir.exists():
+            set_dir.replace(backup_dir)
+        try:
+            staging_dir.replace(set_dir)
+        except Exception:
+            if backup_dir.exists() and not set_dir.exists():
+                backup_dir.replace(set_dir)
+            raise
+        if backup_dir.exists():
+            shutil.rmtree(backup_dir)
+        return manifest
+    finally:
+        if staging_dir.exists():
+            shutil.rmtree(staging_dir)
+
+
+def configure_retry_session(retries: int, backoff: float) -> requests.Session:
+    session = requests.Session()
+    retry_policy = Retry(
+        total=retries,
+        connect=retries,
+        read=retries,
+        status=retries,
+        backoff_factor=backoff,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset({"GET"}),
+        respect_retry_after_header=True,
+    )
+    adapter = HTTPAdapter(max_retries=retry_policy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    session.headers.update({"User-Agent": "harvester-api oai downloader"})
+    return session
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -240,10 +321,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--delay",
         type=float,
-        default=1.0,
+        default=None,
         help="Seconds to sleep between paged OAI requests for the same set.",
     )
-    parser.add_argument("--timeout", type=int, default=60, help="HTTP timeout in seconds.")
+    parser.add_argument("--timeout", type=int, default=None, help="HTTP timeout in seconds.")
+    parser.add_argument("--retries", type=int, default=None, help="Retry count for transient failures.")
+    parser.add_argument("--backoff", type=float, default=None, help="Retry backoff factor in seconds.")
+    parser.add_argument("--from", dest="from_date", help="Earliest OAI datestamp (YYYY-MM-DD).")
+    parser.add_argument("--until", dest="until_date", help="Latest OAI datestamp (YYYY-MM-DD).")
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -262,6 +347,8 @@ def apply_config_and_defaults(args: argparse.Namespace, parser: argparse.Argumen
             parser.error(f"Config file not found: {config_path}")
         job_cfg = load_job_config(config_path)
 
+    request_cfg = job_cfg.get("oai_request", {}) or {}
+    args.inline_sets = []
     args.base_url = args.base_url or job_cfg.get("oai_base_url") or DEFAULT_BASE_URL
     args.metadata_prefix = (
         args.metadata_prefix
@@ -271,14 +358,31 @@ def apply_config_and_defaults(args: argparse.Namespace, parser: argparse.Argumen
         # use oai-qdc for some sites
     )
     args.name = args.name or job_cfg.get("name") or DEFAULT_NAME
-    args.sets_csv = args.sets_csv or job_cfg.get("sets_csv") or str(DEFAULT_SETS_CSV)
     args.set_column = args.set_column or job_cfg.get("sets_csv_set_column") or "set"
     args.title_column = args.title_column or job_cfg.get("sets_csv_title_column") or "title"
+    if not args.set and not args.sets_csv:
+        if "sets" in job_cfg:
+            args.inline_sets = load_configured_sets(
+                job_cfg,
+                PROJECT_ROOT,
+                config_path,
+            )
+        else:
+            args.sets_csv = job_cfg.get("sets_csv")
+    if not args.set and not args.sets_csv and not args.inline_sets and not config_path:
+        args.sets_csv = str(DEFAULT_SETS_CSV)
+    args.output_dir = args.output_dir or job_cfg.get("oai_download_dir")
+    args.delay = args.delay if args.delay is not None else request_cfg.get("delay_seconds", 1.0)
+    args.timeout = args.timeout if args.timeout is not None else request_cfg.get("timeout_seconds", 60)
+    args.retries = args.retries if args.retries is not None else request_cfg.get("retries", 3)
+    args.backoff = args.backoff if args.backoff is not None else request_cfg.get("backoff_seconds", 1.0)
+    args.from_date = args.from_date or request_cfg.get("from")
+    args.until_date = args.until_date or request_cfg.get("until")
 
     if not args.base_url:
         parser.error("Provide --base-url or set DEFAULT_BASE_URL in scripts/oai_download.py.")
 
-    if not args.set and not args.sets_csv:
+    if not args.set and not args.sets_csv and not args.inline_sets:
         parser.error("Provide --sets-csv/--set or set DEFAULT_SETS_CSV in scripts/oai_download.py.")
 
     if args.sets_csv:
@@ -307,14 +411,15 @@ def main() -> None:
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    session = requests.Session()
-    session.headers.update({"User-Agent": "harvester-api oai downloader"})
+    session = configure_retry_session(args.retries, args.backoff)
 
     run_manifest = {
         "base_url": args.base_url,
         "metadata_prefix": args.metadata_prefix,
         "output_dir": str(output_dir),
         "downloaded_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "from": args.from_date or "",
+        "until": args.until_date or "",
         "sets": [],
     }
 
@@ -331,13 +436,22 @@ def main() -> None:
             output_dir=output_dir,
             delay=args.delay,
             timeout=args.timeout,
+            from_date=args.from_date,
+            until_date=args.until_date,
         )
         run_manifest["sets"].append(manifest)
         print(f"Saved {len(manifest['downloaded_files'])} XML file(s) for {set_spec}")
         if manifest["errors"]:
             print(f"Stopped on OAI error for {set_spec}: {manifest['errors']}")
 
+    run_manifest["error_count"] = sum(
+        item.get("error_count", 0) for item in run_manifest["sets"]
+    )
     write_text(output_dir / "manifest.json", json.dumps(run_manifest, indent=2))
+    if run_manifest["error_count"]:
+        raise RuntimeError(
+            f"OAI-PMH returned {run_manifest['error_count']} error(s); see {output_dir / 'manifest.json'}"
+        )
     print(f"Done. Files written to {output_dir}")
 
 

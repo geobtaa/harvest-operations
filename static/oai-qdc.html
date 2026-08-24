@@ -2,182 +2,531 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>OAI QDC Harvester</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OAI-PMH Harvester</title>
   <style>
-    body { font-family: sans-serif; margin: 2em; }
-    h2, h3 { margin-top: 1.5em; }
-    code { background: #f4f4f4; padding: 0.1em 0.3em; }
-    label { display: inline-block; margin-bottom: 0.3em; font-weight: bold; }
-    select { min-width: 24rem; max-width: 100%; padding: 0.4em; }
-    button { margin-top: 1em; }
-    .details-box {
-      border: 1px solid #ccc;
-      padding: 1em;
-      margin-top: 1em;
-      background: #fafafa;
+    :root {
+      color-scheme: light;
+      --accent: #315f7d;
+      --border: #c9c9c9;
+      --error: #a12828;
+      --muted: #5d5d5d;
+      --panel: #f7f7f7;
+      --success: #286a36;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+      margin: 0 auto;
+      max-width: 1100px;
+      padding: 2rem;
+    }
+    h2 { margin-top: 1.8rem; }
+    a { color: var(--accent); }
+    code { background: #eee; padding: 0.1rem 0.3rem; }
+    .intro, .panel { max-width: 960px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin: 1rem 0;
+      padding: 1rem;
+    }
+    .controls, .editor-actions {
+      align-items: end;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+    }
+    label { display: block; font-weight: 650; }
+    select, input[type="text"] {
+      display: block;
+      font: inherit;
+      margin-top: 0.25rem;
+      min-width: 280px;
+      padding: 0.42rem;
+    }
+    button {
+      cursor: pointer;
+      font: inherit;
+      margin: 0.25rem 0;
+      padding: 0.45rem 0.75rem;
+    }
+    button:disabled { cursor: wait; }
+    #job-status { margin-bottom: 0; white-space: pre-wrap; }
+    #yaml-editor {
+      box-sizing: border-box;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      margin-top: 0.75rem;
+      min-height: 600px;
+      padding: 0.8rem;
+      resize: vertical;
+      tab-size: 2;
+      width: 100%;
+    }
+    #editor-status { color: var(--muted); font-weight: 650; }
+    #editor-status[data-state="success"], #run-status[data-state="success"] { color: var(--success); }
+    #editor-status[data-state="error"], #run-status[data-state="error"] { color: var(--error); }
+    .stage-grid {
+      display: grid;
+      gap: 0.8rem;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .stage-card {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.85rem;
+    }
+    .stage-card h3 { margin: 0 0 0.35rem; }
+    .stage-card p { color: var(--muted); margin: 0 0 0.65rem; }
+    .stage-card[data-status="completed"] { background: #edf8ef; border-color: var(--success); }
+    .stage-card[data-status="running"] { background: #fff8e5; border-color: #ad741f; }
+    .stage-card[data-status="failed"] { background: #fff0f0; border-color: var(--error); }
+    .stage-status {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 700;
+      margin-top: 0.55rem;
+      overflow-wrap: anywhere;
+    }
+    .stage-card[data-status="completed"] .stage-status { color: var(--success); }
+    .stage-card[data-status="failed"] .stage-status { color: var(--error); }
+    .all-stage { border-color: var(--accent); grid-column: 1 / -1; }
+    #run-status { font-weight: 650; margin-left: 0.5rem; }
+    #stream-output {
+      border: 1px solid var(--border);
+      height: 340px;
+      overflow: auto;
+      padding: 1rem;
+      white-space: pre-wrap;
     }
   </style>
 </head>
 <body>
-  <h1>OAI QDC Harvester</h1>
+  <p><a href="/static/task-dashboard.html">&larr; Harvest Task Dashboard</a></p>
+  <h1>OAI-PMH Harvester</h1>
 
-  <h2>Purpose</h2>
-  <p>This harvester processes qualified Dublin Core OAI-PMH records from local XML snapshots and writes a primary CSV plus a distributions CSV.</p>
-
-  <h2>Before You Run It</h2>
-  <p>Download the source XML separately in the terminal with <code>scripts/oai_download.py</code> before using this page. This HTML view only runs <code>harvesters/oai_qdc.py</code> against files that already exist locally.</p>
-  <p>Currently supported sources in this view are <strong>University of Iowa Libraries</strong> and <strong>University of Washington Libraries</strong>.</p>
-  <div class="details-box">
-    <div><strong>Required input</strong></div>
-    <div>Downloaded XML must already be present in the configured local OAI download folder for the selected source.</div>
+  <div class="intro">
+    <p>Build and run one YAML job per university repository. Existing Iowa and Washington jobs are loaded automatically, and additional universities can be created from the shared template without adding Python code.</p>
+    <p>The pipeline supports standard <code>oai_dc</code> and qualified Dublin Core, follows resumption tokens, keeps atomic local XML snapshots, and records stage status separately for every source.</p>
   </div>
 
-  <h2>Step 1: Select a Source and Record Set</h2>
-  <label for="source-select">Source</label><br>
-  <select id="source-select">
-    <option value="">Loading sources...</option>
-  </select>
+  <section class="panel" aria-labelledby="source-heading">
+    <h2 id="source-heading">Source job</h2>
+    <div class="controls">
+      <label for="job-select">
+        Source YAML
+        <select id="job-select" data-config-control onchange="changeSelectedJob()" disabled>
+          <option>Loading jobs...</option>
+        </select>
+      </label>
+      <label for="set-select">
+        Harvest scope
+        <select id="set-select" data-config-control disabled>
+          <option value="__all__">All configured sets</option>
+        </select>
+      </label>
+      <button type="button" data-config-control onclick="refreshJobs()">Refresh jobs</button>
+      <button type="button" data-config-control onclick="loadStatus()">Refresh status</button>
+    </div>
+    <pre id="job-status">Loading...</pre>
+  </section>
 
-  <br><br>
+  <section class="panel" aria-labelledby="yaml-heading">
+    <h2 id="yaml-heading">Create or edit source YAML</h2>
+    <p>Create a job from <code>config/templates/oai_pmh.yaml</code>, replace its placeholders, and list the selected repository sets directly under <code>sets</code>. Saving checks the YAML's basic source contract; Validate performs the complete preflight.</p>
+    <div class="controls">
+      <label for="new-job-id">
+        New source ID
+        <input id="new-job-id" type="text" placeholder="university-library" autocomplete="off" />
+      </label>
+      <button type="button" data-config-control onclick="createJob()">Create from template</button>
+    </div>
+    <div class="editor-actions">
+      <button type="button" data-config-control onclick="saveYaml()">Save YAML</button>
+      <button type="button" data-config-control onclick="reloadYaml()">Reload from disk</button>
+      <span id="editor-status" data-state="idle">Loading YAML...</span>
+    </div>
+    <textarea id="yaml-editor" data-config-control aria-label="OAI-PMH source job YAML" spellcheck="false" oninput="markYamlDirty()" disabled></textarea>
+  </section>
 
-  <label for="set-select">Record Set</label><br>
-  <select id="set-select" disabled>
-    <option value="">Select a source first</option>
-  </select>
+  <h2>Pipeline tasks</h2>
+  <p>Identify and Discover sets contact the source but do not harvest records. Download creates the reusable XML snapshot; Build outputs parses that snapshot into primary and distribution CSVs.</p>
+  <div class="stage-grid">
+    <section class="stage-card" data-stage-card="validate" data-status="pending">
+      <h3>Validate YAML</h3>
+      <p>Check the base job locally. An empty set list is allowed until discovery.</p>
+      <button type="button" data-stage-button onclick="runStage('validate')">Validate</button>
+      <span class="stage-status" data-stage-status="validate">Not run</span>
+    </section>
 
-  <div id="source-details" class="details-box" hidden></div>
+    <section class="stage-card" data-stage-card="identify" data-status="pending">
+      <h3>Identify source</h3>
+      <p>Verify the endpoint, protocol metadata, and configured metadata prefix.</p>
+      <button type="button" data-stage-button onclick="runStage('identify')">Run Identify</button>
+      <span class="stage-status" data-stage-status="identify">Not run</span>
+    </section>
 
-  <h2>Step 2: Run the Harvester</h2>
-  <button id="run-button" onclick="runHarvester()" disabled>Run Selected Set</button>
-  <pre id="stream-output" style="border:1px solid #ccc; padding:1em; margin-top:1em; height:300px; overflow:auto;"></pre>
+    <section class="stage-card" data-stage-card="discover" data-status="pending">
+      <h3>Discover sets</h3>
+      <p>Show each exact setSpec and title in the live log and save them as CSV.</p>
+      <button type="button" data-stage-button onclick="runStage('discover')">Run ListSets</button>
+      <span class="stage-status" data-stage-status="discover">Not run</span>
+    </section>
+
+    <section class="stage-card" data-stage-card="download" data-status="pending">
+      <h3>Download XML</h3>
+      <p>Fetch the selected scope and atomically replace each completed set snapshot.</p>
+      <button type="button" data-stage-button onclick="runStage('download')">Download snapshot</button>
+      <span class="stage-status" data-stage-status="download">Not run</span>
+    </section>
+
+    <section class="stage-card" data-stage-card="harvest" data-status="pending">
+      <h3>Build outputs</h3>
+      <p>Parse local XML and write CSVs; one-set runs use safely scoped filenames.</p>
+      <button type="button" data-stage-button onclick="runStage('harvest')">Build CSV outputs</button>
+      <span class="stage-status" data-stage-status="harvest">Not run</span>
+    </section>
+
+    <section class="stage-card all-stage" data-stage-card="all" data-status="pending">
+      <h3>Download + build outputs</h3>
+      <p>Run a fresh download and build the CSV outputs for the selected scope in sequence.</p>
+      <button type="button" data-stage-button onclick="runStage('all')">Run complete source job</button>
+      <span class="stage-status" data-stage-status="all">Not run</span>
+    </section>
+  </div>
+
+  <h2>Live log <span id="run-status" data-state="idle">Idle</span></h2>
+  <pre id="stream-output" aria-live="polite"></pre>
 
   <script>
-    const sourceSelect = document.getElementById("source-select");
-    const setSelect = document.getElementById("set-select");
-    const runButton = document.getElementById("run-button");
-    const sourceDetails = document.getElementById("source-details");
-    const output = document.getElementById("stream-output");
-    let sources = [];
+    const jobsEndpoint = "/jobs/oai-pmh/jobs";
+    const yamlEndpoint = "/jobs/oai-pmh/yaml";
+    const statusEndpoint = "/jobs/oai-pmh/status";
+    const runEndpoint = "/jobs/oai-pmh/run-stream";
+    let jobs = [];
     let eventSource = null;
+    let loadedYamlSha256 = "";
+    let loadedYamlJobId = "";
+    let yamlDirty = false;
+    let loadingYaml = false;
+    let stageFailed = false;
+    let stageFailureMessage = "";
 
-    async function loadSources() {
-      try {
-        const response = await fetch("/oai-qdc-sources");
-        const data = await response.json();
-        sources = data.sources || [];
-
-        sourceSelect.innerHTML = '<option value="">Select a source</option>';
-        for (const source of sources) {
-          const option = document.createElement("option");
-          option.value = source.job_id;
-          option.textContent = source.label;
-          sourceSelect.appendChild(option);
-        }
-      } catch (error) {
-        sourceSelect.innerHTML = '<option value="">Unable to load sources</option>';
-        output.textContent = "Failed to load OAI QDC sources.\n";
-      }
+    function selectedJobId() {
+      return document.getElementById("job-select").value;
     }
 
-    function renderSourceDetails(source) {
-      if (!source) {
-        sourceDetails.hidden = true;
-        sourceDetails.innerHTML = "";
-        return;
-      }
+    function setControlsDisabled(disabled) {
+      document.querySelectorAll("[data-stage-button], [data-config-control]").forEach((control) => {
+        control.disabled = disabled;
+      });
+    }
 
-      sourceDetails.hidden = false;
-      sourceDetails.innerHTML = `
-        <div><strong>Base URL:</strong> <code>${source.base_url}</code></div>
-        <div><strong>metadataPrefix:</strong> <code>${source.metadata_prefix}</code></div>
-        <div><strong>Download directory:</strong> <code>${source.download_dir}</code></div>
-        <div><strong>Available sets:</strong> ${source.sets.length}</div>
-      `;
+    function setEditorStatus(message, state = "idle") {
+      const status = document.getElementById("editor-status");
+      status.textContent = message;
+      status.dataset.state = state;
+    }
+
+    function markYamlDirty() {
+      if (loadingYaml) return;
+      yamlDirty = true;
+      setEditorStatus("Unsaved changes", "idle");
+    }
+
+    function formattedTime(value) {
+      if (!value) return "";
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? "" : ` — ${parsed.toLocaleString()}`;
+    }
+
+    function setStageVisual(stage, state, time = "", message = "") {
+      const card = document.querySelector(`[data-stage-card="${stage}"]`);
+      const label = document.querySelector(`[data-stage-status="${stage}"]`);
+      if (!card || !label) return;
+      card.dataset.status = state;
+      if (state === "completed") label.textContent = `✓ Completed${formattedTime(time)}`;
+      else if (state === "running") label.textContent = "Running…";
+      else if (state === "failed") label.textContent = message || "Failed — see live log";
+      else label.textContent = "Not run";
+    }
+
+    function updateStageIndicators(status) {
+      const stages = status && status.stages ? status.stages : {};
+      ["validate", "identify", "discover", "download", "harvest", "all"].forEach((stage) => {
+        const value = stages[stage] || {};
+        setStageVisual(stage, value.status || "pending", value.completed_at, value.error);
+      });
     }
 
     function updateSetOptions() {
-      const selectedSource = sources.find((item) => item.job_id === sourceSelect.value);
-
-      setSelect.innerHTML = "";
-      renderSourceDetails(selectedSource);
-
-      if (!selectedSource) {
-        setSelect.disabled = true;
-        runButton.disabled = true;
-        setSelect.innerHTML = '<option value="">Select a source first</option>';
-        return;
-      }
-
-      setSelect.disabled = false;
-      setSelect.innerHTML = '<option value="">Select a record set</option>';
-
+      const job = jobs.find((item) => item.id === selectedJobId());
+      const select = document.getElementById("set-select");
+      select.innerHTML = "";
       const allOption = document.createElement("option");
       allOption.value = "__all__";
-      allOption.textContent = `All configured sets (${selectedSource.sets.length})`;
-      setSelect.appendChild(allOption);
-
-      for (const item of selectedSource.sets) {
-        const option = document.createElement("option");
-        option.value = item.set_spec;
-        option.textContent = item.set_title
-          ? `${item.set_title} (${item.set_spec})`
-          : item.set_spec;
-        setSelect.appendChild(option);
+      allOption.textContent = `All configured sets (${job ? job.set_count : 0})`;
+      select.appendChild(allOption);
+      if (job) {
+        job.sets.forEach((item) => {
+          const option = document.createElement("option");
+          option.value = item.set_spec;
+          option.textContent = item.set_title ? `${item.set_title} (${item.set_spec})` : item.set_spec;
+          select.appendChild(option);
+        });
       }
-
-      runButton.disabled = true;
+      select.disabled = !job;
     }
 
-    sourceSelect.addEventListener("change", updateSetOptions);
-    setSelect.addEventListener("change", () => {
-      runButton.disabled = !(sourceSelect.value && setSelect.value);
-    });
-
-    function runHarvester() {
-      const source = sourceSelect.value;
-      const setSpec = setSelect.value;
-      const selectedSource = sources.find((item) => item.job_id === source);
-      const selectedSet = selectedSource?.sets.find((item) => item.set_spec === setSpec);
-
-      if (!source || !setSpec) {
-        output.textContent = "Select both a source and a record set.\n";
-        return;
-      }
-
-      if (eventSource) {
-        eventSource.close();
-      }
-
-      const setLabel = setSpec === "__all__"
-        ? `all configured sets (${selectedSource.sets.length})`
-        : (selectedSet?.set_title || setSpec);
-      output.textContent = `Starting OAI QDC harvester for ${selectedSource.label} -> ${setLabel}...\n`;
-
-      eventSource = new EventSource(
-        `/run-oai-qdc-stream?source=${encodeURIComponent(source)}&set_spec=${encodeURIComponent(setSpec)}`
-      );
-
-      eventSource.onmessage = function(event) {
-        if (event.data === "DONE") {
-          eventSource.close();
-          eventSource = null;
+    async function loadJobs(preferredJobId = "") {
+      const select = document.getElementById("job-select");
+      const previous = select.value;
+      select.disabled = true;
+      select.innerHTML = "<option>Loading jobs...</option>";
+      try {
+        const response = await fetch(jobsEndpoint);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Could not load OAI-PMH jobs.");
+        jobs = data.jobs || [];
+        select.innerHTML = "";
+        jobs.forEach((job) => {
+          const option = document.createElement("option");
+          option.value = job.id;
+          option.textContent = `${job.label} (${job.set_count} sets)`;
+          if (job.error) option.textContent += " — configuration error";
+          select.appendChild(option);
+        });
+        if (!jobs.length) {
+          select.innerHTML = "<option value=''>No OAI-PMH jobs found</option>";
+          document.getElementById("job-status").textContent = "Create a source job from the template below.";
+          document.getElementById("yaml-editor").value = "";
+          document.getElementById("yaml-editor").disabled = true;
+          updateSetOptions();
           return;
         }
+        const desired = preferredJobId || previous;
+        if (jobs.some((job) => job.id === desired)) select.value = desired;
+        select.disabled = false;
+        updateSetOptions();
+        await Promise.all([loadYaml(), loadStatus()]);
+      } catch (error) {
+        document.getElementById("job-status").textContent = error.message;
+      }
+    }
 
-        output.textContent += event.data + "\n";
+    async function refreshJobs() {
+      if (yamlDirty && !window.confirm("Discard unsaved YAML changes and refresh jobs?")) return;
+      yamlDirty = false;
+      await loadJobs(loadedYamlJobId);
+    }
+
+    async function changeSelectedJob() {
+      const select = document.getElementById("job-select");
+      if (yamlDirty && !window.confirm("Discard unsaved YAML changes and load another source?")) {
+        select.value = loadedYamlJobId;
+        return;
+      }
+      yamlDirty = false;
+      updateSetOptions();
+      await Promise.all([loadYaml(), loadStatus()]);
+    }
+
+    async function loadYaml() {
+      const jobId = selectedJobId();
+      const editor = document.getElementById("yaml-editor");
+      if (!jobId) return;
+      loadedYamlSha256 = "";
+      editor.disabled = true;
+      setEditorStatus("Loading YAML...", "idle");
+      try {
+        const response = await fetch(`${yamlEndpoint}?job_id=${encodeURIComponent(jobId)}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Could not load source YAML.");
+        loadingYaml = true;
+        editor.value = data.content;
+        loadedYamlSha256 = data.sha256;
+        loadedYamlJobId = data.job_id;
+        yamlDirty = false;
+        loadingYaml = false;
+        editor.disabled = false;
+        setEditorStatus(`Loaded ${data.config_path}`, "success");
+      } catch (error) {
+        loadingYaml = false;
+        editor.value = "";
+        setEditorStatus(error.message, "error");
+      }
+    }
+
+    async function reloadYaml() {
+      if (yamlDirty && !window.confirm("Discard unsaved YAML changes and reload from disk?")) return;
+      yamlDirty = false;
+      await loadYaml();
+    }
+
+    async function createJob() {
+      const input = document.getElementById("new-job-id");
+      const jobId = input.value.trim();
+      if (!jobId) {
+        setEditorStatus("Enter a source ID first.", "error");
+        input.focus();
+        return;
+      }
+      if (yamlDirty) {
+        setEditorStatus("Save or reload the current YAML before creating another job.", "error");
+        return;
+      }
+      try {
+        setEditorStatus(`Creating ${jobId}.yaml...`, "idle");
+        const response = await fetch(jobsEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ job_id: jobId }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Could not create source YAML.");
+        input.value = "";
+        await loadJobs(data.job.id);
+        setEditorStatus(`Created ${data.job.config_path}. Replace the placeholders and save.`, "success");
+      } catch (error) {
+        setEditorStatus(error.message, "error");
+      }
+    }
+
+    async function saveYaml() {
+      const jobId = selectedJobId();
+      const editor = document.getElementById("yaml-editor");
+      if (!jobId || !loadedYamlSha256) return;
+      try {
+        setEditorStatus(`Saving ${jobId}.yaml...`, "idle");
+        const response = await fetch(yamlEndpoint, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            job_id: jobId,
+            content: editor.value,
+            expected_sha256: loadedYamlSha256,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Could not save source YAML.");
+        loadedYamlSha256 = data.sha256;
+        yamlDirty = false;
+        setEditorStatus(`Saved ${data.job.config_path}`, "success");
+        await loadJobs(jobId);
+      } catch (error) {
+        setEditorStatus(error.message, "error");
+      }
+    }
+
+    function completedStageNames(status) {
+      if (!status || !status.stages) return "None";
+      const names = Object.entries(status.stages)
+        .filter(([, value]) => value.status === "completed")
+        .map(([name]) => name);
+      return names.length ? names.join(", ") : "None";
+    }
+
+    async function loadStatus() {
+      const jobId = selectedJobId();
+      const target = document.getElementById("job-status");
+      if (!jobId) return;
+      target.textContent = "Loading status...";
+      try {
+        const response = await fetch(`${statusEndpoint}?job_id=${encodeURIComponent(jobId)}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Could not load source status.");
+        const currentStatus = data.configuration_current ? data.status : null;
+        updateStageIndicators(currentStatus);
+        const discoverResult = currentStatus?.stages?.discover?.result || {};
+        target.textContent = [
+          `Config: ${data.job.config_path}`,
+          `Endpoint: ${data.job.base_url}`,
+          `Metadata prefix: ${data.job.metadata_prefix}`,
+          `Configured sets: ${data.job.set_count}`,
+          `Download directory: ${data.job.download_directory}`,
+          `Status file: ${data.status_path}`,
+          `Configuration matches status: ${data.configuration_current ? "yes" : "no — rerun a stage"}`,
+          `Completed stages: ${completedStageNames(currentStatus)}`,
+          `Discovered sets CSV: ${discoverResult.sets_csv || "Not generated"}`,
+          `Currently running: ${data.running ? "yes" : "no"}`,
+        ].join("\n");
+      } catch (error) {
+        target.textContent = error.message;
+      }
+    }
+
+    function runStage(stage) {
+      const jobId = selectedJobId();
+      if (!jobId) return;
+      if (yamlDirty) {
+        setEditorStatus("Save YAML changes before running a pipeline task.", "error");
+        document.getElementById("yaml-editor").focus();
+        return;
+      }
+      if (eventSource) eventSource.close();
+
+      const setSpec = document.getElementById("set-select").value || "__all__";
+      const params = new URLSearchParams({ job_id: jobId, stage, set_spec: setSpec });
+      const output = document.getElementById("stream-output");
+      const runStatus = document.getElementById("run-status");
+      output.textContent = `Connecting to ${stage} for ${jobId} (${setSpec})...\n`;
+      runStatus.textContent = `Running ${stage}`;
+      runStatus.dataset.state = "idle";
+      stageFailed = false;
+      stageFailureMessage = "";
+      setStageVisual(stage, "running");
+      setControlsDisabled(true);
+      eventSource = new EventSource(`${runEndpoint}?${params.toString()}`);
+
+      eventSource.onmessage = function (event) {
+        if (event.data === "DONE") {
+          runStatus.textContent = stageFailed ? `${stage} failed` : `${stage} complete`;
+          runStatus.dataset.state = stageFailed ? "error" : "success";
+          setControlsDisabled(false);
+          eventSource.close();
+          eventSource = null;
+          loadStatus().finally(() => {
+            if (stageFailed) setStageVisual(stage, "failed", "", stageFailureMessage);
+          });
+          return;
+        }
+        if (event.data.startsWith("PIPELINE_FAILED:")) {
+          stageFailed = true;
+          stageFailureMessage = event.data.replace("PIPELINE_FAILED:", "").trim();
+          setStageVisual(stage, "failed", "", stageFailureMessage);
+        }
+        output.textContent += `${event.data}\n`;
         output.scrollTop = output.scrollHeight;
       };
 
-      eventSource.onerror = function() {
-        output.textContent += "Stream closed. If the harvester did not complete, check the server logs.\n";
-        if (eventSource) {
-          eventSource.close();
-          eventSource = null;
-        }
+      eventSource.onerror = function () {
+        output.textContent += "The stream closed before completion. Check the server log.\n";
+        runStatus.textContent = `${stage} stopped`;
+        runStatus.dataset.state = "error";
+        setControlsDisabled(false);
+        eventSource.close();
+        eventSource = null;
+        loadStatus().finally(() => setStageVisual(stage, "failed", "", "Stream closed before completion"));
       };
     }
 
-    loadSources();
+    document.getElementById("yaml-editor").addEventListener("keydown", function (event) {
+      if (event.key !== "Tab") return;
+      event.preventDefault();
+      this.setRangeText("  ", this.selectionStart, this.selectionEnd, "end");
+      markYamlDirty();
+    });
+
+    window.addEventListener("beforeunload", function (event) {
+      if (!yamlDirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    });
+
+    loadJobs();
   </script>
 </body>
 </html>

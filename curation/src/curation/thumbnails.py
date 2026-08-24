@@ -8,10 +8,10 @@ from pathlib import Path
 
 
 # Feature colors
-POLYGON_FILL_COLOR = "#1F6FB2"
-POLYGON_EDGE_COLOR = "#17324D" 
-LINE_COLOR = "#1F6FB2"
-POINT_COLOR = "#1F6FB2"
+POLYGON_FILL_COLOR = "#a6cee3"
+POLYGON_EDGE_COLOR = "#1f78b4"
+LINE_COLOR = "#4D4D4D"
+POINT_COLOR = "#B07A4A"
 BACKGROUND_COLOR: str | None = None  # None keeps the PNG background transparent.
 
 

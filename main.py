@@ -3,6 +3,7 @@ import contextlib
 import csv
 from datetime import date
 import os
+from pathlib import Path
 import random
 import sys
 import tempfile
@@ -17,13 +18,13 @@ import yaml
 from harvesters.oai_qdc import OaiQdcHarvester
 from routers import arcgis_curation as arcgis_curation_router
 from routers import jobs as jobs_router
+from routers import oai_pmh as oai_pmh_router
 from routers import schema as schema_router
+from routers import socrata_curation as socrata_curation_router
+from utils.oai_pmh import load_configured_sets
 
 # Initialize app
 app = FastAPI()
-
-OAI_QDC_UI_JOB_IDS = ("iowa-library", "university-washington")
-
 
 def resolve_config_path(path_value: str, config_path: str | None = None) -> str:
     candidate = os.path.expanduser(path_value)
@@ -126,16 +127,17 @@ def load_sets_from_csv(
 def build_oai_qdc_ui_sources() -> list[dict]:
     sources: list[dict] = []
 
-    for job_id in OAI_QDC_UI_JOB_IDS:
-        config_path = os.path.join("config", f"{job_id}.yaml")
+    for config_path_obj in sorted(Path("config").glob("*.yaml")):
+        config_path = str(config_path_obj)
         config = load_yaml_config(config_path)
-        sets_csv = resolve_config_path(config["sets_csv"], config_path)
-        set_column = config.get("sets_csv_set_column", "set")
-        title_column = config.get("sets_csv_title_column", "title")
-        sets = load_sets_from_csv(
-            csv_path=sets_csv,
-            set_column=set_column,
-            title_column=title_column,
+        if config.get("type") != "oai_qdc":
+            continue
+        job_id = config_path_obj.stem
+        sets = load_configured_sets(
+            config,
+            Path(__file__).resolve().parent,
+            config_path_obj.resolve(),
+            required=False,
         )
 
         sources.append(
@@ -155,6 +157,8 @@ def build_oai_qdc_ui_sources() -> list[dict]:
 app.include_router(schema_router.router)
 app.include_router(jobs_router.router)
 app.include_router(arcgis_curation_router.router)
+app.include_router(socrata_curation_router.router)
+app.include_router(oai_pmh_router.router)
 
 # Mount static files at /static
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -890,6 +894,7 @@ async def run_oai_qdc_stream(
                         }
                     )
 
+                config.pop("sets", None)
                 config["sets_csv"] = temp_sets_path
 
             harvester = OaiQdcHarvester(config)

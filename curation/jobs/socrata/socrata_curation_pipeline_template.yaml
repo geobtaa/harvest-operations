@@ -1,0 +1,69 @@
+# Socrata curation job template. Setup notes:
+# socrata_curation_pipeline_reference.md
+version: 1
+
+job:
+  id: "<job-id>"
+  work_directory: ../../work/<job-id>
+
+provider: BTAA-GIN
+
+hub:
+  name: "<public-portal-name>"
+  landing_page: "https://<portal-hostname>/"
+  dcat_api: "https://<portal-hostname>/data.json"
+  # Optional when the SODA API is served from a different origin.
+  soda_api_base: "https://<portal-hostname>"
+  website_reference_id: "<website-reference-id>"
+  websites_csv: ../../../reference_data/websites.csv
+
+coordinate_reference_system:
+  authority: "<AUTHORITY:CODE>"
+  uri: "https://spatialreference.org/ref/<authority>/<code>/"
+
+metadata:
+  code: "<urban-base-layer-code>"
+  member_of: b1g_urbanBaseLayers
+  export_date: "YYYY-MM-DD"
+
+# Every output filename is assembled as:
+# <city_abbreviation>_<record filename_theme>_<download_year>.gpkg
+file_naming:
+  city_abbreviation: "<city-abbreviation>"
+  download_year: "YYYY"
+
+download:
+  # SODA2 defaults to 1,000 rows unless $limit is explicit. Keep this at or
+  # below SODA2's 50,000-row maximum. Smaller pages reduce timeout risk.
+  page_size: 10000
+  # Optional. The token itself is never stored in YAML or the manifest.
+  app_token_environment: SOCRATA_APP_TOKEN
+
+selection_criteria:
+  allowed_resource_types:
+    - Polygon data
+    - Line data
+    - Point data
+
+manual_review:
+  required_fields:
+    - filename
+    - ID
+    - Title
+    - Description
+    - Creator
+    - Publisher
+    - Provider
+    - Resource Class
+    - Rights
+    - Access Rights
+
+derivatives:
+  pmtiles_config: ../../pmtiles_config.sample.json
+
+records:
+  - id: "<socrata-four-by-four-id>"
+    filename_theme: "<filename-theme>"
+    basic_theme: "<theme>"
+    # Add when the DCAT title does not contain the desired archive year.
+    temporal_year: "YYYY"

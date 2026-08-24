@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Socrata Curation Pipeline</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --accent: #315f7d;
+      --border: #c9c9c9;
+      --error: #a12828;
+      --muted: #5d5d5d;
+      --panel: #f7f7f7;
+      --success: #286a36;
+      --warning: #ad741f;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+      margin: 0 auto;
+      max-width: 1120px;
+      padding: 2rem;
+    }
+    a { color: var(--accent); }
+    code { background: #eee; padding: 0.1rem 0.3rem; }
+    h2 { margin-top: 1.8rem; }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; margin: 0.25rem 0.35rem 0.25rem 0; padding: 0.45rem 0.75rem; }
+    button:disabled { cursor: wait; }
+    label { display: block; font-weight: 650; }
+    input[type="text"] { min-width: 260px; padding: 0.4rem; }
+    select { display: block; margin-top: 0.25rem; min-width: 300px; padding: 0.4rem; }
+    .intro, .panel { max-width: 960px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      margin: 1rem 0;
+      padding: 1rem;
+    }
+    .controls, .editor-actions {
+      align-items: end;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+    }
+    .editor-actions { align-items: center; margin: 0.75rem 0; }
+    .stage-grid {
+      display: grid;
+      gap: 0.8rem;
+      grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
+    }
+    .stage-card {
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 0.85rem;
+    }
+    .stage-card h3 { margin: 0 0 0.35rem; }
+    .stage-card p { color: var(--muted); margin: 0 0 0.6rem; }
+    .stage-card[data-status="completed"] { background: #edf8ef; border-color: var(--success); }
+    .stage-card[data-status="running"] { background: #fff8e5; border-color: var(--warning); }
+    .stage-card[data-status="failed"] { background: #fff0f0; border-color: var(--error); }
+    .stage-card[data-status="completed"] button { background: var(--success); border: 1px solid var(--success); color: #fff; }
+    .stage-card[data-status="running"] button { background: var(--warning); border: 1px solid var(--warning); color: #fff; }
+    .stage-card[data-status="failed"] button { background: var(--error); border: 1px solid var(--error); color: #fff; }
+    .stage-status { display: block; font-size: 0.88rem; font-weight: 700; margin-top: 0.55rem; overflow-wrap: anywhere; }
+    .stage-card[data-status="completed"] .stage-status { color: var(--success); }
+    .stage-card[data-status="running"] .stage-status { color: #7b4d09; }
+    .stage-card[data-status="failed"] .stage-status { color: var(--error); }
+    .wide-card { border-color: var(--accent); grid-column: 1 / -1; }
+    .manual-note { border-left: 4px solid #d48a24; padding-left: 0.8rem; }
+    .output-path { overflow-wrap: anywhere; }
+    .output-path code { display: block; margin-top: 0.25rem; padding: 0.4rem; }
+    .options { font-weight: 400; margin: 0.8rem 0; }
+    #job-status { margin: 0.75rem 0 0; white-space: pre-wrap; }
+    #yaml-editor {
+      box-sizing: border-box;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      min-height: 570px;
+      padding: 0.8rem;
+      resize: vertical;
+      tab-size: 2;
+      width: 100%;
+    }
+    #editor-status, #run-status { color: var(--muted); font-weight: 650; }
+    #editor-status[data-state="success"], #run-status[data-state="success"] { color: var(--success); }
+    #editor-status[data-state="error"], #run-status[data-state="error"] { color: var(--error); }
+    #stream-output {
+      background: #111;
+      border: 1px solid var(--border);
+      color: #eee;
+      height: 340px;
+      overflow: auto;
+      padding: 1rem;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <p><a href="/static/task-dashboard.html">&larr; Harvest Task Dashboard</a></p>
+  <h1>Socrata Curation Pipeline</h1>
+
+  <div class="intro">
+    <p>This browser runs the staged <code>socrata_curation_pipeline</code>. It selects datasets from a portal's DCAT catalog, reuses the Socrata harvester for draft metadata, pauses for review, and builds the same curated artifacts as the ArcGIS workflow.</p>
+    <p>Large datasets are fetched as ordered SODA2 GeoJSON pages with explicit limits, source-revision checks, and row-count checks. Set the city abbreviation and download year once per job; each record then needs only a filename theme. Jobs come from <code>curation/jobs/socrata/*.yaml</code>; the template is excluded from the runnable list.</p>
+  </div>
+
+  <section class="panel" aria-labelledby="job-heading">
+    <h2 id="job-heading">Job</h2>
+    <div class="controls">
+      <label for="job-select">
+        Socrata curation YAML
+        <select id="job-select" data-control onchange="changeSelectedJob()" disabled>
+          <option>Loading jobs...</option>
+        </select>
+      </label>
+      <button type="button" data-control onclick="refreshJobs()">Refresh jobs</button>
+      <button type="button" data-control onclick="loadStatus()">Refresh status</button>
+    </div>
+    <pre id="job-status">Loading...</pre>
+  </section>
+
+  <section class="panel" aria-labelledby="yaml-heading">
+    <h2 id="yaml-heading">Create or edit job YAML</h2>
+    <p>Create a job from <code>socrata_curation_pipeline_template.yaml</code>, replace the remaining angle-bracket placeholders, and save it. YAML saves check syntax and identity; <strong>Validate</strong> checks the full pipeline contract.</p>
+    <div class="controls">
+      <label for="new-job-id">
+        New job ID
+        <input id="new-job-id" type="text" placeholder="example-socrata-2027" autocomplete="off" />
+      </label>
+      <button type="button" data-control onclick="createJob()">Create from template</button>
+    </div>
+    <div class="editor-actions">
+      <button type="button" data-control onclick="saveYaml()">Save YAML</button>
+      <button type="button" data-control onclick="reloadYaml()">Reload from disk</button>
+      <span id="editor-status" data-state="idle">Loading YAML...</span>
+    </div>
+    <textarea id="yaml-editor" data-control aria-label="Socrata curation job YAML" spellcheck="false" oninput="markYamlDirty()" disabled></textarea>
+  </section>
+
+  <h2>Pipeline tasks</h2>
+  <p>Run one stage at a time. Every stage after Metadata enforces the recorded manual-review checksum.</p>
+  <label class="options">
+    <input type="checkbox" id="overwrite-toggle" />
+    Overwrite existing downloads, derivatives, and ZIP archives when supported
+  </label>
+
+  <div class="stage-grid">
+    <section class="stage-card" data-stage-card="validate" data-status="pending">
+      <h3>Validate YAML</h3>
+      <p>Check identifiers, constructed filenames, paths, CRS, page size, and selection criteria without contacting Socrata.</p>
+      <button type="button" data-stage-button onclick="runStage('validate')">Validate</button>
+      <span class="stage-status" data-stage-status="validate">Not run</span>
+    </section>
+
+    <section class="stage-card" data-stage-card="metadata" data-status="pending">
+      <h3>1. Metadata</h3>
+      <p>Select DCAT records, verify Socrata geometry columns, and create the Aardvark CSV.</p>
+      <p class="output-path"><strong>Metadata CSV:</strong><code id="metadata-output-path">Select a job to see the output path.</code></p>
+      <button type="button" data-stage-button onclick="runStage('metadata')">Harvest metadata</button>
+      <span class="stage-status" data-stage-status="metadata">Not run</span>
+    </section>
+
+    <section class="stage-card" data-stage-card="review" data-status="pending">
+      <h3>2. Manual review</h3>
+      <p>Edit and clean the generated metadata CSV, then record its checksum.</p>
+      <button type="button" data-stage-button onclick="confirmReview()">Confirm manual review</button>
+      <span class="stage-status" data-stage-status="review">Not confirmed</span>
+    </section>
+
+    <section class="stage-card" data-stage-card="download" data-status="pending">
+      <h3>3. Download</h3>
+      <p>Page every SODA2 GeoJSON row and assemble projected GeoPackages.</p>
+      <button type="button" data-stage-button onclick="runStage('download')">Download GeoPackages</button>
+      <span class="stage-status" data-stage-status="download">Not run</span>
+    </section>
+
+    <section class="stage-card" data-stage-card="enrich" data-status="pending">
+      <h3>4. Enrich</h3>
+      <p>Verify feature counts and derive resource type, bounds, geometry, and centroid.</p>
+      <button type="button" data-stage-button onclick="runStage('enrich')">Enrich metadata</button>
+      <span class="stage-status" data-stage-status="enrich">Not run</span>
+    </section>
+
+    <section class="stage-card" data-stage-card="dictionaries" data-status="pending">
+      <h3>5. Data dictionaries</h3>
+      <p>Harvest API field names, types, definitions, and documented values from each Socrata view.</p>
+      <button type="button" data-stage-button onclick="runStage('dictionaries')">Create dictionaries</button>
+      <span class="stage-status" data-stage-status="dictionaries">Not run</span>
+    </section>
+
+    <section class="stage-card" data-stage-card="embed" data-status="pending">
+      <h3>6. Embed metadata</h3>
+      <p>Write the reviewed metadata into each GeoPackage.</p>
+      <button type="button" data-stage-button onclick="runStage('embed')">Embed metadata</button>
+      <span class="stage-status" data-stage-status="embed">Not run</span>
+    </section>
+
+    <section class="stage-card" data-stage-card="thumbnails" data-status="pending">
+      <h3>7. Thumbnails</h3>
+      <p>Render a PNG preview from each completed GeoPackage.</p>
+      <button type="button" data-stage-button onclick="runStage('thumbnails')">Create thumbnails</button>
+      <span class="stage-status" data-stage-status="thumbnails">Not run</span>
+    </section>
+
+    <section class="stage-card" data-stage-card="derivatives" data-status="pending">
+      <h3>8. Derivatives</h3>
+      <p>Create FlatGeoBuf and PMTiles derivatives.</p>
+      <button type="button" data-stage-button onclick="runStage('derivatives')">Create derivatives</button>
+      <span class="stage-status" data-stage-status="derivatives">Not run</span>
+    </section>
+
+    <section class="stage-card" data-stage-card="zip" data-status="pending">
+      <h3>9. ZIP GeoPackages</h3>
+      <p>Create one upload-ready ZIP archive for each GeoPackage.</p>
+      <button type="button" data-stage-button onclick="runStage('zip')">ZIP GeoPackages</button>
+      <span class="stage-status" data-stage-status="zip">Not run</span>
+    </section>
+
+    <section class="stage-card wide-card" data-stage-card="postprocess" data-status="pending">
+      <h3>Postprocess</h3>
+      <p>Run Download, Enrich, Data Dictionaries, Embed Metadata, Thumbnails, Derivatives, and ZIP in sequence after review.</p>
+      <button type="button" data-stage-button onclick="runStage('postprocess')">Run all postprocess tasks</button>
+      <span class="stage-status" data-stage-status="postprocess">Not run</span>
+    </section>
+
+    <section class="stage-card wide-card" data-stage-card="snapshot" data-status="pending">
+      <h3>Save Run Record</h3>
+      <p>Save the final metadata, exact YAML, portable manifest, and artifact checksums under <code>curation/run_records/</code>.</p>
+      <button type="button" data-stage-button onclick="runStage('snapshot')">Save run record</button>
+      <span class="stage-status" data-stage-status="snapshot">Not run</span>
+    </section>
+  </div>
+
+  <p class="manual-note"><strong>Manual checkpoint:</strong> after Metadata completes, open the CSV path shown above, make the necessary edits, save it, and only then confirm manual review. Editing the CSV later requires another confirmation.</p>
+
+  <h2>Live log <span id="run-status" data-state="idle">Idle</span></h2>
+  <pre id="stream-output" aria-live="polite"></pre>
+
+  <script>
+    const jobsEndpoint = "/jobs/socrata-curation-pipeline/jobs";
+    const yamlEndpoint = "/jobs/socrata-curation-pipeline/yaml";
+    const statusEndpoint = "/jobs/socrata-curation-pipeline/status";
+    const runEndpoint = "/jobs/socrata-curation-pipeline/run-stream";
+    const postprocessStages = ["download", "enrich", "dictionaries", "embed", "thumbnails", "derivatives", "zip"];
+    let eventSource = null;
+    let loadedYamlJobId = "";
+    let loadedYamlSha256 = "";
+    let loadingYaml = false;
+    let stageFailed = false;
+    let stageFailureMessage = "";
+    let yamlDirty = false;
+
+    function selectedJobId() {
+      return document.getElementById("job-select").value;
+    }
+
+    function setControlsDisabled(disabled) {
+      document.querySelectorAll("[data-stage-button], [data-control]").forEach((control) => {
+        control.disabled = disabled;
+      });
+    }
+
+    function setEditorStatus(message, state = "idle") {
+      const target = document.getElementById("editor-status");
+      target.textContent = message;
+      target.dataset.state = state;
+    }
+
+    function markYamlDirty() {
+      if (loadingYaml) return;
+      yamlDirty = true;
+      setEditorStatus("Unsaved changes");
+    }
+
+    function formattedStageTime(value) {
+      if (!value) return "";
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? "" : ` — ${parsed.toLocaleString()}`;
+    }
+
+    function setStageVisual(stage, state, completedAt = "", failureMessage = "") {
+      const card = document.querySelector(`[data-stage-card="${stage}"]`);
+      const status = document.querySelector(`[data-stage-status="${stage}"]`);
+      if (!card || !status) return;
+      card.dataset.status = state;
+      if (state === "completed") {
+        const label = stage === "review" ? "Confirmed" : "Completed";
+        status.textContent = `✓ ${label}${formattedStageTime(completedAt)}`;
+      } else if (state === "running") {
+        status.textContent = "Running…";
+      } else if (state === "failed") {
+        status.textContent = failureMessage || "Run failed — see the live log";
+      } else {
+        status.textContent = stage === "review" ? "Not confirmed" : "Not run";
+      }
+    }
+
+    function updateStageIndicators(manifest) {
+      const stages = manifest && manifest.stages ? manifest.stages : {};
+      const stageNames = ["validate", "metadata", "download", "enrich", "dictionaries", "embed", "thumbnails", "derivatives", "zip", "snapshot"];
+      stageNames.forEach((stage) => {
+        let value = stages[stage];
+        if (stage === "validate" && !value && stages.metadata) value = stages.metadata;
+        setStageVisual(stage, value && value.status === "completed" ? "completed" : "pending", value && value.completed_at);
+      });
+      const review = manifest && manifest.manual_review ? manifest.manual_review : {};
+      setStageVisual("review", review.status === "confirmed" ? "completed" : "pending", review.confirmed_at);
+      const completed = postprocessStages.every((stage) => stages[stage] && stages[stage].status === "completed");
+      setStageVisual("postprocess", completed ? "completed" : "pending", completed ? stages.zip.completed_at : "");
+    }
+
+    async function loadJobs(preferredJobId = "") {
+      const select = document.getElementById("job-select");
+      const status = document.getElementById("job-status");
+      const previousJobId = select.value;
+      select.disabled = true;
+      select.innerHTML = "<option>Loading jobs...</option>";
+      try {
+        const response = await fetch(jobsEndpoint);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Could not load Socrata curation jobs.");
+        select.innerHTML = "";
+        data.jobs.forEach((job) => {
+          const option = document.createElement("option");
+          option.value = job.id;
+          option.textContent = `${job.label} (${job.record_count} records)`;
+          if (job.error) option.textContent += " — configuration error";
+          select.appendChild(option);
+        });
+        if (!data.jobs.length) {
+          select.innerHTML = "<option value=''>No runnable Socrata jobs found</option>";
+          status.textContent = "Create a job from the Socrata template, then fill in its source details.";
+          document.getElementById("yaml-editor").value = "";
+          setEditorStatus("No editable job selected");
+          return;
+        }
+        const desired = preferredJobId || previousJobId;
+        if (data.jobs.some((job) => job.id === desired)) select.value = desired;
+        select.disabled = false;
+        await Promise.all([loadStatus(), loadYaml()]);
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    }
+
+    async function refreshJobs() {
+      if (yamlDirty && !window.confirm("Discard unsaved YAML changes and refresh the jobs?")) return;
+      yamlDirty = false;
+      await loadJobs(loadedYamlJobId);
+    }
+
+    async function changeSelectedJob() {
+      const select = document.getElementById("job-select");
+      if (yamlDirty && !window.confirm("Discard unsaved YAML changes and load another job?")) {
+        select.value = loadedYamlJobId;
+        return;
+      }
+      yamlDirty = false;
+      await Promise.all([loadStatus(), loadYaml()]);
+    }
+
+    async function loadYaml() {
+      const jobId = selectedJobId();
+      const editor = document.getElementById("yaml-editor");
+      if (!jobId) return;
+      editor.disabled = true;
+      loadedYamlSha256 = "";
+      setEditorStatus("Loading YAML...");
+      try {
+        const response = await fetch(`${yamlEndpoint}?job_id=${encodeURIComponent(jobId)}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Could not load the job YAML.");
+        loadingYaml = true;
+        editor.value = data.content;
+        loadedYamlJobId = data.job_id;
+        loadedYamlSha256 = data.sha256;
+        yamlDirty = false;
+        loadingYaml = false;
+        editor.disabled = false;
+        setEditorStatus(`Loaded ${data.config_path}`, "success");
+      } catch (error) {
+        loadingYaml = false;
+        editor.value = "";
+        setEditorStatus(error.message, "error");
+      }
+    }
+
+    async function reloadYaml() {
+      if (yamlDirty && !window.confirm("Discard unsaved YAML changes and reload from disk?")) return;
+      yamlDirty = false;
+      await loadYaml();
+    }
+
+    async function createJob() {
+      const input = document.getElementById("new-job-id");
+      const jobId = input.value.trim();
+      if (!jobId) {
+        setEditorStatus("Enter a new job ID first.", "error");
+        input.focus();
+        return;
+      }
+      if (yamlDirty) {
+        setEditorStatus("Save or reload the current YAML before creating another job.", "error");
+        return;
+      }
+      setEditorStatus(`Creating ${jobId}.yaml...`);
+      try {
+        const response = await fetch(jobsEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ job_id: jobId }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Could not create the Socrata job.");
+        input.value = "";
+        await loadJobs(data.job.id);
+        setEditorStatus(`Created ${data.job.config_path}. Replace the remaining placeholders and save.`, "success");
+      } catch (error) {
+        setEditorStatus(error.message, "error");
+      }
+    }
+
+    async function saveYaml() {
+      const jobId = selectedJobId();
+      const editor = document.getElementById("yaml-editor");
+      if (!jobId || !loadedYamlSha256) return;
+      setEditorStatus(`Saving ${jobId}.yaml...`);
+      try {
+        const response = await fetch(yamlEndpoint, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            job_id: jobId,
+            content: editor.value,
+            expected_sha256: loadedYamlSha256,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Could not save the YAML.");
+        loadedYamlSha256 = data.sha256;
+        loadedYamlJobId = data.job.id;
+        yamlDirty = false;
+        const option = document.getElementById("job-select").selectedOptions[0];
+        if (option) option.textContent = `${data.job.label} (${data.job.record_count} records)`;
+        setEditorStatus(`Saved ${data.job.config_path}`, "success");
+        await loadStatus();
+      } catch (error) {
+        setEditorStatus(error.message, "error");
+      }
+    }
+
+    async function loadStatus() {
+      const jobId = selectedJobId();
+      const target = document.getElementById("job-status");
+      if (!jobId) return;
+      target.textContent = "Loading status...";
+      try {
+        const response = await fetch(`${statusEndpoint}?job_id=${encodeURIComponent(jobId)}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Could not load job status.");
+        const manifest = data.configuration_current ? data.manifest : null;
+        const review = manifest && manifest.manual_review ? manifest.manual_review.status : "pending";
+        const stages = manifest && manifest.stages ? Object.entries(manifest.stages)
+          .filter(([, value]) => value && value.status === "completed")
+          .map(([name]) => name) : [];
+        document.getElementById("metadata-output-path").textContent = data.metadata_path;
+        updateStageIndicators(manifest);
+        target.textContent = [
+          `Config: ${data.job.config_path}`,
+          `Records: ${data.job.record_count}`,
+          `Metadata CSV: ${data.metadata_path}`,
+          `Metadata exists: ${data.metadata_exists ? "yes" : "no"}`,
+          `Configuration matches manifest: ${data.configuration_current ? "yes" : "no — run Metadata again"}`,
+          `Manual review: ${review}`,
+          `Completed stages: ${stages.length ? stages.join(", ") : "None"}`,
+          `Currently running: ${data.running ? "yes" : "no"}`,
+        ].join("\n");
+      } catch (error) {
+        target.textContent = error.message;
+      }
+    }
+
+    function confirmReview() {
+      if (!selectedJobId()) return;
+      const confirmed = window.confirm(
+        "Have you opened, manually reviewed, and saved metadata.csv for this Socrata job?"
+      );
+      if (confirmed) runStage("review", true);
+    }
+
+    function runStage(stage, confirm = false) {
+      const jobId = selectedJobId();
+      if (!jobId) return;
+      if (yamlDirty) {
+        setEditorStatus("Save the YAML changes before running a task.", "error");
+        document.getElementById("yaml-editor").focus();
+        return;
+      }
+      if (eventSource) eventSource.close();
+      const params = new URLSearchParams({ job_id: jobId, stage });
+      if (confirm) params.set("confirm", "true");
+      if (document.getElementById("overwrite-toggle").checked) params.set("overwrite", "true");
+
+      const output = document.getElementById("stream-output");
+      const status = document.getElementById("run-status");
+      output.textContent = `Connecting to ${stage} for ${jobId}...\n`;
+      status.textContent = `Running ${stage}`;
+      status.dataset.state = "running";
+      stageFailed = false;
+      stageFailureMessage = "";
+      setStageVisual(stage, "running");
+      setControlsDisabled(true);
+      eventSource = new EventSource(`${runEndpoint}?${params.toString()}`);
+
+      eventSource.onmessage = function (event) {
+        if (event.data === "DONE") {
+          status.textContent = stageFailed ? `${stage} failed` : `${stage} complete`;
+          status.dataset.state = stageFailed ? "error" : "success";
+          setControlsDisabled(false);
+          eventSource.close();
+          eventSource = null;
+          loadStatus().finally(() => {
+            if (stageFailed) setStageVisual(stage, "failed", "", stageFailureMessage);
+          });
+          return;
+        }
+        if (event.data.startsWith("PIPELINE_FAILED:")) {
+          stageFailed = true;
+          stageFailureMessage = event.data.replace("PIPELINE_FAILED:", "").trim();
+          setStageVisual(stage, "failed", "", stageFailureMessage);
+        }
+        output.textContent += `${event.data}\n`;
+        output.scrollTop = output.scrollHeight;
+      };
+
+      eventSource.onerror = function () {
+        const message = `${stage} stream closed before completion`;
+        output.textContent += `${message}. Check the server log.\n`;
+        status.textContent = `${stage} stopped`;
+        status.dataset.state = "error";
+        setStageVisual(stage, "failed", "", message);
+        setControlsDisabled(false);
+        eventSource.close();
+        eventSource = null;
+      };
+    }
+
+    document.getElementById("yaml-editor").addEventListener("keydown", function (event) {
+      if (event.key !== "Tab") return;
+      event.preventDefault();
+      this.setRangeText("  ", this.selectionStart, this.selectionEnd, "end");
+      markYamlDirty();
+    });
+
+    window.addEventListener("beforeunload", function (event) {
+      if (!yamlDirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    });
+
+    loadJobs();
+  </script>
+</body>
+</html>

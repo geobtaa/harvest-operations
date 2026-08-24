@@ -234,3 +234,68 @@ def test_oai_qdc_distinguishes_iowa_state_county_and_city_matches(tmp_path) -> N
     assert city_row["Bounding Box"] == "CITY_BBOX"
     assert city_row["Geometry"] == "CITY_GEOM"
     assert city_row["GeoNames"] == "CITY_GEONAMES"
+
+
+def test_oai_qdc_accepts_inline_sets_without_a_sidecar_csv(tmp_path) -> None:
+    config = _config(tmp_path / "unused.csv")
+    config.pop("sets_csv")
+    config["sets"] = [
+        {"set": "maps", "title": "Map Collection"},
+        "aerials",
+    ]
+
+    harvester = OaiQdcHarvester(config)
+
+    assert harvester.sets_csv is None
+    assert harvester.oai_load_sets() == [
+        {"set_spec": "maps", "set_title": "Map Collection"},
+        {"set_spec": "aerials", "set_title": ""},
+    ]
+
+
+def test_oai_qdc_parses_standard_oai_dc_records(tmp_path) -> None:
+    config = _config(tmp_path / "unused.csv")
+    config.pop("sets_csv")
+    config["sets"] = [{"set": "maps", "title": "Map Collection"}]
+    harvester = OaiQdcHarvester(config)
+    xml_text = """<?xml version="1.0" encoding="UTF-8"?>
+    <OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/"
+      xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/"
+      xmlns:dc="http://purl.org/dc/elements/1.1/">
+      <ListRecords>
+        <record>
+          <header>
+            <identifier>oai:example.edu:maps-42</identifier>
+            <datestamp>2026-08-01</datestamp>
+          </header>
+          <metadata>
+            <oai_dc:dc>
+              <dc:title>Campus map</dc:title>
+              <dc:identifier>https://example.edu/maps/42</dc:identifier>
+              <dc:type>Map</dc:type>
+            </oai_dc:dc>
+          </metadata>
+        </record>
+      </ListRecords>
+    </OAI-PMH>
+    """
+
+    records = harvester.oai_parse_xml(
+        xml_text,
+        {"set_spec": "maps", "set_title": "Map Collection"},
+    )
+
+    assert records == [
+        {
+            "oai_identifier": "oai:example.edu:maps-42",
+            "datestamp": "2026-08-01",
+            "set_spec": "maps",
+            "set_title": "Map Collection",
+            "source_xml_path": "",
+            "fields": {
+                "dc:title": ["Campus map"],
+                "dc:identifier": ["https://example.edu/maps/42"],
+                "dc:type": ["Map"],
+            },
+        }
+    ]

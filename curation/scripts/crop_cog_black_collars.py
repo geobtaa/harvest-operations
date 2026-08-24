@@ -172,7 +172,7 @@ def cog_options(jpeg_quality: int) -> list[str]:
         "-co",
         "OVERVIEW_COMPRESS=JPEG",
         "-co",
-        "INTERLEAVE=BAND",
+        "INTERLEAVE=PIXEL",
         "-co",
         f"QUALITY={jpeg_quality}",
         "-co",

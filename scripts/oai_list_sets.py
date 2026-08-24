@@ -8,6 +8,7 @@ the endpoint's published set list.
 
 import argparse
 import csv
+import sys
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -20,6 +21,10 @@ import yaml
 OAI_NS = {"oai": "http://www.openarchives.org/OAI/2.0/"}
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from utils.oai_pmh import raise_for_oai_status  # noqa: E402
 
 DEFAULT_BASE_URL = "https://conservancy.umn.edu/server/oai/request"
 DEFAULT_NAME = "oai"
@@ -132,7 +137,7 @@ def fetch_all_sets(
 
     while True:
         response = session.get(base_url, params=list_sets_params(token), timeout=timeout)
-        response.raise_for_status()
+        raise_for_oai_status(response)
 
         page_sets, next_token, errors = parse_list_sets_response(response.text)
         if errors:

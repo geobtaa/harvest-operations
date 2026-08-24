@@ -1,0 +1,60 @@
+version: 1
+
+job:
+  id: bloomington-socrata-2026
+  work_directory: ../../work/bloomington-socrata-2026
+
+provider: BTAA-GIN
+
+hub:
+  name: City of Bloomington Open Data
+  landing_page: https://data.bloomington.in.gov/
+  dcat_api: https://data.bloomington.in.gov/data.json
+  soda_api_base: https://data.bloomington.in.gov
+  website_reference_id: 01c-01
+  websites_csv: ../../../reference_data/websites.csv
+
+coordinate_reference_system:
+  authority: EPSG:2966
+  uri: https://spatialreference.org/ref/epsg/2966/
+
+metadata:
+  code: "b1g_18_05860"
+  member_of: b1g_urbanBaseLayers
+  export_date: "2026-08-23"
+
+file_naming:
+  city_abbreviation: blm
+  download_year: "2026"
+
+download:
+  page_size: 10000
+  # Anonymous requests work for this public dataset. If a token is present,
+  # the pipeline adds it as X-App-Token to reduce rate-limit risk.
+  app_token_environment: SOCRATA_APP_TOKEN
+
+selection_criteria:
+  allowed_resource_types:
+    - Point data
+
+manual_review:
+  required_fields:
+    - filename
+    - ID
+    - Title
+    - Description
+    - Creator
+    - Publisher
+    - Provider
+    - Resource Class
+    - Rights
+    - Access Rights
+
+derivatives:
+  pmtiles_config: ../../pmtiles_config.sample.json
+
+records:
+  - id: ndfd-h5qf
+    filename_theme: trees
+    basic_theme: Trees
+    temporal_year: "2026"

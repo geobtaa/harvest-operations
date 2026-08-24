@@ -85,6 +85,8 @@ def profile_options(profile: str, jpeg_quality: int) -> list[str]:
         "OVERVIEW_RESAMPLING=AVERAGE",
         "-co",
         "STATISTICS=YES",
+        "-co",
+        "INTERLEAVE=PIXEL",
     ]
     if profile == "archival":
         return common + [
@@ -115,8 +117,6 @@ def profile_options(profile: str, jpeg_quality: int) -> list[str]:
         "COMPRESS=JPEG",
         "-co",
         "OVERVIEW_COMPRESS=JPEG",
-        "-co",
-        "INTERLEAVE=BAND",
         "-co",
         f"QUALITY={jpeg_quality}",
         "-co",
@@ -285,8 +285,8 @@ def validate_cog(
 
     if image_structure.get("LAYOUT") != "COG":
         warnings.append("output_not_reported_as_cog")
-    if image_structure.get("SOURCE_COLOR_SPACE") == "YCbCr":
-        warnings.append("ycbcr_jpeg_may_be_incompatible")
+    if image_structure.get("INTERLEAVE", "PIXEL") != "PIXEL":
+        warnings.append("output_not_pixel_interleaved")
     if image_structure.get("COMPRESSION") == "JPEG" and any(
         band.get("type") != "Byte" for band in output_bands
     ):

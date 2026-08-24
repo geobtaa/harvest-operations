@@ -2,6 +2,13 @@
 
 Python scripts replacing the original notebooks for the curation pipeline.
 
+Staged source workflows:
+
+- `scripts/arcgis_curation_pipeline.py` curates selected ArcGIS layers.
+- `scripts/socrata_curation_pipeline.py` curates selected Socrata datasets,
+  including paged exports beyond the platform's 1,000-row default. See the
+  [Bloomington example and Socrata reference](jobs/socrata/socrata_curation_pipeline_reference.md).
+
 ## Setup
 
 Run setup once from the `harvest-operations` repository root:
@@ -529,3 +536,84 @@ For the curation pipeline's resource-centric layout, place each GeoPackage at
 `<input-dir>/<resource>/<resource>.gpkg`, use the input directory as both
 derivative output roots, and add `--resource-layout`. FlatGeoBuf and PMTiles
 outputs will be written beside their source GeoPackage.
+
+## Rebuild Viewer-Compatible COGs
+
+Use `scripts/rebuild_cogs_for_viewers.py` when an existing JPEG COG has useful
+alpha transparency but is band-interleaved. The workflow leaves the existing
+COGs and source ZIPs unchanged. See `04d-02_cogs/README.md` for the concise
+collection-specific method, commands, validation output, and file-size
+tradeoff. The workflow:
+
+- reads RGB pixels from the original lossless GeoTIFF inside each ZIP;
+- reuses the existing COG's alpha footprint, thresholding JPEG ringing at 128;
+- preserves the existing output dimensions, geotransform, and CRS; and
+- creates a pixel-interleaved COG with transparency stored either as an
+  internal dataset mask or as an explicit fourth alpha band.
+
+Audit inputs and source ZIP matches without creating COGs:
+
+```sh
+uv run --locked python curation/scripts/rebuild_cogs_for_viewers.py \
+  curation/04d-02_cogs/04d-02-alpha-cogs-thumbs/uploaded \
+  curation/04d-02_cogs/04d-02-alpha-work/downloads \
+  curation/04d-02_cogs/04d-02-viewer-compatible \
+  --report curation/04d-02_cogs/04d-02-alpha-reports/04d-02-viewer-audit.csv \
+  --dry-run
+```
+
+Build one pilot for upload and viewer testing:
+
+```sh
+uv run --locked python curation/scripts/rebuild_cogs_for_viewers.py \
+  curation/04d-02_cogs/04d-02-alpha-cogs-thumbs/uploaded \
+  curation/04d-02_cogs/04d-02-alpha-work/downloads \
+  curation/04d-02_cogs/04d-02-viewer-compatible-pilot \
+  --report curation/04d-02_cogs/04d-02-alpha-reports/04d-02-viewer-pilot.csv \
+  --include mdu-057202
+```
+
+The default JPEG profile uses YCbCr. If a legacy viewer renders that color
+space incorrectly (often as a pink image), use DEFLATE. The broadest
+compatibility profile is lossless three-band RGB with an internal mask: it
+avoids both JPEG/YCbCr and viewer assumptions about a fourth display band.
+
+```sh
+uv run --locked python curation/scripts/rebuild_cogs_for_viewers.py \
+  curation/04d-02_cogs/04d-02-alpha-cogs-thumbs/uploaded \
+  curation/04d-02_cogs/04d-02-alpha-work/downloads \
+  curation/04d-02_cogs/04d-02-viewer-compatible-rgb-mask-pilot \
+  --report curation/04d-02_cogs/04d-02-alpha-reports/04d-02-rgb-mask-pilot.csv \
+  --compression DEFLATE \
+  --alpha-storage mask \
+  --include mdu-057200
+```
+
+An explicit RGBA pilot is also available for clients known to support four
+display bands:
+
+```sh
+uv run --locked python curation/scripts/rebuild_cogs_for_viewers.py \
+  curation/04d-02_cogs/04d-02-alpha-cogs-thumbs/uploaded \
+  curation/04d-02_cogs/04d-02-alpha-work/downloads \
+  curation/04d-02_cogs/04d-02-viewer-compatible-rgba-pilot \
+  --report curation/04d-02_cogs/04d-02-alpha-reports/04d-02-rgba-pilot.csv \
+  --compression DEFLATE \
+  --include mdu-057200
+```
+
+After the pilot renders in the target viewer, rebuild the full collection:
+
+```sh
+uv run --locked python curation/scripts/rebuild_cogs_for_viewers.py \
+  curation/04d-02_cogs/04d-02-alpha-cogs-thumbs/uploaded \
+  curation/04d-02_cogs/04d-02-alpha-work/downloads \
+  curation/04d-02_cogs/04d-02-viewer-compatible \
+  --report curation/04d-02_cogs/04d-02-alpha-reports/04d-02-viewer-full.csv \
+  --compression DEFLATE \
+  --alpha-storage mask
+```
+
+The script checkpoints both CSV and JSON reports after every item, skips
+existing outputs by default, and accepts `--overwrite` when an output
+intentionally needs replacement.
