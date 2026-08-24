@@ -66,6 +66,12 @@ stage independently, preserves the manual metadata-review checkpoint, and can
 run all post-review tasks together. New YAML jobs can be created from the
 canonical template and edited directly on that page.
 
+The **OAI-PMH Harvester** page follows the same source-job model for university
+repositories. It discovers every `type: oai_qdc` YAML in `config/`, creates new
+source jobs from `config/templates/oai_pmh.yaml`, and exposes validation,
+Identify, ListSets discovery, atomic XML download, and output-building stages.
+See `harvesters/oai_pmh_jobs.md` for the job schema and terminal commands.
+
 In either case, the Python code reads the corresponding YAML in `config/`, creates the correct harvester class, runs the harvest pipeline, and writes outputs to the configured destination files.
 
 For example, the ArcGIS browser workflow is:

@@ -1,0 +1,49 @@
+# Source-scoped OAI-PMH harvest job. See harvesters/oai_pmh_jobs.md.
+name: umich
+type: oai_qdc
+feed_type: oai_dc
+
+oai_base_url: "https://quod.lib.umich.edu/cgi/o/oai/oai"
+metadata_prefix: oai_dc
+provider: "University of Michigan"
+source_name: "University of Michigan Clark Library"
+source_id_prefix: "um"
+website_platform: OAI-PMH
+harvest_workflow: py_oai_pmh
+
+# Keep acquisition polite and retry common transient server failures.
+oai_request:
+  delay_seconds: 1.0
+  timeout_seconds: 60
+  retries: 3
+  backoff_seconds: 1.0
+  # Optional inclusive OAI datestamp range:
+  # from: "2026-01-01"
+  # until: "2026-12-31"
+
+oai_download_dir: inputs/oai-downloads/umich
+
+# Run Discover sets first, then add one row per repository set. Use __all__ as
+# the set value when the repository has no set hierarchy or the whole
+# repository should be harvested.
+sets: []
+# sets:
+#   - set: maps
+#     title: Map Collection
+
+# Defaults applied when the source record leaves these values blank.
+default_resource_class: Maps
+hardcoded_values:
+  Code: 07d-01
+  Member Of: 64bd8c4c-8e60-4956-b43d-bdc3f93db488
+
+# Optional source-specific QDC mappings can replace or append generic mappings.
+# metadata_crosswalk:
+#   - source: dcterms:spatial
+#     target: Spatial Coverage
+#   - source: dcterms:extent
+#     target: Description
+#     mode: append
+
+output_primary_csv: outputs/umich_primary.csv
+output_distributions_csv: outputs/umich_distributions.csv

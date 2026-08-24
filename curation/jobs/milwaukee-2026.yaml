@@ -1,0 +1,77 @@
+# ArcGIS curation job template. Setup notes and optional fields:
+# arcgis_curation_pipeline_reference.md
+version: 1
+
+job:
+  id: "milwaukee-2026"
+  work_directory: "../work/milwaukee-2026"
+
+provider: BTAA-GIN
+
+hub:
+  name: "<public-hub-name>"
+  landing_page: "https://<hub-hostname>/"
+  dcat_api: "https://<hub-hostname>/api/feed/dcat-us/1.1.json"
+  website_reference_id: "<website-reference-id>"
+  websites_csv: ../../reference_data/websites.csv
+
+coordinate_reference_system:
+  authority: "<AUTHORITY:CODE>"
+  uri: "https://spatialreference.org/ref/<authority>/<code>/"
+
+metadata:
+  code: "<urban-base-layer-code>"
+  member_of: b1g_urbanBaseLayers
+  export_date: "YYYY-MM-DD"
+
+selection_criteria:
+  allowed_resource_types:
+    - Polygon data
+    - Line data
+    - Point data
+
+manual_review:
+  required_fields:
+    - filename
+    - ID
+    - Title
+    - Description
+    - Creator
+    - Publisher
+    - Provider
+    - Resource Class
+    - Rights
+    - Access Rights
+
+derivatives:
+  pmtiles_config: ../pmtiles_config.sample.json
+
+# Fill the layers the Hub provides and delete unused rows.
+records:
+  - id: "<address-item-id>_<layer-number>"
+    filename: "<prefix>_address_<yyyy>"
+    basic_theme: Address points
+
+  - id: "<buildings-item-id>_<layer-number>"
+    filename: "<prefix>_buildings_<yyyy>"
+    basic_theme: Building footprints
+
+  - id: "<boundary-item-id>_<layer-number>"
+    filename: "<prefix>_boundary_<yyyy>"
+    basic_theme: Municipal boundary
+
+  - id: "<parks-item-id>_<layer-number>"
+    filename: "<prefix>_parks_<yyyy>"
+    basic_theme: Parks
+
+  - id: "<streets-item-id>_<layer-number>"
+    filename: "<prefix>_streets_<yyyy>"
+    basic_theme: Streets
+    
+  - id: "<parcels-item-id>_<layer-number>"
+    filename: "<prefix>_trees_<yyyy>"
+    basic_theme: Trees
+
+  - id: "<zoning-item-id>_<layer-number>"
+    filename: "<prefix>_zoning_<yyyy>"
+    basic_theme: Zoning

@@ -1,6 +1,9 @@
 The `scripts` folder contains standalone python scripts that are not integrated into the harvester modules.
 
-`oai_download.py` downloads raw OAI-PMH XML into a local folder so parser development can happen offline.
+`oai_pmh_pipeline.py` runs the validated, source-scoped OAI-PMH stages used by
+the browser UI: Identify, ListSets discovery, atomic XML download, and output
+building. `oai_download.py` remains available as the lower-level acquisition
+CLI for downloading raw XML snapshots directly.
 
 `oai_list_sets.py` queries an OAI-PMH `ListSets` endpoint, filters the set list by one or more
 keywords such as `atlas` or `plat book`, and can write a CSV of discovered set specs.
