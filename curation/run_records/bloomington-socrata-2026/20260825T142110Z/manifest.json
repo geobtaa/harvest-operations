@@ -1,0 +1,647 @@
+{
+  "version": 1,
+  "source_platform": "socrata",
+  "job_id": "bloomington-socrata-2026",
+  "config_path": "curation/jobs/socrata/bloomington-socrata-2026.yaml",
+  "work_directory": "curation/work/bloomington-socrata-2026",
+  "metadata_path": "metadata/metadata.csv",
+  "file_naming": {
+    "city_abbreviation": "blm",
+    "download_year": "2026"
+  },
+  "config_sha256": "fbfad11730ba1eaad09055a0e2b457800586bc28cb7f5af911e97ddd1d0e0334",
+  "created_at": "2026-08-25T14:15:20+00:00",
+  "updated_at": "2026-08-25T14:21:06+00:00",
+  "manual_review": {
+    "status": "confirmed",
+    "confirmed_at": "2026-08-25T14:18:54+00:00",
+    "metadata_sha256": "11f8fa9a4e2a8d2836530fb0ec20e21774987d3967b1c066b0162e02162dfb9d",
+    "pipeline_updated_at": "2026-08-25T14:19:08+00:00"
+  },
+  "stages": {
+    "validate": {
+      "status": "completed",
+      "completed_at": "2026-08-25T14:15:20+00:00"
+    },
+    "metadata": {
+      "status": "completed",
+      "completed_at": "2026-08-25T14:15:20+00:00"
+    },
+    "download": {
+      "status": "completed",
+      "completed_at": "2026-08-25T14:19:04+00:00",
+      "outputs": [
+        {
+          "status": "skipped_existing",
+          "output": "blm_trees_2026/blm_trees_2026.gpkg"
+        },
+        {
+          "status": "skipped_existing",
+          "output": "blm_address_2026/blm_address_2026.gpkg"
+        },
+        {
+          "status": "skipped_existing",
+          "output": "blm_buildings_2026/blm_buildings_2026.gpkg"
+        },
+        {
+          "feature_count": 7569,
+          "page_count": 1,
+          "page_size": 10000,
+          "source_url": "https://data.bloomington.in.gov/resource/8yia-fgp6.geojson",
+          "output": "blm_countyStreets_2026/blm_countyStreets_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "status": "skipped_existing",
+          "output": "blm_parks_2026/blm_parks_2026.gpkg"
+        },
+        {
+          "status": "skipped_existing",
+          "output": "blm_boundary_2026/blm_boundary_2026.gpkg"
+        },
+        {
+          "status": "skipped_existing",
+          "output": "blm_zoning_2026/blm_zoning_2026.gpkg"
+        },
+        {
+          "feature_count": 3004,
+          "page_count": 1,
+          "page_size": 10000,
+          "source_url": "https://data.bloomington.in.gov/resource/bb3b-6hg6.geojson",
+          "output": "blm_cityStreets_2026/blm_cityStreets_2026.gpkg",
+          "status": "downloaded"
+        }
+      ]
+    },
+    "enrich": {
+      "status": "completed",
+      "completed_at": "2026-08-25T14:19:08+00:00",
+      "records": [
+        {
+          "filename": "blm_trees_2026.gpkg",
+          "feature_count": 30900,
+          "resource_type": "Point data",
+          "bounding_box": "-86.5922,39.1071,-86.4712,39.2104"
+        },
+        {
+          "filename": "blm_address_2026.gpkg",
+          "feature_count": 41584,
+          "resource_type": "Point data",
+          "bounding_box": "-86.5919,39.1214,-86.4711,39.2198"
+        },
+        {
+          "filename": "blm_buildings_2026.gpkg",
+          "feature_count": 43479,
+          "resource_type": "Polygon data",
+          "bounding_box": "-86.6422,39.0684,-86.4397,39.2559"
+        },
+        {
+          "filename": "blm_countyStreets_2026.gpkg",
+          "feature_count": 7569,
+          "resource_type": "Line data",
+          "bounding_box": "-86.7044,38.9789,-86.3141,39.3785"
+        },
+        {
+          "filename": "blm_parks_2026.gpkg",
+          "feature_count": 46,
+          "resource_type": "Polygon data",
+          "bounding_box": "-86.5953,39.1070,-86.4716,39.2119"
+        },
+        {
+          "filename": "blm_boundary_2026.gpkg",
+          "feature_count": 3,
+          "resource_type": "Polygon data",
+          "bounding_box": "-86.5922,39.1210,-86.4705,39.2216"
+        },
+        {
+          "filename": "blm_zoning_2026.gpkg",
+          "feature_count": 365,
+          "resource_type": "Polygon data",
+          "bounding_box": "-86.5922,39.1210,-86.4705,39.2216"
+        },
+        {
+          "filename": "blm_cityStreets_2026.gpkg",
+          "feature_count": 3004,
+          "resource_type": "Line data",
+          "bounding_box": "-86.5924,39.0891,-86.4708,39.2204"
+        }
+      ]
+    },
+    "dictionaries": {
+      "status": "completed",
+      "completed_at": "2026-08-25T14:19:12+00:00",
+      "outputs": [
+        "blm_trees_2026/blm_trees_2026.csv",
+        "blm_address_2026/blm_address_2026.csv",
+        "blm_buildings_2026/blm_buildings_2026.csv",
+        "blm_countyStreets_2026/blm_countyStreets_2026.csv",
+        "blm_parks_2026/blm_parks_2026.csv",
+        "blm_boundary_2026/blm_boundary_2026.csv",
+        "blm_zoning_2026/blm_zoning_2026.csv",
+        "blm_cityStreets_2026/blm_cityStreets_2026.csv"
+      ]
+    },
+    "embed": {
+      "status": "completed",
+      "completed_at": "2026-08-25T14:19:16+00:00",
+      "outputs": [
+        "blm_trees_2026/blm_trees_2026.gpkg",
+        "blm_address_2026/blm_address_2026.gpkg",
+        "blm_buildings_2026/blm_buildings_2026.gpkg",
+        "blm_countyStreets_2026/blm_countyStreets_2026.gpkg",
+        "blm_parks_2026/blm_parks_2026.gpkg",
+        "blm_boundary_2026/blm_boundary_2026.gpkg",
+        "blm_zoning_2026/blm_zoning_2026.gpkg",
+        "blm_cityStreets_2026/blm_cityStreets_2026.gpkg"
+      ]
+    },
+    "thumbnails": {
+      "status": "completed",
+      "completed_at": "2026-08-25T14:19:25+00:00",
+      "outputs": [
+        "blm_trees_2026/blm_trees_2026.png",
+        "blm_address_2026/blm_address_2026.png",
+        "blm_buildings_2026/blm_buildings_2026.png",
+        "blm_countyStreets_2026/blm_countyStreets_2026.png",
+        "blm_parks_2026/blm_parks_2026.png",
+        "blm_boundary_2026/blm_boundary_2026.png",
+        "blm_zoning_2026/blm_zoning_2026.png",
+        "blm_cityStreets_2026/blm_cityStreets_2026.png"
+      ]
+    },
+    "derivatives": {
+      "status": "completed",
+      "completed_at": "2026-08-25T14:19:32+00:00",
+      "report": "reports/pmtiles_build_report.csv"
+    },
+    "zip": {
+      "status": "completed",
+      "completed_at": "2026-08-25T14:21:06+00:00",
+      "outputs": [
+        "blm_trees_2026/blm_trees_2026.gpkg.zip",
+        "blm_address_2026/blm_address_2026.gpkg.zip",
+        "blm_buildings_2026/blm_buildings_2026.gpkg.zip",
+        "blm_countyStreets_2026/blm_countyStreets_2026.gpkg.zip",
+        "blm_parks_2026/blm_parks_2026.gpkg.zip",
+        "blm_boundary_2026/blm_boundary_2026.gpkg.zip",
+        "blm_zoning_2026/blm_zoning_2026.gpkg.zip",
+        "blm_cityStreets_2026/blm_cityStreets_2026.gpkg.zip"
+      ]
+    },
+    "snapshot": {
+      "status": "completed",
+      "completed_at": "2026-08-25T14:21:10+00:00"
+    }
+  },
+  "records": [
+    {
+      "source_id": "ndfd-h5qf",
+      "filename_theme": "trees",
+      "curated_id": "b1g_5r48vNUpGPvK",
+      "filename": "blm_trees_2026.gpkg",
+      "landing_page": "https://data.bloomington.in.gov/d/ndfd-h5qf",
+      "metadata_url": "https://data.bloomington.in.gov/api/views/ndfd-h5qf",
+      "geojson_url": "https://data.bloomington.in.gov/resource/ndfd-h5qf.geojson",
+      "row_count": 30900,
+      "source_revision": 1785960319,
+      "geometry_columns": [
+        {
+          "field_name": "the_geom",
+          "field_type": "point"
+        }
+      ]
+    },
+    {
+      "source_id": "b8yb-iwu6",
+      "filename_theme": "address",
+      "curated_id": "b1g_LSbtd2NUpLtn",
+      "filename": "blm_address_2026.gpkg",
+      "landing_page": "https://data.bloomington.in.gov/d/b8yb-iwu6",
+      "metadata_url": "https://data.bloomington.in.gov/api/views/b8yb-iwu6",
+      "geojson_url": "https://data.bloomington.in.gov/resource/b8yb-iwu6.geojson",
+      "row_count": 41584,
+      "source_revision": 1785848465,
+      "geometry_columns": [
+        {
+          "field_name": "the_geom",
+          "field_type": "point"
+        }
+      ]
+    },
+    {
+      "source_id": "4ez4-mguv",
+      "filename_theme": "buildings",
+      "curated_id": "b1g_rkezr9ZApf8W",
+      "filename": "blm_buildings_2026.gpkg",
+      "landing_page": "https://data.bloomington.in.gov/d/4ez4-mguv",
+      "metadata_url": "https://data.bloomington.in.gov/api/views/4ez4-mguv",
+      "geojson_url": "https://data.bloomington.in.gov/resource/4ez4-mguv.geojson",
+      "row_count": 43479,
+      "source_revision": 1785962787,
+      "geometry_columns": [
+        {
+          "field_name": "the_geom",
+          "field_type": "multipolygon"
+        }
+      ]
+    },
+    {
+      "source_id": "8yia-fgp6",
+      "filename_theme": "countyStreets",
+      "curated_id": "b1g_ZqzcIsmRlPFP",
+      "filename": "blm_countyStreets_2026.gpkg",
+      "landing_page": "https://data.bloomington.in.gov/d/8yia-fgp6",
+      "metadata_url": "https://data.bloomington.in.gov/api/views/8yia-fgp6",
+      "geojson_url": "https://data.bloomington.in.gov/resource/8yia-fgp6.geojson",
+      "row_count": 7569,
+      "source_revision": 1786007133,
+      "geometry_columns": [
+        {
+          "field_name": "the_geom",
+          "field_type": "multiline"
+        }
+      ]
+    },
+    {
+      "source_id": "r3zv-5pii",
+      "filename_theme": "parks",
+      "curated_id": "b1g_QEFKunZRR0r7",
+      "filename": "blm_parks_2026.gpkg",
+      "landing_page": "https://data.bloomington.in.gov/d/r3zv-5pii",
+      "metadata_url": "https://data.bloomington.in.gov/api/views/r3zv-5pii",
+      "geojson_url": "https://data.bloomington.in.gov/resource/r3zv-5pii.geojson",
+      "row_count": 46,
+      "source_revision": 1780661570,
+      "geometry_columns": [
+        {
+          "field_name": "the_geom",
+          "field_type": "multipolygon"
+        }
+      ]
+    },
+    {
+      "source_id": "apcz-492v",
+      "filename_theme": "boundary",
+      "curated_id": "b1g_yKHkYXWb2up3",
+      "filename": "blm_boundary_2026.gpkg",
+      "landing_page": "https://data.bloomington.in.gov/d/apcz-492v",
+      "metadata_url": "https://data.bloomington.in.gov/api/views/apcz-492v",
+      "geojson_url": "https://data.bloomington.in.gov/resource/apcz-492v.geojson",
+      "row_count": 3,
+      "source_revision": 1772339647,
+      "geometry_columns": [
+        {
+          "field_name": "the_geom",
+          "field_type": "multipolygon"
+        }
+      ]
+    },
+    {
+      "source_id": "c5d5-eci9",
+      "filename_theme": "zoning",
+      "curated_id": "b1g_bayUuXWSaisN",
+      "filename": "blm_zoning_2026.gpkg",
+      "landing_page": "https://data.bloomington.in.gov/d/c5d5-eci9",
+      "metadata_url": "https://data.bloomington.in.gov/api/views/c5d5-eci9",
+      "geojson_url": "https://data.bloomington.in.gov/resource/c5d5-eci9.geojson",
+      "row_count": 365,
+      "source_revision": 1783367236,
+      "geometry_columns": [
+        {
+          "field_name": "the_geom",
+          "field_type": "multipolygon"
+        }
+      ]
+    },
+    {
+      "source_id": "bb3b-6hg6",
+      "filename_theme": "cityStreets",
+      "curated_id": "b1g_cqGcNGlUpYds",
+      "filename": "blm_cityStreets_2026.gpkg",
+      "landing_page": "https://data.bloomington.in.gov/d/bb3b-6hg6",
+      "metadata_url": "https://data.bloomington.in.gov/api/views/bb3b-6hg6",
+      "geojson_url": "https://data.bloomington.in.gov/resource/bb3b-6hg6.geojson",
+      "row_count": 3004,
+      "source_revision": 1785842772,
+      "geometry_columns": [
+        {
+          "field_name": "the_geom",
+          "field_type": "multiline"
+        }
+      ]
+    }
+  ],
+  "run_record": {
+    "run_id": "20260825T142110Z",
+    "saved_at": "2026-08-25T14:21:10+00:00",
+    "record_path": "curation/run_records/bloomington-socrata-2026/20260825T142110Z",
+    "metadata_csv": "metadata.csv",
+    "job_config": "job.yaml",
+    "git": {
+      "revision": "4601666aefba606dde204c8c5b14e1398e6aec80",
+      "dirty": true
+    }
+  },
+  "artifacts": [
+    {
+      "role": "data_dictionary",
+      "path": "blm_trees_2026/blm_trees_2026.csv",
+      "size_bytes": 846,
+      "sha256": "6afbd02c5b8a29c16fd50b5dcbe3c510ebb8292a3df052fdf1fcca568177d01f"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "blm_trees_2026/blm_trees_2026.fgb",
+      "size_bytes": 5429632,
+      "sha256": "56bc6ae5db82b01e3b11b806db0bb20eee1bcbe5dd2d9d03387ac636267ae6f6"
+    },
+    {
+      "role": "geopackage",
+      "path": "blm_trees_2026/blm_trees_2026.gpkg",
+      "size_bytes": 5439488,
+      "sha256": "5ab39e3f8dfc84f5d48c5679dc9f8d96970666fd03cdd6927bba339ace6b5679"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "blm_trees_2026/blm_trees_2026.gpkg.zip",
+      "size_bytes": 1928117,
+      "sha256": "42b1ea961fcd0bd728c0ba773e8a4fbc900e44100847c74cd3f804205b922bf5"
+    },
+    {
+      "role": "pmtiles",
+      "path": "blm_trees_2026/blm_trees_2026.pmtiles",
+      "size_bytes": 819196,
+      "sha256": "e7d4549affecc46de7e64f4082f4b74d8bb9c6962e952252a5ebdafc5fb3aa19"
+    },
+    {
+      "role": "thumbnail",
+      "path": "blm_trees_2026/blm_trees_2026.png",
+      "size_bytes": 104586,
+      "sha256": "aa4a7b04ea3b4c66a649e3b5e581cd25432d2291c4dcc7337f923bbb3d524f27"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "blm_address_2026/blm_address_2026.csv",
+      "size_bytes": 1854,
+      "sha256": "5c78ae72fdf2165c6ef575e7d4911f8d7a9eb39f08f13fad66573ab1f6c71e2e"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "blm_address_2026/blm_address_2026.fgb",
+      "size_bytes": 12878816,
+      "sha256": "48035d7fbd0813d1f2cdb513fed9db07d76bfb24f15cd1022b48fe98d5161087"
+    },
+    {
+      "role": "geopackage",
+      "path": "blm_address_2026/blm_address_2026.gpkg",
+      "size_bytes": 11530240,
+      "sha256": "36ed30d456400f808dd50ece0430487f4733e59afbfb32c77f0a4d2b93369ac2"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "blm_address_2026/blm_address_2026.gpkg.zip",
+      "size_bytes": 3777281,
+      "sha256": "29b7afafa66676ca04af704c7d6d78b6ee8ab2528243982e618e8b823bde4878"
+    },
+    {
+      "role": "pmtiles",
+      "path": "blm_address_2026/blm_address_2026.pmtiles",
+      "size_bytes": 3054207,
+      "sha256": "9023fc583985b5cb80981123c1c429d03250d3c9fe1fa1be5533fb7eae0ff467"
+    },
+    {
+      "role": "thumbnail",
+      "path": "blm_address_2026/blm_address_2026.png",
+      "size_bytes": 158270,
+      "sha256": "45c4898da3ef3825b9406873f010371527a6435ca9f8e0f86f23c4e48e803e28"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "blm_buildings_2026/blm_buildings_2026.csv",
+      "size_bytes": 955,
+      "sha256": "8759005ef9fea4c0824ca2a4dbca1c1ca83c0273c214ba03c0c250f7eaa1e7e0"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "blm_buildings_2026/blm_buildings_2026.fgb",
+      "size_bytes": 15924616,
+      "sha256": "d422b53f9a5755e0349d9e4240b1bc2fd74245e0f0e9733e9abeffee12be3382"
+    },
+    {
+      "role": "geopackage",
+      "path": "blm_buildings_2026/blm_buildings_2026.gpkg",
+      "size_bytes": 14495744,
+      "sha256": "f0628be69ad01135f299f449ac3f56c1d81fa685b00ed8bf687a04b38e8f0b8a"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "blm_buildings_2026/blm_buildings_2026.gpkg.zip",
+      "size_bytes": 7383512,
+      "sha256": "bb1d8f9c7974568bd1594df84e03e34acc7fd787b460fb2c74d81edbaeb457aa"
+    },
+    {
+      "role": "pmtiles",
+      "path": "blm_buildings_2026/blm_buildings_2026.pmtiles",
+      "size_bytes": 5927145,
+      "sha256": "fa5c6df0325745c8a06fadcdecde7b6915fa6966f29c2ce3db25b6595813ac8d"
+    },
+    {
+      "role": "thumbnail",
+      "path": "blm_buildings_2026/blm_buildings_2026.png",
+      "size_bytes": 180789,
+      "sha256": "0ed361e084d5c1846bc8d90eb0e261b8121360c9e6cd0bcbf485440270ec7dd2"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "blm_countyStreets_2026/blm_countyStreets_2026.csv",
+      "size_bytes": 8237,
+      "sha256": "38026a40784cad65aee5a832277a25bfb03d80b2800ec5c08f2b76102df82f89"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "blm_countyStreets_2026/blm_countyStreets_2026.fgb",
+      "size_bytes": 7739672,
+      "sha256": "096362c95a8621636f493b20c8e7cbc1e3518c2def8b1c986da64a1205d812a1"
+    },
+    {
+      "role": "geopackage",
+      "path": "blm_countyStreets_2026/blm_countyStreets_2026.gpkg",
+      "size_bytes": 7237632,
+      "sha256": "e3eb5b51b06b6867eeb526605fb04004469db78a40fea534acd4d0bd937bf249"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "blm_countyStreets_2026/blm_countyStreets_2026.gpkg.zip",
+      "size_bytes": 3254309,
+      "sha256": "8d7f7766a0915dc59fea24af68a1e6a17efe4dd93f5c747e303c671e2a69cdbd"
+    },
+    {
+      "role": "pmtiles",
+      "path": "blm_countyStreets_2026/blm_countyStreets_2026.pmtiles",
+      "size_bytes": 6123469,
+      "sha256": "e5a8c42e4c9a23a5bee83d53a0cdc8982bf426ef0cf84069637063ec7aaa7d91"
+    },
+    {
+      "role": "thumbnail",
+      "path": "blm_countyStreets_2026/blm_countyStreets_2026.png",
+      "size_bytes": 163096,
+      "sha256": "72e12bccba8712c504a9478a79e665db78eda5a93de305ddb02cec7f52bde57d"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "blm_parks_2026/blm_parks_2026.csv",
+      "size_bytes": 921,
+      "sha256": "865c61e199ad8c37e2609b85b34b350df1ea49ce86af7c19bee76ef4d16c4a37"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "blm_parks_2026/blm_parks_2026.fgb",
+      "size_bytes": 69160,
+      "sha256": "0dc162246a9c927742bd0c1160f9aed90539a7a7e08da33bec65c3924b96a12e"
+    },
+    {
+      "role": "geopackage",
+      "path": "blm_parks_2026/blm_parks_2026.gpkg",
+      "size_bytes": 176128,
+      "sha256": "113bec1d0aee5a3c54dabac3acb9f76453c74357d16c2559a5d38b1b94a702a5"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "blm_parks_2026/blm_parks_2026.gpkg.zip",
+      "size_bytes": 50765,
+      "sha256": "1dcace311e672e8cf00142821bb39e8ad32cf279a5efcc60a4679c3ae31008ce"
+    },
+    {
+      "role": "pmtiles",
+      "path": "blm_parks_2026/blm_parks_2026.pmtiles",
+      "size_bytes": 33227,
+      "sha256": "c1e0ff07b5bcaa6452ea8cfb5468abd7a2c4eaaa70a460eb22efc46ec1b720b2"
+    },
+    {
+      "role": "thumbnail",
+      "path": "blm_parks_2026/blm_parks_2026.png",
+      "size_bytes": 39575,
+      "sha256": "b964fa5767d70304503cf155625787f5bbf2e1f9270a8a6d178198f71d66d5cb"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "blm_boundary_2026/blm_boundary_2026.csv",
+      "size_bytes": 1021,
+      "sha256": "145791730bd166eeab68e9b6e37bfa1618d864fd4874100b6b0af2429d14c437"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "blm_boundary_2026/blm_boundary_2026.fgb",
+      "size_bytes": 49160,
+      "sha256": "e615752681b7e774f231e78fe7a92b121399312059666f98e219546b893c5ddf"
+    },
+    {
+      "role": "geopackage",
+      "path": "blm_boundary_2026/blm_boundary_2026.gpkg",
+      "size_bytes": 147456,
+      "sha256": "676e775bcf38853f7252685291c908991b93e8eca1b6b1efd6f9e7621c9dc11e"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "blm_boundary_2026/blm_boundary_2026.gpkg.zip",
+      "size_bytes": 40100,
+      "sha256": "82d6739653667987c6fdef1338fc2526a18b91a31d5062b115afec3812aa1285"
+    },
+    {
+      "role": "pmtiles",
+      "path": "blm_boundary_2026/blm_boundary_2026.pmtiles",
+      "size_bytes": 9914,
+      "sha256": "7dc2201701e4d9a5bb2bddd2264d02ab229f11180334495fbc12804330ba2fd4"
+    },
+    {
+      "role": "thumbnail",
+      "path": "blm_boundary_2026/blm_boundary_2026.png",
+      "size_bytes": 30790,
+      "sha256": "606293bb36647c25bb9521ab7695dd69ea97e740e02aa04fbf5c70a6a52e336e"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "blm_zoning_2026/blm_zoning_2026.csv",
+      "size_bytes": 1542,
+      "sha256": "6b0f01cb1a443539cdafed20b79c605d88c71d5fc865cbdfeb84d2849e4f5f47"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "blm_zoning_2026/blm_zoning_2026.fgb",
+      "size_bytes": 508232,
+      "sha256": "648c135912475d1fe3f1d888216839e0ea59cca28c652610c2a77649506e6746"
+    },
+    {
+      "role": "geopackage",
+      "path": "blm_zoning_2026/blm_zoning_2026.gpkg",
+      "size_bytes": 671744,
+      "sha256": "437b09150aec04b292aec09042e1ef5c87fbf6ed062214e677eacf94b4dc2ba6"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "blm_zoning_2026/blm_zoning_2026.gpkg.zip",
+      "size_bytes": 348924,
+      "sha256": "95d71c4ca32831589621e078d347ed42b66a4c0f45640fafe534453e9ec78028"
+    },
+    {
+      "role": "pmtiles",
+      "path": "blm_zoning_2026/blm_zoning_2026.pmtiles",
+      "size_bytes": 221507,
+      "sha256": "2b8e73a152b80252e8276a2b3edba0423b2ebe1daa42ccaf26d4d57d85f62e3e"
+    },
+    {
+      "role": "thumbnail",
+      "path": "blm_zoning_2026/blm_zoning_2026.png",
+      "size_bytes": 103438,
+      "sha256": "ca3e840f754c440ec37dd001d2bed6c060ef9679b895c08bc4f89a95735ea8e0"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "blm_cityStreets_2026/blm_cityStreets_2026.csv",
+      "size_bytes": 4242,
+      "sha256": "98f4cca5a45256636e9658c4d0c3a4eb91e573295d64ad6e925eee16ca81db2b"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "blm_cityStreets_2026/blm_cityStreets_2026.fgb",
+      "size_bytes": 1876808,
+      "sha256": "0a9531504a2c2a70509924c794faf8dac3e8fd2a5df17d0f1caa8e9f63da0cd2"
+    },
+    {
+      "role": "geopackage",
+      "path": "blm_cityStreets_2026/blm_cityStreets_2026.gpkg",
+      "size_bytes": 1708032,
+      "sha256": "148469631428511ac32fe3c71fcb72b5649da1fe3583b3f4f7ee7618b97c310b"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "blm_cityStreets_2026/blm_cityStreets_2026.gpkg.zip",
+      "size_bytes": 764086,
+      "sha256": "690ebd99ce4563605c17e49d91ff09c95e9518240bfc86ca92aa8e376e38ce79"
+    },
+    {
+      "role": "pmtiles",
+      "path": "blm_cityStreets_2026/blm_cityStreets_2026.pmtiles",
+      "size_bytes": 1639903,
+      "sha256": "59fe0b85c0d4309a32e7f8c1bceca1f647f135fa28c17ada97db667b8e8953c7"
+    },
+    {
+      "role": "thumbnail",
+      "path": "blm_cityStreets_2026/blm_cityStreets_2026.png",
+      "size_bytes": 106668,
+      "sha256": "70561e120678968d037b52f8adbf9206a2abd777227a802e856ed553555e77b4"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report.csv",
+      "size_bytes": 195413,
+      "sha256": "fe3cdfc1ccea9e9867a3d0bc981a35e97e4dcdf78ef3d76d77df83f29451758a"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report_fields.csv",
+      "size_bytes": 40557,
+      "sha256": "15b876b9f594a5f68a76493320397197814ba01217d7e9edb2ca96463feddb91"
+    }
+  ]
+}
