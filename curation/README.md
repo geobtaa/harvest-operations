@@ -405,8 +405,8 @@ match a GeoPackage filename in the target directory, including the `.gpkg`
 extension:
 
 ```csv
-filename,Title,Description,ID,Date Range,Theme,Provenance,Rights,Source
-mke_boundary_2026.gpkg,Municipal boundary [Wisconsin--Milwaukee] {2026},...,b1g_5XPUIjJ9q7Z8,2026-2026,Boundaries,...,...,...
+filename,Title,Description,ID,Date Range,Theme,Provenance,Rights,License,Source
+mke_boundary_2026.gpkg,Municipal boundary [Wisconsin--Milwaukee] {2026},...,b1g_5XPUIjJ9q7Z8,2026-2026,Boundaries,...,...,https://example.org/license,...
 ```
 
 The script accepts OpenGeoMetadata-style CSVs like
@@ -436,6 +436,7 @@ case-insensitive CSV column names:
 <title>{Title}</title>
 <abstract>{Description}</abstract>
 <rights>{Rights}</rights>
+<license>{License}</license>
 ```
 
 The default template currently uses these CSV columns:
@@ -447,6 +448,7 @@ The default template currently uses these CSV columns:
 - `Theme`
 - `Provenance`
 - `Rights`
+- `License`
 - `Date Range`
 
 Two special token forms are available for range-like fields:

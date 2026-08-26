@@ -30,6 +30,7 @@
   </dates>
   <fees></fees>
   <rights>{Rights}</rights>
+  <license>{License}</license>
   <encoding></encoding>
   <crs>
     <spatialrefsys nativeFormat="Wkt">

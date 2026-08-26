@@ -72,8 +72,8 @@ records:
     temporal_year: "2026"
 
   - id: 8yia-fgp6
-    filename_theme: countyStreets
-    basic_theme: County street centerlines
+    filename_theme: streets
+    basic_theme: Street centerlines
     temporal_year: "2026"
 
   - id: r3zv-5pii
@@ -89,10 +89,5 @@ records:
   - id: c5d5-eci9
     filename_theme: zoning
     basic_theme: Zoning
-    temporal_year: "2026"
-
-  - id: bb3b-6hg6
-    filename_theme: cityStreets
-    basic_theme: City street centerlines
     temporal_year: "2026"
 

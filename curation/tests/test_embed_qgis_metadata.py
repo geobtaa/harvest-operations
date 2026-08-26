@@ -6,13 +6,20 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from curation.embed_qgis_metadata import embed_metadata_directory, get_default_template_path
+from curation.embed_qgis_metadata import (  # noqa: E402
+    MetadataRecord,
+    embed_metadata_directory,
+    get_default_template_path,
+    repair_template,
+    replace_tokens_in_tree,
+)
 
 
 class EmbedQgisMetadataTests(unittest.TestCase):
@@ -30,6 +37,22 @@ class EmbedQgisMetadataTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.tempdir.cleanup()
+
+    def test_default_template_maps_license_to_qgis_license_field(self) -> None:
+        _, template_body = repair_template(
+            self.template_path.read_text(encoding="utf-8")
+        )
+        root = ET.fromstring(template_body)
+        record = MetadataRecord.from_csv_row(
+            {"License": "https://example.org/licenses/open"}
+        )
+
+        replace_tokens_in_tree(root, record, date(2026, 8, 24))
+
+        self.assertEqual(
+            "https://example.org/licenses/open",
+            root.findtext("./license"),
+        )
 
     def test_embed_replaces_existing_metadata_and_populates_dynamic_spatial_blocks(self) -> None:
         target = self.workdir / "edge_locales_2024.gpkg"
@@ -103,6 +126,10 @@ class EmbedQgisMetadataTests(unittest.TestCase):
             root.findtext("./title"),
         )
         self.assertEqual("b1g_0RXeJihvKepA", root.findtext("./identifier"))
+        self.assertEqual(
+            "https://resources.data.gov/open-licenses/",
+            root.findtext("./license"),
+        )
         self.assertEqual("2024", root.findtext("./extent/temporal/period/start"))
         self.assertEqual("2024", root.findtext("./extent/temporal/period/end"))
         self.assertEqual("EPSG:4269", root.findtext("./crs/spatialrefsys/authid"))
