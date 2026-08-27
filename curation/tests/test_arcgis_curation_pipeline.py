@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from zipfile import ZipFile
 
+import fiona
 import pandas as pd
 import pytest
 import yaml
@@ -127,6 +128,78 @@ def write_config(tmp_path: Path, *, records: list[dict] | None = None) -> Path:
     path = tmp_path / "job.yaml"
     path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
     return path
+
+
+def write_test_geopackage(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with fiona.open(
+        path,
+        "w",
+        driver="GPKG",
+        layer=path.stem,
+        crs="EPSG:4326",
+        schema={
+            "geometry": "Polygon",
+            "properties": {"NAME": "str:80", "COUNT": "int"},
+        },
+    ) as collection:
+        collection.write(
+            {
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [
+                        [
+                            (-93.20804, 44.88746),
+                            (-93.00366, 44.88746),
+                            (-93.00366, 44.99204),
+                            (-93.20804, 44.99204),
+                            (-93.20804, 44.88746),
+                        ]
+                    ],
+                },
+                "properties": {"NAME": "Example", "COUNT": 1},
+            }
+        )
+
+
+def test_inspect_geopackage_infers_unknown_declared_geometry(tmp_path: Path) -> None:
+    path = tmp_path / "unknown-geometry.gpkg"
+    with fiona.open(
+        path,
+        "w",
+        driver="GPKG",
+        layer=path.stem,
+        crs="EPSG:4326",
+        schema={"geometry": "Unknown", "properties": {"NAME": "str"}},
+    ) as collection:
+        collection.write(
+            {
+                "geometry": {
+                    "type": "MultiPolygon",
+                    "coordinates": [
+                        [
+                            [
+                                (-122.4, 47.5),
+                                (-122.3, 47.5),
+                                (-122.3, 47.6),
+                                (-122.4, 47.6),
+                                (-122.4, 47.5),
+                            ]
+                        ]
+                    ],
+                },
+                "properties": {"NAME": "Park"},
+            }
+        )
+        collection.write(
+            {"geometry": None, "properties": {"NAME": "No geometry"}}
+        )
+
+    inspection = pipeline.inspect_geopackage(path)
+
+    assert inspection["geometry_type"] == "MultiPolygon"
+    assert inspection["resource_type"] == "Polygon data"
+    assert inspection["feature_count"] == 2
 
 
 def test_config_accepts_a_single_selected_record(tmp_path: Path) -> None:
@@ -572,6 +645,97 @@ def test_download_skips_existing_geopackages_and_continues(
     assert downloaded == [job.gpkg_path("stp_new_2026.gpkg")]
 
 
+def test_download_records_failures_and_continues_with_later_datasets(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    job = load_job_config(write_config(tmp_path))
+    run_metadata_stage(job, catalog=catalog_fixture())
+    confirm_manual_review(job, confirmed=True)
+
+    manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+    manifest["records"].append(
+        {
+            "source_id": "available-source_0",
+            "curated_id": "b1g_123456789012",
+            "filename": "stp_available_2026.gpkg",
+            "landing_page": "https://example.org/available",
+            "service_url": "https://example.org/FeatureServer/0",
+        }
+    )
+    job.manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    attempted: list[Path] = []
+
+    def fake_download(
+        service_url: str,
+        output_path: Path,
+        layer_name: str,
+        output_crs: str,
+        **kwargs,
+    ) -> dict:
+        attempted.append(output_path)
+        if output_path.name == "stp_zoning_2026.gpkg":
+            raise RuntimeError("ArcGIS REST services directory is disabled")
+        return {"feature_count": 10, "output": str(output_path)}
+
+    monkeypatch.setattr(
+        "curation.arcgis_curation_pipeline.download_service_geopackage",
+        fake_download,
+    )
+
+    results = run_download_stage(job)
+
+    assert attempted == [
+        job.gpkg_path("stp_zoning_2026.gpkg"),
+        job.gpkg_path("stp_available_2026.gpkg"),
+    ]
+    assert [result["status"] for result in results] == ["failed", "downloaded"]
+    updated_manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+    download_stage = updated_manifest["stages"]["download"]
+    assert download_stage["status"] == "completed_with_errors"
+    assert download_stage["failed_count"] == 1
+    assert download_stage["outputs"][0] == {
+        "status": "failed",
+        "source_id": SOURCE_ID,
+        "filename": "stp_zoning_2026.gpkg",
+        "service_url": SERVICE_URL,
+        "output": "stp_zoning_2026/stp_zoning_2026.gpkg",
+        "error": "ArcGIS REST services directory is disabled",
+    }
+    assert download_stage["outputs"][1]["status"] == "downloaded"
+
+
+def test_postprocess_pauses_after_all_download_attempts_when_one_fails(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    job = load_job_config(write_config(tmp_path))
+    run_metadata_stage(job, catalog=catalog_fixture())
+    confirm_manual_review(job, confirmed=True)
+    later_stages: list[str] = []
+
+    def fail_download(*args, **kwargs) -> dict:
+        raise RuntimeError("service directory disabled")
+
+    monkeypatch.setattr(pipeline, "download_service_geopackage", fail_download)
+    monkeypatch.setattr(
+        pipeline,
+        "run_enrich_stage",
+        lambda *args, **kwargs: later_stages.append("enrich"),
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            "Postprocess paused after attempting every download.*"
+            "stp_zoning_2026.gpkg"
+        ),
+    ):
+        pipeline.run_postprocess(job)
+
+    assert later_stages == []
+
+
 def test_derivatives_stage_runs_builder_from_curation_scripts(
     tmp_path: Path,
     monkeypatch,
@@ -667,6 +831,40 @@ def test_dictionary_and_thumbnail_stages_write_into_resource_directory(
     ]
 
 
+def test_dictionary_falls_back_to_local_geopackage_schema(
+    tmp_path: Path,
+) -> None:
+    job = load_job_config(write_config(tmp_path))
+    run_metadata_stage(job, catalog=catalog_fixture())
+    confirm_manual_review(job, confirmed=True)
+    write_test_geopackage(job.gpkg_path("stp_zoning_2026.gpkg"))
+
+    def unavailable_service(*args, **kwargs) -> dict:
+        raise RuntimeError("ArcGIS REST services directory is disabled")
+
+    run_dictionary_stage(job, requester=unavailable_service)
+
+    dictionary = pd.read_csv(
+        job.dictionary_path("stp_zoning_2026.gpkg"),
+        dtype=str,
+        keep_default_na=False,
+    )
+    assert dictionary[["field_name", "field_type"]].to_dict("records") == [
+        {"field_name": "NAME", "field_type": "str:80"},
+        {"field_name": "COUNT", "field_type": "int"},
+    ]
+    assert dictionary["values"].tolist() == ["", ""]
+    assert dictionary["definition"].tolist() == ["", ""]
+    manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+    stage = manifest["stages"]["dictionaries"]
+    assert stage["status"] == "completed"
+    assert stage["fallback_count"] == 1
+    assert stage["records"][0]["metadata_source"] == "geopackage_schema"
+    assert stage["records"][0]["fallback_error"] == (
+        "ArcGIS REST services directory is disabled"
+    )
+
+
 def test_save_run_record_copies_small_inputs_and_describes_artifacts(
     tmp_path: Path,
     monkeypatch,
@@ -714,28 +912,17 @@ def test_save_run_record_copies_small_inputs_and_describes_artifacts(
     assert json.loads(live_manifest_text)["stages"]["snapshot"]["status"] == "completed"
 
 
-def test_enrich_adds_service_geometry_and_decimal_degree_bbox(tmp_path: Path) -> None:
+def test_enrich_uses_local_geopackage_geometry_and_decimal_degree_bbox(
+    tmp_path: Path,
+) -> None:
     job = load_job_config(write_config(tmp_path))
     run_metadata_stage(job, catalog=catalog_fixture())
     confirm_manual_review(job, confirmed=True)
     gpkg_path = job.gpkg_path("stp_zoning_2026.gpkg")
-    gpkg_path.parent.mkdir(parents=True)
-    gpkg_path.write_bytes(b"test placeholder")
+    write_test_geopackage(gpkg_path)
 
-    def requester(url: str, params: dict | None, method: str) -> dict:
-        if url == SERVICE_URL:
-            return {"geometryType": "esriGeometryPolygon"}
-        assert url == f"{SERVICE_URL}/query"
-        assert method == "POST"
-        assert params and params["outSR"] == "4326"
-        return {
-            "extent": {
-                "xmin": -93.20804,
-                "ymin": 44.88746,
-                "xmax": -93.00366,
-                "ymax": 44.99204,
-            }
-        }
+    def requester(*args, **kwargs) -> dict:
+        raise AssertionError("enrichment should not access the ArcGIS service")
 
     run_enrich_stage(job, requester=requester)
 
@@ -744,3 +931,7 @@ def test_enrich_adds_service_geometry_and_decimal_degree_bbox(tmp_path: Path) ->
     assert row["Bounding Box"] == "-93.2080,44.8875,-93.0037,44.9920"
     assert row["Centroid"] == "44.9398,-93.1059"
     require_confirmed_review(job)
+    manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+    assert manifest["stages"]["enrich"]["records"][0]["metadata_source"] == (
+        "geopackage"
+    )

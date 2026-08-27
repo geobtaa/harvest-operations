@@ -212,7 +212,7 @@ harvester rules with these curation overrides:
   place} as of {yyyy}.`, followed by the cleaned source description
 
 `Resource Type` and `Bounding Box` are not required at this checkpoint because
-the later enrichment stage derives them from the selected service layer.
+the later enrichment stage derives them from the local GeoPackage.
 
 After reviewing the CSV, record the checkpoint:
 
@@ -233,9 +233,11 @@ uv run --locked python curation/scripts/arcgis_curation_pipeline.py \
 1. Pages each FeatureServer layer, downloads GeoJSON in EPSG:4326, and uses
    `ogr2ogr` to create the named GeoPackage in the configured preferred CRS.
 2. Derives controlled `Resource Type`, decimal-degree `Bounding Box`,
-   bbox geometry, and centroid values from the service layer.
+   bbox geometry, and centroid values from each local GeoPackage.
 3. Writes one field-level data dictionary per layer, including ArcGIS coded
-   value domains when present.
+   value domains when the REST definition is available. If it is unavailable,
+   the dictionary falls back to the local GeoPackage field names and types;
+   aliases, definitions, and coded-value domains remain blank.
 4. Embeds selected CSV metadata into each GeoPackage using the existing QGIS
    metadata template.
 5. Renders a PNG thumbnail from each GeoPackage.
@@ -250,7 +252,12 @@ Each operation is also available as an individual command: `download`,
 `derivatives`, `zip`, or `postprocess` when generated outputs should be replaced.
 Without `--overwrite`, Download skips GeoPackages that already exist and
 continues downloading any missing records. This supports adding records to an
-existing job without rebuilding its earlier GeoPackages.
+existing job without rebuilding its earlier GeoPackages. If an ArcGIS service
+cannot be downloaded, Download records the error in `manifest.json` and
+continues with the remaining records. Put a manually downloaded GeoPackage at
+the recorded output path and rerun Download or Postprocess; the existing file
+will be recognized automatically. Postprocess pauses after all download
+attempts when any records still need this manual step.
 
 Generated work is kept under `curation/work/` and ignored by Git. The YAML job
 definitions remain versioned inputs. Dataset artifacts are grouped by resource

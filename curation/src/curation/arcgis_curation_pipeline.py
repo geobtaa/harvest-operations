@@ -23,9 +23,11 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 from urllib.parse import urlsplit, urlunsplit
 
+import fiona
 import pandas as pd
 import requests
 import yaml
+from rasterio.warp import transform_bounds
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -69,6 +71,14 @@ GEOMETRY_RESOURCE_TYPES = {
     "esrigeometrypolyline": "Line data",
     "esrigeometrypoint": "Point data",
     "esrigeometrymultipoint": "Point data",
+}
+GEOPACKAGE_GEOMETRY_RESOURCE_TYPES = {
+    "polygon": "Polygon data",
+    "multipolygon": "Polygon data",
+    "linestring": "Line data",
+    "multilinestring": "Line data",
+    "point": "Point data",
+    "multipoint": "Point data",
 }
 NANOID_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 NANOID_LENGTH = 12
@@ -1546,9 +1556,9 @@ def run_download_stage(
     *,
     requester: JsonRequester = default_request_json,
     overwrite: bool = False,
-) -> None:
+) -> list[dict[str, Any]]:
     manifest = require_confirmed_review(job)
-    results = []
+    results: list[dict[str, Any]] = []
     for record in manifest["records"]:
         output_path = job.gpkg_path(record["filename"])
         if output_path.is_file() and not overwrite:
@@ -1560,26 +1570,53 @@ def run_download_stage(
                 }
             )
             continue
-        result = download_service_geopackage(
-            record["service_url"],
-            output_path,
-            Path(record["filename"]).stem,
-            job.crs_authority,
-            requester=requester,
-            overwrite=overwrite,
-        )
+        try:
+            result = download_service_geopackage(
+                record["service_url"],
+                output_path,
+                Path(record["filename"]).stem,
+                job.crs_authority,
+                requester=requester,
+                overwrite=overwrite,
+            )
+        except Exception as exc:
+            LOGGER.error(
+                "Skipping failed ArcGIS download for %s (%s): %s",
+                record["filename"],
+                record["service_url"],
+                exc,
+            )
+            results.append(
+                {
+                    "status": "failed",
+                    "source_id": record["source_id"],
+                    "filename": record["filename"],
+                    "service_url": record["service_url"],
+                    "output": str(output_path),
+                    "error": str(exc),
+                }
+            )
+            continue
         result["status"] = "downloaded"
         results.append(result)
-    mark_stage(job, "download", details={"outputs": results})
-
-
-def _bbox_values(extent_payload: dict[str, Any]) -> tuple[float, float, float, float]:
-    extent = extent_payload.get("extent", extent_payload)
-    try:
-        values = tuple(float(extent[key]) for key in ("xmin", "ymin", "xmax", "ymax"))
-    except (KeyError, TypeError, ValueError) as exc:
-        raise RuntimeError(f"ArcGIS extent payload is incomplete: {extent_payload}") from exc
-    return values  # type: ignore[return-value]
+    failed_count = sum(result["status"] == "failed" for result in results)
+    stage_status = "completed_with_errors" if failed_count else "completed"
+    mark_stage(
+        job,
+        "download",
+        details={
+            "status": stage_status,
+            "failed_count": failed_count,
+            "outputs": results,
+        },
+    )
+    if failed_count:
+        LOGGER.warning(
+            "Skipped %s ArcGIS dataset(s) that could not be downloaded; "
+            "place their GeoPackages at the recorded output paths and rerun the stage",
+            failed_count,
+        )
+    return results
 
 
 def _format_bbox(values: tuple[float, float, float, float]) -> str:
@@ -1595,6 +1632,50 @@ def _bbox_geometry(values: tuple[float, float, float, float]) -> str:
     )
 
 
+def inspect_geopackage(path: Path) -> dict[str, Any]:
+    """Read geometry, WGS84 bounds, and field schema from a local GeoPackage."""
+    with fiona.open(path) as collection:
+        feature_count = len(collection)
+        geometry_type = str(collection.schema.get("geometry", ""))
+        fields = [
+            {"name": name, "type": field_type}
+            for name, field_type in collection.schema.get("properties", {}).items()
+        ]
+        source_crs = collection.crs_wkt or collection.crs
+        bounds = tuple(float(value) for value in collection.bounds)
+        normalized_geometry = geometry_type.removeprefix("3D ").casefold()
+        resource_type = GEOPACKAGE_GEOMETRY_RESOURCE_TYPES.get(normalized_geometry)
+        if not resource_type:
+            feature_geometry_types = {
+                str(feature["geometry"].get("type", ""))
+                for feature in collection
+                if feature.get("geometry")
+            }
+            inferred_resource_types = {
+                GEOPACKAGE_GEOMETRY_RESOURCE_TYPES.get(
+                    value.removeprefix("3D ").casefold()
+                )
+                for value in feature_geometry_types
+            }
+            if None not in inferred_resource_types and len(inferred_resource_types) == 1:
+                resource_type = next(iter(inferred_resource_types))
+                geometry_type = ", ".join(sorted(feature_geometry_types))
+    if feature_count < 1:
+        raise RuntimeError(f"GeoPackage contains no features: {path}")
+    if not source_crs:
+        raise RuntimeError(f"GeoPackage has no coordinate reference system: {path}")
+    if not resource_type:
+        raise RuntimeError(f"Unsupported GeoPackage geometry type {geometry_type!r}: {path}")
+    wgs84_bounds = transform_bounds(source_crs, "EPSG:4326", *bounds, densify_pts=21)
+    return {
+        "feature_count": feature_count,
+        "geometry_type": geometry_type,
+        "resource_type": resource_type,
+        "bounds": tuple(float(value) for value in wgs84_bounds),
+        "fields": fields,
+    }
+
+
 def run_enrich_stage(
     job: JobConfig,
     *,
@@ -1608,23 +1689,9 @@ def run_enrich_stage(
         gpkg_path = job.gpkg_path(record["filename"])
         if not gpkg_path.is_file():
             raise RuntimeError(f"GeoPackage is missing; run download first: {gpkg_path}")
-        service_url = record["service_url"]
-        layer_metadata = requester(service_url, {"f": "pjson"}, "GET")
-        extent_payload = requester(
-            f"{service_url.rstrip('/')}/query",
-            {
-                "where": "1=1",
-                "returnExtentOnly": "true",
-                "outSR": "4326",
-                "f": "json",
-            },
-            "POST",
-        )
-        bbox = _bbox_values(extent_payload)
-        geometry_type = str(layer_metadata.get("geometryType", "")).casefold()
-        resource_type = GEOMETRY_RESOURCE_TYPES.get(geometry_type)
-        if not resource_type:
-            raise RuntimeError(f"Unsupported ArcGIS geometry type {geometry_type!r}: {service_url}")
+        inspection = inspect_geopackage(gpkg_path)
+        bbox = inspection["bounds"]
+        resource_type = inspection["resource_type"]
         if resource_type not in job.allowed_resource_types:
             raise RuntimeError(
                 f"Derived resource type {resource_type!r} is excluded by YAML selection criteria"
@@ -1638,6 +1705,8 @@ def run_enrich_stage(
         details.append(
             {
                 "filename": record["filename"],
+                "metadata_source": "geopackage",
+                "feature_count": inspection["feature_count"],
                 "resource_type": resource_type,
                 "bounding_box": _format_bbox(bbox),
             }
@@ -1667,11 +1736,34 @@ def run_dictionary_stage(
     manifest = require_confirmed_review(job)
     metadata = validate_reviewed_metadata(job).set_index("filename")
     outputs: list[str] = []
+    details: list[dict[str, Any]] = []
     for record in manifest["records"]:
-        layer_metadata = requester(record["service_url"], {"f": "pjson"}, "GET")
-        fields = layer_metadata.get("fields") or []
-        if not isinstance(fields, list):
-            raise RuntimeError(f"ArcGIS fields are not a list: {record['service_url']}")
+        metadata_source = "arcgis_rest"
+        fallback_error = ""
+        try:
+            layer_metadata = requester(record["service_url"], {"f": "pjson"}, "GET")
+            fields = layer_metadata.get("fields") or []
+            if not isinstance(fields, list) or not fields:
+                raise RuntimeError(
+                    f"ArcGIS fields are missing or invalid: {record['service_url']}"
+                )
+        except Exception as exc:
+            gpkg_path = job.gpkg_path(record["filename"])
+            if not gpkg_path.is_file():
+                raise RuntimeError(
+                    "Could not load the ArcGIS field definition and no local "
+                    f"GeoPackage is available: {record['filename']}"
+                ) from exc
+            inspection = inspect_geopackage(gpkg_path)
+            fields = inspection["fields"]
+            metadata_source = "geopackage_schema"
+            fallback_error = str(exc)
+            LOGGER.warning(
+                "Could not load ArcGIS field definitions for %s; using the local "
+                "GeoPackage schema without aliases or coded-value domains: %s",
+                record["filename"],
+                exc,
+            )
         output_path = job.dictionary_path(record["filename"])
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w", newline="", encoding="utf-8") as handle:
@@ -1687,13 +1779,36 @@ def run_dictionary_stage(
                         "field_type": field_value.get("type", ""),
                         "values": _domain_values(field_value),
                         "definition": field_value.get("alias", ""),
-                        "definition_source": record["service_url"],
+                        "definition_source": (
+                            record["service_url"]
+                            if metadata_source == "arcgis_rest"
+                            else ""
+                        ),
                         "parent_field_name": "",
                         "position": position,
                     }
                 )
         outputs.append(str(output_path))
-    mark_stage(job, "dictionaries", details={"outputs": outputs})
+        details.append(
+            {
+                "filename": record["filename"],
+                "output": str(output_path),
+                "metadata_source": metadata_source,
+                **({"fallback_error": fallback_error} if fallback_error else {}),
+            }
+        )
+    fallback_count = sum(
+        detail["metadata_source"] == "geopackage_schema" for detail in details
+    )
+    mark_stage(
+        job,
+        "dictionaries",
+        details={
+            "fallback_count": fallback_count,
+            "outputs": outputs,
+            "records": details,
+        },
+    )
 
 
 def run_embed_stage(job: JobConfig) -> None:
@@ -1797,7 +1912,22 @@ def run_postprocess(
     """Run all automated stages after the manual metadata review checkpoint."""
     require_confirmed_review(job)
     LOGGER.info("Postprocess 1/7: downloading GeoPackages")
-    run_download_stage(job, requester=requester, overwrite=overwrite)
+    download_results = run_download_stage(
+        job,
+        requester=requester,
+        overwrite=overwrite,
+    )
+    failed_downloads = [
+        result for result in download_results if result["status"] == "failed"
+    ]
+    if failed_downloads:
+        failed_filenames = ", ".join(
+            result["filename"] for result in failed_downloads
+        )
+        raise RuntimeError(
+            "Postprocess paused after attempting every download. Add the skipped "
+            f"GeoPackages manually, then rerun postprocess: {failed_filenames}"
+        )
     LOGGER.info("Postprocess 2/7: enriching metadata")
     run_enrich_stage(job, requester=requester)
     LOGGER.info("Postprocess 3/7: creating data dictionaries")
