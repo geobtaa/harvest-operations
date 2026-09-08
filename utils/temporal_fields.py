@@ -1,5 +1,19 @@
 import re
 
+
+def extract_issued_year(values: list[str]) -> str:
+    """Return one unambiguous four-digit year from source date statements.
+
+    Allow historical dates, ISO dates, and catalog punctuation such as c1850 or
+    [1636?]. Multiple distinct years and incomplete/unknown dates stay blank.
+    """
+    years = {
+        match
+        for value in values
+        for match in re.findall(r"(?<![0-9])([12][0-9]{3})(?![0-9])", value)
+    }
+    return next(iter(years)) if len(years) == 1 else ""
+
 def infer_temporal_coverage_from_title(row: dict) -> str:
     """
     Infer Temporal Coverage from the Alternative Title or Date Modified.

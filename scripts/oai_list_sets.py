@@ -24,7 +24,7 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from utils.oai_pmh import raise_for_oai_status  # noqa: E402
+from utils.oai_pmh import DEFAULT_OAI_USER_AGENT, raise_for_oai_status  # noqa: E402
 
 DEFAULT_BASE_URL = "https://conservancy.umn.edu/server/oai/request"
 DEFAULT_NAME = "oai"
@@ -311,7 +311,7 @@ def main() -> None:
     )
 
     session = requests.Session()
-    session.headers.update({"User-Agent": "harvester-api oai set discovery"})
+    session.headers.update({"User-Agent": DEFAULT_OAI_USER_AGENT})
 
     all_sets = fetch_all_sets(
         session=session,

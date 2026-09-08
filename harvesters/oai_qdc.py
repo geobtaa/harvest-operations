@@ -13,10 +13,17 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from harvesters.base import BaseHarvester
+from utils.creator_fields import split_creator_names_and_ids
 from utils.distribution_writer import generate_secondary_table
 from utils.field_order import FIELD_ORDER, PRIMARY_FIELD_ORDER
+from utils.local_ids import assign_persistent_ids
+from utils.linked_data import split_http_identifiers
+from utils.marc_coordinates import extract_scale_statements
+from utils.metadata_reconciliation import umich_keys
 from utils.oai_pmh import load_configured_sets
 from utils.resource_type_match import split_resource_type_values
+from utils.umich_oai import collapse_umich_catalog_items
+from utils.temporal_fields import extract_issued_year
 from utils.spatial_match import (
     load_city_spatial_lookup,
     load_county_spatial_lookup,
@@ -115,6 +122,14 @@ class OaiQdcHarvester(BaseHarvester):
         self.state_spatial_lookup = {}
         self.state_spatial_alias_lookup = {}
         self.plss_lookup = {}
+        self.umich_item_membership = None
+        self.local_id_assignments = None
+        if self.config.get("local_id_registry") and self.config.get("record_granularity") != "umich_catalog_item":
+            raise ValueError("local_id_registry currently requires umich_catalog_item grouping")
+        if self.config.get("record_granularity", "oai_record") not in {
+            "oai_record", "umich_catalog_item"
+        }:
+            raise ValueError("record_granularity must be oai_record or umich_catalog_item")
 
         sets_csv_value = self.config.get("sets_csv", "")
         self.sets_csv = (
@@ -284,6 +299,8 @@ class OaiQdcHarvester(BaseHarvester):
         return flattened
 
     def build_dataframe(self, record_rows):
+        self.umich_item_membership = None
+        self.local_id_assignments = None
         if not record_rows:
             print("[OAI_QDC] No local OAI records found. Returning an empty dataframe.")
             return pd.DataFrame(columns=self.oai_output_columns())
@@ -293,6 +310,25 @@ class OaiQdcHarvester(BaseHarvester):
         df = self.oai_apply_crosswalk(df, context_df)
         df = self.oai_route_identifier_values(df)
         df = self.oai_ensure_output_columns(df)
+        if self.config.get("record_granularity") == "umich_catalog_item":
+            df = df.pipe(
+                collapse_umich_catalog_items,
+                source_id_prefix=self.source_id_prefix,
+                field_separators=self.field_separators,
+            )
+            self.umich_item_membership = df.attrs.pop("umich_item_membership", None)
+            if self.config.get("local_id_registry"):
+                df = df.pipe(
+                    assign_persistent_ids,
+                    registry_path=self.oai_resolve_path(self.config["local_id_registry"]),
+                    identity_keys=umich_keys,
+                    prefix=f"{self.source_id_prefix}_",
+                )
+                self.local_id_assignments = df.attrs.pop("local_id_assignments")
+                id_map = self.local_id_assignments.set_index("previous_harvested_id")["ID"]
+                self.umich_item_membership["item_harvested_id"] = (
+                    self.umich_item_membership["item_harvested_id"].map(id_map)
+                )
         print(
             f"[OAI_QDC] Crosswalked {len(df)} Dublin Core records using "
             f"metadataPrefix={self.metadata_prefix}."
@@ -368,7 +404,20 @@ class OaiQdcHarvester(BaseHarvester):
 
     def write_outputs(self, primary_df, distributions_df=None):
         distributions_df = self.oai_build_distributions(primary_df.copy())
-        return super().write_outputs(primary_df, distributions_df)
+        results = super().write_outputs(primary_df, distributions_df)
+        if self.umich_item_membership is not None:
+            primary_path = Path(results["primary_csv"])
+            membership_path = primary_path.with_name(
+                f"{primary_path.stem}_item_membership.csv"
+            )
+            self.umich_item_membership.to_csv(membership_path, index=False)
+            results["item_membership_csv"] = str(membership_path)
+        if self.local_id_assignments is not None:
+            primary_path = Path(results["primary_csv"])
+            assignments_path = primary_path.with_name(f"{primary_path.stem}_id_assignments.csv")
+            self.local_id_assignments.to_csv(assignments_path, index=False)
+            results["id_assignments_csv"] = str(assignments_path)
+        return results
 
     # --- OAI-Specific Functions --- #
 
@@ -780,13 +829,16 @@ class OaiQdcHarvester(BaseHarvester):
             "dcterms:alternative",
             "dc:alternative",
         )
-        creator_values = self.oai_split_people(
+        creator_names, creator_id_values = split_creator_names_and_ids(
             self.oai_values(record, "dc:creator", "dcterms:creator")
         )
+        creator_values = self.oai_split_people(creator_names)
         contributor_values = self.oai_split_people(
             self.oai_values(record, "dc:contributor", "dcterms:contributor")
         )
-        subject_values = self.oai_values(record, "dc:subject", "dcterms:subject")
+        subject_values, _ = split_http_identifiers(
+            self.oai_values(record, "dc:subject", "dcterms:subject")
+        )
         type_values = self.oai_values(record, "dc:type", "dcterms:type")
         identifier_values = self.oai_values(record, "dc:identifier", "dcterms:identifier")
         all_identifiers = self.oai_unique([record.get("oai_identifier", "")] + identifier_values)
@@ -795,9 +847,6 @@ class OaiQdcHarvester(BaseHarvester):
         date_values = self.oai_values(record, "dc:date", "dcterms:date", "dcterms:created")
         temporal_values = self.oai_values(record, "dcterms:temporal")
         spatial_values = self.oai_values(record, "dcterms:spatial", "dc:coverage")
-        scale_values = [
-            value for value in spatial_values if self.oai_looks_like_scale(value)
-        ]
         format_values = self.oai_values(record, "dc:format", "dcterms:format")
         publisher_values = self.oai_values(record, "dc:publisher", "dcterms:publisher")
         rights_values = self.oai_values(record, "dc:rights", "dcterms:rights")
@@ -805,6 +854,7 @@ class OaiQdcHarvester(BaseHarvester):
         relation_values = self.oai_values(record, "dc:relation", "dcterms:relation")
         is_part_of_values = self.oai_values(record, "dcterms:isPartOf")
         source_values = self.oai_values(record, "dc:source", "dcterms:source")
+        scale_values = extract_scale_statements(spatial_values + source_values)
         description_values = self.oai_values(record, "dc:description", "dcterms:description")
         language_values = self.oai_values(record, "dc:language", "dcterms:language")
         spatial_coverage = self.oai_spatial_coverage(spatial_values)
@@ -814,6 +864,7 @@ class OaiQdcHarvester(BaseHarvester):
             "title_values": title_values,
             "alternative_title_values": alternative_title_values,
             "creator_values": creator_values,
+            "creator_id_values": creator_id_values,
             "contributor_values": contributor_values,
             "subject_values": subject_values,
             "type_values": type_values,
@@ -843,7 +894,9 @@ class OaiQdcHarvester(BaseHarvester):
             ),
             "local_collection": self.oai_local_collection(record, is_part_of_values),
             "temporal_coverage": self.oai_build_temporal_coverage(temporal_values, date_values),
-            "date_issued": self.oai_date_issued(date_values),
+            "date_issued": self.oai_date_issued(
+                self.oai_values(record, "dcterms:issued") or date_values
+            ),
             "date_range": self.oai_date_range(temporal_values, date_values),
             "format": self.oai_format(format_values, all_identifiers),
             "file_size": self.oai_file_size(format_values),
@@ -872,6 +925,9 @@ class OaiQdcHarvester(BaseHarvester):
             ),
             "Creator": df["creator_values"].apply(
                 lambda values: self.oai_serialize_values("Creator", values)
+            ),
+            "Creator ID": df["creator_id_values"].apply(
+                lambda values: self.oai_serialize_values("Creator ID", values)
             ),
             "Publisher": df["publisher_values"].apply(
                 lambda values: self.oai_serialize_values("Publisher", values)
@@ -1351,7 +1407,7 @@ class OaiQdcHarvester(BaseHarvester):
         return ""
 
     def oai_date_issued(self, dates):
-        return dates[0] if dates else ""
+        return extract_issued_year(dates)
 
     def oai_build_temporal_coverage(self, temporal_values, dates):
         if temporal_values:

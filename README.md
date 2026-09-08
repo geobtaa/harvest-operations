@@ -95,6 +95,12 @@ Not every task belongs in the browser UI. The `scripts/` directory contains many
 
 Some scripts are recurring operational tools, and some are ad hoc utilities kept in the repository because they are useful for ongoing metadata work. The README in [`scripts/readme.md`](scripts/readme.md) documents several of the main ones.
 
+### Retaining enrichments after a reharvest
+
+The [enrichment reconciliation workflow](enrichments/README.md) matches Michigan
+resource identities across changed source IDs, preserves canonical IDs and manual
+metadata, and exports new-item and review queues alongside a reusable alias registry.
+
 ## Local Setup
 
 ### Requirements

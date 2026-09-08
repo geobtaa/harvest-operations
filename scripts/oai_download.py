@@ -31,6 +31,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from utils.oai_pmh import (  # noqa: E402
     ALL_RECORDS_SET,
+    DEFAULT_OAI_USER_AGENT,
     load_configured_sets,
     raise_for_oai_status,
 )
@@ -294,7 +295,7 @@ def configure_retry_session(retries: int, backoff: float) -> requests.Session:
     adapter = HTTPAdapter(max_retries=retry_policy)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
-    session.headers.update({"User-Agent": "harvester-api oai downloader"})
+    session.headers.update({"User-Agent": DEFAULT_OAI_USER_AGENT})
     return session
 
 
