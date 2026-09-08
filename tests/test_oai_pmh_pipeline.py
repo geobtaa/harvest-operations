@@ -4,10 +4,11 @@ from pathlib import Path
 import pytest
 import yaml
 
-from scripts.oai_download import download_set, oai_params
+from scripts.oai_download import configure_retry_session, download_set, oai_params
 from scripts.oai_pmh_pipeline import execute_stage, scoped_output_filename
 from utils.oai_pmh import (
     ALL_RECORDS_SET,
+    DEFAULT_OAI_USER_AGENT,
     OaiPmhAccessError,
     OaiPmhConfigError,
     load_configured_sets,
@@ -71,6 +72,12 @@ def test_oai_params_supports_dates_and_repository_wide_harvest() -> None:
         "verb": "ListRecords",
         "resumptionToken": "next-page",
     }
+
+
+def test_oai_session_identifies_the_btaa_geoportal() -> None:
+    session = configure_retry_session(retries=0, backoff=0)
+
+    assert session.headers["User-Agent"] == DEFAULT_OAI_USER_AGENT
 
 
 def test_single_set_output_filename_does_not_replace_full_source_output() -> None:

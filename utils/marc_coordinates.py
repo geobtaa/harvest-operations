@@ -1,6 +1,41 @@
 import re
 
 
+def extract_scale_statements(values):
+    """Extract readable MARC scale text, excluding parenthesized coordinates.
+
+    Prefer descriptive statements (MARC 255) so approximation, unknown scales,
+    and vertical scales survive. Only use coded MARC 034 denominators when no
+    readable scale is supplied. Source strings themselves are not modified.
+    """
+    statements, coded_scales = [], []
+    for value in values:
+        for part in str(value or "").split("|"):
+            text = re.sub(
+                r"\(\s*[NSEW]\s*[0-9][^()]*\)", "", part,
+                flags=re.IGNORECASE,
+            ).strip(" .;,\t\n")
+            if (
+                re.search(r"\bscales?\b|\b1\s*:\s*[0-9]", text, re.IGNORECASE)
+                or text.lower() == "not given"
+            ):
+                # Some 255 statements omit the parentheses or close them with
+                # a bracket. A trailing DMS block is still coordinate metadata.
+                text = re.split(r"\b[NSEW]\s*[0-9]+\s*°", text, maxsplit=1)[0]
+                text = text.rstrip(" .;,(\t\n")
+                statements.append(re.sub(r"\s+", " ", text))
+            else:
+                for match in re.finditer(
+                    r"(?:^|;)\s*a?\s*([0-9][0-9,]*)"
+                    r"(?=\s+[NSEW]\s*[0-9]|\s*$)", part,
+                    flags=re.IGNORECASE,
+                ):
+                    denominator = int(match.group(1).replace(",", ""))
+                    if denominator > 0:
+                        coded_scales.append(f"1:{denominator:,}")
+    return list(dict.fromkeys(statements or coded_scales))
+
+
 COORDINATE_PATTERN = re.compile(
     r"([NSEW])\s*([0-9]{1,3})"
     r"(?:[^0-9A-Za-z/+-]+([0-9]{1,2}))?"

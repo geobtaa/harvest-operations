@@ -33,6 +33,9 @@ site/
 .env
 .secrets.local
 
+# Persistent identity registry locks (the registry CSV itself is retained).
+enrichments/*.csv.lock
+
 # Ignore everything inside inputs and outputs/ but keep the folders
 inputs/*
 !inputs/.gitkeep

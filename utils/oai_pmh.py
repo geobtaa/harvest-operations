@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 
 
 ALL_RECORDS_SET = "__all__"
+DEFAULT_OAI_USER_AGENT = "BTAA-Geoportal-OAI-PMH/1.0"
 JOB_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 METADATA_PREFIX_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9._-]*$")
 

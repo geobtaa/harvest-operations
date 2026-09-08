@@ -8,6 +8,10 @@ metadata_prefix: oai_dc
 provider: "University of Michigan"
 source_name: "University of Michigan Clark Library"
 source_id_prefix: "um"
+# OAI emits one record per image. Catalog manifests display all pages of an item.
+record_granularity: umich_catalog_item
+# Reuse established IDs; assign new items um_ + 12 alphanumeric Nano ID characters.
+local_id_registry: enrichments/07d-01_local_ids.csv
 website_platform: OAI-PMH
 harvest_workflow: py_oai_pmh
 
@@ -26,10 +30,9 @@ oai_download_dir: inputs/oai-downloads/umich
 # Run Discover sets first, then add one row per repository set. Use __all__ as
 # the set value when the repository has no set hierarchy or the whole
 # repository should be harvested.
-sets: []
-# sets:
-#   - set: maps
-#     title: Map Collection
+sets:
+  - set: "dlps:clark1ic"
+    title: "UM Clark Library Maps"
 
 # Defaults applied when the source record leaves these values blank.
 default_resource_class: Maps
@@ -45,5 +48,5 @@ hardcoded_values:
 #     target: Description
 #     mode: append
 
-output_primary_csv: outputs/umich_primary.csv
-output_distributions_csv: outputs/umich_distributions.csv
+output_primary_csv: outputs/umich_items_primary.csv
+output_distributions_csv: outputs/umich_items_distributions.csv
