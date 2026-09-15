@@ -8,6 +8,98 @@ Staged source workflows:
 - `scripts/socrata_curation_pipeline.py` curates selected Socrata datasets,
   including paged exports beyond the platform's 1,000-row default. See the
   [Bloomington example and Socrata reference](jobs/socrata/socrata_curation_pipeline_reference.md).
+- `scripts/mncommons_curation_pipeline.py` inventories and curates selected
+  longitudinal series from local Minnesota Geospatial Commons snapshots.
+
+## `mncommons_curation_pipeline`
+
+The MnCommons pipeline treats local GDRS resource packages as read-only source
+material. Its initial stages validate every configured File Geodatabase, decide
+inventory supplied GDRS GeoPackages as reproducible derivatives, record fixity
+and ArcGIS layer files, and crosswalk FGDC metadata into a B1G Aardvark review
+CSV. Publication, content, metadata, and snapshot dates remain separate review
+columns. Curated access GeoPackages are always generated from the File
+Geodatabase; supplied GDRS GeoPackages are never adopted or preserved.
+
+The pilot job covers the Dakota County Road Centerlines series across the
+December 2017, February 2020, February 2021, September 2024, and January 2026
+snapshots. It also contains two 2017-only resources that disappeared from later
+Commons snapshots: Areas of Concentrated Poverty and Historic Residential Per
+Capita Demand. Legacy source screenshots are optional because the pipeline
+always creates new geometry-based PNG thumbnails:
+
+```sh
+uv run --locked python curation/scripts/mncommons_curation_pipeline.py \
+  curation/jobs/mncommons-pilot.yaml validate
+
+uv run --locked python curation/scripts/mncommons_curation_pipeline.py \
+  curation/jobs/mncommons-pilot.yaml inventory
+
+uv run --locked python curation/scripts/mncommons_curation_pipeline.py \
+  curation/jobs/mncommons-pilot.yaml metadata
+```
+
+Review both `curation/work/mncommons-pilot/metadata/metadata.csv` and
+`curation/work/mncommons-pilot/metadata/collection_metadata.csv`. The latter is
+the collection-level record for the pilot; its ID is assigned to `Member Of` on
+every dataset record. In the dataset CSV, pay particular attention to `Temporal
+Coverage`, `Date Issued`, the raw FGDC/GDRS date columns, and
+`snapshot_date`, `proposed_temporal_source`, and `metadata_review_flags`.
+Configured metadata overrides preserve curator decisions made during the pilot.
+The public `Temporal Coverage` remains the best supported content date rather
+than being changed to the later snapshot date; both dates stay visible in the
+review CSV. `Local Collection` groups snapshots with the shared label `Dakota
+County Road Centerlines`, while `Is Version Of` remains blank because the pilot
+does not create a parent record for the series.
+
+Confirm the checkpoint after reviewing both files:
+
+```sh
+uv run --locked python curation/scripts/mncommons_curation_pipeline.py \
+  curation/jobs/mncommons-pilot.yaml review --confirm
+```
+
+The confirmation records SHA-256 checksums for both metadata CSVs. Later
+automated stages will reject either file if it changes after confirmation. Run
+the complete automated portion after confirmation:
+
+```sh
+uv run --locked python curation/scripts/mncommons_curation_pipeline.py \
+  curation/jobs/mncommons-pilot.yaml postprocess
+```
+
+Postprocess preserves source masters while excluding generated source
+GeoPackages, creates every access GeoPackage from its File Geodatabase,
+generates FGDC-backed data dictionaries, embeds both reviewed QGIS metadata and
+the original FGDC XML, renders geometry-based PNG thumbnails, builds PMTiles,
+verifies the results, and creates upload packages. `preserve`, `convert`, `dictionaries`,
+`embed`, `thumbnails`, `derivatives`, `verify`, and `package` are also available
+individually. Use `status` to inspect the current manifest. Generated work
+remains isolated under the ignored `curation/work/<job-id>/` directory.
+
+For a GeoPackage containing multiple feature layers, the dictionary stage also
+creates `layer-guide.txt`. The guide records the source FGDC explanation for
+each layer, its feature count and geometry type, and the corresponding data
+dictionary and PMTiles filename. The embed stage writes these source-supplied
+explanations to `gpkg_contents.description`, and the package stage copies the
+guide into the item's upload directory.
+
+The `package` stage writes two archives per item under
+`curation/work/<job-id>/uploads/<item>/`: `<filename>.gpkg.zip` contains only the
+curated access GeoPackage, while `<item>_original.zip` contains the preserved
+source files except any GeoPackage. Both archives include `SHA256SUMS.txt`. The
+same per-item upload directory also receives the unzipped PMTiles file,
+generated PNG thumbnail, and one CSV per data dictionary. Upload dictionary
+CSVs are flattened into the item directory and omit the internal-only
+`layer_name` and `match_status` columns. The original ArcGIS Desktop
+`preview.jpg` remains only inside the preservation ZIP and is not used as the
+catalog thumbnail. The stage also writes `reports/upload_manifest.csv` with
+artifact roles, sizes, checksums, and contents.
+
+Legacy ArcGIS `.lyr` files are retained byte-for-byte under each item's
+`original/` tree and recorded in the fixity inventory. Conversion to QML/QLR and
+MapLibre style JSON remains a separate cartographic-review step; PMTiles are
+web-access derivatives and do not replace the original layer files.
 
 ## Setup
 

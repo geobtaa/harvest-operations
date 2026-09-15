@@ -29,8 +29,8 @@ column_mapping = {
 }
 
 # Define global variables for the script
-root_directory = "mpls2015"
-output_csv = "mpls.csv"
+root_directory = "mncommons"
+output_csv = "mncommons.csv"
 decimal_places = 3
 
 # Turn calculation of the Geometry (WKT Outline) to True or False.
