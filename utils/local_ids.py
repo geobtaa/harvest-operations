@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timezone
-import fcntl
 import os
 from pathlib import Path
 import string
 import tempfile
 
+from filelock import FileLock
 from nanoid import generate
 import pandas as pd
 
@@ -45,8 +45,8 @@ def assign_persistent_ids(
     registry_path = Path(registry_path)
     registry_path.parent.mkdir(parents=True, exist_ok=True)
     # A stable separate lock survives atomic replacement of the CSV itself.
-    with registry_path.with_suffix(registry_path.suffix + ".lock").open("a") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
+    lock_path = registry_path.with_suffix(registry_path.suffix + ".lock")
+    with FileLock(lock_path):
         registry = (
             pd.read_csv(registry_path, dtype=str, keep_default_na=False)
             if registry_path.exists()

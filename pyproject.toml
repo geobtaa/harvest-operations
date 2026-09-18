@@ -18,6 +18,7 @@ dependencies = [
   "beautifulsoup4",
   "playwright",
   "fiona",
+  "filelock",
   "geopandas",
   "matplotlib",
   "nanoid",
