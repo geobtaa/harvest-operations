@@ -4,6 +4,14 @@ import argparse
 import csv
 from collections import Counter
 from pathlib import Path
+import sys
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from utils.geometry_repair import parse_envelope  # noqa: E402
 
 
 REFERENCE_CONFIG = {
@@ -155,6 +163,14 @@ def extract_polygon_parts(geometry):
         return []
 
     upper_text = text.upper()
+    envelope_parts = parse_envelope(text)
+    if envelope_parts is not None:
+        west, east, north, south = envelope_parts
+        return [
+            f"(({west} {south}, {east} {south}, {east} {north}, "
+            f"{west} {north}, {west} {south}))"
+        ]
+
     if upper_text.startswith("MULTIPOLYGON"):
         payload = text[len("MULTIPOLYGON") :].strip()
         inner_payload = strip_outer_parentheses(payload)
@@ -175,7 +191,9 @@ def combine_geometries(geometries):
     if not geometries:
         return ""
 
-    geometry_values = [value.strip() for value in str(geometries).split("|") if value.strip()]
+    geometry_values = [
+        value.strip() for value in str(geometries).split("|") if value.strip()
+    ]
     if not geometry_values:
         return ""
 
@@ -252,14 +270,21 @@ def default_output_path(input_path, level):
     return input_path.with_name(f"{input_path.stem}_{level}_matched{input_path.suffix}")
 
 
-def process_csv(input_csv, output_csv, level, spatial_column, include_levels, fallback_levels):
+def process_csv(
+    input_csv, output_csv, level, spatial_column, include_levels, fallback_levels
+):
     repo_root = Path(__file__).resolve().parents[1]
     lookup_levels = tuple(dict.fromkeys([level, *include_levels]))
     fallback_lookup_levels = tuple(dict.fromkeys(fallback_levels))
     reference_paths, bbox_map, geometry_map, geonames_map = load_reference_maps(
         lookup_levels, repo_root
     )
-    fallback_reference_paths, fallback_bbox_map, fallback_geometry_map, fallback_geonames_map = (
+    (
+        fallback_reference_paths,
+        fallback_bbox_map,
+        fallback_geometry_map,
+        fallback_geonames_map,
+    ) = (
         load_reference_maps(fallback_lookup_levels, repo_root)
         if fallback_lookup_levels
         else ([], {}, {}, {})
@@ -294,8 +319,12 @@ def process_csv(input_csv, output_csv, level, spatial_column, include_levels, fa
                     spatial_value, bbox_map, primary_unmatched_names
                 )
                 if bbox_values:
-                    geometry_values = lookup_spatial_values(spatial_value, geometry_map, Counter())
-                    geonames_values = lookup_spatial_values(spatial_value, geonames_map, Counter())
+                    geometry_values = lookup_spatial_values(
+                        spatial_value, geometry_map, Counter()
+                    )
+                    geonames_values = lookup_spatial_values(
+                        spatial_value, geonames_map, Counter()
+                    )
                 else:
                     fallback_unmatched_names = Counter()
                     bbox_values = lookup_spatial_values(
@@ -317,9 +346,15 @@ def process_csv(input_csv, output_csv, level, spatial_column, include_levels, fa
                 derived_geometry = combine_geometries(geometry_values)
                 derived_geonames = geonames_values
 
-                row["Bounding Box"] = prefer_derived_value(derived_bbox, row.get("Bounding Box", ""))
-                row["Geometry"] = prefer_derived_value(derived_geometry, row.get("Geometry", ""))
-                row["GeoNames"] = prefer_derived_value(derived_geonames, row.get("GeoNames", ""))
+                row["Bounding Box"] = prefer_derived_value(
+                    derived_bbox, row.get("Bounding Box", "")
+                )
+                row["Geometry"] = prefer_derived_value(
+                    derived_geometry, row.get("Geometry", "")
+                )
+                row["GeoNames"] = prefer_derived_value(
+                    derived_geonames, row.get("GeoNames", "")
+                )
 
                 if derived_bbox:
                     matched_rows += 1
@@ -339,7 +374,9 @@ def process_csv(input_csv, output_csv, level, spatial_column, include_levels, fa
 
     if unmatched_names:
         most_common = ", ".join(
-            f"{name} ({count})" for name, count in unmatched_names.most_common(10) if name
+            f"{name} ({count})"
+            for name, count in unmatched_names.most_common(10)
+            if name
         )
         if most_common:
             print(f"Most common unmatched place names: {most_common}")
@@ -416,9 +453,13 @@ def main():
         if args.output_csv
         else default_output_path(input_csv, args.level)
     )
-    include_levels = args.include_level if args.include_level is not None else DEFAULT_INCLUDE_LEVELS
+    include_levels = (
+        args.include_level if args.include_level is not None else DEFAULT_INCLUDE_LEVELS
+    )
     fallback_levels = (
-        args.fallback_level if args.fallback_level is not None else DEFAULT_FALLBACK_LEVELS
+        args.fallback_level
+        if args.fallback_level is not None
+        else DEFAULT_FALLBACK_LEVELS
     )
 
     if not input_csv.exists():
