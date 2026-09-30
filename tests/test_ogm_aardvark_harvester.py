@@ -229,29 +229,23 @@ def test_ogm_aardvark_maps_schema_fields_and_preserves_custom_fields():
         == "Sanborn Fire Insurance Maps [Houston, Texas, 1907, Sheet 17]"
     )
     assert sanborn_row["Provider"] == "Texas"
-    assert (
-        sanborn_row["Identifier"]
-        == "utlmaps:225fea8d-1e1c-452f-8bb0-056028f2bd85"
-    )
+    assert sanborn_row["Identifier"] == "utlmaps:225fea8d-1e1c-452f-8bb0-056028f2bd85"
     assert sanborn_row["Bounding Box"] == "-95.362,29.754,-95.357,29.759"
-    assert sanborn_row["Geometry"].startswith("POLYGON((")
+    assert sanborn_row["Geometry"] == "ENVELOPE(-95.362,-95.357,29.759,29.754)"
     assert sanborn_row["Date Range"] == "1907-1907"
     assert (
-        sanborn_row["download"]
-        == "https://curio.lib.utexas.edu/geodata/raster/"
+        sanborn_row["download"] == "https://curio.lib.utexas.edu/geodata/raster/"
         "utlmaps-225fea8d-1e1c-452f-8bb0-056028f2bd85-cog.tif"
     )
     assert sanborn_row["download"] == sanborn_row["cog"]
     assert (
-        sanborn_row["information"]
-        == "https://collections.lib.utexas.edu/catalog/"
+        sanborn_row["information"] == "https://collections.lib.utexas.edu/catalog/"
         "utlmaps:225fea8d-1e1c-452f-8bb0-056028f2bd85"
     )
 
     assert ams_row["Date Range"] == "1943-1943"
     assert (
-        ams_row["iso"]
-        == "https://curio.lib.utexas.edu/geodata/iso/"
+        ams_row["iso"] == "https://curio.lib.utexas.edu/geodata/iso/"
         "utlmaps__ams__japan_l506__250k__6613121__zeni_su_52.xml"
     )
 
@@ -265,7 +259,9 @@ def test_ogm_aardvark_maps_schema_fields_and_preserves_custom_fields():
     assert sanborn_row["gbl_mdVersion_s"] == "Aardvark"
 
 
-def test_ogm_aardvark_pipeline_writes_primary_and_distribution_outputs(tmp_path, monkeypatch):
+def test_ogm_aardvark_pipeline_writes_primary_and_distribution_outputs(
+    tmp_path, monkeypatch
+):
     input_root = _copy_sample_tree(tmp_path)
     monkeypatch.chdir(tmp_path)
     (tmp_path / "outputs").mkdir()
@@ -319,8 +315,7 @@ def test_ogm_aardvark_pipeline_writes_primary_and_distribution_outputs(tmp_path,
     ]
     download_label_map = dict(download_labels.to_records(index=False))
     assert (
-        download_label_map["utlmaps:225fea8d-1e1c-452f-8bb0-056028f2bd85"]
-        == "GeoTIFF"
+        download_label_map["utlmaps:225fea8d-1e1c-452f-8bb0-056028f2bd85"] == "GeoTIFF"
     )
     assert download_label_map["utaustin_19326"] == "GeoJPEG"
 
@@ -357,7 +352,7 @@ def test_ogm_aardvark_derives_date_range_when_column_exists_but_row_value_is_mis
     assert date_ranges["record-missing-date-range"] == "1943-1943"
 
 
-def test_ogm_aardvark_preserves_source_bounding_box_coordinate_order():
+def test_ogm_aardvark_repairs_source_bounding_box_coordinate_order():
     harvester = OgmAardvarkHarvester(_config(str(ROOT / "inputs" / "edu.utexas")))
     harvester.load_reference_data()
     records = [
@@ -374,13 +369,28 @@ def test_ogm_aardvark_preserves_source_bounding_box_coordinate_order():
     df = harvester.build_dataframe(records)
     df = harvester.derive_fields(df)
     source_bbox = df.loc[0, "Bounding Box"]
-    source_geometry = df.loc[0, "Geometry"]
-
     result = harvester.clean(df)
 
     assert source_bbox == "-95.357,29.759,-95.362,29.754"
-    assert result.loc[0, "Bounding Box"] == source_bbox
-    assert result.loc[0, "Geometry"] == source_geometry
+    assert result.loc[0, "Bounding Box"] == "-95.362,29.754,-95.357,29.759"
+    assert result.loc[0, "Geometry"] == "ENVELOPE(-95.362,-95.357,29.759,29.754)"
+
+
+def test_ogm_aardvark_clean_creates_geometry_from_bbox():
+    harvester = OgmAardvarkHarvester(_config(str(ROOT / "inputs" / "edu.utexas")))
+    df = pd.DataFrame(
+        [
+            {
+                "ID": "bbox-only",
+                "Title": "Bounding Box Only",
+                "Bounding Box": "-90,44,-89,45",
+            }
+        ]
+    )
+
+    result = harvester.clean(df)
+
+    assert result.loc[0, "Geometry"] == "ENVELOPE(-90.000,-89.000,45.000,44.000)"
 
 
 def test_ogm_aardvark_github_tarball_filters_to_metadata_folder():
@@ -506,7 +516,9 @@ def test_ogm_aardvark_commit_mode_writes_delta_outputs_and_manifest(
     assert results["distributions_csv"].endswith(
         "_ogm_org-humdata_commit_delta_distributions.csv"
     )
-    assert results["deleted_files_csv"].endswith("_ogm_org-humdata_commit_deletions.csv")
+    assert results["deleted_files_csv"].endswith(
+        "_ogm_org-humdata_commit_deletions.csv"
+    )
     assert results["processed_count"] == 1
     assert results["deleted_count"] == 1
 
@@ -573,16 +585,12 @@ def test_ogm_aardvark_github_tarball_outputs_include_repo_name(
     results = harvester.write_outputs(primary_df)
 
     assert results["primary_csv"].endswith("_ogm_org-humdata_primary.csv")
-    assert results["distributions_csv"].endswith(
-        "_ogm_org-humdata_distributions.csv"
-    )
+    assert results["distributions_csv"].endswith("_ogm_org-humdata_distributions.csv")
 
 
 def test_ogm_aardvark_adds_repo_defaults_from_csv():
     harvester = OgmAardvarkHarvester(_github_config(github_repo="edu.utexas"))
-    harvester.repo_defaults = load_repo_defaults(
-        str(ROOT / "config" / "ogm-repos.csv")
-    )
+    harvester.repo_defaults = load_repo_defaults(str(ROOT / "config" / "ogm-repos.csv"))
     df = pd.DataFrame(
         [
             {
@@ -602,9 +610,7 @@ def test_ogm_aardvark_adds_repo_defaults_from_csv():
 
 def test_ogm_aardvark_repo_defaults_preserve_existing_values():
     harvester = OgmAardvarkHarvester(_github_config(github_repo="edu.utexas"))
-    harvester.repo_defaults = load_repo_defaults(
-        str(ROOT / "config" / "ogm-repos.csv")
-    )
+    harvester.repo_defaults = load_repo_defaults(str(ROOT / "config" / "ogm-repos.csv"))
     df = pd.DataFrame(
         [
             {

@@ -1,0 +1,242 @@
+version: 1
+
+job:
+  id: mncommons-pilot
+  source_directory: ../mncommons_pilot
+  work_directory: ../work/mncommons-pilot
+
+collection:
+  id: b1g_OhhXj3FNvunr
+  title: Minnesota Geospatial Commons Pilot
+  description: >-
+    Pilot archival collection containing Dakota County Road Centerlines
+    preserved from five Minnesota Geospatial Commons snapshots.
+  creator: University of Minnesota Libraries
+  spatial_coverage: Minnesota
+  temporal_coverage: 2004-2026
+  date_issued: ""
+  rights: >-
+    Rights and use constraints for each dataset are documented in its preserved
+    FGDC metadata.
+  metadata_overrides:
+    Description: ""
+    Language: ""
+    Creator: ""
+    Publisher: ""
+    Date Issued: ""
+    Date Range: ""
+    Rights: ""
+    Suppressed Record: "false"
+    Identifier: ""
+    Provenance: ""
+    Website Platform: ""
+    Accrual Method: ""
+    Harvest Workflow: ""
+
+metadata:
+  provider: BTAA-GIN
+  publisher: Minnesota Geospatial Commons
+  code: b1g_pU4tqzrX8S2C
+  series_label_prefix: ""
+  accession_date: 2026-09-14
+  access_rights: Public
+  publication_state: published
+  display_note: >-
+    Warning: This dataset is an archived copy held by the BTAA-GIN. For the most
+    current layer, consult the Minnesota Geospatial Commons at
+    https://gis.data.mn.gov
+
+manual_review:
+  required_fields:
+    - filename
+    - ID
+    - Title
+    - Description
+    - Creator
+    - Publisher
+    - Provider
+    - Resource Class
+    - Resource Type
+    - Temporal Coverage
+    - Spatial Coverage
+    - Bounding Box
+    - Access Rights
+    - Member Of
+
+derivatives:
+  pmtiles_config: ../pmtiles_config.sample.json
+
+series:
+  - id: dakota-roads
+    title: Dakota County Road Centerlines
+    catalog_title: Road Centerlines
+    resource_guid: fab3137a-3b70-4152-b11f-970491de9fc7
+    spatial_coverage: Minnesota--Dakota County|Minnesota
+    metadata_overrides:
+      Creator: Dakota County GIS
+      Theme: Transportation
+      Local Collection: Dakota County Road Centerlines
+      Geometry: >-
+        MultiPolygon (((-92.91 44.54, -92.92 44.52, -92.95 44.51, -93.04
+        44.52, -93.04 44.47, -93.28 44.47, -93.28 44.63, -93.32 44.63,
+        -93.33 44.79, -93.22 44.83, -93.18 44.89, -93.13 44.92, -93.05
+        44.92, -93.01 44.86, -93.02 44.78, -92.88 44.77, -92.86 44.75,
+        -92.8 44.75, -92.73 44.71, -92.73 44.63, -92.79 44.63, -92.79
+        44.54, -92.91 44.54)))
+      Coordinate Reference System: https://spatialreference.org/ref/esri/103726/
+      Rights: >-
+        Dakota County Geographic Information System (GIS) Data are made
+        available pursuant to the Minnesota Government Data Practices Act
+        (Minnesota Statutes Chapter 13) The GIS data are provided to you as is
+        and without any warranty as to their performance, merchantability, or
+        fitness for any particular purpose. The GIS Data were developed by
+        Dakota County ("County") for their own internal business purposes. The
+        County does not represent or warrant that the GIS Data or the data
+        documentation are error-free, complete, current, or accurate. You are
+        responsible for any consequences resulting from your use of the GIS
+        Data or your reliance on the GIS Data. You should consult the data
+        documentation for this particular GIS Data to determine the limitations
+        of the GIS Data and the precision with which the GIS Data may depict
+        distance, direction, location, or other geographic features. If you
+        transmit or provide the GIS Data (or any portion of it) to another user,
+        you must provide a copy of this disclaimer and the accompanying metadata
+        for this dataset to the user.|This data is made available under the Open
+        Database License.
+      License: https://opendatacommons.org/licenses/dbcl/1.0/
+      Suppressed Record: "false"
+      Deprioritize: "true"
+      Format: Mixed
+    versions:
+      - snapshot_year: 2017
+        snapshot_date: 2017-12
+        temporal_coverage: 2017-11-30
+        path: dakota-roads/2017-trans_trans_streets
+        metadata_overrides:
+          Provenance: >-
+            Part of the 2017 Minnesota Geospatial Commons snapshot curated by
+            the University of Minnesota Libraries
+          Admin Note: >-
+            Snapshot year: 2017; source resource GUID:
+            fab3137a-3b70-4152-b11f-970491de9fc7.
+      - snapshot_year: 2020
+        snapshot_date: 2020-02
+        temporal_coverage: 2020-02-20
+        path: dakota-roads/2020-trans_trans_streets
+        metadata_overrides:
+          Provenance: >-
+            Part of the 2020 Minnesota Geospatial Commons snapshot curated by
+            the University of Minnesota Libraries|Changes since the 2017
+            version: Total feature count increased from 24,307 to 24,995. 1,002
+            StreetIDs added, 314 removed; 11,613 matched records had attribute
+            changes and 1,131 had geometry changes.
+          Admin Note: >-
+            Snapshot year: 2020; source resource GUID:
+            fab3137a-3b70-4152-b11f-970491de9fc7.
+      - snapshot_year: 2021
+        snapshot_date: 2021-02
+        temporal_coverage: 2020-07-09
+        path: dakota-roads/2021-trans_trans_streets
+        metadata_overrides:
+          Provenance: >-
+            Part of the 2021 Minnesota Geospatial Commons snapshot curated by
+            the University of Minnesota Libraries|Changes since the 2020
+            version: Total feature count decreased from 24,995 to 24,994. 3
+            added, 4 removed; 57 attribute changes and 13 geometry changes.
+          Admin Note: >-
+            Snapshot year: 2021; source resource GUID:
+            fab3137a-3b70-4152-b11f-970491de9fc7.
+      - snapshot_year: 2024
+        snapshot_date: 2024-09
+        temporal_coverage: 2024-09-12
+        path: dakota-roads/2024-trans_trans_streets
+        metadata_overrides:
+          Provenance: >-
+            Part of the 2024 Minnesota Geospatial Commons snapshot curated by
+            the University of Minnesota Libraries|Changes since the 2021
+            version: Total feature count increased from 24,994 to 26,438. 2,003
+            added, 559 removed; 5,731 attribute changes and 585 geometry changes.
+          Admin Note: >-
+            Snapshot year: 2024; source resource GUID:
+            fab3137a-3b70-4152-b11f-970491de9fc7.
+      - snapshot_year: 2026
+        snapshot_date: 2026-01
+        temporal_coverage: 2024-09-19
+        path: dakota-roads/2026-trans_trans_streets
+        metadata_overrides:
+          Provenance: >-
+            Part of the 2026 Minnesota Geospatial Commons snapshot curated by
+            the University of Minnesota Libraries|Changes since the 2024
+            version: Total feature count increased from 26,438 to 26,440. Same
+            set of StreetIDs, but two streets were split into additional
+            segments; 7 features had geometries changed.
+          Admin Note: >-
+            Snapshot year: 2026; source resource GUID:
+            fab3137a-3b70-4152-b11f-970491de9fc7.
+
+  - id: areas-concentrated-poverty
+    title: Areas of Concentrated Poverty
+    catalog_title: Areas of Concentrated Poverty
+    resource_guid: c7cd8fa6-ea1d-4ea5-bc25-5adf26971f3b
+    spatial_coverage: >-
+      Minnesota|Minnesota--Anoka County|Minnesota--Carver County|Minnesota--Dakota
+      County|Minnesota--Hennepin County|Minnesota--Ramsey County|Minnesota--Scott
+      County|Minnesota--Washington County
+    metadata_overrides:
+      Creator: Metropolitan Council
+      Theme: Society
+      Local Collection: ""
+      Suppressed Record: "false"
+      Deprioritize: "true"
+      Format: Mixed
+    versions:
+      - snapshot_year: 2017
+        snapshot_date: 2017-12
+        temporal_coverage: 2011-2015
+        description_prefix: Historical version.
+        path: >-
+          areas-concentrated-poverty/2017-society_areas_of_concntrtd_pvrty
+        metadata_overrides:
+          Display Note: >-
+            This historical dataset uses 2011-2015 American Community Survey
+            estimates. It was superseded by the Metropolitan Council's Equity
+            Considerations dataset, which was formerly known as Areas of
+            Concentrated Poverty and was greatly expanded to support more
+            nuanced place-based equity analysis.
+          Admin Note: >-
+            Snapshot year: 2017; source resource GUID:
+            c7cd8fa6-ea1d-4ea5-bc25-5adf26971f3b. The source metadata states that
+            the tract attributes use 2011-2015 American Community Survey
+            estimates.
+
+  - id: historic-water-demand
+    title: Historic Residential Per Capita Demand
+    catalog_title: Historic Residential Per Capita Demand
+    resource_guid: 921b3154-5abd-45bb-9ca8-3f40d9557f00
+    spatial_coverage: >-
+      Minnesota|Minnesota--Anoka County|Minnesota--Carver County|Minnesota--Dakota
+      County|Minnesota--Hennepin County|Minnesota--Ramsey County|Minnesota--Scott
+      County|Minnesota--Washington County
+    metadata_overrides:
+      Creator: Metropolitan Council
+      Theme: Inland waters
+      Local Collection: ""
+      Suppressed Record: "false"
+      Deprioritize: "true"
+      Format: Mixed
+    versions:
+      - snapshot_year: 2017
+        snapshot_date: 2017-12
+        temporal_coverage: 2004-2006
+        description_prefix: Historical version.
+        path: historic-water-demand/2017-water_metro_water_use_per_cap
+        metadata_overrides:
+          Display Note: >-
+            This deprecated historical dataset reports residential per-capita
+            water demand for 2004-2006 and is no longer available in the current
+            Minnesota Geospatial Commons. The source metadata notes that 2006
+            reporting was incomplete. It is retained for historical research
+            and should not be used as current water-demand information.
+          Admin Note: >-
+            Snapshot year: 2017; source resource GUID:
+            921b3154-5abd-45bb-9ca8-3f40d9557f00. The source describes values for
+            2004, 2005, and 2006, with 2006 reporting incomplete when compiled.

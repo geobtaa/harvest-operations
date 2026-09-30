@@ -48,9 +48,7 @@ DIRECT_SERVICE_URL = (
     "AddressPoints_Historic/FeatureServer/0"
 )
 DIRECT_SERVICE_ROOT = DIRECT_SERVICE_URL.rsplit("/", 1)[0]
-DIRECT_ITEM_API = (
-    f"https://www.arcgis.com/sharing/rest/content/items/{DIRECT_ITEM_ID}"
-)
+DIRECT_ITEM_API = f"https://www.arcgis.com/sharing/rest/content/items/{DIRECT_ITEM_ID}"
 
 
 def catalog_fixture() -> dict:
@@ -191,9 +189,7 @@ def test_inspect_geopackage_infers_unknown_declared_geometry(tmp_path: Path) -> 
                 "properties": {"NAME": "Park"},
             }
         )
-        collection.write(
-            {"geometry": None, "properties": {"NAME": "No geometry"}}
-        )
+        collection.write({"geometry": None, "properties": {"NAME": "No geometry"}})
 
     inspection = pipeline.inspect_geopackage(path)
 
@@ -225,7 +221,9 @@ def test_job_groups_artifact_paths_by_resource_filename(tmp_path: Path) -> None:
     )
 
 
-def test_config_accepts_direct_rest_source_and_metadata_overrides(tmp_path: Path) -> None:
+def test_config_accepts_direct_rest_source_and_metadata_overrides(
+    tmp_path: Path,
+) -> None:
     job = load_job_config(
         write_config(
             tmp_path,
@@ -280,9 +278,7 @@ def test_config_rejects_direct_rest_service_root_without_layer_id(
 
 
 def test_copyable_job_template_is_valid_yaml() -> None:
-    template_path = (
-        CURATION_ROOT / "jobs" / "arcgis_curation_pipeline_template.yaml"
-    )
+    template_path = CURATION_ROOT / "jobs" / "arcgis_curation_pipeline_template.yaml"
     template = yaml.safe_load(template_path.read_text(encoding="utf-8"))
 
     assert template["version"] == 1
@@ -345,7 +341,10 @@ def test_metadata_stage_reuses_arcgis_rules_and_applies_archive_exceptions(
     assert row["Resource Type"] == "Polygon data"
     assert row["Provider"] == "BTAA-GIN"
     assert row["Publication State"] == "draft"
-    assert row["Coordinate Reference System"] == "https://spatialreference.org/ref/esri/103768"
+    assert (
+        row["Coordinate Reference System"]
+        == "https://spatialreference.org/ref/esri/103768"
+    )
     assert row["Provenance"] == (
         f"Exported from {SERVICE_URL} as GeoPackage on July 16, 2026."
     )
@@ -500,7 +499,9 @@ def test_metadata_stage_recovers_id_from_saved_run_record(
     monkeypatch,
 ) -> None:
     run_records_root = tmp_path / "run_records"
-    saved_manifest_path = run_records_root / "test-job" / "20260101T000000Z" / "manifest.json"
+    saved_manifest_path = (
+        run_records_root / "test-job" / "20260101T000000Z" / "manifest.json"
+    )
     saved_manifest_path.parent.mkdir(parents=True)
     saved_manifest_path.write_text(
         json.dumps(
@@ -532,7 +533,9 @@ def test_metadata_stage_preserves_existing_ids_when_records_are_added(
     first_id = pd.read_csv(first_job.metadata_path, dtype=str).iloc[0]["ID"]
 
     second_source_id = "f03d32dc6dc8458ea3f0be92fab49318_0"
-    second_service_url = "https://example.org/arcgis/rest/services/Boundary/FeatureServer/0"
+    second_service_url = (
+        "https://example.org/arcgis/rest/services/Boundary/FeatureServer/0"
+    )
     second_resource = json.loads(json.dumps(catalog_fixture()["dataset"][0]))
     second_resource["identifier"] = (
         "https://www.arcgis.com/home/item.html?"
@@ -562,15 +565,19 @@ def test_metadata_stage_preserves_existing_ids_when_records_are_added(
         catalog={"dataset": [catalog_fixture()["dataset"][0], second_resource]},
     )
 
-    ids_by_filename = pd.read_csv(second_job.metadata_path, dtype=str).set_index("filename")[
-        "ID"
-    ]
+    ids_by_filename = pd.read_csv(second_job.metadata_path, dtype=str).set_index(
+        "filename"
+    )["ID"]
     assert ids_by_filename["stp_zoning_2026.gpkg"] == first_id
-    assert re.fullmatch(r"b1g_[A-Za-z0-9]{12}", ids_by_filename["stp_boundary_2026.gpkg"])
+    assert re.fullmatch(
+        r"b1g_[A-Za-z0-9]{12}", ids_by_filename["stp_boundary_2026.gpkg"]
+    )
     assert ids_by_filename["stp_boundary_2026.gpkg"] != first_id
 
 
-def test_review_checksum_detects_manual_edits_after_confirmation(tmp_path: Path) -> None:
+def test_review_checksum_detects_manual_edits_after_confirmation(
+    tmp_path: Path,
+) -> None:
     job = load_job_config(write_config(tmp_path))
     run_metadata_stage(job, catalog=catalog_fixture())
     confirm_manual_review(job, confirmed=True)
@@ -727,8 +734,7 @@ def test_postprocess_pauses_after_all_download_attempts_when_one_fails(
     with pytest.raises(
         RuntimeError,
         match=(
-            "Postprocess paused after attempting every download.*"
-            "stp_zoning_2026.gpkg"
+            "Postprocess paused after attempting every download.*stp_zoning_2026.gpkg"
         ),
     ):
         pipeline.run_postprocess(job)
@@ -886,11 +892,15 @@ def test_save_run_record_copies_small_inputs_and_describes_artifacts(
     run_record_path = save_run_record(job)
 
     assert run_record_path.parent == run_records_root / "test-job"
-    assert (run_record_path / "job.yaml").read_text(encoding="utf-8") == job.config_path.read_text(
+    assert (run_record_path / "job.yaml").read_text(
+        encoding="utf-8"
+    ) == job.config_path.read_text(encoding="utf-8")
+    assert (
+        run_record_path / "metadata.csv"
+    ).read_bytes() == job.metadata_path.read_bytes()
+    saved_manifest_text = (run_record_path / "manifest.json").read_text(
         encoding="utf-8"
     )
-    assert (run_record_path / "metadata.csv").read_bytes() == job.metadata_path.read_bytes()
-    saved_manifest_text = (run_record_path / "manifest.json").read_text(encoding="utf-8")
     saved_manifest = json.loads(saved_manifest_text)
     assert str(tmp_path) not in saved_manifest_text
     assert saved_manifest["config_path"] == "job.yaml"
@@ -929,6 +939,7 @@ def test_enrich_uses_local_geopackage_geometry_and_decimal_degree_bbox(
     row = pd.read_csv(job.metadata_path, dtype=str, keep_default_na=False).iloc[0]
     assert row["Resource Type"] == "Polygon data"
     assert row["Bounding Box"] == "-93.2080,44.8875,-93.0037,44.9920"
+    assert row["Geometry"] == "ENVELOPE(-93.2080,-93.0037,44.9920,44.8875)"
     assert row["Centroid"] == "44.9398,-93.1059"
     require_confirmed_review(job)
     manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))

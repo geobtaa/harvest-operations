@@ -8,10 +8,7 @@ def test_spatial_cleaning_uses_envelope_for_full_world_geometry():
         [
             {
                 "Bounding Box": "-180,-90,180,90",
-                "Geometry": (
-                    "POLYGON((-180 90, 180 90, 180 -90, "
-                    "-180 -90, -180 90))"
-                ),
+                "Geometry": ("POLYGON((-180 90, 180 90, 180 -90, -180 -90, -180 90))"),
             }
         ]
     )
@@ -27,10 +24,7 @@ def test_spatial_cleaning_keeps_non_global_world_width_polygon():
         [
             {
                 "Bounding Box": "-180,-80,180,80",
-                "Geometry": (
-                    "POLYGON((-180 80, 180 80, 180 -80, "
-                    "-180 -80, -180 80))"
-                ),
+                "Geometry": ("POLYGON((-180 80, 180 80, 180 -80, -180 -80, -180 80))"),
             }
         ]
     )
@@ -38,10 +32,7 @@ def test_spatial_cleaning_keeps_non_global_world_width_polygon():
     cleaned = spatial_cleaning(df)
 
     assert cleaned.loc[0, "Bounding Box"] == "-179.999,-80.000,179.999,80.000"
-    assert cleaned.loc[0, "Geometry"] == (
-        "POLYGON((-179.999 80.000, 179.999 80.000, "
-        "179.999 -80.000, -179.999 -80.000, -179.999 80.000))"
-    )
+    assert cleaned.loc[0, "Geometry"] == "ENVELOPE(-179.999,179.999,80.000,-80.000)"
 
 
 def test_spatial_cleaning_expands_degenerate_bbox_after_rounding():
@@ -57,16 +48,13 @@ def test_spatial_cleaning_expands_degenerate_bbox_after_rounding():
     cleaned = spatial_cleaning(df)
 
     assert cleaned.loc[0, "Bounding Box"] == "-90.000,44.000,-89.999,44.001"
-    assert cleaned.loc[0, "Geometry"] == (
-        "POLYGON((-90.000 44.001, -89.999 44.001, "
-        "-89.999 44.000, -90.000 44.000, -90.000 44.001))"
-    )
+    assert cleaned.loc[0, "Geometry"] == "ENVELOPE(-90.000,-89.999,44.001,44.000)"
 
 
 def test_spatial_cleaning_preserves_non_rectangular_geometry():
     geometry = (
-        "POLYGON((-122.95 48.27, -122.95 48.35, -122.86 48.37, "
-        "-122.85 48.23, -122.95 48.27))"
+        "POLYGON((-122.95 48.27, -122.85 48.23, -122.86 48.37, "
+        "-122.95 48.35, -122.95 48.27))"
     )
     df = pd.DataFrame(
         [
@@ -81,3 +69,20 @@ def test_spatial_cleaning_preserves_non_rectangular_geometry():
 
     assert cleaned.loc[0, "Bounding Box"] == "-124.720,47.520,-122.600,48.370"
     assert cleaned.loc[0, "Geometry"] == geometry
+
+
+def test_spatial_cleaning_creates_geometry_when_only_bbox_exists():
+    df = pd.DataFrame([{"Bounding Box": "-90,44,-89,45"}])
+
+    cleaned = spatial_cleaning(df)
+
+    assert cleaned.loc[0, "Geometry"] == "ENVELOPE(-90.000,-89.000,45.000,44.000)"
+
+
+def test_spatial_cleaning_preserves_antimeridian_bbox_and_splits_geometry():
+    df = pd.DataFrame([{"Bounding Box": "169.32,-11.65,-149.99,4.9", "Geometry": ""}])
+
+    cleaned = spatial_cleaning(df)
+
+    assert cleaned.loc[0, "Bounding Box"] == "169.320,-11.650,-149.990,4.900"
+    assert cleaned.loc[0, "Geometry"].startswith("MULTIPOLYGON")

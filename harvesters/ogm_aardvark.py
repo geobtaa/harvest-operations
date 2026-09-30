@@ -20,6 +20,7 @@ from utils.dataframe_cleaner import (
 )
 from utils.distribution_writer import generate_secondary_table, load_distribution_types
 from utils.field_order import FIELD_ORDER, PRIMARY_FIELD_ORDER
+from utils.spatial_cleaner import spatial_cleaning
 
 
 GITHUB_API_ROOT = "https://api.github.com"
@@ -56,7 +57,9 @@ class OgmAardvarkHarvester(BaseHarvester):
         self._load_schema_mapping()
 
     def _load_schema_mapping(self, schema_path="schemas/geobtaa_schema.csv"):
-        with open(self._resolve_path(schema_path), newline="", encoding="utf-8") as handle:
+        with open(
+            self._resolve_path(schema_path), newline="", encoding="utf-8"
+        ) as handle:
             reader = csv.DictReader(handle)
             for row in reader:
                 field_name = row["name"]
@@ -118,7 +121,9 @@ class OgmAardvarkHarvester(BaseHarvester):
 
         self.reference_uri_to_variables = uri_lookup
         self.repo_defaults = load_repo_defaults(
-            self._resolve_path(self.config.get("repo_defaults_csv", "config/ogm-repos.csv"))
+            self._resolve_path(
+                self.config.get("repo_defaults_csv", "config/ogm-repos.csv")
+            )
         )
 
     def fetch(self):
@@ -259,7 +264,9 @@ class OgmAardvarkHarvester(BaseHarvester):
 
         today = time.strftime("%Y-%m-%d")
         if self.source_mode.startswith("github_"):
-            endpoint_url = github_repo_url(self.config) or self.config.get("endpoint_url")
+            endpoint_url = github_repo_url(self.config) or self.config.get(
+                "endpoint_url"
+            )
         else:
             endpoint_url = self.config.get("endpoint_url")
         if not endpoint_url:
@@ -295,6 +302,7 @@ class OgmAardvarkHarvester(BaseHarvester):
             .pipe(strip_text_fields)
             .pipe(clean_descriptions)
             .pipe(clean_date_ranges)
+            .pipe(spatial_cleaning)
             .pipe(self._reorder_columns_with_extras)
         )
 
@@ -310,7 +318,9 @@ class OgmAardvarkHarvester(BaseHarvester):
         return super().validate(df)
 
     def write_outputs(self, primary_df, distributions_df=None):
-        distributions_df = generate_secondary_table(primary_df.copy(), self.distribution_types)
+        distributions_df = generate_secondary_table(
+            primary_df.copy(), self.distribution_types
+        )
 
         if self.source_mode == "github_commits":
             return write_commit_delta_outputs(primary_df, distributions_df, self)
@@ -322,7 +332,8 @@ class OgmAardvarkHarvester(BaseHarvester):
         primary_columns = [
             col
             for col in PRIMARY_FIELD_ORDER
-            if col in primary_df.columns and col not in self.PRIMARY_OUTPUT_EXCLUDED_FIELDS
+            if col in primary_df.columns
+            and col not in self.PRIMARY_OUTPUT_EXCLUDED_FIELDS
         ]
         primary_columns.extend(
             col
@@ -347,7 +358,9 @@ class OgmAardvarkHarvester(BaseHarvester):
                 output_dir,
                 f"{today}_{output_basename(self.config, 'distributions', self.source_mode)}",
             )
-            distributions_df.to_csv(distributions_filename, index=False, encoding="utf-8")
+            distributions_df.to_csv(
+                distributions_filename, index=False, encoding="utf-8"
+            )
             results["distributions_csv"] = distributions_filename
 
         return results
@@ -440,8 +453,7 @@ class OgmAardvarkHarvester(BaseHarvester):
 
         try:
             west, east, north, south = [
-                coord.strip()
-                for coord in text[text.index("(") + 1 : -1].split(",")
+                coord.strip() for coord in text[text.index("(") + 1 : -1].split(",")
             ]
             return f"{west},{south},{east},{north}"
         except ValueError:
@@ -495,13 +507,12 @@ class OgmAardvarkHarvester(BaseHarvester):
             for col in self.extra_output_columns
             if col in df.columns and col not in ordered_columns
         )
-        ordered_columns.extend(
-            col for col in df.columns if col not in ordered_columns
-        )
+        ordered_columns.extend(col for col in df.columns if col not in ordered_columns)
         return df.reindex(columns=ordered_columns)
 
 
 # Custom functions for this harvester
+
 
 def build_github_session(config):
     session = requests.Session()
@@ -602,7 +613,9 @@ def fetch_github_tarball_json(config, session):
                 continue
 
             try:
-                dataset.append(json.loads(extracted.read().decode("utf-8", errors="ignore")))
+                dataset.append(
+                    json.loads(extracted.read().decode("utf-8", errors="ignore"))
+                )
             except json.JSONDecodeError as exc:
                 logging.warning(
                     "[OGM Aardvark] Failed to parse JSON in tarball at %s: %s",
@@ -622,11 +635,7 @@ def fetch_github_commit_json(config, session):
 
     for commit in iter_selected_github_commits(config, session, owner, repo):
         detail = get_github_commit_detail(config, session, owner, repo, commit["sha"])
-        commit_date = (
-            detail.get("commit", {})
-            .get("committer", {})
-            .get("date", "")
-        )
+        commit_date = detail.get("commit", {}).get("committer", {}).get("date", "")
 
         for changed_file in detail.get("files", []):
             event = build_changed_file_event(changed_file, detail["sha"], commit_date)
@@ -640,11 +649,15 @@ def fetch_github_commit_json(config, session):
                 or path_is_under_filter(previous_path, path_filter)
             ):
                 continue
-            if new_path in seen_paths or (previous_path and previous_path in seen_paths):
+            if new_path in seen_paths or (
+                previous_path and previous_path in seen_paths
+            ):
                 continue
 
             status = event["status"]
-            if status == "removed" or (status == "renamed" and not is_json_path(new_path)):
+            if status == "removed" or (
+                status == "renamed" and not is_json_path(new_path)
+            ):
                 deleted_files.append(event)
                 seen_paths.add(new_path)
                 if previous_path:
@@ -740,14 +753,18 @@ def fetch_github_json_file(config, session, owner, repo, path, ref):
 
     encoded_content = response_json.get("content", "")
     if response_json.get("encoding") != "base64" or not encoded_content:
-        logging.warning("[OGM Aardvark] GitHub content response for %s was not base64.", path)
+        logging.warning(
+            "[OGM Aardvark] GitHub content response for %s was not base64.", path
+        )
         return None
 
     try:
         raw_content = base64.b64decode(encoded_content).decode("utf-8", errors="ignore")
         return json.loads(raw_content)
     except (ValueError, json.JSONDecodeError) as exc:
-        logging.warning("[OGM Aardvark] Failed to decode GitHub JSON at %s: %s", path, exc)
+        logging.warning(
+            "[OGM Aardvark] Failed to decode GitHub JSON at %s: %s", path, exc
+        )
         return None
 
 
@@ -840,7 +857,8 @@ def write_commit_delta_outputs(primary_df, distributions_df, harvester):
     primary_columns = [
         col
         for col in PRIMARY_FIELD_ORDER
-        if col in primary_df.columns and col not in harvester.PRIMARY_OUTPUT_EXCLUDED_FIELDS
+        if col in primary_df.columns
+        and col not in harvester.PRIMARY_OUTPUT_EXCLUDED_FIELDS
     ]
     primary_columns.extend(
         col

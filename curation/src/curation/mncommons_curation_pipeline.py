@@ -36,6 +36,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from utils.field_order import PRIMARY_FIELD_ORDER  # noqa: E402
+from utils.geometry_repair import repair_geometry_fields  # noqa: E402
 
 from curation.fgdc_metadata import (  # noqa: E402
     FgdcMetadata,
@@ -519,9 +520,7 @@ def load_job_config(path: Path) -> JobConfig:
             SeriesSpec(
                 series_id=series_id,
                 title=_required_text(series_mapping, "title", label),
-                catalog_title=clean_text(
-                    str(series_mapping.get("catalog_title", ""))
-                ),
+                catalog_title=clean_text(str(series_mapping.get("catalog_title", ""))),
                 resource_guid=expected_guid,
                 spatial_coverage=_required_text(
                     series_mapping, "spatial_coverage", label
@@ -1110,7 +1109,9 @@ def run_inventory_stage(
                 "metadata_xml_path": portable_path(package.metadata_xml),
                 "metadata_xml_sha256": file_sha256(package.metadata_xml),
                 "metadata_html_path": portable_path(package.metadata_html),
-                "preview_path": portable_path(package.preview) if package.preview else "",
+                "preview_path": portable_path(package.preview)
+                if package.preview
+                else "",
                 "layer_file_count": len(package.layer_files),
                 "layer_files": "|".join(
                     portable_path(path) for path in package.layer_files
@@ -1222,7 +1223,9 @@ def _aardvark_row(
     title = f"{catalog_title} [{controlled_place}] {{{title_date}}}"
     rights = fgdc.use_constraints or "Review original FGDC use constraints."
     output_geopackage = job.output_geopackage(version)
-    gpkg_size = output_geopackage.stat().st_size if output_geopackage.is_file() else None
+    gpkg_size = (
+        output_geopackage.stat().st_size if output_geopackage.is_file() else None
+    )
     inspected_crs = _inspection_crs(record["source_inspection"])
     coordinate_reference_system = (
         inspected_crs
@@ -1233,6 +1236,7 @@ def _aardvark_row(
         f"urn:uuid:{series.resource_guid}",
         f"gdrs-snapshot:{series.series_id}:{version.snapshot_year}",
     ]
+    spatial = repair_geometry_fields(fgdc.bounding_box, fgdc.geometry)
     row = {field: "" for field in PRIMARY_FIELD_ORDER}
     row.update(
         {
@@ -1261,8 +1265,8 @@ def _aardvark_row(
                 else fgdc.date_range
             ),
             "Spatial Coverage": series.spatial_coverage,
-            "Bounding Box": fgdc.bounding_box,
-            "Geometry": fgdc.geometry,
+            "Bounding Box": spatial.bounding_box,
+            "Geometry": spatial.geometry,
             "Centroid": fgdc.centroid,
             "Coordinate Reference System": coordinate_reference_system,
             "Access Rights": job.metadata.access_rights,
@@ -1356,6 +1360,9 @@ def _collection_aardvark_row(job: JobConfig) -> dict[str, Any]:
         }
     )
     row.update(collection.metadata_overrides)
+    spatial = repair_geometry_fields(row["Bounding Box"], row["Geometry"])
+    row["Bounding Box"] = spatial.bounding_box
+    row["Geometry"] = spatial.geometry
     return row
 
 

@@ -250,7 +250,9 @@ def test_download_pages_past_the_default_thousand_row_limit(
 
     def fake_run_command(command: list[str]) -> None:
         commands.append(command)
-        partial_path = next(Path(value) for value in command if value.endswith(".partial.gpkg"))
+        partial_path = next(
+            Path(value) for value in command if value.endswith(".partial.gpkg")
+        )
         partial_path.write_bytes(b"partial geopackage")
 
     monkeypatch.setattr(pipeline.shutil, "which", lambda name: "/usr/bin/ogr2ogr")
@@ -314,7 +316,9 @@ def test_dictionary_uses_socrata_column_names_types_and_descriptions(
 
     run_dictionary_stage(job, requester=source_requester)
 
-    dictionary = pd.read_csv(job.dictionary_path("blm_trees_2026.gpkg"), dtype=str).fillna("")
+    dictionary = pd.read_csv(
+        job.dictionary_path("blm_trees_2026.gpkg"), dtype=str
+    ).fillna("")
     assert list(dictionary["field_name"]) == ["site_id", "condition", "the_geom"]
     assert list(dictionary["field_type"]) == ["number", "text", "point"]
     assert dictionary.iloc[0]["definition"] == "Site ID: Unique tree ID"
@@ -348,6 +352,7 @@ def test_enrich_uses_completed_geopackage_count_geometry_and_bounds(
     row = pd.read_csv(job.metadata_path, dtype=str, keep_default_na=False).iloc[0]
     assert row["Resource Type"] == "Point data"
     assert row["Bounding Box"] == "-86.5920,39.1210,-86.4710,39.2210"
+    assert row["Geometry"] == "ENVELOPE(-86.5920,-86.4710,39.2210,39.1210)"
     assert row["Centroid"] == "39.1710,-86.5315"
     require_confirmed_review(job)
 

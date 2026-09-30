@@ -288,8 +288,13 @@ def test_parse_metadata_directory_listing_apache_style() -> None:
         harvested_at="2026-07-03T00:00:00Z",
     )
 
-    assert [row["metadata_filename"] for row in rows] == ["county_roads.xml", "imagery.xml"]
-    assert rows[0]["metadata_url"] == "https://www.pasda.psu.edu/metadata/county_roads.xml"
+    assert [row["metadata_filename"] for row in rows] == [
+        "county_roads.xml",
+        "imagery.xml",
+    ]
+    assert (
+        rows[0]["metadata_url"] == "https://www.pasda.psu.edu/metadata/county_roads.xml"
+    )
     assert rows[0]["metadata_size_bytes"] == 12288
     assert rows[0]["source_manifest"] == "metadata_directory"
 
@@ -313,7 +318,10 @@ def test_parse_pasda_asset_directory_listing_finds_files_and_directories() -> No
     )
 
     assert parsed["directories"] == ["https://www.pasda.psu.edu/download/roads/"]
-    assert [row["asset_filename"] for row in parsed["files"]] == ["parcels.zip", "preview.geojson"]
+    assert [row["asset_filename"] for row in parsed["files"]] == [
+        "parcels.zip",
+        "preview.geojson",
+    ]
     assert parsed["files"][0]["asset_kind"] == "download_archive"
     assert parsed["files"][0]["asset_size_bytes"] == 12288
     assert parsed["files"][1]["asset_kind"] == "geojson"
@@ -356,13 +364,16 @@ def test_inventory_pasda_directory_tree_recurses_and_filters_extensions() -> Non
         file_extensions={".zip"},
     )
 
-    assert [row["asset_relative_path"] for row in rows] == ["top.zip", "roads/roads.zip"]
+    assert [row["asset_relative_path"] for row in rows] == [
+        "top.zip",
+        "roads/roads.zip",
+    ]
     assert rows[1]["asset_depth"] == 1
 
 
 def test_inventory_pasda_directory_tree_honors_request_delay(monkeypatch) -> None:
     class FakeResponse:
-        text = "<pre><a href=\"file.zip\">file.zip</a> 2024-01-01 10:00 1K</pre>"
+        text = '<pre><a href="file.zip">file.zip</a> 2024-01-01 10:00 1K</pre>'
 
         def raise_for_status(self) -> None:
             return None
@@ -397,9 +408,7 @@ def test_pasda_asset_match_review_prioritizes_exact_filenames() -> None:
             "download_links_found_in_metadata": [
                 "https://www.pasda.psu.edu/download/allegheny/streets.zip"
             ],
-            "online_links": [
-                "https://www.pasda.psu.edu/download/allegheny/historic/"
-            ],
+            "online_links": ["https://www.pasda.psu.edu/download/allegheny/historic/"],
         },
         {
             "source_record_id": "active_underground_permit_boundaries_202410",
@@ -487,7 +496,10 @@ def test_pasda_asset_match_review_prioritizes_exact_filenames() -> None:
         "https://www.pasda.psu.edu/download/allegheny/AlleghenyCounty_StreetCenterlines201307.zip|"
         "https://www.pasda.psu.edu/download/allegheny/AlleghenyCounty_StreetCenterlines201307.shp"
     )
-    assert rows[0]["metadata_archive_links"] == "https://www.pasda.psu.edu/download/allegheny/historic/"
+    assert (
+        rows[0]["metadata_archive_links"]
+        == "https://www.pasda.psu.edu/download/allegheny/historic/"
+    )
     assert rows[0]["archive_directory_candidate_urls"] == (
         "https://www.pasda.psu.edu/download/allegheny/historic/"
     )
@@ -550,7 +562,9 @@ def test_pasda_series_review_groups_dated_dataset_snapshots() -> None:
         },
     ]
 
-    rows = build_pasda_series_review_records(records, asset_match_review_rows=asset_match_rows)
+    rows = build_pasda_series_review_records(
+        records, asset_match_review_rows=asset_match_rows
+    )
 
     assert len(rows) == 1
     assert rows[0]["series_key"] == "integratedlistattaining_lakes"
@@ -560,7 +574,10 @@ def test_pasda_series_review_groups_dated_dataset_snapshots() -> None:
     assert rows[0]["inferred_record_dates"] == "2015-04|2018-10|2021-10|2025-07"
     assert rows[0]["ready_count"] == 2
     assert rows[0]["no_asset_count"] == 2
-    assert rows[0]["most_recently_found_record_id"] == "IntegratedListAttaining_Lakes2025_07"
+    assert (
+        rows[0]["most_recently_found_record_id"]
+        == "IntegratedListAttaining_Lakes2025_07"
+    )
     assert rows[0]["most_recently_found_date"] == "2025-07"
     assert rows[0]["latest_ready_record_id"] == "IntegratedListAttaining_Lakes2018_10"
     assert rows[0]["latest_ready_date"] == "2018-10"
@@ -674,7 +691,9 @@ def test_pasda_public_ids_drop_square_brackets_but_matching_keeps_source_id() ->
         }
     ]
 
-    match_rows = build_pasda_asset_match_review_records([record], download_inventory_rows=asset_rows)
+    match_rows = build_pasda_asset_match_review_records(
+        [record], download_inventory_rows=asset_rows
+    )
     aardvark_rows = build_pasda_aardvark_draft_records(
         [record],
         asset_match_review_rows=match_rows,
@@ -687,7 +706,9 @@ def test_pasda_public_ids_drop_square_brackets_but_matching_keeps_source_id() ->
     assert pasda_record_id_from_source(source_record_id) == (
         "pasda-wss_SSA_PA001_soildb_Adams_PA_2003_2022-09-06"
     )
-    assert aardvark_rows[0]["ID"] == "pasda-wss_SSA_PA001_soildb_Adams_PA_2003_2022-09-06"
+    assert (
+        aardvark_rows[0]["ID"] == "pasda-wss_SSA_PA001_soildb_Adams_PA_2003_2022-09-06"
+    )
     assert distribution_rows[0]["friendlier_id"] == (
         "pasda-wss_SSA_PA001_soildb_Adams_PA_2003_2022-09-06"
     )
@@ -739,10 +760,14 @@ def test_pasda_ready_outputs_exclude_unparsed_matched_records() -> None:
         ready_only=True,
     )
     distribution_rows = build_pasda_distribution_records(records, match_rows)
-    unparsed_review_rows = build_pasda_unparsed_matched_review_records(records, match_rows)
+    unparsed_review_rows = build_pasda_unparsed_matched_review_records(
+        records, match_rows
+    )
 
     assert [row["ID"] for row in aardvark_rows] == ["pasda-parsed-roads"]
-    assert [row["friendlier_id"] for row in distribution_rows] == ["pasda-parsed-roads"] * 2
+    assert [row["friendlier_id"] for row in distribution_rows] == [
+        "pasda-parsed-roads"
+    ] * 2
     assert len(unparsed_review_rows) == 1
     assert unparsed_review_rows[0]["source_record_id"] == "broken-roads"
     assert unparsed_review_rows[0]["public_id"] == "pasda-broken-roads"
@@ -779,7 +804,9 @@ def test_fetch_creates_test_directories_and_honors_max_records(
 
     config = _config(tmp_path)
     config["max_records"] = 1
-    monkeypatch.setattr(pasda_module, "build_pasda_session", lambda user_agent: FakeSession())
+    monkeypatch.setattr(
+        pasda_module, "build_pasda_session", lambda user_agent: FakeSession()
+    )
 
     harvester = PasdaHarvester(config)
     rows = harvester.fetch()
@@ -870,7 +897,9 @@ def test_fetch_and_parse_reuse_unchanged_metadata_registry(
             raise AssertionError("Registry reuse should skip XML download.")
 
     fake_session = FakeSession()
-    monkeypatch.setattr(pasda_module, "build_pasda_session", lambda user_agent: fake_session)
+    monkeypatch.setattr(
+        pasda_module, "build_pasda_session", lambda user_agent: fake_session
+    )
 
     config = _config(tmp_path)
     config["metadata_registry_path"] = str(metadata_registry_path)
@@ -898,7 +927,9 @@ def test_fetch_redownloads_when_listing_changed_even_if_cached_size_matches(
     cache_path.parent.mkdir()
     cache_path.write_text(FGDC_XML, encoding="utf-8")
     cached_size = cache_path.stat().st_size
-    changed_xml = FGDC_XML.replace("Pennsylvania Bedrock Geology", "New Pennsylvania Bedrock Map")
+    changed_xml = FGDC_XML.replace(
+        "Pennsylvania Bedrock Geology", "New Pennsylvania Bedrock Map"
+    )
     assert len(changed_xml.encode("utf-8")) == cached_size
     pd.DataFrame(
         [
@@ -974,7 +1005,9 @@ def test_fetch_redownloads_when_listing_changed_even_if_cached_size_matches(
             return FakeResponse(content=changed_xml.encode("utf-8"))
 
     fake_session = FakeSession()
-    monkeypatch.setattr(pasda_module, "build_pasda_session", lambda user_agent: fake_session)
+    monkeypatch.setattr(
+        pasda_module, "build_pasda_session", lambda user_agent: fake_session
+    )
 
     config = _config(tmp_path)
     config["metadata_registry_path"] = str(metadata_registry_path)
@@ -1188,15 +1221,19 @@ def test_pasda_write_outputs_can_write_change_only_files(tmp_path: Path) -> None
     assert new_upload.parent.name == "upload"
     assert deleted_ids.parent.name == "upload"
     assert not (Path(config["output_dir"]) / "review").exists()
-    assert [row["ID"] for row in pd.read_csv(new_upload).to_dict("records")] == ["pasda-new"]
+    assert [row["ID"] for row in pd.read_csv(new_upload).to_dict("records")] == [
+        "pasda-new"
+    ]
     assert [row["ID"] for row in pd.read_csv(changed_upload).to_dict("records")] == [
         "pasda-changed"
     ]
-    assert [row["friendlier_id"] for row in pd.read_csv(new_distributions).to_dict("records")][
-        0
-    ] == "pasda-new"
     assert [
-        row["friendlier_id"] for row in pd.read_csv(changed_distributions).to_dict("records")
+        row["friendlier_id"]
+        for row in pd.read_csv(new_distributions).to_dict("records")
+    ][0] == "pasda-new"
+    assert [
+        row["friendlier_id"]
+        for row in pd.read_csv(changed_distributions).to_dict("records")
     ][0] == "pasda-changed"
     assert [row["ID"] for row in pd.read_csv(deleted_ids).to_dict("records")] == [
         "pasda-deleted"
@@ -1246,8 +1283,10 @@ def test_pasda_write_outputs_skips_zero_row_change_files(tmp_path: Path) -> None
             "inventory_status": "found",
         }
     ]
-    stale_changed = Path(config["output_dir"]) / "upload" / (
-        f"{pasda_module.time.strftime('%Y-%m-%d')}_pasda_aardvark_changed.csv"
+    stale_changed = (
+        Path(config["output_dir"])
+        / "upload"
+        / (f"{pasda_module.time.strftime('%Y-%m-%d')}_pasda_aardvark_changed.csv")
     )
     stale_changed.parent.mkdir(parents=True)
     stale_changed.write_text("stale\n", encoding="utf-8")
@@ -1285,7 +1324,9 @@ def test_metadata_profile_detection() -> None:
 
 
 def test_fgdc_field_extraction(tmp_path: Path) -> None:
-    manifest, record = parse_pasda_manifest_row(_manifest_row(tmp_path, "bedrock.xml", FGDC_XML))
+    manifest, record = parse_pasda_manifest_row(
+        _manifest_row(tmp_path, "bedrock.xml", FGDC_XML)
+    )
 
     assert manifest["xml_parse_status"] == "parsed"
     assert record["metadata_profile"] == "fgdc_csdgm"
@@ -1316,7 +1357,9 @@ def test_fgdc_title_can_be_direct_child_of_citation(tmp_path: Path) -> None:
     </metadata>
     """
 
-    manifest, record = parse_pasda_manifest_row(_manifest_row(tmp_path, "blocks.xml", xml))
+    manifest, record = parse_pasda_manifest_row(
+        _manifest_row(tmp_path, "blocks.xml", xml)
+    )
 
     assert manifest["xml_parse_status"] == "parsed"
     assert record["metadata_profile"] == "fgdc_csdgm"
@@ -1331,7 +1374,9 @@ def test_fgdc_custom_projected_crs_keeps_descriptive_reference(tmp_path: Path) -
     )
 
     assert record["spatial_reference"].startswith("Projected CRS: albers_dep")
-    assert "https://spatialreference.org/ref/epsg/4269/" not in record["spatial_reference"]
+    assert (
+        "https://spatialreference.org/ref/epsg/4269/" not in record["spatial_reference"]
+    )
 
 
 def test_fgdc_data_format_reads_distor_format(tmp_path: Path) -> None:
@@ -1343,7 +1388,9 @@ def test_fgdc_data_format_reads_distor_format(tmp_path: Path) -> None:
 
 
 def test_iso_field_extraction(tmp_path: Path) -> None:
-    manifest, record = parse_pasda_manifest_row(_manifest_row(tmp_path, "imagery.xml", ISO_XML))
+    manifest, record = parse_pasda_manifest_row(
+        _manifest_row(tmp_path, "imagery.xml", ISO_XML)
+    )
 
     assert manifest["xml_parse_status"] == "parsed"
     assert record["metadata_profile"] == "iso_19139"
@@ -1357,7 +1404,9 @@ def test_iso_field_extraction(tmp_path: Path) -> None:
 
 
 def test_arcgis_partial_field_extraction(tmp_path: Path) -> None:
-    manifest, record = parse_pasda_manifest_row(_manifest_row(tmp_path, "parcels.xml", ARCGIS_XML))
+    manifest, record = parse_pasda_manifest_row(
+        _manifest_row(tmp_path, "parcels.xml", ARCGIS_XML)
+    )
 
     assert manifest["xml_parse_status"] == "parsed"
     assert record["metadata_profile"] == "arcgis_metadata"
@@ -1367,7 +1416,9 @@ def test_arcgis_partial_field_extraction(tmp_path: Path) -> None:
 
 
 def test_malformed_xml_handling(tmp_path: Path) -> None:
-    manifest, record = parse_pasda_manifest_row(_manifest_row(tmp_path, "broken.xml", MALFORMED_XML))
+    manifest, record = parse_pasda_manifest_row(
+        _manifest_row(tmp_path, "broken.xml", MALFORMED_XML)
+    )
 
     assert manifest["xml_parse_status"] == "malformed"
     assert manifest["metadata_profile"] == "malformed_xml"
@@ -1375,7 +1426,9 @@ def test_malformed_xml_handling(tmp_path: Path) -> None:
 
 
 def test_unknown_xml_normalized_record_shape(tmp_path: Path) -> None:
-    manifest, record = parse_pasda_manifest_row(_manifest_row(tmp_path, "unknown.xml", UNKNOWN_XML))
+    manifest, record = parse_pasda_manifest_row(
+        _manifest_row(tmp_path, "unknown.xml", UNKNOWN_XML)
+    )
 
     assert manifest["xml_parse_status"] == "partial"
     assert record["metadata_profile"] == "unknown_xml"
@@ -1395,11 +1448,15 @@ def test_pasda_parse_collects_errors_and_summary(tmp_path: Path) -> None:
 
     assert len(records) == 2
     assert len(harvester.error_rows) == 1
-    assert any(row["metadata_profile"] == "fgdc_csdgm" for row in harvester.profile_summary)
+    assert any(
+        row["metadata_profile"] == "fgdc_csdgm" for row in harvester.profile_summary
+    )
 
 
 def test_pasda_aardvark_draft_crosswalk_sets_pasda_defaults(tmp_path: Path) -> None:
-    _, record = parse_pasda_manifest_row(_manifest_row(tmp_path, "bedrock.xml", FGDC_XML))
+    _, record = parse_pasda_manifest_row(
+        _manifest_row(tmp_path, "bedrock.xml", FGDC_XML)
+    )
     record["lineage"] = "Test lineage."
 
     rows = build_pasda_aardvark_draft_records([record], accession_date="2026-07-03")
@@ -1417,8 +1474,12 @@ def test_pasda_aardvark_draft_crosswalk_sets_pasda_defaults(tmp_path: Path) -> N
     assert "Index Year" not in rows[0]
     assert rows[0]["Resource Type"] == ""
     assert rows[0]["Format"] == "Shapefile"
-    assert rows[0]["Coordinate Reference System"] == "https://spatialreference.org/ref/epsg/2272/"
+    assert (
+        rows[0]["Coordinate Reference System"]
+        == "https://spatialreference.org/ref/epsg/2272/"
+    )
     assert rows[0]["Bounding Box"] == "-80.52,39.72,-74.69,42.27"
+    assert rows[0]["Geometry"] == "ENVELOPE(-80.52,-74.69,42.27,39.72)"
     assert rows[0]["Keyword"] == "geology|Pennsylvania"
     assert rows[0]["Spatial Coverage"] == "Pennsylvania"
     assert rows[0]["Rights"] == "Use with citation."
@@ -1455,6 +1516,7 @@ def test_pasda_aardvark_draft_does_not_default_spatial_coverage() -> None:
     )
 
     assert rows[0]["Spatial Coverage"] == ""
+    assert rows[0]["Geometry"] == ""
 
 
 def test_pasda_aardvark_spatial_coverage_matches_pa_county_reference_format() -> None:
@@ -1510,7 +1572,10 @@ def test_pasda_aardvark_spatial_coverage_matches_pa_county_reference_format() ->
         county_lookup=county_lookup,
     )
 
-    assert rows[0]["Spatial Coverage"] == "Pennsylvania--Allegheny County|Pennsylvania|Pittsburgh"
+    assert (
+        rows[0]["Spatial Coverage"]
+        == "Pennsylvania--Allegheny County|Pennsylvania|Pittsburgh"
+    )
     assert rows[1]["Spatial Coverage"] == "Virginia|Alleghany County"
     assert rows[2]["Spatial Coverage"] == "Pennsylvania--Chester County|Pennsylvania"
     assert rows[3]["Spatial Coverage"] == "New York|Montgomery County"
@@ -1648,8 +1713,14 @@ def test_pasda_aardvark_draft_uses_asset_and_series_reports() -> None:
 
     assert len(draft_df) == 1
     assert draft_df.loc[0, "ID"] == "pasda-IntegratedListAttaining_Lakes2015_04"
-    assert draft_df.loc[0, "Title"] == "Lakes Assessments - Attaining [Pennsylvania] {2015-04}"
-    assert draft_df.loc[0, "Local Collection"] == "PASDA series: Lakes Assessments - Attaining"
+    assert (
+        draft_df.loc[0, "Title"]
+        == "Lakes Assessments - Attaining [Pennsylvania] {2015-04}"
+    )
+    assert (
+        draft_df.loc[0, "Local Collection"]
+        == "PASDA series: Lakes Assessments - Attaining"
+    )
     assert draft_df.loc[0, "Display Note"].startswith("Info: ")
     assert "historical snapshot" in draft_df.loc[0, "Display Note"]
     assert "https://www.pasda.psu.edu" in draft_df.loc[0, "Display Note"]
@@ -1675,7 +1746,7 @@ def test_pasda_aardvark_temporal_coverage_uses_readable_range_separator() -> Non
                 "temporal_end": "2012",
                 "xml_parse_status": "parsed",
                 "metadata_profile": "fgdc_csdgm",
-            }
+            },
         ],
         accession_date="2026-07-03",
     )
@@ -1684,7 +1755,9 @@ def test_pasda_aardvark_temporal_coverage_uses_readable_range_separator() -> Non
     assert rows[1]["Temporal Coverage"] == "2012"
 
 
-def test_pasda_aardvark_title_refinement_preserves_dates_and_adds_place_when_helpful() -> None:
+def test_pasda_aardvark_title_refinement_preserves_dates_and_adds_place_when_helpful() -> (
+    None
+):
     rows = build_pasda_aardvark_draft_records(
         [
             {
@@ -1710,7 +1783,12 @@ def test_pasda_aardvark_title_refinement_preserves_dates_and_adds_place_when_hel
                 "metadata_url": "https://www.pasda.psu.edu/metadata/road.xml",
                 "title": "Road",
                 "publication_date": "20121204",
-                "place_keywords": ["Allegheny National Forest", "ANF", "Pennsylvania", "PA"],
+                "place_keywords": [
+                    "Allegheny National Forest",
+                    "ANF",
+                    "Pennsylvania",
+                    "PA",
+                ],
                 "xml_parse_status": "parsed",
                 "metadata_profile": "fgdc_csdgm",
             },
@@ -1727,7 +1805,10 @@ def test_pasda_aardvark_title_refinement_preserves_dates_and_adds_place_when_hel
         accession_date="2026-07-03",
     )
 
-    assert rows[0]["Title"] == "Active Underground Permit Boundaries 2024-10 [Pennsylvania]"
+    assert (
+        rows[0]["Title"]
+        == "Active Underground Permit Boundaries 2024-10 [Pennsylvania]"
+    )
     assert rows[0]["Alternative Title"] == "Active Underground Permit Boundaries 202410"
     assert rows[1]["Title"] == "Allegheny County Address Points 2018-12"
     assert rows[1]["Alternative Title"] == "Allegheny County Address Points 201812"
