@@ -92,11 +92,20 @@ def test_invalid_complex_geometry_uses_envelope_and_requires_review():
     assert result.requires_review
 
 
-def test_missing_bbox_and_geometry_requires_review():
+def test_missing_bbox_and_geometry_are_valid_blank_spatial_fields():
     result = repair_geometry_fields("", "")
 
     assert result.geometry == ""
-    assert result.action == "unrepairable_missing_coordinates"
+    assert result.action == "retain_blank_spatial_fields"
+    assert not result.requires_review
+
+
+def test_geometry_without_bbox_is_cleared_and_requires_review():
+    result = repair_geometry_fields("", "ENVELOPE(-90,-89,41,40)")
+
+    assert result.bounding_box == ""
+    assert result.geometry == ""
+    assert result.action == "clear_geometry_without_bbox"
     assert result.requires_review
 
 

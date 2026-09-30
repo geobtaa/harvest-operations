@@ -33,6 +33,22 @@ def repair_geometry_fields(bounding_box: object, geometry: object) -> GeometryRe
     bbox_parts, bbox_note = normalize_bbox(original_bbox)
     repaired_bbox = ",".join(bbox_parts) if bbox_parts else original_bbox
 
+    if not original_bbox:
+        if original_geometry:
+            return GeometryRepair(
+                bounding_box="",
+                geometry="",
+                action="clear_geometry_without_bbox",
+                requires_review=True,
+                note="Geometry was cleared because Bounding Box is blank.",
+            )
+        return GeometryRepair(
+            bounding_box="",
+            geometry="",
+            action="retain_blank_spatial_fields",
+            note="Bounding Box and Geometry are both blank.",
+        )
+
     envelope_parts = parse_envelope(original_geometry)
     if envelope_parts is not None:
         notes = _join_notes(bbox_note, "Existing ENVELOPE retained.")
@@ -61,11 +77,9 @@ def repair_geometry_fields(bounding_box: object, geometry: object) -> GeometryRe
         return GeometryRepair(
             bounding_box=repaired_bbox,
             geometry="",
-            action="unrepairable_missing_coordinates",
+            action="unrepairable_invalid_bbox",
             requires_review=True,
-            note=_join_notes(
-                bbox_note, "Geometry and usable Bounding Box are both missing."
-            ),
+            note=_join_notes(bbox_note, "Geometry is blank."),
         )
 
     try:
