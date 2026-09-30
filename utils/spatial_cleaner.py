@@ -132,6 +132,9 @@ def spatial_cleaning(df):
     """
     Apply all spatial cleaning steps to the DataFrame.
     """
+    if "Bounding Box" not in df.columns:
+        return df
+
     df = round_coordinates(df)
     df = correct_bounding_box(df)
     df = clean_bounding_box(df)
