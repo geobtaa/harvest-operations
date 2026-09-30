@@ -37,6 +37,7 @@ if str(REPO_ROOT) not in sys.path:
 from harvesters.base import BaseHarvester  # noqa: E402
 from harvesters.socrata import SocrataHarvester  # noqa: E402
 from utils.field_order import PRIMARY_FIELD_ORDER  # noqa: E402
+from utils.geometry_repair import repair_geometry_fields  # noqa: E402
 
 from curation.arcgis_curation_pipeline import (  # noqa: E402
     CurationConfigError,
@@ -201,7 +202,9 @@ def _required_string(mapping: dict[str, Any], key: str, label: str) -> str:
 
 def _resolve_path(value: str, config_path: Path) -> Path:
     path = Path(value).expanduser()
-    return path.resolve() if path.is_absolute() else (config_path.parent / path).resolve()
+    return (
+        path.resolve() if path.is_absolute() else (config_path.parent / path).resolve()
+    )
 
 
 def _http_url(value: str, label: str) -> str:
@@ -212,7 +215,9 @@ def _http_url(value: str, label: str) -> str:
         or parsed.fragment
     ):
         raise CurationConfigError(f"{label} must be an HTTP(S) URL")
-    return urlunsplit((parsed.scheme, parsed.netloc, parsed.path.rstrip("/"), parsed.query, ""))
+    return urlunsplit(
+        (parsed.scheme, parsed.netloc, parsed.path.rstrip("/"), parsed.query, "")
+    )
 
 
 def _http_origin(value: str, label: str) -> str:
@@ -239,7 +244,9 @@ def load_job_config(config_path: Path | str) -> JobConfig:
 
     job_raw = _mapping(raw.get("job"), "job")
     hub_raw = _mapping(raw.get("hub"), "hub")
-    crs_raw = _mapping(raw.get("coordinate_reference_system"), "coordinate_reference_system")
+    crs_raw = _mapping(
+        raw.get("coordinate_reference_system"), "coordinate_reference_system"
+    )
     metadata_raw = _mapping(raw.get("metadata"), "metadata")
     file_naming_raw = _mapping(raw.get("file_naming"), "file_naming")
     selection_raw = _mapping(raw.get("selection_criteria", {}), "selection_criteria")
@@ -310,7 +317,9 @@ def load_job_config(config_path: Path | str) -> JobConfig:
         if source_id in seen_ids:
             raise CurationConfigError(f"Duplicate record id: {source_id}")
         if filename_stem.casefold() in seen_filenames:
-            raise CurationConfigError(f"Duplicate output filename: {filename_stem}.gpkg")
+            raise CurationConfigError(
+                f"Duplicate output filename: {filename_stem}.gpkg"
+            )
         seen_ids.add(source_id)
         seen_filenames.add(filename_stem.casefold())
         records.append(
@@ -339,11 +348,15 @@ def load_job_config(config_path: Path | str) -> JobConfig:
             "Unsupported allowed_resource_types: " + ", ".join(invalid_types)
         )
 
-    required_fields_value = review_raw.get("required_fields", DEFAULT_REQUIRED_REVIEW_FIELDS)
+    required_fields_value = review_raw.get(
+        "required_fields", DEFAULT_REQUIRED_REVIEW_FIELDS
+    )
     if not isinstance(required_fields_value, list) or not all(
         isinstance(value, str) and value.strip() for value in required_fields_value
     ):
-        raise CurationConfigError("manual_review.required_fields must be a list of field names")
+        raise CurationConfigError(
+            "manual_review.required_fields must be a list of field names"
+        )
 
     websites_value = str(
         hub_raw.get("websites_csv", REPO_ROOT / "reference_data" / "websites.csv")
@@ -372,9 +385,7 @@ def load_job_config(config_path: Path | str) -> JobConfig:
         raise CurationConfigError(
             f"download.page_size must be between 1 and {MAX_SODA2_PAGE_SIZE}"
         )
-    app_token_environment = str(
-        download_raw.get("app_token_environment", "")
-    ).strip()
+    app_token_environment = str(download_raw.get("app_token_environment", "")).strip()
     if app_token_environment and not re.fullmatch(
         r"[A-Za-z_][A-Za-z0-9_]*",
         app_token_environment,
@@ -409,7 +420,9 @@ def load_job_config(config_path: Path | str) -> JobConfig:
         soda_api_base=soda_api_base,
         website_reference_id=_required_text(hub_raw, "website_reference_id", "hub"),
         websites_csv=websites_csv,
-        crs_authority=_required_text(crs_raw, "authority", "coordinate_reference_system"),
+        crs_authority=_required_text(
+            crs_raw, "authority", "coordinate_reference_system"
+        ),
         crs_uri=_required_text(crs_raw, "uri", "coordinate_reference_system"),
         provider=str(raw.get("provider", "BTAA-GIN")).strip() or "BTAA-GIN",
         code=_required_string(metadata_raw, "code", "metadata"),
@@ -499,7 +512,9 @@ def socrata_geometry_columns(metadata: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
-def validate_socrata_metadata(source_id: str, metadata: Any, metadata_url: str) -> dict[str, Any]:
+def validate_socrata_metadata(
+    source_id: str, metadata: Any, metadata_url: str
+) -> dict[str, Any]:
     if not isinstance(metadata, dict):
         raise RuntimeError(f"Expected a metadata object from {metadata_url}")
     returned_id = str(metadata.get("id", "")).casefold()
@@ -513,9 +528,7 @@ def validate_socrata_metadata(source_id: str, metadata: Any, metadata_url: str) 
             f"Selected Socrata dataset has no supported geometry column: {source_id}"
         )
     resource_types = {
-        SOCRATA_GEOMETRY_RESOURCE_TYPES[
-            str(column.get("dataTypeName", "")).casefold()
-        ]
+        SOCRATA_GEOMETRY_RESOURCE_TYPES[str(column.get("dataTypeName", "")).casefold()]
         for column in geometry_columns
     }
     if len(resource_types) != 1:
@@ -542,7 +555,9 @@ def count_socrata_rows(
         value = payload[0]["count"]
         count = int(value)
     except (IndexError, KeyError, TypeError, ValueError) as exc:
-        raise RuntimeError(f"Socrata count query failed for {source_id}: {payload!r}") from exc
+        raise RuntimeError(
+            f"Socrata count query failed for {source_id}: {payload!r}"
+        ) from exc
     if count < 1:
         raise RuntimeError(f"Selected Socrata dataset contains no rows: {source_id}")
     return count
@@ -645,8 +660,7 @@ def build_metadata_dataframe(
         for record, _, metadata in selected
     }
     geojson_urls = {
-        record.source_id: job.geojson_url(record.source_id)
-        for record, _, _ in selected
+        record.source_id: job.geojson_url(record.source_id) for record, _, _ in selected
     }
     dataframe["Provenance"] = source_ids.map(
         {
@@ -793,7 +807,9 @@ def download_socrata_geopackage(
     if not ogr2ogr:
         raise RuntimeError("ogr2ogr is required to download GeoPackages")
     if output_path.exists() and not overwrite:
-        raise FileExistsError(f"GeoPackage already exists (use --overwrite): {output_path}")
+        raise FileExistsError(
+            f"GeoPackage already exists (use --overwrite): {output_path}"
+        )
     if not 1 <= page_size <= MAX_SODA2_PAGE_SIZE:
         raise ValueError(f"page_size must be between 1 and {MAX_SODA2_PAGE_SIZE}")
 
@@ -847,13 +863,18 @@ def download_socrata_geopackage(
                     },
                     headers,
                 )
-                if not isinstance(payload, dict) or payload.get("type") != "FeatureCollection":
+                if (
+                    not isinstance(payload, dict)
+                    or payload.get("type") != "FeatureCollection"
+                ):
                     raise RuntimeError(
                         f"Socrata page is not a GeoJSON FeatureCollection: {geojson_url}"
                     )
                 features = payload.get("features")
                 if not isinstance(features, list):
-                    raise RuntimeError(f"Socrata GeoJSON page has no features list: {geojson_url}")
+                    raise RuntimeError(
+                        f"Socrata GeoJSON page has no features list: {geojson_url}"
+                    )
                 if len(features) != requested_count:
                     raise RuntimeError(
                         f"Socrata page for {source_id} returned {len(features)} rows at "
@@ -981,12 +1002,7 @@ def _format_bbox(values: tuple[float, float, float, float]) -> str:
 
 
 def _bbox_geometry(values: tuple[float, float, float, float]) -> str:
-    west, south, east, north = values
-    return (
-        f"POLYGON(({west:.4f} {north:.4f}, {east:.4f} {north:.4f}, "
-        f"{east:.4f} {south:.4f}, {west:.4f} {south:.4f}, "
-        f"{west:.4f} {north:.4f}))"
-    )
+    return repair_geometry_fields(_format_bbox(values), "").geometry
 
 
 def inspect_geopackage(path: Path) -> dict[str, Any]:
@@ -1003,7 +1019,9 @@ def inspect_geopackage(path: Path) -> dict[str, Any]:
     normalized_geometry = geometry_type.removeprefix("3D ").casefold()
     resource_type = SOCRATA_GEOMETRY_RESOURCE_TYPES.get(normalized_geometry)
     if not resource_type:
-        raise RuntimeError(f"Unsupported GeoPackage geometry type {geometry_type!r}: {path}")
+        raise RuntimeError(
+            f"Unsupported GeoPackage geometry type {geometry_type!r}: {path}"
+        )
     wgs84_bounds = transform_bounds(source_crs, "EPSG:4326", *bounds, densify_pts=21)
     return {
         "feature_count": feature_count,
@@ -1020,7 +1038,9 @@ def run_enrich_stage(job: JobConfig) -> None:
     for record in manifest["records"]:
         gpkg_path = job.gpkg_path(record["filename"])
         if not gpkg_path.is_file():
-            raise RuntimeError(f"GeoPackage is missing; run download first: {gpkg_path}")
+            raise RuntimeError(
+                f"GeoPackage is missing; run download first: {gpkg_path}"
+            )
         inspection = inspect_geopackage(gpkg_path)
         if inspection["feature_count"] != int(record["row_count"]):
             raise RuntimeError(
@@ -1067,7 +1087,9 @@ def _documented_values(column: dict[str, Any]) -> str:
     for key in ("dropDownList", "possibleValues"):
         values = format_value.get(key)
         if isinstance(values, list):
-            return "|".join(str(value).strip() for value in values if str(value).strip())
+            return "|".join(
+                str(value).strip() for value in values if str(value).strip()
+            )
     return ""
 
 
@@ -1152,7 +1174,9 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("validate", help="Validate YAML inputs only")
     subparsers.add_parser("metadata", help="Harvest selected metadata and pause")
-    review_parser = subparsers.add_parser("review", help="Record completion of CSV review")
+    review_parser = subparsers.add_parser(
+        "review", help="Record completion of CSV review"
+    )
     review_parser.add_argument("--confirm", action="store_true")
     for command_name in ("download", "postprocess", "derivatives", "zip"):
         command_parser = subparsers.add_parser(command_name)
@@ -1208,7 +1232,13 @@ def main(argv: list[str] | None = None) -> int:
             LOGGER.info("Saved portable run record: %s", path)
         elif args.command == "status":
             print(json.dumps(load_manifest(job), indent=2))
-    except (CurationConfigError, RuntimeError, OSError, ValueError, requests.RequestException) as exc:
+    except (
+        CurationConfigError,
+        RuntimeError,
+        OSError,
+        ValueError,
+        requests.RequestException,
+    ) as exc:
         LOGGER.error("%s", exc)
         return 1
     return 0

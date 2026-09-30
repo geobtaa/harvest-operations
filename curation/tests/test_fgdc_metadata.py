@@ -63,7 +63,7 @@ def test_parse_fgdc_keeps_publication_and_content_dates_separate(
     assert parsed.temporal_source == "FGDC calendar date"
     assert parsed.date_range == "2024-2024"
     assert parsed.bounding_box == "-97.2,43.5,-89.4,49.4"
-    assert parsed.geometry.startswith("POLYGON((-97.2 49.4")
+    assert parsed.geometry == "ENVELOPE(-97.2,-89.4,49.4,43.5)"
     assert parsed.centroid == "46.45,-93.30000000000001"
     assert parsed.attributes[0].label == "NAME"
     assert parsed.attributes[0].domain == "A | Active"

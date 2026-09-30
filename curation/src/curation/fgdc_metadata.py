@@ -16,6 +16,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Iterable
 
+from utils.geometry_repair import repair_geometry_fields
+
 
 def local_name(tag: str) -> str:
     """Return a lower-case XML local name, ignoring namespaces."""
@@ -234,13 +236,7 @@ class FgdcMetadata:
 
     @property
     def geometry(self) -> str:
-        if not self.bounding_box:
-            return ""
-        return (
-            f"POLYGON(({self.west} {self.north}, {self.east} {self.north}, "
-            f"{self.east} {self.south}, {self.west} {self.south}, "
-            f"{self.west} {self.north}))"
-        )
+        return repair_geometry_fields(self.bounding_box, "").geometry
 
     @property
     def centroid(self) -> str:
@@ -294,9 +290,7 @@ def _attributes(root: ET.Element) -> tuple[FgdcAttribute, ...]:
     # ``attr`` elements. Retain simple ``FIELD = definition`` and
     # ``FIELD - definition`` entries so these legacy descriptions are not
     # lost when an access data dictionary is generated.
-    entry_pattern = re.compile(
-        r"^\s*([A-Za-z][A-Za-z0-9_.]*)\s+(?:=|-)\s+(.+?)\s*$"
-    )
+    entry_pattern = re.compile(r"^\s*([A-Za-z][A-Za-z0-9_.]*)\s+(?:=|-)\s+(.+?)\s*$")
     for overview in root.iter():
         if local_name(overview.tag) != "eaover":
             continue

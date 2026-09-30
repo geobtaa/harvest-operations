@@ -179,6 +179,8 @@ def test_metadata_stage_inventories_supplied_gpkg_and_reuses_ids(
     assert row["Theme"] == "Example theme"
     assert row["Date Issued"] == "2017-01-04"
     assert row["Resource Type"] == "Polygon data"
+    assert row["Bounding Box"] == "-97,43,-89,49"
+    assert row["Geometry"] == "ENVELOPE(-97,-89,49,43)"
     assert row["Publisher"] == "Minnesota Geospatial Commons"
     assert row["Local Collection"] == (
         "Minnesota Geospatial Commons series: Example series"
