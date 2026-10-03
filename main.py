@@ -17,6 +17,7 @@ import yaml
 
 from harvesters.oai_qdc import OaiQdcHarvester
 from routers import arcgis_curation as arcgis_curation_router
+from routers import ckan_curation as ckan_curation_router
 from routers import jobs as jobs_router
 from routers import oai_pmh as oai_pmh_router
 from routers import schema as schema_router
@@ -157,6 +158,7 @@ def build_oai_qdc_ui_sources() -> list[dict]:
 app.include_router(schema_router.router)
 app.include_router(jobs_router.router)
 app.include_router(arcgis_curation_router.router)
+app.include_router(ckan_curation_router.router)
 app.include_router(socrata_curation_router.router)
 app.include_router(oai_pmh_router.router)
 
