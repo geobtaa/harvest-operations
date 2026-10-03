@@ -8,6 +8,8 @@ Staged source workflows:
 - `scripts/socrata_curation_pipeline.py` curates selected Socrata datasets,
   including paged exports beyond the platform's 1,000-row default. See the
   [Bloomington example and Socrata reference](jobs/socrata/socrata_curation_pipeline_reference.md).
+- `scripts/ckan_curation_pipeline.py` curates selected CKAN datasets, including
+  PortalJS sites whose public frontend and CKAN API use different hosts.
 - `scripts/mncommons_curation_pipeline.py` inventories and curates selected
   longitudinal series from local Minnesota Geospatial Commons snapshots.
 
@@ -470,6 +472,33 @@ match the filename. They also use a content checksum to prevent overwriting a
 file that changed in another editor after it was loaded. Saving a partially
 filled template is allowed; run **Validate** when it is complete to check all
 pipeline-specific requirements.
+
+## `ckan_curation_pipeline`
+
+The CKAN pipeline follows the same metadata-review-postprocess workflow as the
+ArcGIS and Socrata pipelines. It resolves each configured package through
+`package_show`, reuses the CKAN harvester for draft Aardvark metadata, and pins
+the selected GeoJSON resource UUID in the job and manifest. The download stage
+checks the package and resource revisions before converting the GeoJSON to a
+projected GeoPackage.
+
+The Ann Arbor PortalJS job contains the seven selected urban base layers:
+
+```sh
+uv run --project curation python curation/scripts/ckan_curation_pipeline.py \
+  curation/jobs/ckan/ann-arbor-ckan-2026.yaml metadata
+
+uv run --project curation python curation/scripts/ckan_curation_pipeline.py \
+  curation/jobs/ckan/ann-arbor-ckan-2026.yaml review --confirm
+
+uv run --project curation python curation/scripts/ckan_curation_pipeline.py \
+  curation/jobs/ckan/ann-arbor-ckan-2026.yaml postprocess
+```
+
+The dashboard exposes the same stages at **CKAN Curation Pipeline** under
+**Other Harvesters**. Runnable jobs are read from `curation/jobs/ckan/`; the
+canonical template is available to the browser job editor but excluded from
+the run list.
 
 ## Embed QGIS Metadata in GeoPackages
 

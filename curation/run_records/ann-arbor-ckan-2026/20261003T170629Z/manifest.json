@@ -1,0 +1,565 @@
+{
+  "version": 1,
+  "source_platform": "ckan",
+  "job_id": "ann-arbor-ckan-2026",
+  "config_path": "curation/jobs/ckan/ann-arbor-ckan-2026.yaml",
+  "work_directory": "curation/work/ann-arbor-ckan-2026",
+  "metadata_path": "metadata/metadata.csv",
+  "file_naming": {
+    "city_abbreviation": "a2a",
+    "download_year": "2026"
+  },
+  "config_sha256": "5015359b5fbe3dc5318c9c57c8d3fcf1a277a66eb6f3faf59e358e4d5e541fff",
+  "created_at": "2026-10-03T16:41:27+00:00",
+  "updated_at": "2026-10-03T17:06:22+00:00",
+  "manual_review": {
+    "status": "confirmed",
+    "confirmed_at": "2026-10-03T16:56:03+00:00",
+    "metadata_sha256": "40a3dfff567fd472aac3ef41d729d608d4ec3cd938bdc52d914158593321058f",
+    "pipeline_updated_at": "2026-10-03T17:01:06+00:00"
+  },
+  "stages": {
+    "validate": {
+      "status": "completed",
+      "completed_at": "2026-10-03T16:41:27+00:00"
+    },
+    "metadata": {
+      "status": "completed",
+      "completed_at": "2026-10-03T16:41:27+00:00"
+    },
+    "download": {
+      "status": "completed",
+      "completed_at": "2026-10-03T16:57:03+00:00",
+      "outputs": [
+        {
+          "source_url": "https://ckan.a2gov.org/dataset/20096a60-3bd6-4c60-ad11-11190fe8a789/resource/78e34312-ade9-480b-9b46-8bc33925acb6/download/aa_address.geojson",
+          "output": "a2a_address_2026/a2a_address_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "source_url": "https://ckan.a2gov.org/dataset/970c31c9-c9c4-4082-a173-a97addf91642/resource/200ac6aa-7627-438b-bb06-b98be272b918/download/aa_zoning_districts.geojson",
+          "output": "a2a_zoning_2026/a2a_zoning_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "source_url": "https://ckan.a2gov.org/dataset/b9c4f1d0-c96a-4456-859e-5c80b4ff37d9/resource/3b5aefd8-fde7-427f-a77a-43d05df19ef6/download/aa_roadcenterline.geojson",
+          "output": "a2a_streets_2026/a2a_streets_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "source_url": "https://ckan.a2gov.org/dataset/c5d51794-60bb-478e-8cef-da420869d98d/resource/515b29a3-14e1-467e-9c9b-42f53b676fd8/download/aa_city_boundary.geojson",
+          "output": "a2a_boundary_2026/a2a_boundary_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "source_url": "https://ckan.a2gov.org/dataset/43aacacb-0d98-4cd0-9348-fffeb942027b/resource/487c3037-c999-4347-be51-93309d56ed44/download/aa_building_footprints.geojson",
+          "output": "a2a_buildings_2026/a2a_buildings_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "source_url": "https://ckan.a2gov.org/dataset/17dd7a5f-5607-4df3-b892-01abca9b1eba/resource/bbbc462d-bf6d-4576-bb63-cac129671190/download/aa_parks.geojson",
+          "output": "a2a_parks_2026/a2a_parks_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "source_url": "https://ckan.a2gov.org/dataset/653f6c44-95a6-4ca7-a4dc-a88cbe1025a3/resource/f9aa233d-374d-4ad3-9ea5-a1a0e645843e/download/aa_trees.geojson",
+          "output": "a2a_trees_2026/a2a_trees_2026.gpkg",
+          "status": "downloaded"
+        }
+      ]
+    },
+    "enrich": {
+      "status": "completed",
+      "completed_at": "2026-10-03T17:01:06+00:00",
+      "records": [
+        {
+          "filename": "a2a_address_2026.gpkg",
+          "feature_count": 39102,
+          "resource_type": "Point data",
+          "bounding_box": "-83.7999,42.2227,-83.6633,42.3239"
+        },
+        {
+          "filename": "a2a_zoning_2026.gpkg",
+          "feature_count": 827,
+          "resource_type": "Polygon data",
+          "bounding_box": "-83.8002,42.2225,-83.6757,42.3242"
+        },
+        {
+          "filename": "a2a_streets_2026.gpkg",
+          "feature_count": 9747,
+          "resource_type": "Line data",
+          "bounding_box": "-83.8216,42.2057,-83.6430,42.3384"
+        },
+        {
+          "filename": "a2a_boundary_2026.gpkg",
+          "feature_count": 1,
+          "resource_type": "Polygon data",
+          "bounding_box": "-83.8002,42.2225,-83.6763,42.3242"
+        },
+        {
+          "filename": "a2a_buildings_2026.gpkg",
+          "feature_count": 35111,
+          "resource_type": "Polygon data",
+          "bounding_box": "-83.7998,42.2168,-83.6606,42.3240"
+        },
+        {
+          "filename": "a2a_parks_2026.gpkg",
+          "feature_count": 164,
+          "resource_type": "Polygon data",
+          "bounding_box": "-83.8009,42.2257,-83.6549,42.3240"
+        },
+        {
+          "filename": "a2a_trees_2026.gpkg",
+          "feature_count": 77013,
+          "resource_type": "Point data",
+          "bounding_box": "-83.7999,42.2248,-83.6774,42.3233"
+        }
+      ]
+    },
+    "dictionaries": {
+      "status": "completed",
+      "completed_at": "2026-10-03T17:04:59+00:00",
+      "outputs": [
+        "a2a_address_2026/a2a_address_2026.csv",
+        "a2a_zoning_2026/a2a_zoning_2026.csv",
+        "a2a_streets_2026/a2a_streets_2026.csv",
+        "a2a_boundary_2026/a2a_boundary_2026.csv",
+        "a2a_buildings_2026/a2a_buildings_2026.csv",
+        "a2a_parks_2026/a2a_parks_2026.csv",
+        "a2a_trees_2026/a2a_trees_2026.csv"
+      ]
+    },
+    "embed": {
+      "status": "completed",
+      "completed_at": "2026-10-03T17:05:05+00:00",
+      "outputs": [
+        "a2a_address_2026/a2a_address_2026.gpkg",
+        "a2a_zoning_2026/a2a_zoning_2026.gpkg",
+        "a2a_streets_2026/a2a_streets_2026.gpkg",
+        "a2a_boundary_2026/a2a_boundary_2026.gpkg",
+        "a2a_buildings_2026/a2a_buildings_2026.gpkg",
+        "a2a_parks_2026/a2a_parks_2026.gpkg",
+        "a2a_trees_2026/a2a_trees_2026.gpkg"
+      ]
+    },
+    "thumbnails": {
+      "status": "completed",
+      "completed_at": "2026-10-03T17:05:41+00:00",
+      "outputs": [
+        "a2a_address_2026/a2a_address_2026.png",
+        "a2a_zoning_2026/a2a_zoning_2026.png",
+        "a2a_streets_2026/a2a_streets_2026.png",
+        "a2a_boundary_2026/a2a_boundary_2026.png",
+        "a2a_buildings_2026/a2a_buildings_2026.png",
+        "a2a_parks_2026/a2a_parks_2026.png",
+        "a2a_trees_2026/a2a_trees_2026.png"
+      ]
+    },
+    "derivatives": {
+      "status": "completed",
+      "completed_at": "2026-10-03T17:06:11+00:00",
+      "report": "reports/pmtiles_build_report.csv"
+    },
+    "zip": {
+      "status": "completed",
+      "completed_at": "2026-10-03T17:06:22+00:00",
+      "outputs": [
+        "a2a_address_2026/a2a_address_2026.gpkg.zip",
+        "a2a_zoning_2026/a2a_zoning_2026.gpkg.zip",
+        "a2a_streets_2026/a2a_streets_2026.gpkg.zip",
+        "a2a_boundary_2026/a2a_boundary_2026.gpkg.zip",
+        "a2a_buildings_2026/a2a_buildings_2026.gpkg.zip",
+        "a2a_parks_2026/a2a_parks_2026.gpkg.zip",
+        "a2a_trees_2026/a2a_trees_2026.gpkg.zip"
+      ]
+    },
+    "snapshot": {
+      "status": "completed",
+      "completed_at": "2026-10-03T17:06:29+00:00"
+    }
+  },
+  "records": [
+    {
+      "source_id": "address-points",
+      "package_id": "20096a60-3bd6-4c60-ad11-11190fe8a789",
+      "filename_theme": "address",
+      "curated_id": "b1g_HV2q7TADHxzS",
+      "filename": "a2a_address_2026.gpkg",
+      "landing_page": "https://data.a2gov.org/city-of-ann-arbor/address-points",
+      "metadata_url": "https://ckan.a2gov.org/api/3/action/package_show?id=address-points",
+      "source_revision": "2026-09-27T15:01:45.736075",
+      "resource_id": "78e34312-ade9-480b-9b46-8bc33925acb6",
+      "resource_url": "https://ckan.a2gov.org/dataset/20096a60-3bd6-4c60-ad11-11190fe8a789/resource/78e34312-ade9-480b-9b46-8bc33925acb6/download/aa_address.geojson",
+      "resource_revision": "2026-09-27T15:01:41.494998",
+      "resource_size": 13964019,
+      "feature_count": 39102
+    },
+    {
+      "source_id": "zoning-districts",
+      "package_id": "970c31c9-c9c4-4082-a173-a97addf91642",
+      "filename_theme": "zoning",
+      "curated_id": "b1g_fez0elhMZ8Tk",
+      "filename": "a2a_zoning_2026.gpkg",
+      "landing_page": "https://data.a2gov.org/city-of-ann-arbor/zoning-districts",
+      "metadata_url": "https://ckan.a2gov.org/api/3/action/package_show?id=zoning-districts",
+      "source_revision": "2026-09-27T15:25:23.536844",
+      "resource_id": "200ac6aa-7627-438b-bb06-b98be272b918",
+      "resource_url": "https://ckan.a2gov.org/dataset/970c31c9-c9c4-4082-a173-a97addf91642/resource/200ac6aa-7627-438b-bb06-b98be272b918/download/aa_zoning_districts.geojson",
+      "resource_revision": "2026-09-27T15:25:20.306109",
+      "resource_size": 1930574,
+      "feature_count": 827
+    },
+    {
+      "source_id": "road-centerline",
+      "package_id": "b9c4f1d0-c96a-4456-859e-5c80b4ff37d9",
+      "filename_theme": "streets",
+      "curated_id": "b1g_U3P3EHucdbGy",
+      "filename": "a2a_streets_2026.gpkg",
+      "landing_page": "https://data.a2gov.org/city-of-ann-arbor/road-centerline",
+      "metadata_url": "https://ckan.a2gov.org/api/3/action/package_show?id=road-centerline",
+      "source_revision": "2026-09-27T15:18:10.138157",
+      "resource_id": "3b5aefd8-fde7-427f-a77a-43d05df19ef6",
+      "resource_url": "https://ckan.a2gov.org/dataset/b9c4f1d0-c96a-4456-859e-5c80b4ff37d9/resource/3b5aefd8-fde7-427f-a77a-43d05df19ef6/download/aa_roadcenterline.geojson",
+      "resource_revision": "2026-09-27T15:18:06.082920",
+      "resource_size": 8631060,
+      "feature_count": 9747
+    },
+    {
+      "source_id": "city-boundary",
+      "package_id": "c5d51794-60bb-478e-8cef-da420869d98d",
+      "filename_theme": "boundary",
+      "curated_id": "b1g_tl00jrcGumsr",
+      "filename": "a2a_boundary_2026.gpkg",
+      "landing_page": "https://data.a2gov.org/city-of-ann-arbor/city-boundary",
+      "metadata_url": "https://ckan.a2gov.org/api/3/action/package_show?id=city-boundary",
+      "source_revision": "2026-09-27T15:07:29.467301",
+      "resource_id": "515b29a3-14e1-467e-9c9b-42f53b676fd8",
+      "resource_url": "https://ckan.a2gov.org/dataset/c5d51794-60bb-478e-8cef-da420869d98d/resource/515b29a3-14e1-467e-9c9b-42f53b676fd8/download/aa_city_boundary.geojson",
+      "resource_revision": "2026-09-27T15:07:26.710130",
+      "resource_size": 137008,
+      "feature_count": 1
+    },
+    {
+      "source_id": "building-footprints",
+      "package_id": "43aacacb-0d98-4cd0-9348-fffeb942027b",
+      "filename_theme": "buildings",
+      "curated_id": "b1g_FD8QB9GwJ8VX",
+      "filename": "a2a_buildings_2026.gpkg",
+      "landing_page": "https://data.a2gov.org/city-of-ann-arbor/building-footprints",
+      "metadata_url": "https://ckan.a2gov.org/api/3/action/package_show?id=building-footprints",
+      "source_revision": "2026-09-27T15:06:00.562435",
+      "resource_id": "487c3037-c999-4347-be51-93309d56ed44",
+      "resource_url": "https://ckan.a2gov.org/dataset/43aacacb-0d98-4cd0-9348-fffeb942027b/resource/487c3037-c999-4347-be51-93309d56ed44/download/aa_building_footprints.geojson",
+      "resource_revision": "2026-09-27T15:06:00.551330",
+      "resource_size": 25043717,
+      "feature_count": 35111
+    },
+    {
+      "source_id": "parks",
+      "package_id": "17dd7a5f-5607-4df3-b892-01abca9b1eba",
+      "filename_theme": "parks",
+      "curated_id": "b1g_1BbGf1MaXckx",
+      "filename": "a2a_parks_2026.gpkg",
+      "landing_page": "https://data.a2gov.org/city-of-ann-arbor/parks",
+      "metadata_url": "https://ckan.a2gov.org/api/3/action/package_show?id=parks",
+      "source_revision": "2026-09-27T15:16:37.978891",
+      "resource_id": "bbbc462d-bf6d-4576-bb63-cac129671190",
+      "resource_url": "https://ckan.a2gov.org/dataset/17dd7a5f-5607-4df3-b892-01abca9b1eba/resource/bbbc462d-bf6d-4576-bb63-cac129671190/download/aa_parks.geojson",
+      "resource_revision": "2026-09-27T15:16:34.753112",
+      "resource_size": 638667,
+      "feature_count": 164
+    },
+    {
+      "source_id": "street-trees",
+      "package_id": "653f6c44-95a6-4ca7-a4dc-a88cbe1025a3",
+      "filename_theme": "trees",
+      "curated_id": "b1g_ZFlOLXgzh7ND",
+      "filename": "a2a_trees_2026.gpkg",
+      "landing_page": "https://data.a2gov.org/city-of-ann-arbor/street-trees",
+      "metadata_url": "https://ckan.a2gov.org/api/3/action/package_show?id=street-trees",
+      "source_revision": "2026-09-27T15:22:53.878799",
+      "resource_id": "f9aa233d-374d-4ad3-9ea5-a1a0e645843e",
+      "resource_url": "https://ckan.a2gov.org/dataset/653f6c44-95a6-4ca7-a4dc-a88cbe1025a3/resource/f9aa233d-374d-4ad3-9ea5-a1a0e645843e/download/aa_trees.geojson",
+      "resource_revision": "2026-09-27T15:22:48.132684",
+      "resource_size": 40892836,
+      "feature_count": 77013
+    }
+  ],
+  "run_record": {
+    "run_id": "20261003T170629Z",
+    "saved_at": "2026-10-03T17:06:29+00:00",
+    "record_path": "curation/run_records/ann-arbor-ckan-2026/20261003T170629Z",
+    "metadata_csv": "metadata.csv",
+    "job_config": "job.yaml",
+    "git": {
+      "revision": "a613384c5b80ccdc3b792f24f5e7a7da0fff9b23",
+      "dirty": true
+    }
+  },
+  "artifacts": [
+    {
+      "role": "data_dictionary",
+      "path": "a2a_address_2026/a2a_address_2026.csv",
+      "size_bytes": 1137,
+      "sha256": "66e0c8ecd96c0264a0b81f1bf54998310e7284a89abc9b8afb405ec29903e302"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "a2a_address_2026/a2a_address_2026.fgb",
+      "size_bytes": 10046464,
+      "sha256": "c5786b5fea9006ba12b966c5dec8b45ae71fe209b64153e4c9e9d7b782ec231d"
+    },
+    {
+      "role": "geopackage",
+      "path": "a2a_address_2026/a2a_address_2026.gpkg",
+      "size_bytes": 9568256,
+      "sha256": "3477d279093569c1b50d36f6a3d8ef6384c1cba9bdfa6dbb5979b540308fa183"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "a2a_address_2026/a2a_address_2026.gpkg.zip",
+      "size_bytes": 2750751,
+      "sha256": "ab20081f53383f2275dae71a85bcaf4f11f847df45ba6890a23bcad51bb8733b"
+    },
+    {
+      "role": "pmtiles",
+      "path": "a2a_address_2026/a2a_address_2026.pmtiles",
+      "size_bytes": 3706195,
+      "sha256": "52134f3a0e1c8143736c4f18a147ec6d923b8c6f79f294fbf4efcd890f4874a2"
+    },
+    {
+      "role": "thumbnail",
+      "path": "a2a_address_2026/a2a_address_2026.png",
+      "size_bytes": 195833,
+      "sha256": "ca7b9dcc1170acad536d14da4f6b4332e466f4ec746a38f4d98d13ddc6895495"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "a2a_zoning_2026/a2a_zoning_2026.csv",
+      "size_bytes": 640,
+      "sha256": "0f9f4bbae3b6944de62fe5ee15139103d8b48e7d45254957edb1726be3fabd58"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "a2a_zoning_2026/a2a_zoning_2026.fgb",
+      "size_bytes": 858616,
+      "sha256": "1e486635b55d601f42a125b2c3408b2653b11997fbada1f3ee23f67b500f0de6"
+    },
+    {
+      "role": "geopackage",
+      "path": "a2a_zoning_2026/a2a_zoning_2026.gpkg",
+      "size_bytes": 1069056,
+      "sha256": "7f3ca2c047cba93e4c79b986f94163a8150ef57a06752d9f4686ddf217db3e10"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "a2a_zoning_2026/a2a_zoning_2026.gpkg.zip",
+      "size_bytes": 576013,
+      "sha256": "79a73045bddb98b296941a148bc970385b3cd0a6f21aa18c47b9bb2fa7d10ef6"
+    },
+    {
+      "role": "pmtiles",
+      "path": "a2a_zoning_2026/a2a_zoning_2026.pmtiles",
+      "size_bytes": 343140,
+      "sha256": "0967e61745aa7f2dfab2fea84bb499548df29b04ef0e21dce783c0335788c8e1"
+    },
+    {
+      "role": "thumbnail",
+      "path": "a2a_zoning_2026/a2a_zoning_2026.png",
+      "size_bytes": 185656,
+      "sha256": "cfa7d0756ad2fb359a880d47485268aff43fd97c99ea97ded075d7a4c1887c2f"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "a2a_streets_2026/a2a_streets_2026.csv",
+      "size_bytes": 2642,
+      "sha256": "d7103d3d4154585773177855df59eac3b49da81ba2437d966ade34c130f038ab"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "a2a_streets_2026/a2a_streets_2026.fgb",
+      "size_bytes": 3976088,
+      "sha256": "ed9034669e2dbf57def371521ad43f6dd94b0dcd49d202c1b980ad12cd5f4503"
+    },
+    {
+      "role": "geopackage",
+      "path": "a2a_streets_2026/a2a_streets_2026.gpkg",
+      "size_bytes": 3788800,
+      "sha256": "6f441d5de87985274ab08270159d67b39c69831c824e7670b3ee5adde61924ca"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "a2a_streets_2026/a2a_streets_2026.gpkg.zip",
+      "size_bytes": 1816953,
+      "sha256": "a0dd893b833b209bff54f7696f03baa27ada3dbc0a1bfc2d8e0d0fcfbb1358ae"
+    },
+    {
+      "role": "pmtiles",
+      "path": "a2a_streets_2026/a2a_streets_2026.pmtiles",
+      "size_bytes": 2858764,
+      "sha256": "dd547a6450a7ad2602e5a660ee1e87764d3795b4acf8386165dd22dfe0cd9d3f"
+    },
+    {
+      "role": "thumbnail",
+      "path": "a2a_streets_2026/a2a_streets_2026.png",
+      "size_bytes": 210855,
+      "sha256": "cb5bea8371bd16103ba42cb4cfc408ced6d17c12c2031a85a92293e44ee29908"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "a2a_boundary_2026/a2a_boundary_2026.csv",
+      "size_bytes": 720,
+      "sha256": "f5af2da5c153c1b71ff96c6e63b9d365883273dbf88f7df081f802d2c6a6a998"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "a2a_boundary_2026/a2a_boundary_2026.fgb",
+      "size_bytes": 58768,
+      "sha256": "68d4d5ebced3f8569a7a2d09ec2b82f74ae597cc491f417532159043f9ffb8e1"
+    },
+    {
+      "role": "geopackage",
+      "path": "a2a_boundary_2026/a2a_boundary_2026.gpkg",
+      "size_bytes": 159744,
+      "sha256": "896e4ebbccf873578787eb958cd3c5272d1a85a3f478086e7c2ed8602b74de75"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "a2a_boundary_2026/a2a_boundary_2026.gpkg.zip",
+      "size_bytes": 49545,
+      "sha256": "6092a491e045de8de08efb86453628b97580db27d3e62d9942697fb77f398be2"
+    },
+    {
+      "role": "pmtiles",
+      "path": "a2a_boundary_2026/a2a_boundary_2026.pmtiles",
+      "size_bytes": 14151,
+      "sha256": "094f1f1fed93f04b87268187156e5848febdd1fadc18b33d0686c156a05b2236"
+    },
+    {
+      "role": "thumbnail",
+      "path": "a2a_boundary_2026/a2a_boundary_2026.png",
+      "size_bytes": 49834,
+      "sha256": "54e9cb6eee39246e28803723661679f20f376b5ffba5cd3308832b2e7ac594d7"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "a2a_buildings_2026/a2a_buildings_2026.csv",
+      "size_bytes": 1203,
+      "sha256": "2616b34d63a3c5817ab0bcb218e0fc61193b1597f9eeb6b1382e45a79cc84c3e"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "a2a_buildings_2026/a2a_buildings_2026.fgb",
+      "size_bytes": 13952152,
+      "sha256": "9464350136bf4be386ed7f6ce2e22a19f6013225508c56c3daee5719c20474c9"
+    },
+    {
+      "role": "geopackage",
+      "path": "a2a_buildings_2026/a2a_buildings_2026.gpkg",
+      "size_bytes": 13533184,
+      "sha256": "f8136390349fa17451b6a3bbb7e9e85ec2e18987a7d391de90a9e7a67477beff"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "a2a_buildings_2026/a2a_buildings_2026.gpkg.zip",
+      "size_bytes": 7235891,
+      "sha256": "3d73420647ac47ba6d807774a07d373f989871a6a0f915ed51a9b2cf59c1b1d0"
+    },
+    {
+      "role": "pmtiles",
+      "path": "a2a_buildings_2026/a2a_buildings_2026.pmtiles",
+      "size_bytes": 7479056,
+      "sha256": "96716c00d38eb0bff61777514911e545ae9432dfdd617da08e5a216fd4138317"
+    },
+    {
+      "role": "thumbnail",
+      "path": "a2a_buildings_2026/a2a_buildings_2026.png",
+      "size_bytes": 211656,
+      "sha256": "b61aa897c53944e56ae55bb7da8c837669ca669f12826527d625f2bec6585f4c"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "a2a_parks_2026/a2a_parks_2026.csv",
+      "size_bytes": 1166,
+      "sha256": "a1d5bc174842035e9ca79ca4ac4e54606517c88f41fc183635bdbb0574cbc6d9"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "a2a_parks_2026/a2a_parks_2026.fgb",
+      "size_bytes": 291944,
+      "sha256": "803289475b6eea7337c59a4fcc3f32586643cf3966891625ac0729c3479ee7f1"
+    },
+    {
+      "role": "geopackage",
+      "path": "a2a_parks_2026/a2a_parks_2026.gpkg",
+      "size_bytes": 430080,
+      "sha256": "88b501eaba9adac330b30aa114c7df375d8872b271e1a6ac6f86cc17afec04cc"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "a2a_parks_2026/a2a_parks_2026.gpkg.zip",
+      "size_bytes": 192335,
+      "sha256": "c834e13dbc60a1cd65fdfaea44b5eca116c1bec1c71c6a7383198f29b112d10b"
+    },
+    {
+      "role": "pmtiles",
+      "path": "a2a_parks_2026/a2a_parks_2026.pmtiles",
+      "size_bytes": 143097,
+      "sha256": "0ee2e0af7860207d090ee3233a05e54a586a7477dd94fe6cf3cb9aad54da717d"
+    },
+    {
+      "role": "thumbnail",
+      "path": "a2a_parks_2026/a2a_parks_2026.png",
+      "size_bytes": 78679,
+      "sha256": "23221162ab00b3bfd4ae1353f65fd972b1c267c2cbefe509a717dbf6f5371e53"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "a2a_trees_2026/a2a_trees_2026.csv",
+      "size_bytes": 1734,
+      "sha256": "45d8055f74bdc00cd857a82b8bf9747cf01905e4a6c5cb101d3fa3abbb312e05"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "a2a_trees_2026/a2a_trees_2026.fgb",
+      "size_bytes": 27304824,
+      "sha256": "8d1eb4aa312bbdb8b0ca8a20818c93c6fd8175ab9f7f0d4f439dc348eda66d59"
+    },
+    {
+      "role": "geopackage",
+      "path": "a2a_trees_2026/a2a_trees_2026.gpkg",
+      "size_bytes": 24805376,
+      "sha256": "b3e65184fe38793d87691aafa2646545d7e905208e23099aa0646f14d7d7b61a"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "a2a_trees_2026/a2a_trees_2026.gpkg.zip",
+      "size_bytes": 8841866,
+      "sha256": "b6b6599ea5eca666f04a4f8686d18fb787092c081f4da9a31764e54cead696b2"
+    },
+    {
+      "role": "pmtiles",
+      "path": "a2a_trees_2026/a2a_trees_2026.pmtiles",
+      "size_bytes": 14758814,
+      "sha256": "88b603de0d4b9f2fa5408a0579c5440edcd483c0ac1c89153160574113192f0c"
+    },
+    {
+      "role": "thumbnail",
+      "path": "a2a_trees_2026/a2a_trees_2026.png",
+      "size_bytes": 169771,
+      "sha256": "ca1967147af425033863c9fb5fde62b9cc62143a8a65bcf33da00c0ef61134f6"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report.csv",
+      "size_bytes": 256235,
+      "sha256": "e7ae80336a597fefb98926be18acdd078e5f5d05a33bd7b7e006790ac2b73fdf"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report_fields.csv",
+      "size_bytes": 15192,
+      "sha256": "08886dd5bd40c9cbdcbd6e3445f833b6fce00163294869d770b4d491ae8327be"
+    }
+  ]
+}

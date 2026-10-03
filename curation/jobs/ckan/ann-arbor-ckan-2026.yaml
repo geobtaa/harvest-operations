@@ -1,0 +1,92 @@
+version: 1
+
+job:
+  id: ann-arbor-ckan-2026
+  work_directory: ../../work/ann-arbor-ckan-2026
+
+provider: BTAA-GIN
+
+hub:
+  name: City of Ann Arbor Open Data Portal
+  landing_page: https://data.a2gov.org/
+  api_base: https://ckan.a2gov.org
+  website_reference_id: 07c-02
+  websites_csv: ../../../reference_data/websites.csv
+
+coordinate_reference_system:
+  authority: EPSG:2253
+  uri: https://spatialreference.org/ref/epsg/2253/
+
+metadata:
+  code: "b1g_26_03000"
+  member_of: b1g_urbanBaseLayers
+  export_date: "2026-10-03"
+
+file_naming:
+  city_abbreviation: a2a
+  download_year: "2026"
+
+selection_criteria:
+  allowed_resource_types:
+    - Point data
+    - Line data
+    - Polygon data
+
+manual_review:
+  required_fields:
+    - filename
+    - ID
+    - Title
+    - Description
+    - Creator
+    - Publisher
+    - Provider
+    - Resource Class
+    - License
+    - Access Rights
+
+derivatives:
+  pmtiles_config: ../../pmtiles_config.sample.json
+
+records:
+  - id: address-points
+    resource_id: 78e34312-ade9-480b-9b46-8bc33925acb6
+    filename_theme: address
+    basic_theme: Address points
+    temporal_year: "2026"
+
+  - id: zoning-districts
+    resource_id: 200ac6aa-7627-438b-bb06-b98be272b918
+    filename_theme: zoning
+    basic_theme: Zoning districts
+    temporal_year: "2026"
+
+  - id: road-centerline
+    resource_id: 3b5aefd8-fde7-427f-a77a-43d05df19ef6
+    filename_theme: streets
+    basic_theme: Road centerlines
+    temporal_year: "2026"
+
+  - id: city-boundary
+    resource_id: 515b29a3-14e1-467e-9c9b-42f53b676fd8
+    filename_theme: boundary
+    basic_theme: Municipal boundary
+    temporal_year: "2026"
+
+  - id: building-footprints
+    resource_id: 487c3037-c999-4347-be51-93309d56ed44
+    filename_theme: buildings
+    basic_theme: Building footprints
+    temporal_year: "2026"
+
+  - id: parks
+    resource_id: bbbc462d-bf6d-4576-bb63-cac129671190
+    filename_theme: parks
+    basic_theme: Parks
+    temporal_year: "2026"
+
+  - id: street-trees
+    resource_id: f9aa233d-374d-4ad3-9ea5-a1a0e645843e
+    filename_theme: trees
+    basic_theme: Street trees
+    temporal_year: "2026"

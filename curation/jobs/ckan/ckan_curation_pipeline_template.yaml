@@ -1,0 +1,61 @@
+# CKAN / PortalJS curation job template.
+version: 1
+
+job:
+  id: "<job-id>"
+  work_directory: ../../work/<job-id>
+
+provider: BTAA-GIN
+
+hub:
+  name: "<public-portal-name>"
+  landing_page: "https://<public-portal-hostname>/"
+  # Use the CKAN backend origin when PortalJS is hosted separately.
+  api_base: "https://<ckan-api-hostname>"
+  website_reference_id: "<website-reference-id>"
+  websites_csv: ../../../reference_data/websites.csv
+
+coordinate_reference_system:
+  authority: "<AUTHORITY:CODE>"
+  uri: "https://spatialreference.org/ref/<authority>/<code>/"
+
+metadata:
+  code: "<urban-base-layer-code>"
+  member_of: b1g_urbanBaseLayers
+  export_date: "YYYY-MM-DD"
+
+# Every output filename is assembled as:
+# <city_abbreviation>_<record filename_theme>_<download_year>.gpkg
+file_naming:
+  city_abbreviation: "<city-abbreviation>"
+  download_year: "YYYY"
+
+selection_criteria:
+  allowed_resource_types:
+    - Polygon data
+    - Line data
+    - Point data
+
+manual_review:
+  required_fields:
+    - filename
+    - ID
+    - Title
+    - Description
+    - Creator
+    - Publisher
+    - Provider
+    - Resource Class
+    - License
+    - Access Rights
+
+derivatives:
+  pmtiles_config: ../../pmtiles_config.sample.json
+
+records:
+  - id: "<ckan-package-name>"
+    # Optional when a package has exactly one GeoJSON resource.
+    resource_id: "<ckan-resource-uuid>"
+    filename_theme: "<filename-theme>"
+    basic_theme: "<theme>"
+    temporal_year: "YYYY"
