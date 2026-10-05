@@ -194,3 +194,7 @@ uv run python dashboard/build_pages_site.py --reports-dir reports --output-dir s
 ```
 
 That command writes a deployable static site into `site/`.
+
+The dashboard homepage and its public **Current collection focus** page are generated from
+`dashboard/collection_cycles.json`. Update that file when priorities or cycle language change;
+the Pages workflow republishes the site when the file is pushed to `main`.

@@ -7,6 +7,7 @@ on:
     paths:
       - "reports/*.html"
       - "dashboard/build_pages_site.py"
+      - "dashboard/collection_cycles.json"
       - ".github/workflows/publish-dashboard-pages.yml"
   workflow_dispatch:
 

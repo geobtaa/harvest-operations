@@ -126,6 +126,39 @@
       margin: 0 0 1rem;
       color: var(--muted);
     }
+    .current-focus {
+      border: 4px solid var(--border-orange);
+      padding: 1rem 1.1rem;
+      margin-bottom: 1.25rem;
+    }
+    .current-focus-header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .current-focus h2 { margin: 0 0 0.2rem; }
+    .current-focus-period { margin: 0; color: var(--muted); }
+    .current-focus ul { margin: 0.75rem 0 0; padding-left: 1.25rem; }
+    .current-focus li { margin: 0.35rem 0; }
+    .current-focus-link { white-space: nowrap; font-weight: 700; }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      margin-left: 0.35rem;
+      padding: 0.12rem 0.48rem;
+      border: 1px solid currentColor;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    .status-pill--active { color: #0f766e; background-color: #d8f3ee; }
+    .status-pill--planned { color: #1d4ed8; background-color: #dbeafe; }
+    .status-pill--complete { color: #315f3e; background-color: #edf7ef; }
+    .status-pill--waiting { color: #7a4a20; background-color: #fff7e8; }
+    .status-pill--other { color: var(--muted); background-color: #f4f6f8; }
     #status {
       margin: 1rem 0;
       font-weight: bold;
@@ -398,6 +431,18 @@
 
   <p class="dashboard-intro">Start every work session with the four steps below. <a href="/static/workflow-overview.html">Read the full Workflow Overview</a>.</p>
 
+  <section id="current-focus" class="current-focus" aria-labelledby="current-focus-heading">
+    <div class="current-focus-header">
+      <div>
+        <p class="dashboard-intro">Current collection focus</p>
+        <h2 id="current-focus-heading">Collection priorities</h2>
+        <p id="current-focus-period" class="current-focus-period">Loading current cycle…</p>
+      </div>
+      <a class="current-focus-link" href="/collection-priorities">View priorities</a>
+    </div>
+    <ul id="current-focus-areas"></ul>
+  </section>
+
   <main class="dashboard-layout">
     <div class="dashboard-primary">
       <section id="priority-workflow" class="priority-workflow" aria-labelledby="priority-workflow-heading">
@@ -512,6 +557,50 @@
   </main>
 
   <script>
+    async function loadCollectionFocus() {
+      const heading = document.getElementById("current-focus-heading");
+      const period = document.getElementById("current-focus-period");
+      const focusAreas = document.getElementById("current-focus-areas");
+
+      try {
+        const response = await fetch("/collection-priorities/data");
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.detail || "Collection priorities are unavailable.");
+        }
+
+        heading.textContent = data.title || "Collection priorities";
+        period.textContent = data.date_range || "";
+        focusAreas.replaceChildren();
+        (data.focus_areas || []).forEach((area) => {
+          const item = document.createElement("li");
+          const title = document.createElement("span");
+          title.textContent = area.title || "Untitled focus area";
+          item.appendChild(title);
+          if (area.status) {
+            let normalizedStatus = String(area.status)
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-|-$/g, "");
+            if (normalizedStatus === "blocked") {
+              normalizedStatus = "waiting";
+            }
+            const knownStatuses = ["active", "planned", "complete", "waiting"];
+            const status = document.createElement("span");
+            status.className = `status-pill status-pill--${knownStatuses.includes(normalizedStatus) ? normalizedStatus : "other"}`;
+            status.textContent = normalizedStatus === "waiting" ? "Waiting" : String(area.status)
+              .replaceAll("-", " ")
+              .replaceAll("_", " ")
+              .replace(/\b\w/g, (character) => character.toUpperCase());
+            item.appendChild(status);
+          }
+          focusAreas.appendChild(item);
+        });
+      } catch (error) {
+        period.textContent = error.message;
+      }
+    }
+
     async function runDashboardTask(taskName, taskLabel = "") {
       const status = document.getElementById("status");
       const output = document.getElementById("output");
@@ -653,6 +742,7 @@
     }
 
     refreshReportLinks();
+    loadCollectionFocus();
     loadFrequentHarvesters();
   </script>
 </body>

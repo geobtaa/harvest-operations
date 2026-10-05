@@ -140,6 +140,20 @@ def test_task_dashboard_static_page_includes_map_collections_link() -> None:
     assert 'document.getElementById("todo-report-link").href = todoUrl;' in html
 
 
+def test_task_dashboard_static_page_includes_current_collection_focus() -> None:
+    html = Path("static/task-dashboard.html").read_text(encoding="utf-8")
+
+    assert 'id="current-focus"' in html
+    assert 'href="/collection-priorities"' in html
+    assert 'fetch("/collection-priorities/data")' in html
+    assert "loadCollectionFocus();" in html
+    assert "data.focus_areas" in html
+    assert "area.status" in html
+    assert "status-pill--${knownStatuses.includes(normalizedStatus)" in html
+    assert 'normalizedStatus === "blocked"' in html
+    assert '"active", "planned", "complete", "waiting"' in html
+
+
 def test_task_dashboard_static_page_includes_frequent_harvesters() -> None:
     html = Path("static/task-dashboard.html").read_text(encoding="utf-8")
 
