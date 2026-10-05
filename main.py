@@ -15,6 +15,11 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 import yaml
 
+from dashboard.build_pages_site import (
+    DEFAULT_COLLECTION_CYCLES_PATH,
+    load_collection_cycle,
+    render_collection_cycle_page,
+)
 from harvesters.oai_qdc import OaiQdcHarvester
 from routers import arcgis_curation as arcgis_curation_router
 from routers import ckan_curation as ckan_curation_router
@@ -169,6 +174,27 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/", response_class=FileResponse)
 async def root():
     return FileResponse(os.path.join("static", "index.html"))
+
+
+@app.get("/collection-priorities", response_class=HTMLResponse)
+async def collection_priorities():
+    collection_cycle = load_collection_cycle(DEFAULT_COLLECTION_CYCLES_PATH)
+    if collection_cycle is None:
+        raise HTTPException(status_code=404, detail="Collection priorities are not configured.")
+    return HTMLResponse(
+        render_collection_cycle_page(
+            collection_cycle,
+            back_href="/static/task-dashboard.html",
+        )
+    )
+
+
+@app.get("/collection-priorities/data")
+async def collection_priorities_data():
+    collection_cycle = load_collection_cycle(DEFAULT_COLLECTION_CYCLES_PATH)
+    if collection_cycle is None:
+        raise HTTPException(status_code=404, detail="Collection priorities are not configured.")
+    return collection_cycle
 
 
 @app.get("/oai-qdc-sources")

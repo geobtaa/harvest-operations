@@ -1,0 +1,77 @@
+{
+  "title": "Collection Cycles — Q3-Q4 2026",
+  "date_range": "July-December 2026",
+  "last_updated": "October 5, 2026",
+  "introduction": "These are the current collection-development and curation priorities for the BTAA-GIN collection.",
+  "focus_areas": [
+    {
+      "title": "Existing BTAA scanned map collections",
+      "period": "August-December 2026",
+      "goal": "Improve the accessibility and usability of existing BTAA library map collections.",
+      "items": [
+        "Complete the evaluation and analysis of existing BTAA library maps.",
+        "Fix as many thumbnail and preview omissions as possible.",
+        "Produce a short follow-up report."
+      ],
+      "status": "active",
+      "outcome": "A stronger existing BTAA Library map collection and a repeatable process for future reviews."
+    },
+    {
+      "title": "Urban Base Layers",
+      "period": "July-December 2026",
+      "goal": "Grow archive of municipal datasets in phases with Team Member cohorts",
+      "outcome": "Archived data for two cities per each BTAA state.",
+      "status": "active",
+      "workstreams": [
+        {
+          "title": "Cohort 2",
+          "period": "July-October 2026",
+          "items": [
+            "Archive datasets for two cities in states that were not part of Cohort 1."
+          ],
+          "status": "complete"
+        },
+        {
+          "title": "Cohort 3",
+          "period": "October-December 2026",
+          "items": [
+            "Archive datasets for a second city in states that were part of Cohort 1."
+          ],
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "title": "New Member and New Geography Integration",
+      "period": "October-December 2026",
+      "goal": "Make sure recently added institutions and their regions are represented in the Geoportal.",
+      "status": "planned",
+      "workstreams": [
+        {
+          "title": "USC / California",
+          "items": [
+            "Review and index the California state clearinghouse.",
+            "Index a small number of county sources and the Los Angeles open data portal.",
+            "Index a map collection hosted at USC."
+          ],
+          "status": "planned"
+        },
+        {
+          "title": "University of Washington and University of Oregon",
+          "items": [
+            "Index university-hosted scanned map collections from each institution."
+          ],
+          "status": "waiting"
+        },
+        {
+          "title": "Purdue and University of Iowa",
+          "items": [
+            "Check with new team members about collections or resources they consider priorities."
+          ],
+          "status": "planned"
+        }
+      ],
+      "outcome": "Each BTAA member has an identifiable presence in the collection."
+    }
+  ]
+}

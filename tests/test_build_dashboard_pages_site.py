@@ -1,6 +1,7 @@
 from pathlib import Path
+import json
 
-from dashboard.build_pages_site import build_pages_site
+from dashboard.build_pages_site import build_pages_site, load_collection_cycle
 
 
 def test_build_pages_site_publishes_current_reports_and_workflow_histories(tmp_path: Path) -> None:
@@ -36,7 +37,7 @@ def test_build_pages_site_publishes_current_reports_and_workflow_histories(tmp_p
     for filename, contents in report_files.items():
         reports_dir.joinpath(filename).write_text(contents, encoding="utf-8")
 
-    build_pages_site(reports_dir, output_dir)
+    build_pages_site(reports_dir, output_dir, collection_cycles_path=None)
 
     index_html = output_dir.joinpath("index.html").read_text(encoding="utf-8")
     arcgis_reports_html = output_dir.joinpath("workflows/py-arcgis-hub/index.html").read_text(
@@ -78,8 +79,81 @@ def test_build_pages_site_requires_dashboard_html(tmp_path: Path) -> None:
     reports_dir.joinpath("README.txt").write_text("not a report", encoding="utf-8")
 
     try:
-        build_pages_site(reports_dir, output_dir)
+        build_pages_site(reports_dir, output_dir, collection_cycles_path=None)
     except ValueError as exc:
         assert "No dashboard HTML files" in str(exc)
     else:
         raise AssertionError("Expected ValueError when no dashboard reports are present")
+
+
+def test_build_pages_site_publishes_current_collection_cycle(tmp_path: Path) -> None:
+    reports_dir = tmp_path / "reports"
+    output_dir = tmp_path / "site"
+    reports_dir.mkdir()
+    reports_dir.joinpath("harvest-task-dashboard-review.html").write_text(
+        "<html><body>triage</body></html>", encoding="utf-8"
+    )
+    cycle_path = tmp_path / "collection_cycles.json"
+    cycle_path.write_text(
+        json.dumps(
+            {
+                "title": "Collection Cycles — Q3–Q4 2026",
+                "date_range": "July–December 2026",
+                "last_updated": "October 5, 2026",
+                "introduction": "A shared view of current priorities.",
+                "focus_areas": [
+                    {
+                        "title": "Map collection health",
+                        "period": "August–December 2026",
+                        "goal": "Improve access.",
+                        "status": "active",
+                        "items": ["Evaluate existing maps."],
+                        "outcome": "Stronger collections.",
+                    },
+                    {
+                        "title": "Urban Base Layers",
+                        "period": "July–December 2026",
+                        "goal": "Fill geographic gaps.",
+                        "workstreams": [
+                            {
+                                "title": "Cohort 3",
+                                "period": "October–December 2026",
+                                "status": "complete",
+                                "items": ["Archive datasets."],
+                            },
+                            {
+                                "title": "Partner response",
+                                "status": "waiting",
+                                "items": ["Follow up with the partner."],
+                            }
+                        ],
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    build_pages_site(reports_dir, output_dir, cycle_path)
+
+    index_html = output_dir.joinpath("index.html").read_text(encoding="utf-8")
+    priorities_html = output_dir.joinpath("priorities/index.html").read_text(encoding="utf-8")
+
+    assert "Current collection focus" in index_html
+    assert 'href="priorities/"' in index_html
+    assert "Map collection health" in index_html
+    assert "Collection Cycles — Q3–Q4 2026" in priorities_html
+    assert "A shared view of current priorities." in priorities_html
+    assert "Last updated October 5, 2026" in priorities_html
+    assert "Evaluate existing maps." in priorities_html
+    assert "Cohort 3" in priorities_html
+    assert "Archive datasets." in priorities_html
+    assert 'class="status-pill status-pill--active">Active</span>' in index_html
+    assert 'class="status-pill status-pill--active">Active</span>' in priorities_html
+    assert 'class="status-pill status-pill--complete">Complete</span>' in priorities_html
+    assert 'class="status-pill status-pill--waiting">Waiting</span>' in priorities_html
+    assert 'href="../"' in priorities_html
+
+    collection_cycle = load_collection_cycle(cycle_path)
+    assert collection_cycle is not None
+    assert collection_cycle["title"] == "Collection Cycles — Q3–Q4 2026"

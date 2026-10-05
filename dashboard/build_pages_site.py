@@ -4,12 +4,14 @@ import argparse
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from html import escape
+import json
 from pathlib import Path
 import re
 import shutil
 
 
 SITE_TITLE = "Harvest Task Dashboard Reports"
+DEFAULT_COLLECTION_CYCLES_PATH = Path("dashboard/collection_cycles.json")
 DEDICATED_WORKFLOW_PREFIX = "harvest-task-dashboard-"
 ARCGIS_WORKFLOW_SLUG = "py-arcgis-hub"
 SOCRATA_WORKFLOW_SLUG = "py-socrata"
@@ -152,15 +154,24 @@ def collect_workflow_reports(reports_dir: Path) -> dict[str, list[DashboardRepor
     }
 
 
-def build_pages_site(reports_dir: Path, output_dir: Path) -> None:
+def build_pages_site(
+    reports_dir: Path,
+    output_dir: Path,
+    collection_cycles_path: Path | None = DEFAULT_COLLECTION_CYCLES_PATH,
+) -> None:
     reports = collect_reports(reports_dir)
     workflow_reports = collect_workflow_reports(reports_dir)
+    collection_cycle = load_collection_cycle(collection_cycles_path)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if not reports:
         raise ValueError(f"No dashboard HTML files were found in {reports_dir}")
 
-    for stale_archive_dir in (output_dir / "archive", output_dir / "workflows"):
+    for stale_archive_dir in (
+        output_dir / "archive",
+        output_dir / "workflows",
+        output_dir / "priorities",
+    ):
         if stale_archive_dir.exists():
             shutil.rmtree(stale_archive_dir)
     for dated_directory in output_dir.iterdir():
@@ -170,7 +181,9 @@ def build_pages_site(reports_dir: Path, output_dir: Path) -> None:
     output_dir.joinpath(".nojekyll").write_text("", encoding="utf-8")
 
     latest_reports = _copy_reports(reports, output_dir)
-    write_index_page(output_dir, latest_reports)
+    write_index_page(output_dir, latest_reports, collection_cycle=collection_cycle)
+    if collection_cycle is not None:
+        write_collection_cycle_page(output_dir, collection_cycle)
     write_workflow_report_pages(output_dir, workflow_reports)
 
 
@@ -190,6 +203,7 @@ def _copy_reports(
 def write_index_page(
     output_dir: Path,
     latest_reports: dict[str, DashboardReport],
+    collection_cycle: dict[str, object] | None = None,
 ) -> None:
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -198,6 +212,7 @@ def write_index_page(
         href_attr="latest_href",
         link_text="label",
     )
+    collection_cycle_panel = _render_collection_cycle_panel(collection_cycle)
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -254,6 +269,26 @@ def write_index_page(
       gap: 1.25rem;
       margin-bottom: 1rem;
     }}
+    .current-focus {{
+      border: 3px solid var(--border-orange);
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }}
+    .current-focus-header {{
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 1rem;
+    }}
+    .current-focus h2 {{ margin-bottom: 0.25rem; }}
+    .current-focus ul {{ margin: 0.75rem 0; padding-left: 1.25rem; }}
+    .current-focus-link {{ white-space: nowrap; font-weight: 700; }}
+    .status-pill {{ display: inline-flex; align-items: center; width: fit-content; padding: 0.12rem 0.48rem; border: 1px solid currentColor; border-radius: 999px; font-size: 0.75rem; font-weight: 700; line-height: 1.3; }}
+    .status-pill--active {{ color: #0f766e; background-color: #d8f3ee; }}
+    .status-pill--planned {{ color: #1d4ed8; background-color: #dbeafe; }}
+    .status-pill--complete {{ color: #315f3e; background-color: #edf7ef; }}
+    .status-pill--waiting {{ color: #7a4a20; background-color: #fff7e8; }}
+    .status-pill--other {{ color: var(--muted); background-color: #f4f6f8; }}
     .report-columns > section {{
       border: 3px solid var(--border-blue);
       padding: 0.75rem;
@@ -294,6 +329,8 @@ def write_index_page(
       <p>This site publishes the current dashboard HTML files from <code>reports/</code>.</p>
       <p>The site index was generated at {escape(generated_at)}.</p>
     </section>
+
+{collection_cycle_panel}
 
     <section class="report-columns" aria-label="Latest reports">
 {latest_report_columns}
@@ -490,12 +527,210 @@ def parse_args() -> argparse.Namespace:
         default=Path("site"),
         help="Directory to write the GitHub Pages site into.",
     )
+    parser.add_argument(
+        "--collection-cycles",
+        type=Path,
+        default=DEFAULT_COLLECTION_CYCLES_PATH,
+        help="JSON file describing the current collection cycle.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    build_pages_site(args.reports_dir, args.output_dir)
+    build_pages_site(args.reports_dir, args.output_dir, args.collection_cycles)
+
+
+def load_collection_cycle(path: Path | None) -> dict[str, object] | None:
+    if path is None or not path.is_file():
+        return None
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"Collection cycle data in {path} must be a JSON object")
+    if not str(data.get("title", "")).strip():
+        raise ValueError(f"Collection cycle data in {path} must include a title")
+    focus_areas = data.get("focus_areas")
+    if not isinstance(focus_areas, list) or not focus_areas:
+        raise ValueError(f"Collection cycle data in {path} must include focus_areas")
+    return data
+
+
+def _render_collection_cycle_panel(collection_cycle: dict[str, object] | None) -> str:
+    if collection_cycle is None:
+        return ""
+    title = escape(str(collection_cycle.get("title", "Current priorities")))
+    date_range = escape(str(collection_cycle.get("date_range", "")))
+    focus_areas = collection_cycle.get("focus_areas", [])
+    area_items = [
+        f'{escape(str(area.get("title", "")))} {_render_status_badge(area.get("status", ""))}'
+        for area in focus_areas
+        if isinstance(area, dict) and str(area.get("title", "")).strip()
+    ]
+    area_list = "".join(f"<li>{area_item}</li>" for area_item in area_items)
+    period_html = f"<p>{date_range}</p>" if date_range else ""
+    return f"""    <section class="current-focus" aria-labelledby="current-focus-heading">
+      <div class="current-focus-header">
+        <div>
+          <p class="eyebrow">Current collection focus</p>
+          <h2 id="current-focus-heading">{title}</h2>
+          {period_html}
+        </div>
+        <a class="current-focus-link" href="priorities/">View priorities</a>
+      </div>
+      <ul>{area_list}</ul>
+    </section>"""
+
+
+def write_collection_cycle_page(
+    output_dir: Path,
+    collection_cycle: dict[str, object],
+) -> None:
+    html = render_collection_cycle_page(collection_cycle)
+    priorities_dir = output_dir / "priorities"
+    priorities_dir.mkdir(parents=True, exist_ok=True)
+    priorities_dir.joinpath("index.html").write_text(html, encoding="utf-8")
+
+
+def render_collection_cycle_page(
+    collection_cycle: dict[str, object],
+    *,
+    back_href: str = "../",
+) -> str:
+    title = escape(str(collection_cycle.get("title", "Current priorities")))
+    date_range = escape(str(collection_cycle.get("date_range", "")))
+    introduction = escape(str(collection_cycle.get("introduction", "")))
+    last_updated = escape(str(collection_cycle.get("last_updated", "")))
+    focus_areas = collection_cycle.get("focus_areas", [])
+    focus_area_html = "".join(
+        _render_focus_area(area, index)
+        for index, area in enumerate(focus_areas, start=1)
+        if isinstance(area, dict)
+    )
+    updated_html = f'<p class="updated">Last updated {last_updated}</p>' if last_updated else ""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title} | Current Collection Focus</title>
+  <style>
+    :root {{ color-scheme: light; --ink: #17324d; --muted: #5e6f83; --line: #d7e1ec; --accent: #4f7f9f; --soft: #f4f8fb; --focus: #c77a3a; }}
+    * {{ box-sizing: border-box; }}
+    body {{ margin: 0; font-family: "Segoe UI", sans-serif; line-height: 1.55; color: var(--ink); }}
+    main {{ max-width: 960px; margin: 0 auto; padding: 2rem 1rem 3rem; }}
+    a {{ color: var(--accent); }}
+    h1, h2, h3, p {{ margin-top: 0; }}
+    .hero {{ border: 3px solid var(--focus); padding: 1.25rem; margin: 1rem 0 1.25rem; }}
+    .hero p:last-child {{ margin-bottom: 0; }}
+    .eyebrow {{ color: var(--muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; margin-bottom: 0.35rem; }}
+    .period {{ color: var(--muted); font-weight: 700; }}
+    .updated {{ color: var(--muted); font-size: 0.9rem; }}
+    .focus-area {{ border: 1px solid var(--line); border-left: 5px solid var(--accent); padding: 1.1rem 1.25rem; margin-top: 1rem; }}
+    .title-row {{ display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }}
+    .title-row h2, .title-row h3 {{ margin-bottom: 0; }}
+    .status-pill {{ display: inline-flex; align-items: center; flex: none; width: fit-content; padding: 0.16rem 0.55rem; border: 1px solid currentColor; border-radius: 999px; font-size: 0.76rem; font-weight: 700; line-height: 1.3; }}
+    .status-pill--active {{ color: #0f766e; background-color: #d8f3ee; }}
+    .status-pill--planned {{ color: #1d4ed8; background-color: #dbeafe; }}
+    .status-pill--complete {{ color: #315f3e; background-color: #edf7ef; }}
+    .status-pill--waiting {{ color: #7a4a20; background-color: #fff7e8; }}
+    .status-pill--other {{ color: var(--muted); background-color: #f4f6f8; }}
+    .goal {{ font-size: 1.05rem; }}
+    .workstreams {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.85rem; margin-top: 1rem; }}
+    .workstream {{ background: var(--soft); padding: 0.9rem; }}
+    .workstream h3 {{ font-size: 1rem; margin-bottom: 0.15rem; }}
+    ul {{ margin: 0.55rem 0 0; padding-left: 1.2rem; }}
+    li {{ margin: 0.35rem 0; }}
+    .outcome {{ border-top: 1px solid var(--line); margin-top: 1rem; padding-top: 0.85rem; }}
+    @media (max-width: 620px) {{ main {{ padding: 1.25rem 0.75rem 2rem; }} }}
+  </style>
+</head>
+<body>
+  <main>
+    <p><a href="{escape(back_href, quote=True)}">Back to dashboard</a></p>
+    <header class="hero">
+      <p class="eyebrow">Current collection focus</p>
+      <h1>{title}</h1>
+      <p class="period">{date_range}</p>
+      <p>{introduction}</p>
+      {updated_html}
+    </header>
+{focus_area_html}
+  </main>
+</body>
+</html>
+"""
+
+
+def _render_focus_area(area: dict[str, object], index: int) -> str:
+    title = escape(str(area.get("title", "Untitled focus area")))
+    period = escape(str(area.get("period", "")))
+    goal = escape(str(area.get("goal", "")))
+    outcome = escape(str(area.get("outcome", "")))
+    status_html = _render_status_badge(area.get("status", ""))
+    items = area.get("items", [])
+    workstreams = area.get("workstreams", [])
+    item_html = _render_priority_items(items)
+    workstream_html = "".join(
+        _render_workstream(workstream)
+        for workstream in workstreams
+        if isinstance(workstream, dict)
+    )
+    period_html = f'<p class="period">{period}</p>' if period else ""
+    items_html = f"<ul>{item_html}</ul>" if item_html else ""
+    workstreams_html = f'<div class="workstreams">{workstream_html}</div>' if workstream_html else ""
+    outcome_html = (
+        f'<p class="outcome"><strong>Intended outcome:</strong> {outcome}</p>' if outcome else ""
+    )
+    return f"""    <section class="focus-area">
+      <p class="eyebrow">Focus area {index}</p>
+      <div class="title-row"><h2>{title}</h2>{status_html}</div>
+      {period_html}
+      <p class="goal"><strong>Goal:</strong> {goal}</p>
+      {items_html}
+      {workstreams_html}
+      {outcome_html}
+    </section>
+"""
+
+
+def _render_workstream(workstream: dict[str, object]) -> str:
+    title = escape(str(workstream.get("title", "")))
+    period = escape(str(workstream.get("period", "")))
+    items = _render_priority_items(workstream.get("items", []))
+    status_html = _render_status_badge(workstream.get("status", ""))
+    period_html = f'<p class="period">{period}</p>' if period else ""
+    items_html = f"<ul>{items}</ul>" if items else ""
+    return f'<section class="workstream"><div class="title-row"><h3>{title}</h3>{status_html}</div>{period_html}{items_html}</section>'
+
+
+def _render_status_badge(status: object) -> str:
+    status_value = str(status).strip()
+    if not status_value:
+        return ""
+    normalized_status = re.sub(r"[^a-z0-9]+", "-", status_value.lower()).strip("-")
+    if normalized_status == "blocked":
+        normalized_status = "waiting"
+        status_value = "waiting"
+    status_class = (
+        normalized_status
+        if normalized_status in {"active", "planned", "complete", "waiting"}
+        else "other"
+    )
+    status_label = re.sub(r"[-_]+", " ", status_value).strip().title()
+    return (
+        f'<span class="status-pill status-pill--{status_class}">'
+        f"{escape(status_label)}</span>"
+    )
+
+
+def _render_priority_items(items: object) -> str:
+    if not isinstance(items, list):
+        return ""
+    return "".join(
+        f"<li>{escape(str(item))}</li>"
+        for item in items
+        if str(item).strip()
+    )
 
 
 def _collect_dedicated_workflow_report(
