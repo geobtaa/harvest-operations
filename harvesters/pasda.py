@@ -24,6 +24,9 @@ from utils.geometry_repair import repair_geometry_fields
 
 
 LOGGER = logging.getLogger(__name__)
+PASDA_METADATA_DISTRIBUTION_BASE_URL = (
+    "https://geobtaa-assets-prod.s3.us-east-2.amazonaws.com/store/asset/pasda/"
+)
 US_STATE_ABBREVIATIONS = {
     "AL",
     "AK",
@@ -92,6 +95,10 @@ class PasdaHarvester(BaseHarvester):
         config = dict(config)
         config.setdefault("build_uploads", True)
         config.setdefault("metadata_base_url", "https://www.pasda.psu.edu/metadata/")
+        config.setdefault(
+            "metadata_distribution_base_url",
+            PASDA_METADATA_DISTRIBUTION_BASE_URL,
+        )
         config.setdefault("download_base_url", "https://www.pasda.psu.edu/download/")
         config.setdefault("json_base_url", "https://www.pasda.psu.edu/json/")
         config.setdefault("source_manifest", "metadata_directory")
@@ -441,6 +448,9 @@ class PasdaHarvester(BaseHarvester):
             distribution_rows = build_pasda_distribution_records(
                 self.normalized_records,
                 asset_match_review_rows=asset_match_review_rows,
+                metadata_distribution_base_url=self.config[
+                    "metadata_distribution_base_url"
+                ],
             )
         county_lookup = build_pasda_county_lookup(self.spatial_data)
         aardvark_draft_df = build_pasda_aardvark_draft_dataframe(
@@ -1448,6 +1458,7 @@ def build_pasda_distribution_records(
     asset_match_review_rows: list[dict[str, Any]],
     ready_only: bool = True,
     parsed_only: bool = True,
+    metadata_distribution_base_url: str = PASDA_METADATA_DISTRIBUTION_BASE_URL,
 ) -> list[dict[str, Any]]:
     records_by_id = {
         clean_text(record.get("source_record_id", "")): record
@@ -1469,7 +1480,12 @@ def build_pasda_distribution_records(
         record = records_by_id.get(source_record_id, {})
         if parsed_only and not pasda_record_is_upload_parseable(record):
             continue
-        for row in pasda_distribution_rows_for_match(friendlier_id, match_row, record):
+        for row in pasda_distribution_rows_for_match(
+            friendlier_id,
+            match_row,
+            record,
+            metadata_distribution_base_url=metadata_distribution_base_url,
+        ):
             row_key = (
                 row["friendlier_id"],
                 row["reference_type"],
@@ -1487,6 +1503,7 @@ def pasda_distribution_rows_for_match(
     friendlier_id: str,
     match_row: dict[str, Any],
     record: dict[str, Any],
+    metadata_distribution_base_url: str = PASDA_METADATA_DISTRIBUTION_BASE_URL,
 ) -> list[dict[str, str]]:
     rows = []
     for url in pasda_distribution_asset_urls(match_row):
@@ -1503,10 +1520,27 @@ def pasda_distribution_rows_for_match(
     if metadata_url and metadata_reference_type:
         rows.append(
             pasda_distribution_row(
-                friendlier_id, metadata_reference_type, metadata_url, ""
+                friendlier_id,
+                metadata_reference_type,
+                pasda_metadata_distribution_url(
+                    metadata_url,
+                    metadata_distribution_base_url,
+                ),
+                "",
             )
         )
     return rows
+
+
+def pasda_metadata_distribution_url(
+    metadata_url: str,
+    metadata_distribution_base_url: str,
+) -> str:
+    metadata_filename = clean_text(metadata_url).rstrip("/").rsplit("/", 1)[-1]
+    base_url = clean_text(metadata_distribution_base_url).rstrip("/") + "/"
+    if not metadata_filename or base_url == "/":
+        return clean_text(metadata_url)
+    return urljoin(base_url, metadata_filename)
 
 
 def pasda_distribution_asset_urls(match_row: dict[str, Any]) -> list[str]:
