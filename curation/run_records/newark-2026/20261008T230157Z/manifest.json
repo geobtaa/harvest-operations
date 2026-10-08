@@ -1,0 +1,509 @@
+{
+  "version": 1,
+  "job_id": "newark-2026",
+  "config_path": "curation/jobs/newark-2026.yaml",
+  "work_directory": "curation/work/newark-2026",
+  "metadata_path": "metadata/metadata.csv",
+  "config_sha256": "74382b7d7dba1de767e730746ef04fac1f6c4a6ce2645ee91b1ad3f714f78306",
+  "created_at": "2026-10-08T22:39:08+00:00",
+  "updated_at": "2026-10-08T23:01:53+00:00",
+  "manual_review": {
+    "status": "confirmed",
+    "confirmed_at": "2026-10-08T23:01:50+00:00",
+    "metadata_sha256": "e6e837e63c5b66337f6b7d39838cd2d53115823c0ff4e727b80e1335137c08ec"
+  },
+  "stages": {
+    "validate": {
+      "status": "completed",
+      "completed_at": "2026-10-08T22:39:08+00:00"
+    },
+    "metadata": {
+      "status": "completed",
+      "completed_at": "2026-10-08T22:39:08+00:00"
+    },
+    "download": {
+      "status": "completed",
+      "completed_at": "2026-10-08T22:46:29+00:00",
+      "failed_count": 0,
+      "outputs": [
+        {
+          "feature_count": 82540,
+          "geometry_type": "esriGeometryPoint",
+          "output": "nwk_address_2026/nwk_address_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 42171,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "nwk_buildings_2026/nwk_buildings_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 5,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "nwk_boundary_2026/nwk_boundary_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 118,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "nwk_parks_2026/nwk_parks_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 55782,
+          "geometry_type": "esriGeometryPolyline",
+          "output": "nwk_streets_2026/nwk_streets_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 35,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "nwk_zoning_2026/nwk_zoning_2026.gpkg",
+          "status": "downloaded"
+        }
+      ]
+    },
+    "enrich": {
+      "status": "completed",
+      "completed_at": "2026-10-08T22:47:11+00:00",
+      "records": [
+        {
+          "filename": "nwk_address_2026.gpkg",
+          "metadata_source": "geopackage",
+          "feature_count": 82540,
+          "resource_type": "Point data",
+          "bounding_box": "-74.2514,40.6867,-74.1188,40.7862"
+        },
+        {
+          "filename": "nwk_buildings_2026.gpkg",
+          "metadata_source": "geopackage",
+          "feature_count": 42171,
+          "resource_type": "Polygon data",
+          "bounding_box": "-74.2511,40.6838,-74.1186,40.7864"
+        },
+        {
+          "filename": "nwk_boundary_2026.gpkg",
+          "metadata_source": "geopackage",
+          "feature_count": 5,
+          "resource_type": "Polygon data",
+          "bounding_box": "-74.2516,40.6737,-74.1136,40.7885"
+        },
+        {
+          "filename": "nwk_parks_2026.gpkg",
+          "metadata_source": "geopackage",
+          "feature_count": 118,
+          "resource_type": "Polygon data",
+          "bounding_box": "-74.2485,40.6909,-74.1321,40.7885"
+        },
+        {
+          "filename": "nwk_streets_2026.gpkg",
+          "metadata_source": "geopackage",
+          "feature_count": 55782,
+          "resource_type": "Line data",
+          "bounding_box": "-74.3687,40.6082,-73.9654,40.8505"
+        },
+        {
+          "filename": "nwk_zoning_2026.gpkg",
+          "metadata_source": "geopackage",
+          "feature_count": 35,
+          "resource_type": "Polygon data",
+          "bounding_box": "-74.2515,40.6800,-74.1177,40.7885"
+        }
+      ]
+    },
+    "dictionaries": {
+      "status": "completed",
+      "completed_at": "2026-10-08T22:47:27+00:00",
+      "fallback_count": 0,
+      "outputs": [
+        "nwk_address_2026/nwk_address_2026.csv",
+        "nwk_buildings_2026/nwk_buildings_2026.csv",
+        "nwk_boundary_2026/nwk_boundary_2026.csv",
+        "nwk_parks_2026/nwk_parks_2026.csv",
+        "nwk_streets_2026/nwk_streets_2026.csv",
+        "nwk_zoning_2026/nwk_zoning_2026.csv"
+      ],
+      "records": [
+        {
+          "filename": "nwk_address_2026.gpkg",
+          "output": "nwk_address_2026/nwk_address_2026.csv",
+          "metadata_source": "arcgis_rest"
+        },
+        {
+          "filename": "nwk_buildings_2026.gpkg",
+          "output": "nwk_buildings_2026/nwk_buildings_2026.csv",
+          "metadata_source": "arcgis_rest"
+        },
+        {
+          "filename": "nwk_boundary_2026.gpkg",
+          "output": "nwk_boundary_2026/nwk_boundary_2026.csv",
+          "metadata_source": "arcgis_rest"
+        },
+        {
+          "filename": "nwk_parks_2026.gpkg",
+          "output": "nwk_parks_2026/nwk_parks_2026.csv",
+          "metadata_source": "arcgis_rest"
+        },
+        {
+          "filename": "nwk_streets_2026.gpkg",
+          "output": "nwk_streets_2026/nwk_streets_2026.csv",
+          "metadata_source": "arcgis_rest"
+        },
+        {
+          "filename": "nwk_zoning_2026.gpkg",
+          "output": "nwk_zoning_2026/nwk_zoning_2026.csv",
+          "metadata_source": "arcgis_rest"
+        }
+      ]
+    },
+    "embed": {
+      "status": "completed",
+      "completed_at": "2026-10-08T22:52:52+00:00",
+      "outputs": [
+        "nwk_address_2026/nwk_address_2026.gpkg",
+        "nwk_buildings_2026/nwk_buildings_2026.gpkg",
+        "nwk_boundary_2026/nwk_boundary_2026.gpkg",
+        "nwk_parks_2026/nwk_parks_2026.gpkg",
+        "nwk_streets_2026/nwk_streets_2026.gpkg",
+        "nwk_zoning_2026/nwk_zoning_2026.gpkg"
+      ]
+    },
+    "thumbnails": {
+      "status": "completed",
+      "completed_at": "2026-10-08T22:53:31+00:00",
+      "outputs": [
+        "nwk_address_2026/nwk_address_2026.png",
+        "nwk_buildings_2026/nwk_buildings_2026.png",
+        "nwk_boundary_2026/nwk_boundary_2026.png",
+        "nwk_parks_2026/nwk_parks_2026.png",
+        "nwk_streets_2026/nwk_streets_2026.png",
+        "nwk_zoning_2026/nwk_zoning_2026.png"
+      ]
+    },
+    "derivatives": {
+      "status": "completed",
+      "completed_at": "2026-10-08T22:53:53+00:00",
+      "report": "reports/pmtiles_build_report.csv"
+    },
+    "zip": {
+      "status": "completed",
+      "completed_at": "2026-10-08T23:01:53+00:00",
+      "outputs": [
+        "nwk_address_2026/nwk_address_2026.gpkg.zip",
+        "nwk_buildings_2026/nwk_buildings_2026.gpkg.zip",
+        "nwk_boundary_2026/nwk_boundary_2026.gpkg.zip",
+        "nwk_parks_2026/nwk_parks_2026.gpkg.zip",
+        "nwk_streets_2026/nwk_streets_2026.gpkg.zip",
+        "nwk_zoning_2026/nwk_zoning_2026.gpkg.zip"
+      ]
+    },
+    "snapshot": {
+      "status": "completed",
+      "completed_at": "2026-10-08T23:01:57+00:00"
+    }
+  },
+  "records": [
+    {
+      "source_id": "9cc2fe7ccbfc417d9ff8cdc60094cb7e_0",
+      "curated_id": "b1g_M1Yw0PPuuNHD",
+      "filename": "nwk_address_2026.gpkg",
+      "landing_page": "https://data-newgin.opendata.arcgis.com/datasets/9cc2fe7ccbfc417d9ff8cdc60094cb7e_0",
+      "service_url": "https://services1.arcgis.com/WAUuvHqqP3le2PMh/arcgis/rest/services/Newark_Address_Points_with_Block_Lot/FeatureServer/0",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "e94e03652d1c4ca787db85100ad88c01_0",
+      "curated_id": "b1g_WUAYdXfdpcYn",
+      "filename": "nwk_buildings_2026.gpkg",
+      "landing_page": "https://data-newgin.opendata.arcgis.com/datasets/e94e03652d1c4ca787db85100ad88c01_0",
+      "service_url": "https://services1.arcgis.com/WAUuvHqqP3le2PMh/arcgis/rest/services/nwk_building_footprints(OSM)/FeatureServer/0",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "0a1caa483cbf4733a493cc1c23d5c491_1",
+      "curated_id": "b1g_xmIW9zhy3J3d",
+      "filename": "nwk_boundary_2026.gpkg",
+      "landing_page": "https://data-newgin.opendata.arcgis.com/datasets/0a1caa483cbf4733a493cc1c23d5c491_1",
+      "service_url": "https://services1.arcgis.com/WAUuvHqqP3le2PMh/arcgis/rest/services/Newark_Geographies/FeatureServer/1",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "62a9af74e5ac48f796c6bd755e45e160_1",
+      "curated_id": "b1g_42ugTyd7P40V",
+      "filename": "nwk_parks_2026.gpkg",
+      "landing_page": "https://data-newgin.opendata.arcgis.com/datasets/62a9af74e5ac48f796c6bd755e45e160_1",
+      "service_url": "https://services1.arcgis.com/WAUuvHqqP3le2PMh/arcgis/rest/services/Newark_Open_Space_and_Recreation_Facilities/FeatureServer/1",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "a96cd823c7f24d7690dede575fa25791_6",
+      "curated_id": "b1g_ygTNejHENl65",
+      "filename": "nwk_streets_2026.gpkg",
+      "landing_page": "https://data-newgin.opendata.arcgis.com/datasets/a96cd823c7f24d7690dede575fa25791_6",
+      "service_url": "https://services1.arcgis.com/WAUuvHqqP3le2PMh/arcgis/rest/services/Newark_Transportation/FeatureServer/6",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "d334f4b38a4b41fb90986cb24d42d45a_0",
+      "curated_id": "b1g_0QtYYI0Wtiej",
+      "filename": "nwk_zoning_2026.gpkg",
+      "landing_page": "https://data-newgin.opendata.arcgis.com/datasets/d334f4b38a4b41fb90986cb24d42d45a_0",
+      "service_url": "https://services1.arcgis.com/WAUuvHqqP3le2PMh/arcgis/rest/services/Newark_Zoning_Districts/FeatureServer/0",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    }
+  ],
+  "run_record": {
+    "run_id": "20261008T230157Z",
+    "saved_at": "2026-10-08T23:01:57+00:00",
+    "record_path": "curation/run_records/newark-2026/20261008T230157Z",
+    "metadata_csv": "metadata.csv",
+    "job_config": "job.yaml",
+    "git": {
+      "revision": "0e7edc524eb43112fc6611ab3a53362380dc35ae",
+      "dirty": true
+    }
+  },
+  "artifacts": [
+    {
+      "role": "data_dictionary",
+      "path": "nwk_address_2026/nwk_address_2026.csv",
+      "size_bytes": 7502,
+      "sha256": "9d8677aaa1673d8b0e2ae18fa59e3d71a04ee0c4585abf0d29c651d3b741ace0"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "nwk_address_2026/nwk_address_2026.fgb",
+      "size_bytes": 35292384,
+      "sha256": "a5a83a3763a158f69d27c73ca0a72038314b6cf7104b20a08de4e2ac6eff11dd"
+    },
+    {
+      "role": "geopackage",
+      "path": "nwk_address_2026/nwk_address_2026.gpkg",
+      "size_bytes": 32169984,
+      "sha256": "6ab6bbf1d6ab7adf0fc6c7af7fe17a2ed6584fc35d4e855526896e76ba2b9d37"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "nwk_address_2026/nwk_address_2026.gpkg.zip",
+      "size_bytes": 7649409,
+      "sha256": "c664483a87ec1d69b8d7f9a2d7c69c42c639b26a3562b00f19cdaf23b0b3bd48"
+    },
+    {
+      "role": "pmtiles",
+      "path": "nwk_address_2026/nwk_address_2026.pmtiles",
+      "size_bytes": 8870018,
+      "sha256": "7a9b18644d65235ddb3dee184ec4bdb42ecb8b28575bb98eb31c4ceb93adfdf3"
+    },
+    {
+      "role": "thumbnail",
+      "path": "nwk_address_2026/nwk_address_2026.png",
+      "size_bytes": 136805,
+      "sha256": "fe089af9f805252df991ffcfa276d0718904f126e3cf6b453b88f00f758c8c7f"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "nwk_buildings_2026/nwk_buildings_2026.csv",
+      "size_bytes": 1453,
+      "sha256": "4cca06adc414ff4e531bb3aa021ad5aa3e21534ce32e0606ab803e57a4357753"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "nwk_buildings_2026/nwk_buildings_2026.fgb",
+      "size_bytes": 14246368,
+      "sha256": "1d0b4e463b3f3953108352e251f56c3b139e93b950e33d30d8caf8df9988c79a"
+    },
+    {
+      "role": "geopackage",
+      "path": "nwk_buildings_2026/nwk_buildings_2026.gpkg",
+      "size_bytes": 13438976,
+      "sha256": "bfb07913bda74a26d36b078ddd9fcc5e147a88f6321fc68a351eb8d6cf435a1c"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "nwk_buildings_2026/nwk_buildings_2026.gpkg.zip",
+      "size_bytes": 6691451,
+      "sha256": "a746f316dc979e925798ba3912a2efa4823211587772d8d74b1f6cbe12e0d814"
+    },
+    {
+      "role": "pmtiles",
+      "path": "nwk_buildings_2026/nwk_buildings_2026.pmtiles",
+      "size_bytes": 2959780,
+      "sha256": "c582a09615b1b790610fe43009806c3ea864103db613b66e0c464f71392a3abb"
+    },
+    {
+      "role": "thumbnail",
+      "path": "nwk_buildings_2026/nwk_buildings_2026.png",
+      "size_bytes": 152363,
+      "sha256": "cfdaf248d5e3d6f14d0a9befa754d34c3831354c3bca6daa1b4e83580ce71311"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "nwk_boundary_2026/nwk_boundary_2026.csv",
+      "size_bytes": 763,
+      "sha256": "c8756d9ec93f28ee652707c5b58e952b73151efc9b1f45c1108e96acd7d33631"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "nwk_boundary_2026/nwk_boundary_2026.fgb",
+      "size_bytes": 16736,
+      "sha256": "898d386c45c610643de06d856bf872363921d8cbb34a8fdba83a5bd8e1ed1e3a"
+    },
+    {
+      "role": "geopackage",
+      "path": "nwk_boundary_2026/nwk_boundary_2026.gpkg",
+      "size_bytes": 118784,
+      "sha256": "127522457191d50efcc16485b513f48d0f55634c0158549395aea22e39cb12d9"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "nwk_boundary_2026/nwk_boundary_2026.gpkg.zip",
+      "size_bytes": 17065,
+      "sha256": "49bfa7c87019e2490c67c80d06ffdb84dfb9698cdb91cc16285b9d3a96e4418f"
+    },
+    {
+      "role": "pmtiles",
+      "path": "nwk_boundary_2026/nwk_boundary_2026.pmtiles",
+      "size_bytes": 3252,
+      "sha256": "b7a058760ebd5bd94e2102e6dc8354ce6e54eea4b64afea81609c83ffa009d20"
+    },
+    {
+      "role": "thumbnail",
+      "path": "nwk_boundary_2026/nwk_boundary_2026.png",
+      "size_bytes": 30593,
+      "sha256": "8c850b11f4b345d2b51a4b29ee7f0ed240606aaf3cd7c59064034356168c93d9"
+    },
+    {
+      "role": "geopackage",
+      "path": "nwk_boundary_2026/nwk_wards_source_2026.gpkg",
+      "size_bytes": 131072,
+      "sha256": "c1873344a72d0ee986846264db90087bf80bed0d4c88aad07201698351c080c2"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "nwk_parks_2026/nwk_parks_2026.csv",
+      "size_bytes": 2996,
+      "sha256": "379d15fa76a89c0c77d9b036faebb2dbc14e7a5fb52b207feff71633b01f3dd3"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "nwk_parks_2026/nwk_parks_2026.fgb",
+      "size_bytes": 83200,
+      "sha256": "0b1bf0b9d45090583cf44fdfddba81d4b42b3ceb65d03771f5543f42f62ea74e"
+    },
+    {
+      "role": "geopackage",
+      "path": "nwk_parks_2026/nwk_parks_2026.gpkg",
+      "size_bytes": 196608,
+      "sha256": "5f348159e6d3bb6e986d32a890b76ec8a122fda21a1da055d20e83a4ea43c253"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "nwk_parks_2026/nwk_parks_2026.gpkg.zip",
+      "size_bytes": 52017,
+      "sha256": "cef817686e653316b6a37c1ae3164e11706efe338b0519f5bf259be82dc9f4b0"
+    },
+    {
+      "role": "pmtiles",
+      "path": "nwk_parks_2026/nwk_parks_2026.pmtiles",
+      "size_bytes": 92888,
+      "sha256": "53a634d0d68e7e8d72c5fcab105ec810d9d526c20c659dde17259fe16733ee3f"
+    },
+    {
+      "role": "thumbnail",
+      "path": "nwk_parks_2026/nwk_parks_2026.png",
+      "size_bytes": 37313,
+      "sha256": "ae29554f39d9db3bfe7476414d85483281e58fbb33f1ad3ce73e6d8b38087b8b"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "nwk_streets_2026/nwk_streets_2026.csv",
+      "size_bytes": 6742,
+      "sha256": "a5d5de723e10c9d3e234d0368f65d3a6f0b4d20fec08c20093be3e5c39dac3ef"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "nwk_streets_2026/nwk_streets_2026.fgb",
+      "size_bytes": 29876600,
+      "sha256": "6c3656cddc46225025a42e991a59e059a18e59608baba7b5011087293daa9115"
+    },
+    {
+      "role": "geopackage",
+      "path": "nwk_streets_2026/nwk_streets_2026.gpkg",
+      "size_bytes": 22704128,
+      "sha256": "98d1ecce244b32264dee40ff9424f1b9210286759f897fc4f5dca21749278598"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "nwk_streets_2026/nwk_streets_2026.gpkg.zip",
+      "size_bytes": 9612497,
+      "sha256": "e9f7128c2c5f019956143354b3b60ced8d11cd0ac55c25ea7485d05163323ebb"
+    },
+    {
+      "role": "pmtiles",
+      "path": "nwk_streets_2026/nwk_streets_2026.pmtiles",
+      "size_bytes": 9667560,
+      "sha256": "b774055ae748c75bdd8c832ac949d8ff4ca56b648ce5938996da1208eb876fcc"
+    },
+    {
+      "role": "thumbnail",
+      "path": "nwk_streets_2026/nwk_streets_2026.png",
+      "size_bytes": 339973,
+      "sha256": "7bd89e287981a205815da411e2623ed32e853286ce73f8f06b41d44e832bc1a4"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "nwk_zoning_2026/nwk_zoning_2026.csv",
+      "size_bytes": 944,
+      "sha256": "fb022e93b1da91ccea54d00893267bfd5291972d6b81e25a2e6094b4195a48a1"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "nwk_zoning_2026/nwk_zoning_2026.fgb",
+      "size_bytes": 1502568,
+      "sha256": "fc837b3b29ea9afbfc81d70b61e0c879e7ee46496a32398185a92760d946dd22"
+    },
+    {
+      "role": "geopackage",
+      "path": "nwk_zoning_2026/nwk_zoning_2026.gpkg",
+      "size_bytes": 1613824,
+      "sha256": "f40cbd980c144112348a1a716fb9ffca9cd2a188a109047ed8148bcc5196d74c"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "nwk_zoning_2026/nwk_zoning_2026.gpkg.zip",
+      "size_bytes": 1128191,
+      "sha256": "7ad6bb91c1888d2e6ffffbbec29a1077509f36d4bb6dbea445ecbc0df2ae1b1c"
+    },
+    {
+      "role": "pmtiles",
+      "path": "nwk_zoning_2026/nwk_zoning_2026.pmtiles",
+      "size_bytes": 236846,
+      "sha256": "5b7cee8a3145d8d460716aefb06e0b440394d11b1633b59e2d281a7e8412de61"
+    },
+    {
+      "role": "thumbnail",
+      "path": "nwk_zoning_2026/nwk_zoning_2026.png",
+      "size_bytes": 246704,
+      "sha256": "fa62c243a66333ca9a359684a38413c21c56ca8249c70e85c66d5b81a7beb10a"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report.csv",
+      "size_bytes": 203757,
+      "sha256": "364afbd0f5e8c2a89ae26d148b930027a6c05f25f7db29ba22db03345a2f49e0"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report_fields.csv",
+      "size_bytes": 19136,
+      "sha256": "d406251c6bd42539e85a38313e154dff1d49b7945afe8260b76cf4f14065366b"
+    }
+  ]
+}
