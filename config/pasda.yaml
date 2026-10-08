@@ -1,6 +1,8 @@
 name: pasda
 type: pasda
 metadata_base_url: "https://www.pasda.psu.edu/metadata/"
+# Metadata is harvested from PASDA, but public XML distributions use our S3 copies.
+metadata_distribution_base_url: "https://geobtaa-assets-prod.s3.us-east-2.amazonaws.com/store/asset/pasda/"
 download_base_url: "https://www.pasda.psu.edu/download/"
 json_base_url: "https://www.pasda.psu.edu/json/"
 source_manifest: metadata_directory

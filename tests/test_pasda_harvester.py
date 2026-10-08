@@ -228,6 +228,9 @@ def test_pasda_harvester_enables_build_uploads_by_default(tmp_path: Path) -> Non
     harvester = PasdaHarvester(_config(tmp_path))
 
     assert harvester.config["build_uploads"] is True
+    assert harvester.config["metadata_distribution_base_url"] == (
+        "https://geobtaa-assets-prod.s3.us-east-2.amazonaws.com/store/asset/pasda/"
+    )
 
 
 def test_pasda_harvester_allows_build_uploads_to_be_disabled(tmp_path: Path) -> None:
@@ -649,7 +652,10 @@ def test_pasda_distribution_records_use_asset_matches_and_metadata_xml() -> None
         {
             "friendlier_id": "pasda-roads",
             "reference_type": "metadata_fgdc",
-            "distribution_url": "https://www.pasda.psu.edu/metadata/roads.xml",
+            "distribution_url": (
+                "https://geobtaa-assets-prod.s3.us-east-2.amazonaws.com/"
+                "store/asset/pasda/roads.xml"
+            ),
             "label": "",
         },
         {
@@ -661,10 +667,35 @@ def test_pasda_distribution_records_use_asset_matches_and_metadata_xml() -> None
         {
             "friendlier_id": "pasda-parcels",
             "reference_type": "metadata_iso",
-            "distribution_url": "https://www.pasda.psu.edu/metadata/parcels.xml",
+            "distribution_url": (
+                "https://geobtaa-assets-prod.s3.us-east-2.amazonaws.com/"
+                "store/asset/pasda/parcels.xml"
+            ),
             "label": "",
         },
     ]
+
+
+def test_pasda_distribution_records_allow_custom_metadata_asset_base() -> None:
+    rows = build_pasda_distribution_records(
+        [
+            {
+                "source_record_id": "roads",
+                "metadata_url": "https://www.pasda.psu.edu/metadata/roads.xml",
+                "metadata_profile": "fgdc_csdgm",
+            }
+        ],
+        [
+            {
+                "source_record_id": "roads",
+                "pasda_distribution_candidate": "ready",
+                "supplemental_asset_urls": "",
+            }
+        ],
+        metadata_distribution_base_url="https://assets.example.org/pasda",
+    )
+
+    assert rows[0]["distribution_url"] == "https://assets.example.org/pasda/roads.xml"
 
 
 def test_pasda_public_ids_drop_square_brackets_but_matching_keeps_source_id() -> None:
