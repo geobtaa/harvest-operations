@@ -1,0 +1,41 @@
+[
+  {
+    "source": "mngeo",
+    "saved_feed_records": 2586,
+    "current_harvest_records": 2165,
+    "updated_saved_feed_records": 2435,
+    "explicit_parent_families": 234,
+    "included_explicit_parents": 234,
+    "comparison_rows": 1638,
+    "comparison_families": 220,
+    "comparison_changes": {
+      "new relative to current harvest": 221,
+      "title changed": 1374,
+      "same as current harvest": 43
+    },
+    "shared_service_containers": 36,
+    "current_IDs_missing_from_saved_feed_output": 0,
+    "saved_output_IDs_absent_from_current_harvest": 270,
+    "saved_output_IDs_absent_from_all_current_sources": 235,
+    "comparison_records_currently_in_other_sources": 2
+  },
+  {
+    "source": "baltimore_county",
+    "saved_feed_records": 224,
+    "current_harvest_records": 221,
+    "updated_saved_feed_records": 221,
+    "explicit_parent_families": 0,
+    "included_explicit_parents": 0,
+    "comparison_rows": 224,
+    "comparison_families": 0,
+    "comparison_changes": {
+      "same as current harvest": 221,
+      "not included by updated rules": 3
+    },
+    "shared_service_containers": 29,
+    "current_IDs_missing_from_saved_feed_output": 0,
+    "saved_output_IDs_absent_from_current_harvest": 0,
+    "saved_output_IDs_absent_from_all_current_sources": 0,
+    "comparison_records_currently_in_other_sources": 0
+  }
+]

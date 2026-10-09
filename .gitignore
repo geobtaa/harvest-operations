@@ -43,4 +43,4 @@ outputs/*
 !outputs/.gitkeep
 
 # ignore temporary huge example jsons
-feed_examples/
+example_feeds/

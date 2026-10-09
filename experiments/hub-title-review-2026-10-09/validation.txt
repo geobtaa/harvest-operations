@@ -1,0 +1,2 @@
+PASS: saved-feed reorder stability; unique updated IDs and identifiers; distribution-to-primary relationships; 220 non-parcel MnGeo families; all 224 Baltimore County feed records; CSV cell roundtrip; actual October 9 harvest titles and links matched across all sources.
+PASS: harvesting policy and production output files unchanged.
