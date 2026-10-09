@@ -1,0 +1,3 @@
+friendlier_id,reference_type,distribution_url,label
+shared-id,download,https://example.org/new.zip,ZIP
+new-id,download,https://example.org/new-record.zip,ZIP

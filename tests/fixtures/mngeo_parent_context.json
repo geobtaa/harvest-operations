@@ -1,0 +1,1390 @@
+{
+  "dataset": [
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=9d1d85f25800420f9d4ceb1cc572b039",
+      "landingPage": "https://gis.data.mn.gov/maps/minnesota::mn-precipitation-average-1961-1990-1",
+      "title": "MN Precipitation Average (1961-1990)",
+      "description": "This data set depicts 30-year averages (1961-1990) of monthly and annual sum precipitation for\nMinnesota.  These isolines and regions were created using kriging and latticecontour operations on precipitation point data from a 5-state area.  Data is stored in a regions model, with separate regions for each monthly and annual sum 30-year average (e.g., region.apr represents the average April sum precipitation across Minnesota for the period 1961-1990).<div style='display:flex; flex-direction:column; gap:10px;'><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Geopackage</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/576/atmos_1969_1990_mn_precip_avg.gpkg' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Data Download</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/576/atmos_1969_1990_mn_precip_avg.zip' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Metadata PDF</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/576/metadata.pdf' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div></div>",
+      "keyword": [
+        "Climate",
+        "precipitation",
+        "contours",
+        "normals",
+        "climatologyMeteorologyAtmosphere",
+        "Minnesota"
+      ],
+      "issued": "2026-05-12T19:24:10.000Z",
+      "modified": "2026-09-16T19:46:32.000Z",
+      "publisher": {
+        "name": "DNR-Waters, Climatology Group"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-96.8331,43.4354,-89.3970,49.3482",
+      "license": "None",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/maps/minnesota::mn-precipitation-average-1961-1990-1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/atmos_1969_1990_mn_precip_avg/FeatureServer"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Service URL",
+          "format": null,
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/atmos_1969_1990_mn_precip_avg/FeatureServer",
+          "description": null
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Geopackage",
+          "format": null,
+          "accessURL": "https://operations.gis.data.mn.gov/api/publicdownload/download/576/atmos_1969_1990_mn_precip_avg.gpkg",
+          "description": null
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=9d1d85f25800420f9d4ceb1cc572b039&sublayer=0",
+      "landingPage": "https://gis.data.mn.gov/datasets/minnesota::mn-precipitation-average-1969-1990-contour-lines-1",
+      "title": "Mn Precipitation Average 1969 1990 Contour Lines",
+      "description": "This data set depicts 30-year averages (1961-1990) of monthly and annual sum precipitation for\nMinnesota.  These isolines and regions were created using kriging and latticecontour operations on precipitation point data from a 5-state area.  Data is stored in a regions model, with separate regions for each monthly and annual sum 30-year average (e.g., region.apr represents the average April sum precipitation across Minnesota for the period 1961-1990).<div style='display:flex; flex-direction:column; gap:10px;'><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Geopackage</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/576/atmos_1969_1990_mn_precip_avg.gpkg' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Data Download</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/576/atmos_1969_1990_mn_precip_avg.zip' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Metadata PDF</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/576/metadata.pdf' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div></div>",
+      "keyword": [
+        "Climate",
+        "precipitation",
+        "contours",
+        "normals",
+        "climatologyMeteorologyAtmosphere",
+        "Minnesota"
+      ],
+      "issued": "2026-05-12T19:24:10.000Z",
+      "modified": "2026-09-16T19:46:32.000Z",
+      "publisher": {
+        "name": "DNR-Waters, Climatology Group"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-96.8331,43.4354,-89.3970,49.3482",
+      "license": "None",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/datasets/minnesota::mn-precipitation-average-1969-1990-contour-lines-1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/atmos_1969_1990_mn_precip_avg/FeatureServer/0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "CSV",
+          "format": "CSV",
+          "mediaType": "text/csv",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/9d1d85f25800420f9d4ceb1cc572b039/csv?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Shapefile",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/9d1d85f25800420f9d4ceb1cc572b039/shapefile?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "GeoJSON",
+          "format": "GeoJSON",
+          "mediaType": "application/vnd.geo+json",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/9d1d85f25800420f9d4ceb1cc572b039/geojson?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "KML",
+          "format": "KML",
+          "mediaType": "application/vnd.google-earth.kml+xml",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/9d1d85f25800420f9d4ceb1cc572b039/kml?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "File Geodatabase",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/9d1d85f25800420f9d4ceb1cc572b039/filegdb?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Service URL",
+          "format": null,
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/atmos_1969_1990_mn_precip_avg/FeatureServer",
+          "description": null
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Geopackage",
+          "format": null,
+          "accessURL": "https://operations.gis.data.mn.gov/api/publicdownload/download/576/atmos_1969_1990_mn_precip_avg.gpkg",
+          "description": null
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=9d1d85f25800420f9d4ceb1cc572b039&sublayer=1",
+      "landingPage": "https://gis.data.mn.gov/datasets/minnesota::mn-precipitation-average-1969-1990-polygons-1",
+      "title": "Mn Precipitation Average 1969 1990 Polygons",
+      "description": "This data set depicts 30-year averages (1961-1990) of monthly and annual sum precipitation for\nMinnesota.  These isolines and regions were created using kriging and latticecontour operations on precipitation point data from a 5-state area.  Data is stored in a regions model, with separate regions for each monthly and annual sum 30-year average (e.g., region.apr represents the average April sum precipitation across Minnesota for the period 1961-1990).<div style='display:flex; flex-direction:column; gap:10px;'><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Geopackage</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/576/atmos_1969_1990_mn_precip_avg.gpkg' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Data Download</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/576/atmos_1969_1990_mn_precip_avg.zip' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Metadata PDF</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/576/metadata.pdf' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div></div>",
+      "keyword": [
+        "Climate",
+        "precipitation",
+        "contours",
+        "normals",
+        "climatologyMeteorologyAtmosphere",
+        "Minnesota"
+      ],
+      "issued": "2026-05-12T19:24:10.000Z",
+      "modified": "2026-09-16T19:46:32.000Z",
+      "publisher": {
+        "name": "DNR-Waters, Climatology Group"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-96.8331,43.4354,-89.3970,49.3482",
+      "license": "None",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/datasets/minnesota::mn-precipitation-average-1969-1990-polygons-1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/atmos_1969_1990_mn_precip_avg/FeatureServer/1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "CSV",
+          "format": "CSV",
+          "mediaType": "text/csv",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/9d1d85f25800420f9d4ceb1cc572b039/csv?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Shapefile",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/9d1d85f25800420f9d4ceb1cc572b039/shapefile?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "GeoJSON",
+          "format": "GeoJSON",
+          "mediaType": "application/vnd.geo+json",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/9d1d85f25800420f9d4ceb1cc572b039/geojson?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "KML",
+          "format": "KML",
+          "mediaType": "application/vnd.google-earth.kml+xml",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/9d1d85f25800420f9d4ceb1cc572b039/kml?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "File Geodatabase",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/9d1d85f25800420f9d4ceb1cc572b039/filegdb?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Service URL",
+          "format": null,
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/atmos_1969_1990_mn_precip_avg/FeatureServer",
+          "description": null
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Geopackage",
+          "format": null,
+          "accessURL": "https://operations.gis.data.mn.gov/api/publicdownload/download/576/atmos_1969_1990_mn_precip_avg.gpkg",
+          "description": null
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=1d89e0fbe00f44cfb544d78f47cd0d2a",
+      "landingPage": "https://gis.data.mn.gov/maps/minnesota::mn-temperature-average-1961-1990-1",
+      "title": "MN Temperature Average (1961-1990)",
+      "description": "This data set depicts 30-year averages (1961-1990) of monthly and annual temperatures for Minnesota.  Isolines and regions were created using kriging and latticecontour operations on temperature point data from a 5-state area.  Data is stored in a regions model, with separate regions for each monthly and annual 30-year average (e.g., region.apr represents the average April temperatures across Minnesota for the period 1961-1990).<div style='display:flex; flex-direction:column; gap:10px;'><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Geopackage</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/575/atmos_1961_1990_mn_temp_average.gpkg' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Data Download</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/575/atmos_1961_1990_mn_temp_average.zip' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Metadata PDF</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/575/metadata.pdf' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div></div>",
+      "keyword": [
+        "Climate",
+        "temperature",
+        "contours",
+        "normals",
+        "climatologyMeteorologyAtmosphere",
+        "Minnesota"
+      ],
+      "issued": "2026-05-12T19:24:13.000Z",
+      "modified": "2026-09-16T19:43:51.000Z",
+      "publisher": {
+        "name": "DNR-Waters, Climatology Group"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-96.8331,43.4354,-89.3970,49.3482",
+      "license": "None",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/maps/minnesota::mn-temperature-average-1961-1990-1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/atmos_1961_1990_mn_temp_average/FeatureServer"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Service URL",
+          "format": null,
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/atmos_1961_1990_mn_temp_average/FeatureServer",
+          "description": null
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Geopackage",
+          "format": null,
+          "accessURL": "https://operations.gis.data.mn.gov/api/publicdownload/download/575/atmos_1961_1990_mn_temp_average.gpkg",
+          "description": null
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=1d89e0fbe00f44cfb544d78f47cd0d2a&sublayer=0",
+      "landingPage": "https://gis.data.mn.gov/datasets/minnesota::temp-yr30-ln1-1",
+      "title": "Temp Yr30 Ln1",
+      "description": "This data set depicts 30-year averages (1961-1990) of monthly and annual temperatures for Minnesota.  Isolines and regions were created using kriging and latticecontour operations on temperature point data from a 5-state area.  Data is stored in a regions model, with separate regions for each monthly and annual 30-year average (e.g., region.apr represents the average April temperatures across Minnesota for the period 1961-1990).<div style='display:flex; flex-direction:column; gap:10px;'><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Geopackage</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/575/atmos_1961_1990_mn_temp_average.gpkg' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Data Download</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/575/atmos_1961_1990_mn_temp_average.zip' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Metadata PDF</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/575/metadata.pdf' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div></div>",
+      "keyword": [
+        "Climate",
+        "temperature",
+        "contours",
+        "normals",
+        "climatologyMeteorologyAtmosphere",
+        "Minnesota"
+      ],
+      "issued": "2026-05-12T19:24:13.000Z",
+      "modified": "2026-09-16T19:43:51.000Z",
+      "publisher": {
+        "name": "DNR-Waters, Climatology Group"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-96.8331,43.4354,-89.3970,49.3482",
+      "license": "None",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/datasets/minnesota::temp-yr30-ln1-1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/atmos_1961_1990_mn_temp_average/FeatureServer/0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "CSV",
+          "format": "CSV",
+          "mediaType": "text/csv",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/1d89e0fbe00f44cfb544d78f47cd0d2a/csv?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Shapefile",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/1d89e0fbe00f44cfb544d78f47cd0d2a/shapefile?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "GeoJSON",
+          "format": "GeoJSON",
+          "mediaType": "application/vnd.geo+json",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/1d89e0fbe00f44cfb544d78f47cd0d2a/geojson?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "KML",
+          "format": "KML",
+          "mediaType": "application/vnd.google-earth.kml+xml",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/1d89e0fbe00f44cfb544d78f47cd0d2a/kml?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "File Geodatabase",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/1d89e0fbe00f44cfb544d78f47cd0d2a/filegdb?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Service URL",
+          "format": null,
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/atmos_1961_1990_mn_temp_average/FeatureServer",
+          "description": null
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Geopackage",
+          "format": null,
+          "accessURL": "https://operations.gis.data.mn.gov/api/publicdownload/download/575/atmos_1961_1990_mn_temp_average.gpkg",
+          "description": null
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=1d89e0fbe00f44cfb544d78f47cd0d2a&sublayer=1",
+      "landingPage": "https://gis.data.mn.gov/datasets/minnesota::temp-yr30-py1-1",
+      "title": "Temp Yr30 Py1",
+      "description": "This data set depicts 30-year averages (1961-1990) of monthly and annual temperatures for Minnesota.  Isolines and regions were created using kriging and latticecontour operations on temperature point data from a 5-state area.  Data is stored in a regions model, with separate regions for each monthly and annual 30-year average (e.g., region.apr represents the average April temperatures across Minnesota for the period 1961-1990).<div style='display:flex; flex-direction:column; gap:10px;'><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Geopackage</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/575/atmos_1961_1990_mn_temp_average.gpkg' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Data Download</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/575/atmos_1961_1990_mn_temp_average.zip' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Metadata PDF</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/575/metadata.pdf' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div></div>",
+      "keyword": [
+        "Climate",
+        "temperature",
+        "contours",
+        "normals",
+        "climatologyMeteorologyAtmosphere",
+        "Minnesota"
+      ],
+      "issued": "2026-05-12T19:24:13.000Z",
+      "modified": "2026-09-16T19:43:51.000Z",
+      "publisher": {
+        "name": "DNR-Waters, Climatology Group"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-96.8331,43.4354,-89.3970,49.3482",
+      "license": "None",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/datasets/minnesota::temp-yr30-py1-1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/atmos_1961_1990_mn_temp_average/FeatureServer/1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "CSV",
+          "format": "CSV",
+          "mediaType": "text/csv",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/1d89e0fbe00f44cfb544d78f47cd0d2a/csv?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Shapefile",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/1d89e0fbe00f44cfb544d78f47cd0d2a/shapefile?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "GeoJSON",
+          "format": "GeoJSON",
+          "mediaType": "application/vnd.geo+json",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/1d89e0fbe00f44cfb544d78f47cd0d2a/geojson?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "KML",
+          "format": "KML",
+          "mediaType": "application/vnd.google-earth.kml+xml",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/1d89e0fbe00f44cfb544d78f47cd0d2a/kml?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "File Geodatabase",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/1d89e0fbe00f44cfb544d78f47cd0d2a/filegdb?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Service URL",
+          "format": null,
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/atmos_1961_1990_mn_temp_average/FeatureServer",
+          "description": null
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Geopackage",
+          "format": null,
+          "accessURL": "https://operations.gis.data.mn.gov/api/publicdownload/download/575/atmos_1961_1990_mn_temp_average.gpkg",
+          "description": null
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=5d8d7cb16fa34a2291b3312e68f15971",
+      "landingPage": "https://gis.data.mn.gov/maps/minnesota::sensitive-lakeshore-assessment-1",
+      "title": "Sensitive Lakeshore Assessment",
+      "description": "The Sensitive Lakeshore Assessment Project was initiated to identify lakeshore areas of unique or critical habitat, or high biological diversity, in north-central Minnesota. An ecological model incorporating existing data (including wetlands and hydric soils) and field-collected data (including distribution and abundance of aquatic plants and high-priority animal species) was used to objectively rank lakeshores for sensitive area designation.\n\n<b>Highly sensitive shoreland</b> is a polygon feature class representing sensitive areas of lakeshore buffered landward by 1/4  mile. The <b>sensitivity index</b> is a point feature class representing the sum of scores of the data layers at equally-spaced points along the shoreline of a lake. See http://www.dnr.state.mn.us/eco/sli/index.html for more information on attributes and analysis.<div style='display:flex; flex-direction:column; gap:10px;'><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Geopackage</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/758/env_sensitive_lakeshore.gpkg' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Data Download</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/758/env_sensitive_lakeshore.zip' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Metadata PDF</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/758/metadata.pdf' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div></div>",
+      "keyword": [
+        "lakeshore",
+        "shoreland",
+        "protection",
+        "sensitive",
+        "lake",
+        "Minnesota",
+        "Cass",
+        "Crow Wing",
+        "Aitkin",
+        "Hubbard",
+        "Itasca"
+      ],
+      "issued": "2026-05-12T19:27:43.000Z",
+      "modified": "2026-09-16T06:09:47.000Z",
+      "publisher": {
+        "name": "Minnesota DNR - Ecological and Water Resources"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-95.1063,46.1339,-93.1472,47.8563",
+      "license": "None",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/maps/minnesota::sensitive-lakeshore-assessment-1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/env_sensitive_lakeshore/FeatureServer"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Service URL",
+          "format": null,
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/env_sensitive_lakeshore/FeatureServer",
+          "description": null
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Geopackage",
+          "format": null,
+          "accessURL": "https://operations.gis.data.mn.gov/api/publicdownload/download/758/env_sensitive_lakeshore.gpkg",
+          "description": null
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=5d8d7cb16fa34a2291b3312e68f15971&sublayer=0",
+      "landingPage": "https://gis.data.mn.gov/datasets/minnesota::sensitive-lakeshore-sensitivity-index-1",
+      "title": "Sensitive Lakeshore Sensitivity Index",
+      "description": "The Sensitive Lakeshore Assessment Project was initiated to identify lakeshore areas of unique or critical habitat, or high biological diversity, in north-central Minnesota. An ecological model incorporating existing data (including wetlands and hydric soils) and field-collected data (including distribution and abundance of aquatic plants and high-priority animal species) was used to objectively rank lakeshores for sensitive area designation.\n\n<b>Highly sensitive shoreland</b> is a polygon feature class representing sensitive areas of lakeshore buffered landward by 1/4  mile. The <b>sensitivity index</b> is a point feature class representing the sum of scores of the data layers at equally-spaced points along the shoreline of a lake. See http://www.dnr.state.mn.us/eco/sli/index.html for more information on attributes and analysis.<div style='display:flex; flex-direction:column; gap:10px;'><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Geopackage</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/758/env_sensitive_lakeshore.gpkg' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Data Download</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/758/env_sensitive_lakeshore.zip' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Metadata PDF</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/758/metadata.pdf' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div></div>",
+      "keyword": [
+        "lakeshore",
+        "shoreland",
+        "protection",
+        "sensitive",
+        "lake",
+        "Minnesota",
+        "Cass",
+        "Crow Wing",
+        "Aitkin",
+        "Hubbard",
+        "Itasca"
+      ],
+      "issued": "2026-05-12T19:27:43.000Z",
+      "modified": "2026-09-16T06:09:47.000Z",
+      "publisher": {
+        "name": "Minnesota DNR - Ecological and Water Resources"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-95.1011,46.1340,-93.1527,47.8563",
+      "license": "None",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/datasets/minnesota::sensitive-lakeshore-sensitivity-index-1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/env_sensitive_lakeshore/FeatureServer/0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "CSV",
+          "format": "CSV",
+          "mediaType": "text/csv",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/5d8d7cb16fa34a2291b3312e68f15971/csv?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Shapefile",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/5d8d7cb16fa34a2291b3312e68f15971/shapefile?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "GeoJSON",
+          "format": "GeoJSON",
+          "mediaType": "application/vnd.geo+json",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/5d8d7cb16fa34a2291b3312e68f15971/geojson?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "KML",
+          "format": "KML",
+          "mediaType": "application/vnd.google-earth.kml+xml",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/5d8d7cb16fa34a2291b3312e68f15971/kml?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "File Geodatabase",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/5d8d7cb16fa34a2291b3312e68f15971/filegdb?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Service URL",
+          "format": null,
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/env_sensitive_lakeshore/FeatureServer",
+          "description": null
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Geopackage",
+          "format": null,
+          "accessURL": "https://operations.gis.data.mn.gov/api/publicdownload/download/758/env_sensitive_lakeshore.gpkg",
+          "description": null
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=5d8d7cb16fa34a2291b3312e68f15971&sublayer=1",
+      "landingPage": "https://gis.data.mn.gov/datasets/minnesota::sensitive-lakeshore-highly-sensitive-shoreland-1",
+      "title": "Sensitive Lakeshore Highly Sensitive Shoreland",
+      "description": "The Sensitive Lakeshore Assessment Project was initiated to identify lakeshore areas of unique or critical habitat, or high biological diversity, in north-central Minnesota. An ecological model incorporating existing data (including wetlands and hydric soils) and field-collected data (including distribution and abundance of aquatic plants and high-priority animal species) was used to objectively rank lakeshores for sensitive area designation.\n\n<b>Highly sensitive shoreland</b> is a polygon feature class representing sensitive areas of lakeshore buffered landward by 1/4  mile. The <b>sensitivity index</b> is a point feature class representing the sum of scores of the data layers at equally-spaced points along the shoreline of a lake. See http://www.dnr.state.mn.us/eco/sli/index.html for more information on attributes and analysis.<div style='display:flex; flex-direction:column; gap:10px;'><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Geopackage</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/758/env_sensitive_lakeshore.gpkg' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Data Download</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/758/env_sensitive_lakeshore.zip' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div><div style='align-items:center; background-color:#f7f7f7; border-radius:6px; display:flex; justify-content:space-between; padding:8px 12px;'><span><strong>Metadata PDF</strong></span><a style='background-color:#003865; border-radius:4px; color:#fff; padding:10px;' target='_blank' href='https://operations.gis.data.mn.gov/api/publicdownload/download/758/metadata.pdf' rel='nofollow ugc noopener noreferrer'><strong>Download</strong></a></div></div>",
+      "keyword": [
+        "lakeshore",
+        "shoreland",
+        "protection",
+        "sensitive",
+        "lake",
+        "Minnesota",
+        "Cass",
+        "Crow Wing",
+        "Aitkin",
+        "Hubbard",
+        "Itasca"
+      ],
+      "issued": "2026-05-12T19:27:43.000Z",
+      "modified": "2026-09-16T06:09:47.000Z",
+      "publisher": {
+        "name": "Minnesota DNR - Ecological and Water Resources"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-95.1065,46.1407,-93.1472,47.8521",
+      "license": "None",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/datasets/minnesota::sensitive-lakeshore-highly-sensitive-shoreland-1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/env_sensitive_lakeshore/FeatureServer/1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "CSV",
+          "format": "CSV",
+          "mediaType": "text/csv",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/5d8d7cb16fa34a2291b3312e68f15971/csv?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Shapefile",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/5d8d7cb16fa34a2291b3312e68f15971/shapefile?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "GeoJSON",
+          "format": "GeoJSON",
+          "mediaType": "application/vnd.geo+json",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/5d8d7cb16fa34a2291b3312e68f15971/geojson?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "KML",
+          "format": "KML",
+          "mediaType": "application/vnd.google-earth.kml+xml",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/5d8d7cb16fa34a2291b3312e68f15971/kml?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "File Geodatabase",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/5d8d7cb16fa34a2291b3312e68f15971/filegdb?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Service URL",
+          "format": null,
+          "accessURL": "https://enterprise.gisdata.mn.gov/aghost/rest/services/us_mn_state_dnr/env_sensitive_lakeshore/FeatureServer",
+          "description": null
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Geopackage",
+          "format": null,
+          "accessURL": "https://operations.gis.data.mn.gov/api/publicdownload/download/758/env_sensitive_lakeshore.gpkg",
+          "description": null
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=27d9f56cfec6454688110d08ae6826a0",
+      "landingPage": "https://gis.data.mn.gov/maps/minnesota::metropolitan-7-county-parcel-polygons-2025",
+      "title": "Metropolitan 7-County Parcel Polygons - 2025",
+      "description": "<p>This dataset includes all 7 metro counties that have made their parcel data freely available without a license or fees.</p><div></div><div>This dataset is a compilation of tax polygon layers assembled into a common coordinate system from Twin Cities, Minnesota metropolitan area counties. A standard set of attribute fields is included for each county. The attributes are the same for the polygon and points layers. Not all attributes are populated for all counties. The polygons are provided as individual county per sublayer/feature class.</div><div></div><div><strong><br /></strong></div><div><strong>NOTICE</strong></div><div>The standard set of attributes changed to the MN Parcel Data Transfer Standard on 1/1/2019.\u00a0<a href='https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html</a></div><div><br /></div><div></div><div><b>Detailed information about the attributes can be found in the\u00a0Metro Regional Parcel Attributes\u00a0document.</b></div><div><br /></div><div><b>This is a MetroGIS Regionally Endorsed dataset.</b></div><div><br /></div><div><b>Comparison of parcel points to its polygon counterpart:</b></div><div></div><div>The polygon layer contains one record for each real estate/tax parcel polygon within each county's parcel dataset. Some counties have polygons for each individual condominium, and others do not. (See Completeness in Section 2 of the metadata for more information.) The points layer includes the same attribute fields as the polygon dataset. The points are intended to provide information in situations where multiple tax parcels are represented by a single polygon. One primary example of this is the condominium, though some counties stacked polygons for condos. Condominiums, by definition, are legally owned as individual, taxed real estate units. Records for condominiums may not show up in the polygon dataset. The points for the point dataset often will be randomly placed or stacked within the parcel polygon with which they are associated.</div><div></div><div><br /></div><div></div><div>In many places a one-to-one relationship does not exist between these parcel polygons or points and the actual buildings or occupancy units that lie within them. There may be many buildings on one parcel and there may be many occupancy units (e.g. apartments, stores or offices) within each building. Additionally, no information exists within this dataset about residents of parcels.\u00a0</div><div><br /></div><div></div><div><b>Additional information\u00a0</b></div><div>Additional information may be available from each county at the links listed below. Also, any questions or comments about suspected errors or omissions in this dataset can be addressed to the contact person at each individual county.</div><div><br /></div><div></div><div>Anoka =\u00a0<a href='http://www.anokacounty.us/315/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.anokacounty.us/315/GIS</a></div><div>Caver =\u00a0<a href='http://www.co.carver.mn.us/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.carver.mn.us/GIS</a></div><div>Dakota =\u00a0<a href='http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx</a></div><div>Hennepin =\u00a0<a href='https://gis-hennepin.hub.arcgis.com/pages/open-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://gis-hennepin.hub.arcgis.com/pages/open-data</a></div><div>Ramsey =\u00a0<a href='https://www.ramseycounty.us/your-government/open-government/research-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.ramseycounty.us/your-government/open-government/research-data</a></div><div>Scott =\u00a0<a href='https://open-data-scottcounty.hub.arcgis.com/' target='_blank' rel='nofollow ugc noopener noreferrer'>https://open-data-scottcounty.hub.arcgis.com/</a></div><div>Washington =\u00a0<a href='http://www.co.washington.mn.us/index.aspx?NID=1606' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.washington.mn.us/index.aspx?NID=1606</a></div>",
+      "keyword": [
+        "parcels",
+        "land ownership",
+        "Twin Cities",
+        "Anoka County",
+        "Carver County",
+        "Dakota County",
+        "Hennepin County",
+        "Ramsey County",
+        "Scott County",
+        "Washington County",
+        "Planning and Cadastre"
+      ],
+      "issued": "2026-06-25T23:59:10.000Z",
+      "modified": "2026-06-26T00:29:04.000Z",
+      "publisher": {
+        "name": "MetroGIS"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-94.0059,44.4647,-92.7284,45.4154",
+      "license": "None. This dataset is public domain under the Minnesota Government Data Practices Act (Minnesota Statutes Chapter 13).",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/maps/minnesota::metropolitan-7-county-parcel-polygons-2025"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels_2025/FeatureServer"
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=27d9f56cfec6454688110d08ae6826a0&sublayer=0",
+      "landingPage": "https://gis.data.mn.gov/datasets/minnesota::anoka-county-parcels-5",
+      "title": "Anoka County Parcels",
+      "description": "<p>This dataset includes all 7 metro counties that have made their parcel data freely available without a license or fees.</p><div></div><div>This dataset is a compilation of tax polygon layers assembled into a common coordinate system from Twin Cities, Minnesota metropolitan area counties. A standard set of attribute fields is included for each county. The attributes are the same for the polygon and points layers. Not all attributes are populated for all counties. The polygons are provided as individual county per sublayer/feature class.</div><div></div><div><strong><br /></strong></div><div><strong>NOTICE</strong></div><div>The standard set of attributes changed to the MN Parcel Data Transfer Standard on 1/1/2019.\u00a0<a href='https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html</a></div><div><br /></div><div></div><div><b>Detailed information about the attributes can be found in the\u00a0Metro Regional Parcel Attributes\u00a0document.</b></div><div><br /></div><div><b>This is a MetroGIS Regionally Endorsed dataset.</b></div><div><br /></div><div><b>Comparison of parcel points to its polygon counterpart:</b></div><div></div><div>The polygon layer contains one record for each real estate/tax parcel polygon within each county's parcel dataset. Some counties have polygons for each individual condominium, and others do not. (See Completeness in Section 2 of the metadata for more information.) The points layer includes the same attribute fields as the polygon dataset. The points are intended to provide information in situations where multiple tax parcels are represented by a single polygon. One primary example of this is the condominium, though some counties stacked polygons for condos. Condominiums, by definition, are legally owned as individual, taxed real estate units. Records for condominiums may not show up in the polygon dataset. The points for the point dataset often will be randomly placed or stacked within the parcel polygon with which they are associated.</div><div></div><div><br /></div><div></div><div>In many places a one-to-one relationship does not exist between these parcel polygons or points and the actual buildings or occupancy units that lie within them. There may be many buildings on one parcel and there may be many occupancy units (e.g. apartments, stores or offices) within each building. Additionally, no information exists within this dataset about residents of parcels.\u00a0</div><div><br /></div><div></div><div><b>Additional information\u00a0</b></div><div>Additional information may be available from each county at the links listed below. Also, any questions or comments about suspected errors or omissions in this dataset can be addressed to the contact person at each individual county.</div><div><br /></div><div></div><div>Anoka =\u00a0<a href='http://www.anokacounty.us/315/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.anokacounty.us/315/GIS</a></div><div>Caver =\u00a0<a href='http://www.co.carver.mn.us/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.carver.mn.us/GIS</a></div><div>Dakota =\u00a0<a href='http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx</a></div><div>Hennepin =\u00a0<a href='https://gis-hennepin.hub.arcgis.com/pages/open-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://gis-hennepin.hub.arcgis.com/pages/open-data</a></div><div>Ramsey =\u00a0<a href='https://www.ramseycounty.us/your-government/open-government/research-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.ramseycounty.us/your-government/open-government/research-data</a></div><div>Scott =\u00a0<a href='https://open-data-scottcounty.hub.arcgis.com/' target='_blank' rel='nofollow ugc noopener noreferrer'>https://open-data-scottcounty.hub.arcgis.com/</a></div><div>Washington =\u00a0<a href='http://www.co.washington.mn.us/index.aspx?NID=1606' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.washington.mn.us/index.aspx?NID=1606</a></div>",
+      "keyword": [
+        "parcels",
+        "land ownership",
+        "Twin Cities",
+        "Anoka County",
+        "Carver County",
+        "Dakota County",
+        "Hennepin County",
+        "Ramsey County",
+        "Scott County",
+        "Washington County",
+        "Planning and Cadastre"
+      ],
+      "issued": "2026-06-25T23:59:10.000Z",
+      "modified": "2026-06-26T00:29:04.000Z",
+      "publisher": {
+        "name": "MetroGIS"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-93.5108,45.0347,-93.0185,45.4157",
+      "license": "None. This dataset is public domain under the Minnesota Government Data Practices Act (Minnesota Statutes Chapter 13).",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/datasets/minnesota::anoka-county-parcels-5"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels_2025/FeatureServer/0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "CSV",
+          "format": "CSV",
+          "mediaType": "text/csv",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/csv?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Shapefile",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/shapefile?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "GeoJSON",
+          "format": "GeoJSON",
+          "mediaType": "application/vnd.geo+json",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/geojson?layers=0"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "KML",
+          "format": "KML",
+          "mediaType": "application/vnd.google-earth.kml+xml",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/kml?layers=0"
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=27d9f56cfec6454688110d08ae6826a0&sublayer=1",
+      "landingPage": "https://gis.data.mn.gov/datasets/minnesota::carver-county-parcels-5",
+      "title": "Carver County Parcels",
+      "description": "<p>This dataset includes all 7 metro counties that have made their parcel data freely available without a license or fees.</p><div></div><div>This dataset is a compilation of tax polygon layers assembled into a common coordinate system from Twin Cities, Minnesota metropolitan area counties. A standard set of attribute fields is included for each county. The attributes are the same for the polygon and points layers. Not all attributes are populated for all counties. The polygons are provided as individual county per sublayer/feature class.</div><div></div><div><strong><br /></strong></div><div><strong>NOTICE</strong></div><div>The standard set of attributes changed to the MN Parcel Data Transfer Standard on 1/1/2019.\u00a0<a href='https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html</a></div><div><br /></div><div></div><div><b>Detailed information about the attributes can be found in the\u00a0Metro Regional Parcel Attributes\u00a0document.</b></div><div><br /></div><div><b>This is a MetroGIS Regionally Endorsed dataset.</b></div><div><br /></div><div><b>Comparison of parcel points to its polygon counterpart:</b></div><div></div><div>The polygon layer contains one record for each real estate/tax parcel polygon within each county's parcel dataset. Some counties have polygons for each individual condominium, and others do not. (See Completeness in Section 2 of the metadata for more information.) The points layer includes the same attribute fields as the polygon dataset. The points are intended to provide information in situations where multiple tax parcels are represented by a single polygon. One primary example of this is the condominium, though some counties stacked polygons for condos. Condominiums, by definition, are legally owned as individual, taxed real estate units. Records for condominiums may not show up in the polygon dataset. The points for the point dataset often will be randomly placed or stacked within the parcel polygon with which they are associated.</div><div></div><div><br /></div><div></div><div>In many places a one-to-one relationship does not exist between these parcel polygons or points and the actual buildings or occupancy units that lie within them. There may be many buildings on one parcel and there may be many occupancy units (e.g. apartments, stores or offices) within each building. Additionally, no information exists within this dataset about residents of parcels.\u00a0</div><div><br /></div><div></div><div><b>Additional information\u00a0</b></div><div>Additional information may be available from each county at the links listed below. Also, any questions or comments about suspected errors or omissions in this dataset can be addressed to the contact person at each individual county.</div><div><br /></div><div></div><div>Anoka =\u00a0<a href='http://www.anokacounty.us/315/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.anokacounty.us/315/GIS</a></div><div>Caver =\u00a0<a href='http://www.co.carver.mn.us/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.carver.mn.us/GIS</a></div><div>Dakota =\u00a0<a href='http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx</a></div><div>Hennepin =\u00a0<a href='https://gis-hennepin.hub.arcgis.com/pages/open-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://gis-hennepin.hub.arcgis.com/pages/open-data</a></div><div>Ramsey =\u00a0<a href='https://www.ramseycounty.us/your-government/open-government/research-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.ramseycounty.us/your-government/open-government/research-data</a></div><div>Scott =\u00a0<a href='https://open-data-scottcounty.hub.arcgis.com/' target='_blank' rel='nofollow ugc noopener noreferrer'>https://open-data-scottcounty.hub.arcgis.com/</a></div><div>Washington =\u00a0<a href='http://www.co.washington.mn.us/index.aspx?NID=1606' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.washington.mn.us/index.aspx?NID=1606</a></div>",
+      "keyword": [
+        "parcels",
+        "land ownership",
+        "Twin Cities",
+        "Anoka County",
+        "Carver County",
+        "Dakota County",
+        "Hennepin County",
+        "Ramsey County",
+        "Scott County",
+        "Washington County",
+        "Planning and Cadastre"
+      ],
+      "issued": "2026-06-25T23:59:10.000Z",
+      "modified": "2026-06-26T00:29:04.000Z",
+      "publisher": {
+        "name": "MetroGIS"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-94.0088,44.6336,-93.5216,44.9818",
+      "license": "None. This dataset is public domain under the Minnesota Government Data Practices Act (Minnesota Statutes Chapter 13).",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/datasets/minnesota::carver-county-parcels-5"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels_2025/FeatureServer/1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "CSV",
+          "format": "CSV",
+          "mediaType": "text/csv",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/csv?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Shapefile",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/shapefile?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "GeoJSON",
+          "format": "GeoJSON",
+          "mediaType": "application/vnd.geo+json",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/geojson?layers=1"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "KML",
+          "format": "KML",
+          "mediaType": "application/vnd.google-earth.kml+xml",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/kml?layers=1"
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=27d9f56cfec6454688110d08ae6826a0&sublayer=2",
+      "landingPage": "https://gis.data.mn.gov/datasets/minnesota::dakota-county-parcels-5",
+      "title": "Dakota County Parcels",
+      "description": "<p>This dataset includes all 7 metro counties that have made their parcel data freely available without a license or fees.</p><div></div><div>This dataset is a compilation of tax polygon layers assembled into a common coordinate system from Twin Cities, Minnesota metropolitan area counties. A standard set of attribute fields is included for each county. The attributes are the same for the polygon and points layers. Not all attributes are populated for all counties. The polygons are provided as individual county per sublayer/feature class.</div><div></div><div><strong><br /></strong></div><div><strong>NOTICE</strong></div><div>The standard set of attributes changed to the MN Parcel Data Transfer Standard on 1/1/2019.\u00a0<a href='https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html</a></div><div><br /></div><div></div><div><b>Detailed information about the attributes can be found in the\u00a0Metro Regional Parcel Attributes\u00a0document.</b></div><div><br /></div><div><b>This is a MetroGIS Regionally Endorsed dataset.</b></div><div><br /></div><div><b>Comparison of parcel points to its polygon counterpart:</b></div><div></div><div>The polygon layer contains one record for each real estate/tax parcel polygon within each county's parcel dataset. Some counties have polygons for each individual condominium, and others do not. (See Completeness in Section 2 of the metadata for more information.) The points layer includes the same attribute fields as the polygon dataset. The points are intended to provide information in situations where multiple tax parcels are represented by a single polygon. One primary example of this is the condominium, though some counties stacked polygons for condos. Condominiums, by definition, are legally owned as individual, taxed real estate units. Records for condominiums may not show up in the polygon dataset. The points for the point dataset often will be randomly placed or stacked within the parcel polygon with which they are associated.</div><div></div><div><br /></div><div></div><div>In many places a one-to-one relationship does not exist between these parcel polygons or points and the actual buildings or occupancy units that lie within them. There may be many buildings on one parcel and there may be many occupancy units (e.g. apartments, stores or offices) within each building. Additionally, no information exists within this dataset about residents of parcels.\u00a0</div><div><br /></div><div></div><div><b>Additional information\u00a0</b></div><div>Additional information may be available from each county at the links listed below. Also, any questions or comments about suspected errors or omissions in this dataset can be addressed to the contact person at each individual county.</div><div><br /></div><div></div><div>Anoka =\u00a0<a href='http://www.anokacounty.us/315/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.anokacounty.us/315/GIS</a></div><div>Caver =\u00a0<a href='http://www.co.carver.mn.us/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.carver.mn.us/GIS</a></div><div>Dakota =\u00a0<a href='http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx</a></div><div>Hennepin =\u00a0<a href='https://gis-hennepin.hub.arcgis.com/pages/open-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://gis-hennepin.hub.arcgis.com/pages/open-data</a></div><div>Ramsey =\u00a0<a href='https://www.ramseycounty.us/your-government/open-government/research-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.ramseycounty.us/your-government/open-government/research-data</a></div><div>Scott =\u00a0<a href='https://open-data-scottcounty.hub.arcgis.com/' target='_blank' rel='nofollow ugc noopener noreferrer'>https://open-data-scottcounty.hub.arcgis.com/</a></div><div>Washington =\u00a0<a href='http://www.co.washington.mn.us/index.aspx?NID=1606' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.washington.mn.us/index.aspx?NID=1606</a></div>",
+      "keyword": [
+        "parcels",
+        "land ownership",
+        "Twin Cities",
+        "Anoka County",
+        "Carver County",
+        "Dakota County",
+        "Hennepin County",
+        "Ramsey County",
+        "Scott County",
+        "Washington County",
+        "Planning and Cadastre"
+      ],
+      "issued": "2026-06-25T23:59:10.000Z",
+      "modified": "2026-06-26T00:29:04.000Z",
+      "publisher": {
+        "name": "MetroGIS"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-93.3279,44.4687,-92.7307,44.9230",
+      "license": "None. This dataset is public domain under the Minnesota Government Data Practices Act (Minnesota Statutes Chapter 13).",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/datasets/minnesota::dakota-county-parcels-5"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels_2025/FeatureServer/2"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "CSV",
+          "format": "CSV",
+          "mediaType": "text/csv",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/csv?layers=2"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Shapefile",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/shapefile?layers=2"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "GeoJSON",
+          "format": "GeoJSON",
+          "mediaType": "application/vnd.geo+json",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/geojson?layers=2"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "KML",
+          "format": "KML",
+          "mediaType": "application/vnd.google-earth.kml+xml",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/kml?layers=2"
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=27d9f56cfec6454688110d08ae6826a0&sublayer=3",
+      "landingPage": "https://gis.data.mn.gov/datasets/minnesota::hennepin-county-parcels-5",
+      "title": "Hennepin County Parcels",
+      "description": "<p>This dataset includes all 7 metro counties that have made their parcel data freely available without a license or fees.</p><div></div><div>This dataset is a compilation of tax polygon layers assembled into a common coordinate system from Twin Cities, Minnesota metropolitan area counties. A standard set of attribute fields is included for each county. The attributes are the same for the polygon and points layers. Not all attributes are populated for all counties. The polygons are provided as individual county per sublayer/feature class.</div><div></div><div><strong><br /></strong></div><div><strong>NOTICE</strong></div><div>The standard set of attributes changed to the MN Parcel Data Transfer Standard on 1/1/2019.\u00a0<a href='https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html</a></div><div><br /></div><div></div><div><b>Detailed information about the attributes can be found in the\u00a0Metro Regional Parcel Attributes\u00a0document.</b></div><div><br /></div><div><b>This is a MetroGIS Regionally Endorsed dataset.</b></div><div><br /></div><div><b>Comparison of parcel points to its polygon counterpart:</b></div><div></div><div>The polygon layer contains one record for each real estate/tax parcel polygon within each county's parcel dataset. Some counties have polygons for each individual condominium, and others do not. (See Completeness in Section 2 of the metadata for more information.) The points layer includes the same attribute fields as the polygon dataset. The points are intended to provide information in situations where multiple tax parcels are represented by a single polygon. One primary example of this is the condominium, though some counties stacked polygons for condos. Condominiums, by definition, are legally owned as individual, taxed real estate units. Records for condominiums may not show up in the polygon dataset. The points for the point dataset often will be randomly placed or stacked within the parcel polygon with which they are associated.</div><div></div><div><br /></div><div></div><div>In many places a one-to-one relationship does not exist between these parcel polygons or points and the actual buildings or occupancy units that lie within them. There may be many buildings on one parcel and there may be many occupancy units (e.g. apartments, stores or offices) within each building. Additionally, no information exists within this dataset about residents of parcels.\u00a0</div><div><br /></div><div></div><div><b>Additional information\u00a0</b></div><div>Additional information may be available from each county at the links listed below. Also, any questions or comments about suspected errors or omissions in this dataset can be addressed to the contact person at each individual county.</div><div><br /></div><div></div><div>Anoka =\u00a0<a href='http://www.anokacounty.us/315/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.anokacounty.us/315/GIS</a></div><div>Caver =\u00a0<a href='http://www.co.carver.mn.us/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.carver.mn.us/GIS</a></div><div>Dakota =\u00a0<a href='http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx</a></div><div>Hennepin =\u00a0<a href='https://gis-hennepin.hub.arcgis.com/pages/open-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://gis-hennepin.hub.arcgis.com/pages/open-data</a></div><div>Ramsey =\u00a0<a href='https://www.ramseycounty.us/your-government/open-government/research-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.ramseycounty.us/your-government/open-government/research-data</a></div><div>Scott =\u00a0<a href='https://open-data-scottcounty.hub.arcgis.com/' target='_blank' rel='nofollow ugc noopener noreferrer'>https://open-data-scottcounty.hub.arcgis.com/</a></div><div>Washington =\u00a0<a href='http://www.co.washington.mn.us/index.aspx?NID=1606' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.washington.mn.us/index.aspx?NID=1606</a></div>",
+      "keyword": [
+        "parcels",
+        "land ownership",
+        "Twin Cities",
+        "Anoka County",
+        "Carver County",
+        "Dakota County",
+        "Hennepin County",
+        "Ramsey County",
+        "Scott County",
+        "Washington County",
+        "Planning and Cadastre"
+      ],
+      "issued": "2026-06-25T23:59:10.000Z",
+      "modified": "2026-06-26T00:29:04.000Z",
+      "publisher": {
+        "name": "MetroGIS"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-93.7666,44.7835,-93.1786,45.2467",
+      "license": "None. This dataset is public domain under the Minnesota Government Data Practices Act (Minnesota Statutes Chapter 13).",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/datasets/minnesota::hennepin-county-parcels-5"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels_2025/FeatureServer/3"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "CSV",
+          "format": "CSV",
+          "mediaType": "text/csv",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/csv?layers=3"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Shapefile",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/shapefile?layers=3"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "GeoJSON",
+          "format": "GeoJSON",
+          "mediaType": "application/vnd.geo+json",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/geojson?layers=3"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "KML",
+          "format": "KML",
+          "mediaType": "application/vnd.google-earth.kml+xml",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/kml?layers=3"
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=27d9f56cfec6454688110d08ae6826a0&sublayer=4",
+      "landingPage": "https://gis.data.mn.gov/datasets/minnesota::ramsey-county-parcels-5",
+      "title": "Ramsey County Parcels",
+      "description": "<p>This dataset includes all 7 metro counties that have made their parcel data freely available without a license or fees.</p><div></div><div>This dataset is a compilation of tax polygon layers assembled into a common coordinate system from Twin Cities, Minnesota metropolitan area counties. A standard set of attribute fields is included for each county. The attributes are the same for the polygon and points layers. Not all attributes are populated for all counties. The polygons are provided as individual county per sublayer/feature class.</div><div></div><div><strong><br /></strong></div><div><strong>NOTICE</strong></div><div>The standard set of attributes changed to the MN Parcel Data Transfer Standard on 1/1/2019.\u00a0<a href='https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html</a></div><div><br /></div><div></div><div><b>Detailed information about the attributes can be found in the\u00a0Metro Regional Parcel Attributes\u00a0document.</b></div><div><br /></div><div><b>This is a MetroGIS Regionally Endorsed dataset.</b></div><div><br /></div><div><b>Comparison of parcel points to its polygon counterpart:</b></div><div></div><div>The polygon layer contains one record for each real estate/tax parcel polygon within each county's parcel dataset. Some counties have polygons for each individual condominium, and others do not. (See Completeness in Section 2 of the metadata for more information.) The points layer includes the same attribute fields as the polygon dataset. The points are intended to provide information in situations where multiple tax parcels are represented by a single polygon. One primary example of this is the condominium, though some counties stacked polygons for condos. Condominiums, by definition, are legally owned as individual, taxed real estate units. Records for condominiums may not show up in the polygon dataset. The points for the point dataset often will be randomly placed or stacked within the parcel polygon with which they are associated.</div><div></div><div><br /></div><div></div><div>In many places a one-to-one relationship does not exist between these parcel polygons or points and the actual buildings or occupancy units that lie within them. There may be many buildings on one parcel and there may be many occupancy units (e.g. apartments, stores or offices) within each building. Additionally, no information exists within this dataset about residents of parcels.\u00a0</div><div><br /></div><div></div><div><b>Additional information\u00a0</b></div><div>Additional information may be available from each county at the links listed below. Also, any questions or comments about suspected errors or omissions in this dataset can be addressed to the contact person at each individual county.</div><div><br /></div><div></div><div>Anoka =\u00a0<a href='http://www.anokacounty.us/315/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.anokacounty.us/315/GIS</a></div><div>Caver =\u00a0<a href='http://www.co.carver.mn.us/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.carver.mn.us/GIS</a></div><div>Dakota =\u00a0<a href='http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx</a></div><div>Hennepin =\u00a0<a href='https://gis-hennepin.hub.arcgis.com/pages/open-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://gis-hennepin.hub.arcgis.com/pages/open-data</a></div><div>Ramsey =\u00a0<a href='https://www.ramseycounty.us/your-government/open-government/research-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.ramseycounty.us/your-government/open-government/research-data</a></div><div>Scott =\u00a0<a href='https://open-data-scottcounty.hub.arcgis.com/' target='_blank' rel='nofollow ugc noopener noreferrer'>https://open-data-scottcounty.hub.arcgis.com/</a></div><div>Washington =\u00a0<a href='http://www.co.washington.mn.us/index.aspx?NID=1606' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.washington.mn.us/index.aspx?NID=1606</a></div>",
+      "keyword": [
+        "parcels",
+        "land ownership",
+        "Twin Cities",
+        "Anoka County",
+        "Carver County",
+        "Dakota County",
+        "Hennepin County",
+        "Ramsey County",
+        "Scott County",
+        "Washington County",
+        "Planning and Cadastre"
+      ],
+      "issued": "2026-06-25T23:59:10.000Z",
+      "modified": "2026-06-26T00:29:04.000Z",
+      "publisher": {
+        "name": "MetroGIS"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-93.2269,44.8877,-92.9841,45.1248",
+      "license": "None. This dataset is public domain under the Minnesota Government Data Practices Act (Minnesota Statutes Chapter 13).",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/datasets/minnesota::ramsey-county-parcels-5"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels_2025/FeatureServer/4"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "CSV",
+          "format": "CSV",
+          "mediaType": "text/csv",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/csv?layers=4"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Shapefile",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/shapefile?layers=4"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "GeoJSON",
+          "format": "GeoJSON",
+          "mediaType": "application/vnd.geo+json",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/geojson?layers=4"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "KML",
+          "format": "KML",
+          "mediaType": "application/vnd.google-earth.kml+xml",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/kml?layers=4"
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=27d9f56cfec6454688110d08ae6826a0&sublayer=5",
+      "landingPage": "https://gis.data.mn.gov/datasets/minnesota::scott-county-parcels-5",
+      "title": "Scott County Parcels",
+      "description": "<p>This dataset includes all 7 metro counties that have made their parcel data freely available without a license or fees.</p><div></div><div>This dataset is a compilation of tax polygon layers assembled into a common coordinate system from Twin Cities, Minnesota metropolitan area counties. A standard set of attribute fields is included for each county. The attributes are the same for the polygon and points layers. Not all attributes are populated for all counties. The polygons are provided as individual county per sublayer/feature class.</div><div></div><div><strong><br /></strong></div><div><strong>NOTICE</strong></div><div>The standard set of attributes changed to the MN Parcel Data Transfer Standard on 1/1/2019.\u00a0<a href='https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html</a></div><div><br /></div><div></div><div><b>Detailed information about the attributes can be found in the\u00a0Metro Regional Parcel Attributes\u00a0document.</b></div><div><br /></div><div><b>This is a MetroGIS Regionally Endorsed dataset.</b></div><div><br /></div><div><b>Comparison of parcel points to its polygon counterpart:</b></div><div></div><div>The polygon layer contains one record for each real estate/tax parcel polygon within each county's parcel dataset. Some counties have polygons for each individual condominium, and others do not. (See Completeness in Section 2 of the metadata for more information.) The points layer includes the same attribute fields as the polygon dataset. The points are intended to provide information in situations where multiple tax parcels are represented by a single polygon. One primary example of this is the condominium, though some counties stacked polygons for condos. Condominiums, by definition, are legally owned as individual, taxed real estate units. Records for condominiums may not show up in the polygon dataset. The points for the point dataset often will be randomly placed or stacked within the parcel polygon with which they are associated.</div><div></div><div><br /></div><div></div><div>In many places a one-to-one relationship does not exist between these parcel polygons or points and the actual buildings or occupancy units that lie within them. There may be many buildings on one parcel and there may be many occupancy units (e.g. apartments, stores or offices) within each building. Additionally, no information exists within this dataset about residents of parcels.\u00a0</div><div><br /></div><div></div><div><b>Additional information\u00a0</b></div><div>Additional information may be available from each county at the links listed below. Also, any questions or comments about suspected errors or omissions in this dataset can be addressed to the contact person at each individual county.</div><div><br /></div><div></div><div>Anoka =\u00a0<a href='http://www.anokacounty.us/315/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.anokacounty.us/315/GIS</a></div><div>Caver =\u00a0<a href='http://www.co.carver.mn.us/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.carver.mn.us/GIS</a></div><div>Dakota =\u00a0<a href='http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx</a></div><div>Hennepin =\u00a0<a href='https://gis-hennepin.hub.arcgis.com/pages/open-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://gis-hennepin.hub.arcgis.com/pages/open-data</a></div><div>Ramsey =\u00a0<a href='https://www.ramseycounty.us/your-government/open-government/research-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.ramseycounty.us/your-government/open-government/research-data</a></div><div>Scott =\u00a0<a href='https://open-data-scottcounty.hub.arcgis.com/' target='_blank' rel='nofollow ugc noopener noreferrer'>https://open-data-scottcounty.hub.arcgis.com/</a></div><div>Washington =\u00a0<a href='http://www.co.washington.mn.us/index.aspx?NID=1606' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.washington.mn.us/index.aspx?NID=1606</a></div>",
+      "keyword": [
+        "parcels",
+        "land ownership",
+        "Twin Cities",
+        "Anoka County",
+        "Carver County",
+        "Dakota County",
+        "Hennepin County",
+        "Ramsey County",
+        "Scott County",
+        "Washington County",
+        "Planning and Cadastre"
+      ],
+      "issued": "2026-06-25T23:59:10.000Z",
+      "modified": "2026-06-26T00:29:04.000Z",
+      "publisher": {
+        "name": "MetroGIS"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-93.9099,44.5407,-93.2789,44.8132",
+      "license": "None. This dataset is public domain under the Minnesota Government Data Practices Act (Minnesota Statutes Chapter 13).",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/datasets/minnesota::scott-county-parcels-5"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels_2025/FeatureServer/5"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "CSV",
+          "format": "CSV",
+          "mediaType": "text/csv",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/csv?layers=5"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Shapefile",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/shapefile?layers=5"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "GeoJSON",
+          "format": "GeoJSON",
+          "mediaType": "application/vnd.geo+json",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/geojson?layers=5"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "KML",
+          "format": "KML",
+          "mediaType": "application/vnd.google-earth.kml+xml",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/kml?layers=5"
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    },
+    {
+      "@type": "dcat:Dataset",
+      "identifier": "https://www.arcgis.com/home/item.html?id=27d9f56cfec6454688110d08ae6826a0&sublayer=6",
+      "landingPage": "https://gis.data.mn.gov/datasets/minnesota::washington-county-parcels-5",
+      "title": "Washington County Parcels",
+      "description": "<p>This dataset includes all 7 metro counties that have made their parcel data freely available without a license or fees.</p><div></div><div>This dataset is a compilation of tax polygon layers assembled into a common coordinate system from Twin Cities, Minnesota metropolitan area counties. A standard set of attribute fields is included for each county. The attributes are the same for the polygon and points layers. Not all attributes are populated for all counties. The polygons are provided as individual county per sublayer/feature class.</div><div></div><div><strong><br /></strong></div><div><strong>NOTICE</strong></div><div>The standard set of attributes changed to the MN Parcel Data Transfer Standard on 1/1/2019.\u00a0<a href='https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.mngeo.state.mn.us/committee/standards/parcel_attrib/parcel_attrib.html</a></div><div><br /></div><div></div><div><b>Detailed information about the attributes can be found in the\u00a0Metro Regional Parcel Attributes\u00a0document.</b></div><div><br /></div><div><b>This is a MetroGIS Regionally Endorsed dataset.</b></div><div><br /></div><div><b>Comparison of parcel points to its polygon counterpart:</b></div><div></div><div>The polygon layer contains one record for each real estate/tax parcel polygon within each county's parcel dataset. Some counties have polygons for each individual condominium, and others do not. (See Completeness in Section 2 of the metadata for more information.) The points layer includes the same attribute fields as the polygon dataset. The points are intended to provide information in situations where multiple tax parcels are represented by a single polygon. One primary example of this is the condominium, though some counties stacked polygons for condos. Condominiums, by definition, are legally owned as individual, taxed real estate units. Records for condominiums may not show up in the polygon dataset. The points for the point dataset often will be randomly placed or stacked within the parcel polygon with which they are associated.</div><div></div><div><br /></div><div></div><div>In many places a one-to-one relationship does not exist between these parcel polygons or points and the actual buildings or occupancy units that lie within them. There may be many buildings on one parcel and there may be many occupancy units (e.g. apartments, stores or offices) within each building. Additionally, no information exists within this dataset about residents of parcels.\u00a0</div><div><br /></div><div></div><div><b>Additional information\u00a0</b></div><div>Additional information may be available from each county at the links listed below. Also, any questions or comments about suspected errors or omissions in this dataset can be addressed to the contact person at each individual county.</div><div><br /></div><div></div><div>Anoka =\u00a0<a href='http://www.anokacounty.us/315/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.anokacounty.us/315/GIS</a></div><div>Caver =\u00a0<a href='http://www.co.carver.mn.us/GIS' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.carver.mn.us/GIS</a></div><div>Dakota =\u00a0<a href='http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.dakota.mn.us/homeproperty/propertymaps/pages/default.aspx</a></div><div>Hennepin =\u00a0<a href='https://gis-hennepin.hub.arcgis.com/pages/open-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://gis-hennepin.hub.arcgis.com/pages/open-data</a></div><div>Ramsey =\u00a0<a href='https://www.ramseycounty.us/your-government/open-government/research-data' target='_blank' rel='nofollow ugc noopener noreferrer'>https://www.ramseycounty.us/your-government/open-government/research-data</a></div><div>Scott =\u00a0<a href='https://open-data-scottcounty.hub.arcgis.com/' target='_blank' rel='nofollow ugc noopener noreferrer'>https://open-data-scottcounty.hub.arcgis.com/</a></div><div>Washington =\u00a0<a href='http://www.co.washington.mn.us/index.aspx?NID=1606' target='_blank' rel='nofollow ugc noopener noreferrer'>http://www.co.washington.mn.us/index.aspx?NID=1606</a></div>",
+      "keyword": [
+        "parcels",
+        "land ownership",
+        "Twin Cities",
+        "Anoka County",
+        "Carver County",
+        "Dakota County",
+        "Hennepin County",
+        "Ramsey County",
+        "Scott County",
+        "Washington County",
+        "Planning and Cadastre"
+      ],
+      "issued": "2026-06-25T23:59:10.000Z",
+      "modified": "2026-06-26T00:29:04.000Z",
+      "publisher": {
+        "name": "MetroGIS"
+      },
+      "contactPoint": {
+        "@type": "vcard:Contact",
+        "fn": "commons_etl_user",
+        "hasEmail": "mailto:gisinfo.mngeo@state.mn.us"
+      },
+      "accessLevel": "public",
+      "spatial": "-93.0203,44.7474,-92.7399,45.2966",
+      "license": "None. This dataset is public domain under the Minnesota Government Data Practices Act (Minnesota Statutes Chapter 13).",
+      "distribution": [
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS Hub Dataset",
+          "format": "Web Page",
+          "mediaType": "text/html",
+          "accessURL": "https://gis.data.mn.gov/datasets/minnesota::washington-county-parcels-5"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "ArcGIS GeoService",
+          "format": "ArcGIS GeoServices REST API",
+          "mediaType": "application/json",
+          "accessURL": "https://arcgis.metc.state.mn.us/data1/rest/services/parcels/Parcels_2025/FeatureServer/6"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "CSV",
+          "format": "CSV",
+          "mediaType": "text/csv",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/csv?layers=6"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "Shapefile",
+          "format": "ZIP",
+          "mediaType": "application/zip",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/shapefile?layers=6"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "GeoJSON",
+          "format": "GeoJSON",
+          "mediaType": "application/vnd.geo+json",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/geojson?layers=6"
+        },
+        {
+          "@type": "dcat:Distribution",
+          "title": "KML",
+          "format": "KML",
+          "mediaType": "application/vnd.google-earth.kml+xml",
+          "accessURL": "https://gis.data.mn.gov/api/download/v1/items/27d9f56cfec6454688110d08ae6826a0/kml?layers=6"
+        }
+      ],
+      "theme": [
+        "geospatial"
+      ]
+    }
+  ]
+}

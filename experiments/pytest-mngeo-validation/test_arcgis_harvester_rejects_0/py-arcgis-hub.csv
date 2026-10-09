@@ -1,0 +1,3 @@
+Title,Endpoint URL,ID,Identifier,Code
+Harvest record for One,https://example.org/api/feed/dcat-us/1.1.json,harvest_01,01,01
+Harvest record for Two,https://example.org/api/feed/dcat-us/1.1.json,harvest_02,02,02

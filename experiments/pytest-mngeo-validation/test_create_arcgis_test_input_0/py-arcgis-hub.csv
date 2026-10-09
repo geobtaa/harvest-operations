@@ -1,0 +1,5 @@
+Title,Endpoint URL,Harvest Workflow,ID,Identifier,Code
+Hub One,https://example.org/1,py_arcgis_hub,harvest_01,01,01
+Hub Two,https://example.org/2,py_arcgis_hub,harvest_02,02,02
+Hub Three,https://example.org/3,py_arcgis_hub,harvest_03,03,03
+Hub Four,https://example.org/4,py_arcgis_hub,harvest_04,04,04

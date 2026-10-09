@@ -19,6 +19,7 @@ from scripts.build_uploads import (
     most_recent_file_before,
 )
 from utils.distribution_writer import generate_secondary_table
+from utils.arcgis_parent_context import prepare_parent_context, distribution_fields
 from utils.harvester_helpers import (
     first_non_empty,
     read_csv_rows,
@@ -128,6 +129,10 @@ class ArcGISHarvester(BaseHarvester):
 
             # Extract the list of datasets from within the fetched catalog
             resources = source_record.get("fetched_catalog", {}).get("dataset", [])
+            code = first_non_empty(harvest_record.get("Code", ""), hub_defaults.get("Code", ""))
+            policy = self.config.get("source_policies", {}).get(code, {})
+            if policy.get("parent_sublayer_context", False):
+                resources = prepare_parent_context(resources, arcgis_filter_rows)
             
 
             # Creates a new, combined record for each individual dataset
@@ -797,7 +802,7 @@ def arcgis_filter_rows(df):
             and any(pattern in str(dist.get("accessURL", "")) for pattern in access_patterns)
             for dist in dists
         )
-        return has_valid_title or has_valid_url
+        return has_valid_title or has_valid_url or resource.get("_include_parent", False)
 
     return df[df.apply(is_valid, axis=1)].reset_index(drop=True)
 
@@ -885,7 +890,7 @@ def arcgis_map_resource_fields(resources: pd.Series) -> pd.DataFrame:
 
     return pd.DataFrame(
         {
-            "Alternative Title": resources.apply(lambda data: str(data.get("title", "")).strip()),
+            "Alternative Title": resources.apply(lambda data: str(data.get("_context_title", data.get("title", ""))).strip()),
             "Description": resources.apply(lambda data: data.get("description", "")),
             "Creator": resources.apply(get_creator),
             "Keyword": resources.apply(
@@ -904,6 +909,7 @@ def arcgis_map_resource_fields(resources: pd.Series) -> pd.DataFrame:
             "information": resources.apply(lambda data: data.get("landingPage", "")),
             "spatial": resources.apply(lambda data: data.get("spatial", "")),
             "distributions": resources.apply(lambda data: data.get("distribution", []) or []),
+            "_preserve_links": resources.apply(lambda data: data.get("_preserve_links", False)),
         },
         index=resources.index,
     )
@@ -940,7 +946,11 @@ def arcgis_extract_distributions(df):
                     out["Format"] = "ArcGIS TiledMapLayer"
         return pd.Series(out)
 
-    dist_df = df["distributions"].apply(derive_dist_fields)
+    dist_df = df.apply(
+        lambda row: pd.Series(distribution_fields(row["distributions"], derive_dist_fields(row["distributions"]).to_dict()))
+        if row.get("_preserve_links", False) else derive_dist_fields(row["distributions"]),
+        axis=1,
+    )
     return pd.concat([df, dist_df], axis=1)
 
 
