@@ -6,6 +6,11 @@ At the center of the repository is a small FastAPI application that serves brows
 
 ## Project Structure
 
+For the experimental Minnesota Geospatial Commons parent/sublayer harvesting
+work, see the [experiment walkthrough and CSV review guide](experiments/mngeo-parent-context/README.md).
+It explains the source-specific policy, before/after results, filenames, tests,
+and remaining review questions. The isolated outputs are demonstration artifacts.
+
 The repository includes:
 
 1. A Python/FastAPI admin surface for running harvest jobs in the browser.

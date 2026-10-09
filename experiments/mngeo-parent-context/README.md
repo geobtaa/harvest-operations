@@ -1,7 +1,57 @@
 # MnGeo parent and sublayer harvesting proof of concept
 
-This experiment runs locally on `dedupe-mngeo` using the saved feeds. Nothing was
+This experiment runs locally on `mngeo-harvest-tests` using the saved feeds. Nothing was
 uploaded, deployed, merged, or written into the normal outputs directory.
+
+## Plain-language walkthrough
+
+Think of a regional parcel dataset as a folder containing county layers. MnGeo's
+feed describes both the folder and its contents. Our previous rules kept the
+county layers but skipped the regional record. Without the regional title,
+different annual county layers looked alike.
+
+The experiment keeps the regional record and the county records, adding the
+regional name to county titles. Existing county IDs stay the same; regional
+records use their own supplied IDs. This improves representation rather than
+removing duplicates. Download links also now reach the separate distributions
+table, which already supported multiple links per record.
+
+## Which files to review first
+
+1. `representative_comparison.csv`: the easiest demo. Filter `example` to
+   `parcels`, `precipitation`, `temperature`, or `lakeshore`. Compare `feed_title`,
+   `before_title`, and `after_title`. A blank `before_title` means the old filter
+   excluded that record. `role` says parent or sublayer; `parent_ID` connects a
+   sublayer to its parent. `links` is a JSON list of resulting URLs.
+2. `mngeo_after_primary.csv`: all resulting metadata. Search `Title` for
+   `Hennepin County Parcels` to compare years, or `Metropolitan 7-County Parcel`
+   to compare regional datasets and their county layers.
+3. `mngeo_after_distributions.csv`: resulting links. Filter `friendlier_id` to
+   an `ID` from the primary table. Multiple rows with that ID are expected:
+   they are several links belonging to one record.
+4. `counts.csv`: totals. `unmapped_links_review.csv`: links needing human review.
+   The Minneapolis before/after files provide the unchanged comparison source.
+
+## Filename guide
+
+The top-level output names follow `SOURCE_PHASE_TABLE.csv`:
+
+- `SOURCE`: `mngeo` or `minneapolis`.
+- `PHASE`: `before` uses the old rules; `after` enables the experimental policy.
+  Both use the same saved feed. These are different rules, not different dates.
+- `TABLE`: `primary` contains one metadata row per resource; `distributions`
+  contains one row per mapped link, joined by `friendlier_id` = primary `ID`.
+
+The `SOURCE_PHASE_writer` folders exercise the actual CSV-writing functions in
+isolation. Their `outputs/YYYY-MM-DD_arcgis_primary.csv` and
+`YYYY-MM-DD_arcgis_distributions.csv` use the normal writer naming convention:
+the date is the generation date, and `arcgis` names the harvester. The enclosing
+folder identifies the source and scenario. For review, use the simpler top-level
+CSVs; they are checked against the writer-produced tables.
+
+Nested `reports/arcgis/YYYY-MM-DD_arcgis_report.csv` files are technical writer
+checks, not live harvest reports. Because this experiment bypasses live fetching,
+their fetch totals are zero. Use the top-level `counts.csv` for comparison totals.
 
 Previously, the ArcGIS filter accepted a dataset with a distribution titled
 `Shapefile`, or an `ArcGIS GeoService` containing `ImageServer`. Regional parcel
@@ -73,8 +123,8 @@ also checks stable primary/distribution results across repeat and reversed-feed
 runs, unique IDs and identifiers, one occurrence of each admitted parent, no lost
 eligible records, unchanged descriptions/extents/identifiers, parcel years and
 geometry, distribution foreign keys, recognized links, and CSV writer results.
-Minneapolis primary and distributions also match the pre-change `HEAD`
-implementation, not merely a run with the policy disabled. Ruff and whitespace
+Minneapolis primary and distributions also matched the pre-implementation Git
+version during validation, not merely a run with the policy disabled. Ruff and whitespace
 checks pass for the new code.
 
 An initial fixture-order mistake in a new test was corrected. Initial legacy
