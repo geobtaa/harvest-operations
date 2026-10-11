@@ -7,148 +7,498 @@
   <style>
     :root {
       color-scheme: light;
-      --border: #c9c9c9;
-      --muted: #5d5d5d;
-      --panel: #f7f7f7;
-      --accent: #315f7d;
-      --success: #286a36;
-      --error: #a12828;
+      --canvas: #f4f6f8;
+      --surface: #ffffff;
+      --surface-subtle: #f8fafb;
+      --ink: #172b3a;
+      --muted: #60717f;
+      --border: #d8e0e6;
+      --border-strong: #b9c7d1;
+      --accent: #176b87;
+      --accent-dark: #0f536a;
+      --accent-soft: #e8f3f6;
+      --run: #fff;
+      --run-border: #287047;
+      --run-dark: #7ea990;
+      --run-ink: #332d00;
+      --success: #287047;
+      --success-soft: #eaf5ee;
+      --warning: #96601b;
+      --warning-soft: #fff6e7;
+      --error: #a43b3b;
+      --error-soft: #fff0f0;
+      --shadow: 0 10px 30px rgba(23, 43, 58, 0.06);
     }
+    * { box-sizing: border-box; }
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: "Avenir Next", Avenir, "Helvetica Neue", sans-serif;
+      font-weight: 400;
+      letter-spacing: 0.012em;
       line-height: 1.45;
-      margin: 0 auto;
-      max-width: 1100px;
-      padding: 2rem;
+      margin: 0;
+      background: var(--canvas);
+      color: var(--ink);
     }
-    h2 { margin-top: 1.8rem; }
+    main {
+      margin: 0 auto;
+      max-width: 1440px;
+      padding: 2.5rem 2rem 4rem;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1, h2, h3 {
+      font-weight: 500;
+      letter-spacing: 0.035em;
+    }
+    h1 {
+      font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+      letter-spacing: 0.025em;
+      line-height: 1.2;
+      margin: 0;
+    }
+    h2 {
+      font-size: 1.18rem;
+      margin-bottom: 0.2rem;
+    }
     a { color: var(--accent); }
     code {
-      background: #eeeeee;
-      padding: 0.1rem 0.3rem;
+      background: #edf1f4;
+      border-radius: 4px;
+      padding: 0.12rem 0.34rem;
     }
-    .intro, .panel {
-      max-width: 920px;
+    .back-link {
+      align-items: center;
+      display: inline-flex;
+      font-size: 0.84rem;
+      font-weight: 500;
+      gap: 0.35rem;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .back-link:hover { text-decoration: underline; }
+    .page-header {
+      align-items: center;
+      display: flex;
+      gap: 1rem;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .eyebrow {
+      color: var(--accent);
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      margin-bottom: 0.55rem;
+      text-transform: uppercase;
+    }
+    .panel, .log-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0;
+      box-shadow: var(--shadow);
     }
     .panel {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 4px;
       margin: 1rem 0;
-      padding: 1rem;
+      padding: 1.25rem;
     }
     .job-controls {
-      align-items: end;
+      align-items: flex-end;
       display: flex;
       flex-wrap: wrap;
-      gap: 0.8rem;
+      gap: 0.65rem;
     }
-    label { display: block; font-weight: 600; }
-    select {
+    label { display: block; font-size: 0.84rem; font-weight: 600; }
+    select, input[type="text"] {
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 7px;
       display: block;
       font: inherit;
       margin-top: 0.25rem;
-      min-width: 280px;
-      padding: 0.4rem;
+      min-height: 42px;
+      padding: 0.55rem 0.7rem;
     }
+    select { min-width: min(380px, 78vw); }
     input[type="text"] {
-      font: inherit;
       min-width: 260px;
-      padding: 0.4rem;
+    }
+    select:focus, input:focus, textarea:focus, button:focus-visible, summary:focus-visible {
+      outline: 3px solid rgba(23, 107, 135, 0.2);
+      outline-offset: 2px;
     }
     button {
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 7px;
+      color: var(--ink);
       cursor: pointer;
-      font: inherit;
-      margin: 0.25rem 0.35rem 0.25rem 0;
-      padding: 0.45rem 0.75rem;
+      font: 500 0.92rem/1.2 "Avenir Next", Avenir, "Helvetica Neue", sans-serif;
+      min-height: 42px;
+      padding: 0.62rem 0.9rem;
+      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
     }
-    button:disabled { cursor: wait; }
-    .stage-grid {
-      display: grid;
-      gap: 0.8rem;
-      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    button:hover:not(:disabled) {
+      background: var(--surface-subtle);
+      border-color: #8ca0ae;
+      transform: translateY(-1px);
     }
-    .stage-card {
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    button.primary:hover:not(:disabled) {
+      background: var(--accent-dark);
+      border-color: var(--accent-dark);
+    }
+    button:disabled { cursor: wait; opacity: 0.58; }
+    .config-panel { padding: 0; }
+    .config-panel > summary {
+      align-items: center;
+      cursor: pointer;
+      display: flex;
+      gap: 1rem;
+      justify-content: space-between;
+      list-style: none;
+      padding: 1.15rem 1.25rem;
+    }
+    .config-panel > summary::-webkit-details-marker { display: none; }
+    .config-summary-title {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+    }
+    .config-summary-title h2 { margin: 0; }
+    .file-badge {
+      background: var(--accent-soft);
+      border: 1px solid #b5d4de;
+      border-radius: 999px;
+      color: var(--accent-dark);
+      font-size: 0.88rem;
+      font-weight: 600;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+      padding: 0.42rem 0.72rem;
+    }
+    .config-toggle {
+      color: var(--accent);
+      font-size: 0.86rem;
+      font-weight: 500;
+      letter-spacing: 0.025em;
+      white-space: nowrap;
+    }
+    .config-toggle .when-open { display: none; }
+    .config-panel[open] .config-toggle .when-closed { display: none; }
+    .config-panel[open] .config-toggle .when-open { display: inline; }
+    .config-panel[data-dirty="true"] .file-badge {
+      background: var(--warning-soft);
+      border-color: #e4c38e;
+      color: var(--warning);
+    }
+    .config-content {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem;
+    }
+    .job-selection {
+      align-items: end;
+      background: var(--surface-subtle);
       border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 0.85rem;
-      transition: background-color 120ms ease, border-color 120ms ease;
+      display: grid;
+      gap: 0.35rem;
+      grid-template-columns: minmax(280px, 620px);
+      margin-bottom: 1rem;
+      padding: 0.9rem;
     }
-    .stage-card h3 { margin: 0 0 0.35rem; }
-    .stage-card p { color: var(--muted); margin: 0 0 0.6rem; }
-    .stage-card[data-status="completed"] {
-      background: #edf8ef;
+    .job-selection select {
+      margin-top: 0.35rem;
+      width: 100%;
+    }
+    .config-help {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin: 0 0 1rem;
+    }
+    .new-job {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 0;
+      margin-bottom: 1rem;
+      padding: 0.9rem;
+    }
+    .validation-gate {
+      align-items: center;
+      background: var(--warning-soft);
+      border: 1px solid #e4c38e;
+      border-radius: 0;
+      display: flex;
+      gap: 1rem;
+      justify-content: space-between;
+      margin-top: 1rem;
+      padding: 1rem;
+    }
+    .validation-copy h3 { font-size: 0.98rem; margin: 0 0 0.2rem; }
+    .validation-copy p {
+      color: #6f4a17;
+      font-size: 0.84rem;
+      margin: 0 0 0.35rem;
+    }
+    .validation-gate .stage-status { color: var(--warning); margin: 0; }
+    .validation-gate[data-status="completed"] {
+      background: var(--success-soft);
+      border-color: #a9cdb7;
+    }
+    .validation-gate[data-status="completed"] .stage-status { color: var(--success); }
+    .validation-gate[data-status="completed"] button {
+      background: var(--success);
       border-color: var(--success);
+      color: white;
     }
-    .stage-card[data-status="running"] {
-      background: #fff8e5;
-      border-color: #ad741f;
+    .validation-gate[data-status="running"] button {
+      background: var(--warning);
+      border-color: var(--warning);
+      color: white;
     }
-    .stage-card[data-status="failed"] {
-      background: #fff0f0;
-      border-color: var(--error);
+    .validation-gate[data-status="failed"] {
+      background: var(--error-soft);
+      border-color: #dfaaaa;
     }
-    .stage-card[data-status="completed"] button {
+    .validation-gate[data-status="failed"] .stage-status { color: var(--error); }
+    .pipeline-flow {
+      margin: 0 auto;
+      max-width: 1040px;
+    }
+    .workflow {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    .workflow-step {
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0;
+      column-gap: 1rem;
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr) auto;
+      padding: 0.85rem 1rem;
+      position: relative;
+      transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease;
+    }
+    .workflow-step:not([data-stage-card="zip"])::after {
+      color: var(--accent);
+      content: "↓";
+      font-size: 1.3rem;
+      font-weight: 600;
+      left: calc(1rem + 21px);
+      line-height: 1;
+      position: absolute;
+      top: calc(100% + 0.35rem);
+      transform: translateX(-50%);
+    }
+    .step-number {
+      align-items: center;
+      background: var(--accent-soft);
+      border: 1px solid #b5d4de;
+      border-radius: 999px;
+      color: var(--accent-dark);
+      display: inline-flex;
+      font-size: 1rem;
+      font-weight: 600;
+      height: 42px;
+      justify-content: center;
+      width: 42px;
+    }
+    .step-detail {
+      min-width: 0;
+      position: relative;
+    }
+    .step-detail p {
+      color: #000000;
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      box-shadow: var(--shadow);
+      font-size: 0.92rem;
+      margin: 0;
+      max-width: min(560px, calc(100vw - 5rem));
+      opacity: 0;
+      padding: 0.6rem 0.75rem;
+      pointer-events: none;
+      position: absolute;
+      top: calc(100% + 0.55rem);
+      transform: translateY(-4px);
+      transition: opacity 120ms ease, transform 120ms ease;
+      width: max-content;
+      z-index: 20;
+    }
+    .step-detail h3 {
+      color: var(--ink);
+      font-size: 1.45rem;
+      line-height: 1.2;
+      margin: 0;
+    }
+    .workflow-step:hover,
+    .workflow-step:focus-within {
+      z-index: 10;
+    }
+    .workflow-step:hover .step-detail p,
+    .workflow-step:focus-within .step-detail p {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .step-action {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 0.75rem;
+      justify-content: flex-end;
+    }
+    .run-button {
+      align-items: center;
+      background: var(--run);
+      border-color: var(--run-border);
+      color: var(--run-ink);
+      display: inline-flex;
+      height: 42px;
+      justify-content: center;
+      min-width: 126px;
+      padding-left: 0;
+      padding-right: 0;
+      width: 126px;
+    }
+    .run-button:hover:not(:disabled) {
+      background: var(--run-dark);
+      border-color: var(--run-border);
+    }
+    .play-icon {
+      font-size: 1.2rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .play-icon svg {
+      display: block;
+      fill: none;
+      height: 30px;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.7;
+      width: 30px;
+    }
+    .workflow-step[data-status="completed"] {
+      background: var(--success-soft);
+      border-color: #a9cdb7;
+    }
+    .workflow-step[data-status="completed"] button,
+    .run-record[data-status="completed"] button {
       background: var(--success);
       border: 1px solid var(--success);
       color: white;
     }
-    .stage-card[data-status="running"] button {
-      background: #ad741f;
-      border: 1px solid #ad741f;
+    .workflow-step[data-status="running"] button,
+    .run-record[data-status="running"] button {
+      background: var(--warning);
+      border: 1px solid var(--warning);
       color: white;
     }
-    .stage-card[data-status="failed"] button {
+    .workflow-step[data-status="failed"] button,
+    .run-record[data-status="failed"] button {
       background: var(--error);
       border: 1px solid var(--error);
       color: white;
     }
     .stage-status {
-      display: block;
-      font-size: 0.88rem;
-      font-weight: 700;
-      margin-top: 0.55rem;
-      overflow-wrap: anywhere;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      display: inline-flex;
+      font-size: 0.76rem;
+      font-weight: 600;
+      line-height: 1;
+      padding: 0.35rem 0.6rem;
+      white-space: nowrap;
     }
-    .stage-card[data-status="completed"] .stage-status { color: var(--success); }
-    .stage-card[data-status="running"] .stage-status { color: #7b4d09; }
-    .stage-card[data-status="failed"] .stage-status { color: var(--error); }
-    .output-path {
-      overflow-wrap: anywhere;
+    .validation-gate[data-status="completed"] .stage-status {
+      background: var(--success-soft);
+      border-color: #a9cdb7;
+      color: var(--success);
     }
-    .output-path code {
-      display: block;
-      margin-top: 0.25rem;
-      padding: 0.4rem;
+    .validation-gate[data-status="running"] .stage-status {
+      background: var(--warning-soft);
+      border-color: #e4c38e;
+      color: var(--warning);
     }
-    .postprocess {
-      border-color: var(--accent);
-      grid-column: 1 / -1;
+    .validation-gate[data-status="failed"] .stage-status {
+      background: var(--error-soft);
+      border-color: #dfaaaa;
+      color: var(--error);
     }
-    .manual-note {
-      border-left: 4px solid #d48a24;
-      padding-left: 0.8rem;
+    .run-record {
+      align-items: center;
+      background: #f3f0f8;
+      border: 1px solid #b9acd1;
+      border-radius: 0;
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: minmax(0, 1fr) auto;
+      margin-top: 1.5rem;
+      padding: 1rem 1.1rem;
+      transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease;
     }
+    .run-record h3 { color: #51416f; font-size: 1rem; margin: 0 0 0.25rem; }
+    .run-record p { color: var(--muted); font-size: 0.88rem; margin: 0; }
+    .run-record[data-status="pending"] button {
+      background: #655184;
+      border-color: #655184;
+      color: white;
+    }
+    .run-record[data-status="pending"] button:hover:not(:disabled) {
+      background: #51416f;
+      border-color: #51416f;
+    }
+    .pipeline-readiness {
+      align-items: center;
+      background: var(--warning-soft);
+      border: 1px solid #e4c38e;
+      border-radius: 999px;
+      color: var(--warning);
+      display: inline-flex;
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.025em;
+      gap: 0.4rem;
+      padding: 0.38rem 0.7rem;
+    }
+    .pipeline-readiness::before { content: "○"; }
+    .pipeline-readiness[data-ready="true"] {
+      background: var(--success-soft);
+      border-color: #a9cdb7;
+      color: var(--success);
+    }
+    .pipeline-readiness[data-ready="true"]::before {
+      content: "✓";
+      font-size: 1.1rem;
+      font-weight: 300;
+      line-height: 1;
+    }
+    .pipeline-flow[data-locked="true"] .workflow-step,
+    .pipeline-flow[data-locked="true"] .run-record { opacity: 0.58; }
     #run-status {
-      font-weight: 650;
-      margin-left: 0.5rem;
+      font-weight: 500;
+      margin-left: auto;
     }
     #run-status[data-state="success"] { color: var(--success); }
     #run-status[data-state="error"] { color: var(--error); }
-    #job-status {
-      margin: 0.75rem 0 0;
-      white-space: pre-wrap;
-    }
     #stream-output {
-      border: 1px solid var(--border);
+      background: #172b3a;
+      border-radius: 0;
+      color: #e9f0f4;
       height: 340px;
+      margin: 0;
       overflow: auto;
       padding: 1rem;
       white-space: pre-wrap;
-    }
-    .options {
-      font-weight: 400;
-      margin: 0.8rem 0;
     }
     .editor-actions {
       align-items: center;
@@ -158,166 +508,262 @@
       margin: 0.75rem 0;
     }
     #yaml-editor {
+      background: #fbfcfd;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
       box-sizing: border-box;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 0.9rem;
-      line-height: 1.4;
-      min-height: 560px;
-      padding: 0.8rem;
+      line-height: 1.55;
+      min-height: 520px;
+      padding: 1rem;
       resize: vertical;
       tab-size: 2;
       width: 100%;
     }
     #editor-status {
       color: var(--muted);
-      font-weight: 600;
+      font-weight: 500;
     }
     #editor-status[data-state="success"] { color: var(--success); }
     #editor-status[data-state="error"] { color: var(--error); }
+    .editor-hint { color: var(--muted); font-size: 0.78rem; margin-left: auto; }
+    .log-panel {
+      box-shadow: none;
+      margin-top: 1rem;
+    }
+    .log-panel > summary {
+      align-items: center;
+      cursor: pointer;
+      display: flex;
+      font-weight: 500;
+      letter-spacing: 0.025em;
+      gap: 0.7rem;
+      list-style: none;
+      padding: 1rem 1.1rem;
+    }
+    .log-panel > summary::-webkit-details-marker { display: none; }
+    .log-panel > summary::before {
+      color: var(--accent);
+      content: "+";
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+    .log-panel[open] > summary::before { content: "−"; }
+    .log-content { border-top: 1px solid var(--border); padding: 0.8rem; }
+    @media (max-width: 680px) {
+      main { padding: 1.4rem 1rem 3rem; }
+      .page-header { gap: 0.75rem; }
+      .back-link { font-size: 0.78rem; }
+      .job-selection { grid-template-columns: 1fr; }
+      .job-controls, .job-controls label, select, input[type="text"] { width: 100%; }
+      .job-controls button { flex: 1; }
+      .config-panel > summary { align-items: flex-start; }
+      .validation-gate { align-items: stretch; flex-direction: column; }
+      .workflow-step {
+        align-items: start;
+        grid-template-columns: 44px minmax(0, 1fr);
+      }
+      .workflow-step:not([data-stage-card="zip"])::after { left: calc(1rem + 19px); }
+      .step-number { height: 38px; width: 38px; }
+      .step-action { grid-column: 2; justify-content: flex-start; }
+      .run-record { grid-template-columns: 1fr; }
+      .run-record .step-action { grid-column: 1; }
+    }
+    @media (min-width: 681px) and (max-width: 900px) {
+      .workflow-step { grid-template-columns: 48px minmax(0, 1fr); }
+      .step-action { grid-column: 2; justify-content: flex-start; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      button { transition: none; }
+      .step-detail p { transition: none; }
+    }
   </style>
 </head>
 <body>
-  <p><a href="/static/task-dashboard.html">&larr; Harvest Task Dashboard</a></p>
-  <h1>ArcGIS Curation Pipeline</h1>
+  <main>
+    <header class="page-header">
+      <h1>ArcGIS Curation Pipeline</h1>
+      <a class="back-link" href="/static/task-dashboard.html">&larr; Dashboard</a>
+    </header>
 
-  <div class="intro">
-    <p>This is the staged <code>arcgis_curation_pipeline</code> for selected ArcGIS Hub datasets. Choose a YAML job, harvest its metadata, edit the generated CSV manually, confirm that review, and then run the remaining tasks separately or together.</p>
-    <p>Jobs come from <code>curation/jobs/*.yaml</code>. The fill-in template is not runnable and does not appear in the list.</p>
-  </div>
+    <details id="config-panel" class="panel config-panel" data-dirty="false">
+      <summary>
+        <div class="config-summary-title">
+          <div>
+            <h2 id="yaml-heading">Job Config</h2>
+          </div>
+          <span id="config-file-label" class="file-badge">No job selected</span>
+          <span id="pipeline-readiness" class="pipeline-readiness" data-ready="false">Validate job settings to unlock</span>
+        </div>
+        <span class="config-toggle">
+          <span class="when-closed">Open config +</span>
+          <span class="when-open">Close config −</span>
+        </span>
+      </summary>
+      <div class="config-content" aria-labelledby="yaml-heading">
+        <div class="job-selection">
+          <label for="job-select">
+            Curation job
+            <select id="job-select" data-config-control onchange="changeSelectedJob()" disabled>
+              <option>Loading jobs...</option>
+            </select>
+          </label>
+        </div>
+        <p class="config-help">Edit the selected job directly, or create a fresh configuration from the standard template. Validate the job before starting the pipeline.</p>
+        <div class="new-job">
+          <div class="job-controls">
+            <label for="new-job-id">
+              New job ID
+              <input id="new-job-id" type="text" placeholder="example-city-2026" autocomplete="off" />
+            </label>
+            <button type="button" data-config-control onclick="createJob()">Create from template</button>
+          </div>
+        </div>
+        <div class="editor-actions">
+          <button class="primary" type="button" data-config-control onclick="saveYaml()">Save configuration</button>
+          <button type="button" data-config-control onclick="reloadYaml()">Discard changes</button>
+          <span id="editor-status" data-state="idle">Loading configuration...</span>
+          <span class="editor-hint">Tip: press Ctrl/⌘ + S to save</span>
+        </div>
+        <textarea id="yaml-editor" data-config-control aria-label="Curation job YAML" spellcheck="false" oninput="markYamlDirty()" disabled></textarea>
+        <section class="validation-gate" data-stage-card="validate" data-status="pending" aria-labelledby="validation-heading">
+          <div class="validation-copy">
+            <h3 id="validation-heading">Validate before starting</h3>
+            <p>This required check confirms that the saved job settings are ready for the pipeline. Any configuration change requires validation again.</p>
+            <span class="stage-status" data-stage-status="validate">Required before Step 1</span>
+          </div>
+          <button class="primary" type="button" data-config-control data-validation-button onclick="runStage('validate')">Validate job</button>
+        </section>
+      </div>
+    </details>
 
-  <section class="panel" aria-labelledby="job-heading">
-    <h2 id="job-heading">Job</h2>
-    <div class="job-controls">
-      <label for="job-select">
-        Curation YAML
-        <select id="job-select" data-config-control onchange="changeSelectedJob()" disabled>
-          <option>Loading jobs...</option>
-        </select>
-      </label>
-      <button type="button" data-config-control onclick="refreshJobs()">Refresh jobs</button>
-      <button type="button" data-config-control onclick="loadStatus()">Refresh status</button>
+    <div id="pipeline-tasks" class="pipeline-flow" data-locked="true">
+      <div class="workflow" role="list" aria-label="ArcGIS curation steps">
+        <section class="workflow-step" role="listitem" data-stage-card="metadata" data-status="pending">
+          <span class="step-number" aria-label="Step 1">1</span>
+          <div class="step-detail">
+            <h3>Harvest metadata</h3>
+            <p>Harvest the selected DCAT records and create the Aardvark CSV.</p>
+          </div>
+          <div class="step-action">
+            <button class="run-button" type="button" data-stage-button data-pipeline-button aria-label="Run: Harvest Metadata" onclick="runStage('metadata')" disabled><span class="play-icon" aria-hidden="true">▶</span></button>
+          </div>
+        </section>
+
+        <section class="workflow-step" role="listitem" data-stage-card="review" data-status="pending">
+          <span class="step-number" aria-label="Step 2">2</span>
+          <div class="step-detail">
+            <h3>Review metadata</h3>
+            <p>Review and save metadata.csv, then confirm it before continuing. Confirm again after any later edits.</p>
+          </div>
+          <div class="step-action">
+            <button class="run-button" type="button" data-stage-button data-pipeline-button aria-label="Run: Confirm manual review" onclick="confirmReview()" disabled><span class="play-icon" aria-hidden="true">▶</span></button>
+          </div>
+        </section>
+
+        <section class="workflow-step" role="listitem" data-stage-card="download" data-status="pending">
+          <span class="step-number" aria-label="Step 3">3</span>
+          <div class="step-detail">
+            <h3>Download GeoPackages</h3>
+            <p>Export the selected web-service layers as GeoPackages.</p>
+          </div>
+          <div class="step-action">
+            <button class="run-button" type="button" data-stage-button data-pipeline-button aria-label="Run: Download GeoPackages" onclick="runStage('download')" disabled><span class="play-icon" aria-hidden="true">▶</span></button>
+          </div>
+        </section>
+
+        <section class="workflow-step" role="listitem" data-stage-card="enrich" data-status="pending">
+          <span class="step-number" aria-label="Step 4">4</span>
+          <div class="step-detail">
+            <h3>Extract technical metadata</h3>
+            <p>Extract resource type, decimal-degree bounds, geometry, and centroid.</p>
+          </div>
+          <div class="step-action">
+            <button class="run-button" type="button" data-stage-button data-pipeline-button aria-label="Run: Enrich Metadata" onclick="runStage('enrich')" disabled><span class="play-icon" aria-hidden="true">▶</span></button>
+          </div>
+        </section>
+
+        <section class="workflow-step" role="listitem" data-stage-card="dictionaries" data-status="pending">
+          <span class="step-number" aria-label="Step 5">5</span>
+          <div class="step-detail">
+            <h3>Create data dictionaries</h3>
+            <p>Derive field definitions and coded domains from the web service.</p>
+          </div>
+          <div class="step-action">
+            <button class="run-button" type="button" data-stage-button data-pipeline-button aria-label="Run: Create Dictionaries" onclick="runStage('dictionaries')" disabled><span class="play-icon" aria-hidden="true">▶</span></button>
+          </div>
+        </section>
+
+        <section class="workflow-step" role="listitem" data-stage-card="embed" data-status="pending">
+          <span class="step-number" aria-label="Step 6">6</span>
+          <div class="step-detail">
+            <h3>Embed metadata in GeoPackages</h3>
+            <p>Write selected reviewed metadata into each GeoPackage.</p>
+          </div>
+          <div class="step-action">
+            <button class="run-button" type="button" data-stage-button data-pipeline-button aria-label="Run: Embed Metadata" onclick="runStage('embed')" disabled><span class="play-icon" aria-hidden="true">▶</span></button>
+          </div>
+        </section>
+
+        <section class="workflow-step" role="listitem" data-stage-card="thumbnails" data-status="pending">
+          <span class="step-number" aria-label="Step 7">7</span>
+          <div class="step-detail">
+            <h3>Create thumbnails</h3>
+            <p>Render a PNG thumbnail from each GeoPackage.</p>
+          </div>
+          <div class="step-action">
+            <button class="run-button" type="button" data-stage-button data-pipeline-button aria-label="Run: Create Thumbnails" onclick="runStage('thumbnails')" disabled><span class="play-icon" aria-hidden="true">▶</span></button>
+          </div>
+        </section>
+
+        <section class="workflow-step" role="listitem" data-stage-card="derivatives" data-status="pending">
+          <span class="step-number" aria-label="Step 8">8</span>
+          <div class="step-detail">
+            <h3>Create PMTiles</h3>
+            <p>Convert the GeoPackages to FlatGeoBuf and PMTiles.</p>
+          </div>
+          <div class="step-action">
+            <button class="run-button" type="button" data-stage-button data-pipeline-button aria-label="Run: Create Derivatives" onclick="runStage('derivatives')" disabled><span class="play-icon" aria-hidden="true">▶</span></button>
+          </div>
+        </section>
+
+        <section class="workflow-step" role="listitem" data-stage-card="zip" data-status="pending">
+          <span class="step-number" aria-label="Step 9">9</span>
+          <div class="step-detail">
+            <h3>Zip GeoPackages</h3>
+            <p>Create one upload-ready ZIP archive for each GeoPackage.</p>
+          </div>
+          <div class="step-action">
+            <button class="run-button" type="button" data-stage-button data-pipeline-button aria-label="Run: Package GeoPackages" onclick="runStage('zip')" disabled><span class="play-icon" aria-hidden="true">▶</span></button>
+          </div>
+        </section>
+      </div>
+
+      <section class="run-record" data-stage-card="snapshot" data-status="pending">
+        <div>
+          <h3>Run Record</h3>
+          <p>Save a portable manifest, exact job YAML, and final metadata CSV. Large artifacts stay in the work directory; relative paths, sizes, and checksums are recorded.</p>
+        </div>
+        <div class="step-action">
+          <button type="button" data-stage-button data-pipeline-button onclick="runStage('snapshot')" disabled>Save run record</button>
+        </div>
+      </section>
     </div>
-    <pre id="job-status">Loading...</pre>
-  </section>
 
-  <section class="panel" aria-labelledby="yaml-heading">
-    <h2 id="yaml-heading">Create or edit job YAML</h2>
-    <p>Create a new job from <code>arcgis_curation_pipeline_template.yaml</code>, then replace the remaining angle-bracket placeholders in the editor. Saving checks YAML syntax; use <strong>Validate</strong> below to check the complete pipeline input contract.</p>
-    <div class="job-controls">
-      <label for="new-job-id">
-        New job ID
-        <input id="new-job-id" type="text" placeholder="example-city-2026" autocomplete="off" />
-      </label>
-      <button type="button" data-config-control onclick="createJob()">Create from template</button>
-    </div>
-    <div class="editor-actions">
-      <button type="button" data-config-control onclick="saveYaml()">Save YAML</button>
-      <button type="button" data-config-control onclick="reloadYaml()">Reload from disk</button>
-      <span id="editor-status" data-state="idle">Loading YAML...</span>
-    </div>
-    <textarea id="yaml-editor" data-config-control aria-label="Curation job YAML" spellcheck="false" oninput="markYamlDirty()" disabled></textarea>
-  </section>
-
-  <h2>Pipeline tasks</h2>
-  <p>Run one task at a time. Stages after metadata will enforce the recorded manual-review checksum.</p>
-  <label class="options">
-    <input type="checkbox" id="overwrite-toggle" />
-    Overwrite existing downloads, derivatives, and ZIP archives when supported
-  </label>
-
-  <div class="stage-grid">
-    <section class="stage-card" data-stage-card="validate" data-status="pending">
-      <h3>Validate YAML</h3>
-      <p>Check job criteria and paths without contacting the Hub.</p>
-      <button type="button" data-stage-button onclick="runStage('validate')">Validate</button>
-      <span class="stage-status" data-stage-status="validate">Not run</span>
-    </section>
-
-    <section class="stage-card" data-stage-card="metadata" data-status="pending">
-      <h3>1. Metadata</h3>
-      <p>Harvest the selected DCAT records and create the Aardvark CSV.</p>
-      <p class="output-path"><strong>Metadata CSV:</strong><code id="metadata-output-path">Select a job to see the output path.</code></p>
-      <button type="button" data-stage-button onclick="runStage('metadata')">Harvest metadata</button>
-      <span class="stage-status" data-stage-status="metadata">Not run</span>
-    </section>
-
-    <section class="stage-card" data-stage-card="review" data-status="pending">
-      <h3>2. Manual review</h3>
-      <p>Edit and clean the metadata CSV, then record its checksum.</p>
-      <button type="button" data-stage-button onclick="confirmReview()">Confirm manual review</button>
-      <span class="stage-status" data-stage-status="review">Not confirmed</span>
-    </section>
-
-    <section class="stage-card" data-stage-card="download" data-status="pending">
-      <h3>3. Download</h3>
-      <p>Export the selected web-service layers as GeoPackages.</p>
-      <button type="button" data-stage-button onclick="runStage('download')">Download GeoPackages</button>
-      <span class="stage-status" data-stage-status="download">Not run</span>
-    </section>
-
-    <section class="stage-card" data-stage-card="enrich" data-status="pending">
-      <h3>4. Enrich</h3>
-      <p>Add resource type, decimal-degree bounds, geometry, and centroid.</p>
-      <button type="button" data-stage-button onclick="runStage('enrich')">Enrich metadata</button>
-      <span class="stage-status" data-stage-status="enrich">Not run</span>
-    </section>
-
-    <section class="stage-card" data-stage-card="dictionaries" data-status="pending">
-      <h3>5. Data dictionaries</h3>
-      <p>Derive field definitions and coded domains from the web service.</p>
-      <button type="button" data-stage-button onclick="runStage('dictionaries')">Create dictionaries</button>
-      <span class="stage-status" data-stage-status="dictionaries">Not run</span>
-    </section>
-
-    <section class="stage-card" data-stage-card="embed" data-status="pending">
-      <h3>6. Embed metadata</h3>
-      <p>Write selected reviewed metadata into each GeoPackage.</p>
-      <button type="button" data-stage-button onclick="runStage('embed')">Embed metadata</button>
-      <span class="stage-status" data-stage-status="embed">Not run</span>
-    </section>
-
-    <section class="stage-card" data-stage-card="thumbnails" data-status="pending">
-      <h3>7. Thumbnails</h3>
-      <p>Render a PNG thumbnail from each GeoPackage.</p>
-      <button type="button" data-stage-button onclick="runStage('thumbnails')">Create thumbnails</button>
-      <span class="stage-status" data-stage-status="thumbnails">Not run</span>
-    </section>
-
-    <section class="stage-card" data-stage-card="derivatives" data-status="pending">
-      <h3>8. Derivatives</h3>
-      <p>Convert the GeoPackages to FlatGeoBuf and PMTiles.</p>
-      <button type="button" data-stage-button onclick="runStage('derivatives')">Create derivatives</button>
-      <span class="stage-status" data-stage-status="derivatives">Not run</span>
-    </section>
-
-    <section class="stage-card" data-stage-card="zip" data-status="pending">
-      <h3>9. ZIP GeoPackages</h3>
-      <p>Create one upload-ready ZIP archive for each GeoPackage.</p>
-      <button type="button" data-stage-button onclick="runStage('zip')">ZIP GeoPackages</button>
-      <span class="stage-status" data-stage-status="zip">Not run</span>
-    </section>
-
-    <section class="stage-card postprocess" data-stage-card="postprocess" data-status="pending">
-      <h3>Postprocess</h3>
-      <p>Run Download, Enrich, Data Dictionaries, Embed Metadata, Thumbnails, Derivatives, and ZIP GeoPackages in sequence after manual review is confirmed.</p>
-      <button type="button" data-stage-button onclick="runStage('postprocess')">Run all postprocess tasks</button>
-      <span class="stage-status" data-stage-status="postprocess">Not run</span>
-    </section>
-
-    <section class="stage-card postprocess" data-stage-card="snapshot" data-status="pending">
-      <h3>Save Run Record</h3>
-      <p>Save a portable manifest, exact job YAML, and final metadata CSV under <code>curation/run_records/</code>. Large artifacts stay in the ignored work directory; only their relative paths, sizes, and checksums are recorded.</p>
-      <button type="button" data-stage-button onclick="runStage('snapshot')">Save run record</button>
-      <span class="stage-status" data-stage-status="snapshot">Not run</span>
-    </section>
-  </div>
-
-  <p class="manual-note"><strong>Manual checkpoint:</strong> after Metadata completes, open the CSV path shown in Job status, make the necessary edits, save it, and only then click Confirm manual review. If you edit the CSV later, confirm it again before continuing.</p>
-
-  <h2>Live log <span id="run-status" data-state="idle">Idle</span></h2>
-  <pre id="stream-output" aria-live="polite"></pre>
+    <details id="activity-log" class="log-panel">
+      <summary>
+        Activity log
+        <span id="run-status" data-state="idle">Idle</span>
+      </summary>
+      <div class="log-content">
+        <pre id="stream-output" aria-live="polite"></pre>
+      </div>
+    </details>
+  </main>
 
   <script>
+    // Browser client for arcgis_curation_pipeline.
     const jobsEndpoint = "/jobs/arcgis-curation-pipeline/jobs";
     const yamlEndpoint = "/jobs/arcgis-curation-pipeline/yaml";
     const statusEndpoint = "/jobs/arcgis-curation-pipeline/status";
@@ -329,23 +775,29 @@
     let loadedYamlJobId = "";
     let yamlDirty = false;
     let loadingYaml = false;
-    const postprocessStages = [
-      "download",
-      "enrich",
-      "dictionaries",
-      "embed",
-      "thumbnails",
-      "derivatives",
-      "zip",
-    ];
-
+    let pipelineValidated = false;
     function selectedJobId() {
       return document.getElementById("job-select").value;
     }
 
     function setButtonsDisabled(disabled) {
       document.querySelectorAll("[data-stage-button], [data-config-control]").forEach((control) => {
-        control.disabled = disabled;
+        const validationLocked = control.hasAttribute("data-pipeline-button") && !pipelineValidated;
+        control.disabled = disabled || validationLocked;
+      });
+    }
+
+    function setPipelineAvailability(validated) {
+      pipelineValidated = validated;
+      const pipeline = document.getElementById("pipeline-tasks");
+      const readiness = document.getElementById("pipeline-readiness");
+      pipeline.dataset.locked = validated ? "false" : "true";
+      readiness.dataset.ready = validated ? "true" : "false";
+      readiness.textContent = validated
+        ? "Job config validated — pipeline ready"
+        : "Validate job settings to unlock";
+      document.querySelectorAll("[data-pipeline-button]").forEach((button) => {
+        button.disabled = !validated;
       });
     }
 
@@ -355,45 +807,87 @@
       status.dataset.state = state;
     }
 
+    function setConfigDirty(dirty) {
+      document.getElementById("config-panel").dataset.dirty = dirty ? "true" : "false";
+    }
+
     function markYamlDirty() {
       if (loadingYaml) return;
       yamlDirty = true;
+      setConfigDirty(true);
+      setPipelineAvailability(false);
       setEditorStatus("Unsaved changes", "idle");
     }
 
-    function reviewStatus(manifest) {
-      const review = manifest && manifest.manual_review;
-      return review && review.status ? review.status : "pending";
-    }
-
-    function completedStages(manifest) {
-      if (!manifest || !manifest.stages) return "None";
-      const stages = Object.entries(manifest.stages)
-        .filter(([, value]) => value && value.status === "completed")
-        .map(([name]) => name);
-      return stages.length ? stages.join(", ") : "None";
-    }
-
-    function formattedStageTime(value) {
+    function formattedStageDate(value) {
       if (!value) return "";
       const parsed = new Date(value);
-      return Number.isNaN(parsed.getTime()) ? "" : ` — ${parsed.toLocaleString()}`;
+      return Number.isNaN(parsed.getTime()) ? "" : ` — ${parsed.toLocaleDateString()}`;
     }
 
     function setStageVisual(stage, state, completedAt = "", failureMessage = "") {
       const card = document.querySelector(`[data-stage-card="${stage}"]`);
       const status = document.querySelector(`[data-stage-status="${stage}"]`);
-      if (!card || !status) return;
+      if (!card) return;
       card.dataset.status = state;
-      if (state === "completed") {
-        const label = stage === "review" ? "Confirmed" : "Completed";
-        status.textContent = `✓ ${label}${formattedStageTime(completedAt)}`;
-      } else if (state === "running") {
-        status.textContent = "Running…";
-      } else if (state === "failed") {
-        status.textContent = failureMessage || "Run failed — see the live log";
-      } else {
-        status.textContent = stage === "review" ? "Not confirmed" : "Not run";
+      const runButton = card.querySelector(".run-button");
+      if (runButton) {
+        const actionLabel = runButton.dataset.actionLabel
+          || runButton.getAttribute("aria-label").replace(/^Run:\s*/, "");
+        const actionVerb = state === "completed"
+          ? "Rerun"
+          : state === "failed"
+            ? "Retry"
+            : state === "running"
+              ? "Running"
+              : "Run";
+        const actionIcon = state === "completed" || state === "failed"
+          ? "rerun"
+          : state === "running"
+            ? "…"
+            : "▶";
+        runButton.dataset.actionLabel = actionLabel;
+        runButton.setAttribute("aria-label", `${actionVerb}: ${actionLabel}`);
+        runButton.title = `${actionVerb} ${actionLabel}`;
+        const icon = runButton.querySelector(".play-icon");
+        if (actionIcon === "rerun") {
+          icon.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 3-7.7L3 7"></path><path d="M3 2v5h5"></path></svg>';
+        } else {
+          icon.textContent = actionIcon;
+        }
+      }
+      if (stage === "snapshot") {
+        const snapshotButton = card.querySelector("[data-stage-button]");
+        if (state === "completed") {
+          snapshotButton.textContent = `Save again${formattedStageDate(completedAt)}`;
+        } else if (state === "running") {
+          snapshotButton.textContent = "Saving…";
+        } else if (state === "failed") {
+          snapshotButton.textContent = "Retry save";
+        } else {
+          snapshotButton.textContent = "Save run record";
+        }
+      }
+      if (status) {
+        status.removeAttribute("title");
+        status.textContent = state === "completed"
+          ? "Validated"
+          : state === "running"
+            ? "Validating"
+            : state === "failed"
+              ? "Failed"
+              : "Required";
+        if (state === "failed" && failureMessage) status.title = failureMessage;
+      }
+      if (stage === "validate") {
+        const button = document.querySelector("[data-validation-button]");
+        if (button) {
+          button.textContent = state === "running"
+            ? "Validating…"
+            : state === "completed"
+              ? "Validate again"
+              : "Validate job";
+        }
       }
     }
 
@@ -428,20 +922,16 @@
         review.confirmed_at
       );
 
-      const postprocessCompleted = postprocessStages.every(
-        (stage) => stages[stage] && stages[stage].status === "completed"
+      const validationCompleted = Boolean(
+        (stages.validate && stages.validate.status === "completed") || metadataCompleted
       );
-      setStageVisual(
-        "postprocess",
-        postprocessCompleted ? "completed" : "pending",
-        postprocessCompleted ? stages.zip.completed_at : ""
-      );
+      setPipelineAvailability(validationCompleted);
     }
 
     async function loadJobs(preferredJobId = "") {
       const select = document.getElementById("job-select");
-      const status = document.getElementById("job-status");
       const previousValue = select.value;
+      setPipelineAvailability(false);
       select.disabled = true;
       select.innerHTML = "<option>Loading jobs...</option>";
       try {
@@ -457,11 +947,12 @@
           select.appendChild(option);
         });
         if (!data.jobs.length) {
+          setPipelineAvailability(false);
           select.innerHTML = "<option value=''>No runnable YAML jobs found</option>";
-          status.textContent = "Copy the template to curation/jobs/<job-id>.yaml and fill it in.";
           document.getElementById("yaml-editor").value = "";
           document.getElementById("yaml-editor").disabled = true;
           setEditorStatus("No editable job selected", "idle");
+          document.getElementById("config-file-label").textContent = "No job selected";
           return;
         }
         const desiredJobId = preferredJobId || previousValue;
@@ -469,7 +960,8 @@
         select.disabled = false;
         await Promise.all([loadStatus(), loadYaml()]);
       } catch (error) {
-        status.textContent = error.message;
+        select.innerHTML = "<option value=''>Could not load jobs</option>";
+        setEditorStatus(error.message, "error");
       }
     }
 
@@ -478,6 +970,7 @@
         return;
       }
       yamlDirty = false;
+      setConfigDirty(false);
       await loadJobs(loadedYamlJobId);
     }
 
@@ -488,6 +981,8 @@
         return;
       }
       yamlDirty = false;
+      setConfigDirty(false);
+      setPipelineAvailability(false);
       await Promise.all([loadStatus(), loadYaml()]);
     }
 
@@ -507,9 +1002,11 @@
         loadedYamlSha256 = data.sha256;
         loadedYamlJobId = data.job_id;
         yamlDirty = false;
+        setConfigDirty(false);
         loadingYaml = false;
         editor.disabled = false;
-        setEditorStatus(`Loaded ${data.config_path}`, "success");
+        document.getElementById("config-file-label").textContent = `${data.job_id}.yaml`;
+        setEditorStatus("Configuration loaded", "success");
       } catch (error) {
         loadingYaml = false;
         editor.value = "";
@@ -522,12 +1019,14 @@
         return;
       }
       yamlDirty = false;
+      setConfigDirty(false);
       await loadYaml();
     }
 
     async function createJob() {
       const input = document.getElementById("new-job-id");
       const jobId = input.value.trim();
+      document.getElementById("config-panel").open = true;
       if (!jobId) {
         setEditorStatus("Enter a new job ID first.", "error");
         input.focus();
@@ -548,8 +1047,9 @@
         if (!response.ok) throw new Error(data.detail || "Could not create the YAML job.");
         input.value = "";
         yamlDirty = false;
+        setConfigDirty(false);
         await loadJobs(data.job.id);
-        setEditorStatus(`Created ${data.job.config_path}. Replace the remaining placeholders and save.`, "success");
+        setEditorStatus("New configuration created. Complete the placeholders, then save.", "success");
       } catch (error) {
         setEditorStatus(error.message, "error");
       }
@@ -575,11 +1075,12 @@
         loadedYamlSha256 = data.sha256;
         loadedYamlJobId = data.job.id;
         yamlDirty = false;
+        setConfigDirty(false);
         const selectedOption = document.getElementById("job-select").selectedOptions[0];
         if (selectedOption) {
           selectedOption.textContent = `${data.job.label} (${data.job.record_count} records)`;
         }
-        setEditorStatus(`Saved ${data.job.config_path}`, "success");
+        setEditorStatus("Configuration saved", "success");
         await loadStatus();
       } catch (error) {
         setEditorStatus(error.message, "error");
@@ -588,29 +1089,17 @@
 
     async function loadStatus() {
       const jobId = selectedJobId();
-      const target = document.getElementById("job-status");
       if (!jobId) return;
-      target.textContent = "Loading status...";
+      setPipelineAvailability(false);
       try {
         const response = await fetch(`${statusEndpoint}?job_id=${encodeURIComponent(jobId)}`);
         const data = await response.json();
         if (!response.ok) throw new Error(data.detail || "Could not load job status.");
         const manifest = data.manifest;
         const currentManifest = data.configuration_current ? manifest : null;
-        document.getElementById("metadata-output-path").textContent = data.metadata_path;
         updateStageIndicators(currentManifest);
-        target.textContent = [
-          `Config: ${data.job.config_path}`,
-          `Records: ${data.job.record_count}`,
-          `Metadata CSV: ${data.metadata_path}`,
-          `Metadata exists: ${data.metadata_exists ? "yes" : "no"}`,
-          `Configuration matches manifest: ${data.configuration_current ? "yes" : "no — run Metadata again"}`,
-          `Manual review: ${reviewStatus(currentManifest)}`,
-          `Completed stages: ${completedStages(currentManifest)}`,
-          `Currently running: ${data.running ? "yes" : "no"}`,
-        ].join("\n");
       } catch (error) {
-        target.textContent = error.message;
+        setEditorStatus(error.message, "error");
       }
     }
 
@@ -626,6 +1115,12 @@
     function runStage(stage, confirm = false) {
       const jobId = selectedJobId();
       if (!jobId) return;
+      if (stage !== "validate" && !pipelineValidated) {
+        document.getElementById("config-panel").open = true;
+        setEditorStatus("Validate the saved configuration before starting Step 1.", "error");
+        document.querySelector("[data-validation-button]").focus();
+        return;
+      }
       if (yamlDirty) {
         setEditorStatus("Save the YAML changes before running a pipeline task.", "error");
         document.getElementById("yaml-editor").focus();
@@ -633,13 +1128,14 @@
       }
       if (eventSource) eventSource.close();
 
-      const overwrite = document.getElementById("overwrite-toggle").checked;
+      const overwrite = document.getElementById("overwrite-toggle")?.checked || false;
       const params = new URLSearchParams({ job_id: jobId, stage });
       if (confirm) params.set("confirm", "true");
       if (overwrite) params.set("overwrite", "true");
 
       const output = document.getElementById("stream-output");
       const status = document.getElementById("run-status");
+      document.getElementById("activity-log").open = true;
       output.textContent = `Connecting to ${stage} for ${jobId}...\n`;
       status.textContent = `Running ${stage}`;
       status.dataset.state = "running";
@@ -694,6 +1190,13 @@
       const end = this.selectionEnd;
       this.setRangeText("  ", start, end, "end");
       markYamlDirty();
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "s") return;
+      if (!document.getElementById("config-panel").open || !yamlDirty) return;
+      event.preventDefault();
+      saveYaml();
     });
 
     window.addEventListener("beforeunload", function (event) {
