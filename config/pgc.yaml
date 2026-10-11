@@ -1,0 +1,19 @@
+name: Polar Geospatial Center
+type: pgc
+
+collections:
+  antarctica: https://takahe.pgc.umn.edu/public/mapserver/mapcatalog/ogcapi/collections/antarctic_maps/items
+  arctic: https://takahe.pgc.umn.edu/public/mapserver/mapcatalog/ogcapi/collections/arctic_maps/items
+
+catalog_base_url: https://maps.apps.pgc.umn.edu
+legacy_primary_csv: inputs/05d-06/primary.csv
+legacy_distributions_csv: inputs/05d-06/distributions.csv
+inferred_bounding_boxes_yaml: config/pgc-inferred-bounding-boxes.yaml
+
+output_primary_csv: outputs/pgc_primary.csv
+output_distributions_csv: outputs/pgc_distributions.csv
+build_uploads: true
+
+page_size: 1000
+timeout: 60
+user_agent: GeoBTAA harvest-operations PGC harvester
