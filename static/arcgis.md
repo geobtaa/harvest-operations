@@ -63,7 +63,7 @@ Each hub row includes:
 - `Harvest Run` and `Harvest Message` for the request outcome;
 - `Total Records Found` from the hub's DCAT response;
 - `New Records` and `Unpublished Records`, calculated by comparing the current
-  primary output with the most recent earlier dated ArcGIS primary output.
+  primary output with the shared pre-run primary registry.
 
 The final `TOTAL` row summarizes successful/failed hubs and the record counts.
 An endpoint error does not stop the remaining hubs from running, so inspect the
@@ -174,10 +174,10 @@ contains no records.
 
 ### New or unpublished counts look wrong
 
-The report counts compare against the most recent earlier dated primary output
-in `outputs/`. Confirm that earlier file is present and represents the previous
-full run. Registry-based upload deltas are a separate comparison against the
-Git-tracked registries.
+The report and upload deltas both compare against the Git-tracked registry.
+Confirm the registry represented the previous complete run before starting the
+harvest. If it had already been changed by a partial or test run, restore the
+last authoritative registry version before rerunning.
 
 ### The browser stream disconnects
 
