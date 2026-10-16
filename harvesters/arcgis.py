@@ -11,12 +11,9 @@ import pandas as pd
 
 from harvesters.base import BaseHarvester
 from scripts.build_uploads import (
-    build_filename_regex,
     build_distribution_delta_files,
-    discover_dated_files,
     load_distribution_csv_norm,
     load_primary_csv_norm,
-    most_recent_file_before,
 )
 from utils.distribution_writer import generate_secondary_table
 from utils.harvester_helpers import (
@@ -216,7 +213,7 @@ class ArcGISHarvester(BaseHarvester):
         report_path = write_arcgis_harvest_report(
             self._harvest_report_rows,
             results["primary_csv"],
-            self.config["output_primary_csv"],
+            self.config["primary_registry_csv"],
             self.report_output_path,
         )
         results["report_csv"] = report_path
@@ -642,10 +639,10 @@ def arcgis_resource_provenance(publisher: str, today: str) -> str:
 def write_arcgis_harvest_report(
     report_rows: list[dict],
     current_primary_csv: str,
-    configured_primary_csv: str,
+    primary_registry_csv: str,
     configured_report_csv: str,
 ) -> str:
-    # Write a per-harvest-record report with current, new, and unpublished counts.
+    # Compare the current harvest with the shared pre-run registry and write its report.
     today = time.strftime("%Y-%m-%d")
     configured_report_path = Path(configured_report_csv)
     report_dir = (
@@ -657,7 +654,7 @@ def write_arcgis_harvest_report(
     report_df = build_arcgis_harvest_report_dataframe(
         report_rows,
         Path(current_primary_csv),
-        configured_primary_csv,
+        Path(primary_registry_csv),
     )
     os.makedirs(report_path.parent, exist_ok=True)
     report_df.to_csv(report_path, index=False, encoding="utf-8")
@@ -668,12 +665,12 @@ def write_arcgis_harvest_report(
 def build_arcgis_harvest_report_dataframe(
     report_rows: list[dict],
     current_primary_path: Path,
-    configured_primary_csv: str,
+    primary_registry_path: Path,
 ) -> pd.DataFrame:
-    # Combine fetch run outcomes with per-harvest-record delta counts.
+    # Combine fetch outcomes with deltas against the shared pre-run registry.
     current_df = load_report_primary(current_primary_path)
-    previous_df = load_previous_primary_for_report(current_primary_path, configured_primary_csv)
-    counts_by_code = build_report_counts_by_code(current_df, previous_df)
+    registry_df = load_arcgis_primary_registry(primary_registry_path)
+    counts_by_code = build_report_counts_by_code(current_df, registry_df)
 
     rows = []
     for report_row in report_rows:
@@ -721,23 +718,10 @@ def load_report_primary(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, dtype=str, keep_default_na=False).fillna("")
 
 
-def load_previous_primary_for_report(
-    current_primary_path: Path,
-    configured_primary_csv: str,
-) -> pd.DataFrame:
-    outputs_dir = current_primary_path.resolve().parent
-    source = infer_upload_source_prefix(configured_primary_csv)
-    candidates = discover_dated_files(outputs_dir, build_filename_regex(source, "primary"))
-    previous = most_recent_file_before(candidates, current_primary_path)
-    if previous is None:
-        return pd.DataFrame()
-    return load_report_primary(previous[1])
-
-
-def build_report_counts_by_code(current_df: pd.DataFrame, previous_df: pd.DataFrame) -> dict[str, dict[str, int]]:
-    # Count current, new, and unpublished dataset rows grouped by their parent harvest code.
+def build_report_counts_by_code(current_df: pd.DataFrame, registry_df: pd.DataFrame) -> dict[str, dict[str, int]]:
+    # Count current, new, and unpublished dataset rows against the shared registry.
     current_records = report_dataset_rows(current_df)
-    previous_records = report_dataset_rows(previous_df)
+    previous_records = report_dataset_rows(registry_df)
     counts: dict[str, dict[str, int]] = {}
 
     current_ids = set(current_records["ID"]) if "ID" in current_records.columns else set()
@@ -757,6 +741,8 @@ def report_dataset_rows(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty or "ID" not in df.columns:
         return pd.DataFrame(columns=["ID", "Is Part Of"])
     work = df.copy()
+    if "Is Part Of" not in work.columns and "Code" in work.columns:
+        work["Is Part Of"] = work["Code"]
     for column in ["ID", "Is Part Of", "Resource Class"]:
         if column not in work.columns:
             work[column] = ""
@@ -765,7 +751,7 @@ def report_dataset_rows(df: pd.DataFrame) -> pd.DataFrame:
         work["ID"].ne("")
         & work["Is Part Of"].ne("")
         & work["Resource Class"].str.lower().ne("websites")
-    ].copy()
+    ].drop_duplicates(subset=["ID"], keep="first").copy()
 
 
 def build_harvest_run_tally(report_df: pd.DataFrame) -> str:
