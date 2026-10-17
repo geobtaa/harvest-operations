@@ -239,6 +239,31 @@ def validate_oai_job_config(
             "underscores, and hyphens."
         )
 
+    rdf_companion = config.get("rdf_companion", {}) or {}
+    if not isinstance(rdf_companion, dict):
+        raise OaiPmhConfigError("rdf_companion must be a mapping.")
+    if rdf_companion:
+        companion_prefix = normalize_space(rdf_companion.get("metadata_prefix", ""))
+        if not METADATA_PREFIX_PATTERN.fullmatch(companion_prefix):
+            raise OaiPmhConfigError(
+                "rdf_companion.metadata_prefix is required and must be a valid "
+                "OAI metadata prefix."
+            )
+        for field_name in ("download_dir", "aggregation_uri", "manifest_base_url"):
+            if not normalize_space(rdf_companion.get(field_name, "")):
+                raise OaiPmhConfigError(f"rdf_companion.{field_name} is required.")
+        for field_name in ("aggregation_uri", "manifest_base_url"):
+            parsed_companion_url = urlparse(
+                normalize_space(rdf_companion[field_name])
+            )
+            if (
+                parsed_companion_url.scheme not in {"http", "https"}
+                or not parsed_companion_url.netloc
+            ):
+                raise OaiPmhConfigError(
+                    f"rdf_companion.{field_name} must be an HTTP(S) URL."
+                )
+
     for field_name in ("provider", "source_name", "source_id_prefix"):
         if not normalize_space(config.get(field_name, "")):
             raise OaiPmhConfigError(f"{field_name} is required.")

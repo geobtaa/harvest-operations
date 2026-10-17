@@ -18,7 +18,10 @@ The staged workflow is:
    download directory. Copy the rows you want into the YAML `sets` list.
 4. **Download XML** follows every `ListRecords` resumption token. A complete
    set is staged before it replaces the prior local snapshot, so an interrupted
-   request cannot mix old and new pages.
+   request cannot mix old and new pages. Retrying an interrupted Download first
+   validates its endpoint, format, set, date window, page sequence, and token
+   chain. It then reuses matching completed sets and resumes incomplete staging
+   at the next token. A normal new Download still refreshes completed snapshots.
 5. **Build outputs** runs the normal harvester against the local XML snapshot.
    **Download + build outputs** performs both steps in sequence.
 
@@ -55,6 +58,28 @@ WorldCat qualified Dublin Core (`metadata_prefix: oai_qdc`, or the prefix
 advertised by the repository). Generic DC fields are mapped automatically.
 Use `metadata_crosswalk` for source-specific qualified fields and
 `hardcoded_values` for registry constants such as `Code` and `Member Of`.
+
+### UMD RDF companion metadata
+
+UMD's Dublin Core feed exposes its administrative collection as the OAI set,
+but the narrower digital-collection membership and Fedora object ID are only in
+the endpoint's `rdf` format. Configure `rdf_companion` to download both formats
+in the normal Download stage:
+
+```yaml
+rdf_companion:
+  metadata_prefix: rdf
+  download_dir: inputs/oai-downloads/umd-library-rdf
+  aggregation_uri: "http://vocab.lib.umd.edu/set#marylandMaps"
+  manifest_base_url: "https://iiif.lib.umd.edu/manifests"
+```
+
+During Build outputs, the harvester joins Dublin Core and RDF by the OAI header
+identifier, retains only records in `aggregation_uri`, and derives an IIIF
+manifest from the primary Fedora item URI. Missing companion records stop the
+build rather than silently producing an incomplete collection. The RDF snapshot
+must therefore use the same sets and date window as the Dublin Core snapshot;
+the staged pipeline does this automatically.
 
 The default `Date Issued` mapping extracts a single four-digit year, preferring
 `dcterms:issued` when supplied and otherwise using the source date fields. It

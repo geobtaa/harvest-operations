@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 
@@ -5,7 +6,12 @@ import pytest
 import yaml
 
 from scripts.oai_download import configure_retry_session, download_set, oai_params
-from scripts.oai_pmh_pipeline import execute_stage, scoped_output_filename
+from scripts.oai_pmh_pipeline import (
+    execute_stage,
+    run_download,
+    scoped_output_filename,
+    should_recover_download,
+)
 from utils.oai_pmh import (
     ALL_RECORDS_SET,
     DEFAULT_OAI_USER_AGENT,
@@ -81,10 +87,59 @@ def test_oai_session_identifies_the_btaa_geoportal() -> None:
 
 
 def test_single_set_output_filename_does_not_replace_full_source_output() -> None:
-    assert scoped_output_filename(
-        "outputs/example-university_primary.csv",
-        "node:3186",
-    ) == "outputs/example-university-node-3186_primary.csv"
+    assert (
+        scoped_output_filename(
+            "outputs/example-university_primary.csv",
+            "node:3186",
+        )
+        == "outputs/example-university-node-3186_primary.csv"
+    )
+
+
+def test_run_download_stages_primary_and_companion_metadata(
+    monkeypatch, tmp_path
+) -> None:
+    config = job_config(tmp_path)
+    config["rdf_companion"] = {
+        "metadata_prefix": "rdf",
+        "download_dir": str(tmp_path / "rdf-downloads"),
+        "aggregation_uri": "http://vocab.lib.umd.edu/set#marylandMaps",
+        "manifest_base_url": "https://iiif.lib.umd.edu/manifests",
+    }
+    config_path = tmp_path / "example-university.yaml"
+    config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    calls = []
+
+    def fake_download_set(**kwargs):
+        calls.append(kwargs)
+        return {
+            "set_spec": kwargs["set_spec"],
+            "set_title": kwargs["set_title"],
+            "metadata_prefix": kwargs["metadata_prefix"],
+            "base_url": kwargs["base_url"],
+            "from": "",
+            "until": "",
+            "downloaded_files": [
+                str(kwargs["output_dir"] / kwargs["set_spec"] / "0001.xml")
+            ],
+            "error_count": 0,
+            "errors": [],
+            "snapshot_replaced": True,
+        }
+
+    monkeypatch.setattr(
+        "scripts.oai_pmh_pipeline.configure_retry_session",
+        lambda retries, backoff: object(),
+    )
+    monkeypatch.setattr("scripts.oai_pmh_pipeline.download_set", fake_download_set)
+
+    result = run_download(config, config_path, ALL_RECORDS_SET)
+
+    assert [call["metadata_prefix"] for call in calls] == ["oai_dc", "rdf"]
+    assert calls[0]["output_dir"] == tmp_path / "downloads"
+    assert calls[1]["output_dir"] == tmp_path / "rdf-downloads"
+    assert result["page_count"] == 1
+    assert result["companion_page_count"] == 1
 
 
 class FakeResponse:
@@ -149,6 +204,172 @@ def test_download_set_atomically_removes_stale_pages(tmp_path) -> None:
         str(old_set_dir / "0001.xml"),
         str(old_set_dir / "0002.xml"),
     ]
+
+
+def test_download_set_skips_matching_completed_snapshot(tmp_path) -> None:
+    complete_page = """<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">
+      <ListRecords><resumptionToken /></ListRecords>
+    </OAI-PMH>"""
+    download_set(
+        session=FakeSession([complete_page]),
+        base_url="https://example.edu/oai",
+        metadata_prefix="oai_dc",
+        set_spec="maps",
+        set_title="Maps",
+        output_dir=tmp_path,
+        delay=0,
+        timeout=30,
+    )
+    second_session = FakeSession([])
+
+    manifest = download_set(
+        session=second_session,
+        base_url="https://example.edu/oai",
+        metadata_prefix="oai_dc",
+        set_spec="maps",
+        set_title="Maps",
+        output_dir=tmp_path,
+        delay=0,
+        timeout=30,
+        skip_completed=True,
+    )
+
+    assert second_session.params == []
+    assert manifest["snapshot_reused"] is True
+    assert manifest["downloaded_files"] == [str(tmp_path / "maps" / "0001.xml")]
+
+
+def test_interrupted_matching_download_enables_completed_snapshot_reuse(
+    tmp_path,
+) -> None:
+    config = job_config(tmp_path)
+    config_path = tmp_path / "example-university.yaml"
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    prior_status = {
+        "config_sha256": hashlib.sha256(config_path.read_bytes()).hexdigest(),
+        "stages": {
+            "download": {
+                "status": "running",
+                "set_spec": ALL_RECORDS_SET,
+            }
+        },
+    }
+
+    assert should_recover_download(
+        prior_status,
+        config_path,
+        "download",
+        ALL_RECORDS_SET,
+    )
+    prior_status["stages"]["download"]["status"] = "completed"
+    assert not should_recover_download(
+        prior_status,
+        config_path,
+        "download",
+        ALL_RECORDS_SET,
+    )
+
+
+def test_download_set_resumes_valid_interrupted_staging_snapshot(tmp_path) -> None:
+    staging_dir = tmp_path / ".staging" / "maps-interrupted"
+    staging_dir.mkdir(parents=True)
+    first_page = """<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">
+      <request metadataPrefix="rdf" set="maps">https://example.edu/oai</request>
+      <ListRecords><resumptionToken>page-two</resumptionToken></ListRecords>
+    </OAI-PMH>"""
+    (staging_dir / "0001.xml").write_text(first_page, encoding="utf-8")
+    second_page = """<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">
+      <request resumptionToken="page-two">https://example.edu/oai</request>
+      <ListRecords><resumptionToken /></ListRecords>
+    </OAI-PMH>"""
+    session = FakeSession([second_page])
+
+    manifest = download_set(
+        session=session,
+        base_url="https://example.edu/oai",
+        metadata_prefix="rdf",
+        set_spec="maps",
+        set_title="Maps",
+        output_dir=tmp_path,
+        delay=0,
+        timeout=30,
+    )
+
+    assert session.params == [{"verb": "ListRecords", "resumptionToken": "page-two"}]
+    assert manifest["resumed_from_page"] == 1
+    assert sorted(path.name for path in (tmp_path / "maps").glob("*.xml")) == [
+        "0001.xml",
+        "0002.xml",
+    ]
+
+
+def test_download_set_ignores_staging_for_a_different_metadata_format(
+    tmp_path,
+) -> None:
+    staging_dir = tmp_path / ".staging" / "maps-other-format"
+    staging_dir.mkdir(parents=True)
+    staged_page = """<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">
+      <request metadataPrefix="rdf" set="maps">https://example.edu/oai</request>
+      <ListRecords><resumptionToken>rdf-page-two</resumptionToken></ListRecords>
+    </OAI-PMH>"""
+    (staging_dir / "0001.xml").write_text(staged_page, encoding="utf-8")
+    complete_page = """<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">
+      <ListRecords><resumptionToken /></ListRecords>
+    </OAI-PMH>"""
+    session = FakeSession([complete_page])
+
+    manifest = download_set(
+        session=session,
+        base_url="https://example.edu/oai",
+        metadata_prefix="oai_dc",
+        set_spec="maps",
+        set_title="Maps",
+        output_dir=tmp_path,
+        delay=0,
+        timeout=30,
+    )
+
+    assert session.params == [
+        {"verb": "ListRecords", "metadataPrefix": "oai_dc", "set": "maps"}
+    ]
+    assert manifest["resumed_from_page"] == 0
+    assert staging_dir.is_dir()
+
+
+def test_download_set_restarts_when_resumption_token_expired(tmp_path) -> None:
+    staging_dir = tmp_path / ".staging" / "maps-expired-token"
+    staging_dir.mkdir(parents=True)
+    staged_page = """<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">
+      <request metadataPrefix="rdf" set="maps">https://example.edu/oai</request>
+      <ListRecords><resumptionToken>expired-token</resumptionToken></ListRecords>
+    </OAI-PMH>"""
+    (staging_dir / "0001.xml").write_text(staged_page, encoding="utf-8")
+    error_page = """<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">
+      <error code="badResumptionToken">Expired token</error>
+    </OAI-PMH>"""
+    complete_page = """<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">
+      <ListRecords><resumptionToken /></ListRecords>
+    </OAI-PMH>"""
+    session = FakeSession([error_page, complete_page])
+
+    manifest = download_set(
+        session=session,
+        base_url="https://example.edu/oai",
+        metadata_prefix="rdf",
+        set_spec="maps",
+        set_title="Maps",
+        output_dir=tmp_path,
+        delay=0,
+        timeout=30,
+    )
+
+    assert session.params == [
+        {"verb": "ListRecords", "resumptionToken": "expired-token"},
+        {"verb": "ListRecords", "metadataPrefix": "rdf", "set": "maps"},
+    ]
+    assert manifest["resumed_from_page"] == 0
+    assert manifest["error_count"] == 0
+    assert not staging_dir.exists()
 
 
 def test_download_set_preserves_previous_snapshot_on_oai_error(tmp_path) -> None:

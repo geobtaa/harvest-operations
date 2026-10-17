@@ -1,0 +1,55 @@
+# Source-scoped OAI-PMH harvest job. See harvesters/oai_pmh_jobs.md.
+name: umd-library
+type: oai_qdc
+feed_type: oai_dc
+
+oai_base_url: "https://api.fcrepo.lib.umd.edu/oai/api"
+metadata_prefix: oai_dc
+provider: "University of Maryland"
+source_name: "University of Maryland Libraries"
+source_id_prefix: "umd"
+website_platform: Fedora
+harvest_workflow: py_oai_pmh
+
+# Keep acquisition polite and retry common transient server failures.
+oai_request:
+  delay_seconds: 1.0
+  timeout_seconds: 60
+  retries: 3
+  backoff_seconds: 1.0
+  # Optional inclusive OAI datestamp range:
+  # from: "2026-01-01"
+  # until: "2026-12-31"
+
+oai_download_dir: inputs/oai-downloads/umd-library
+
+# UMD exposes administrative collections as OAI sets. Maryland Maps is a
+# digital-collection facet inside this parent set; its internal identifier,
+# `marylandMaps`, is not accepted as an OAI setSpec. The companion RDF snapshot
+# supplies authoritative collection membership and the Fedora ID used to build
+# each IIIF manifest URL.
+sets:
+  - set: maryland_and_historical_collections
+    title: Maryland and Historical Collections
+
+rdf_companion:
+  metadata_prefix: rdf
+  download_dir: inputs/oai-downloads/umd-library-rdf
+  aggregation_uri: "http://vocab.lib.umd.edu/set#marylandMaps"
+  manifest_base_url: "https://iiif.lib.umd.edu/manifests"
+
+# Defaults applied when the source record leaves these values blank.
+default_resource_class: Maps
+hardcoded_values:
+  Code: 04d-01
+  Member Of: 64bd8c4c-8e60-4956-b43d-bdc3f93db488
+  Local Collection: Maryland Maps
+
+# Optional source-specific QDC mappings can replace or append generic mappings.
+metadata_crosswalk:
+  - source: dc:format
+    target: Description
+    mode: append
+
+output_primary_csv: outputs/umd-library_primary.csv
+output_distributions_csv: outputs/umd-library_distributions.csv

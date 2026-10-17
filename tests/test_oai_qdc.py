@@ -299,3 +299,74 @@ def test_oai_qdc_parses_standard_oai_dc_records(tmp_path) -> None:
             },
         }
     ]
+
+
+def test_oai_qdc_filters_with_umd_rdf_and_emits_manifest_distribution(tmp_path) -> None:
+    primary_dir = tmp_path / "primary" / "maryland_and_historical_collections"
+    rdf_dir = tmp_path / "rdf" / "maryland_and_historical_collections"
+    primary_dir.mkdir(parents=True)
+    rdf_dir.mkdir(parents=True)
+    oai_identifier = "oai:fcrepo.lib.umd.edu:1903.1/12533"
+    fcrepo_uri = (
+        "https://fcrepo.lib.umd.edu/fcrepo/rest/dc/2023/2/c1/91/18/3e/"
+        "c191183e-76b0-43ee-8221-4108b3521c3a"
+    )
+    (primary_dir / "0001.xml").write_text(
+        f"""<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/"
+          xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/"
+          xmlns:dc="http://purl.org/dc/elements/1.1/">
+          <ListRecords><record><header><identifier>{oai_identifier}</identifier></header>
+          <metadata><oai_dc:dc><dc:title>Maryland</dc:title>
+          <dc:identifier>https://hdl.handle.net/1903.1/12533</dc:identifier>
+          <dc:type>Image</dc:type></oai_dc:dc></metadata></record></ListRecords>
+        </OAI-PMH>""",
+        encoding="utf-8",
+    )
+    (rdf_dir / "0001.xml").write_text(
+        f"""<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/"
+          xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+          xmlns:dcterms="http://purl.org/dc/terms/"
+          xmlns:ore="http://www.openarchives.org/ore/terms/">
+          <ListRecords><record><header><identifier>{oai_identifier}</identifier></header>
+          <metadata><rdf:RDF><rdf:Description rdf:about="{fcrepo_uri}">
+          <dcterms:identifier>hdl:1903.1/12533</dcterms:identifier>
+          <rdf:type rdf:resource="http://vocab.lib.umd.edu/model#Item" />
+          <ore:isAggregatedBy rdf:resource="http://vocab.lib.umd.edu/set#marylandMaps" />
+          </rdf:Description></rdf:RDF></metadata></record></ListRecords>
+        </OAI-PMH>""",
+        encoding="utf-8",
+    )
+    config = _config(
+        tmp_path / "unused.csv",
+        name="umd-library",
+        source_id_prefix="umd",
+        oai_download_dir=str(tmp_path / "primary"),
+        sets=[
+            {
+                "set": "maryland_and_historical_collections",
+                "title": "Maryland and Historical Collections",
+            }
+        ],
+        rdf_companion={
+            "metadata_prefix": "rdf",
+            "download_dir": str(tmp_path / "rdf"),
+            "aggregation_uri": "http://vocab.lib.umd.edu/set#marylandMaps",
+            "manifest_base_url": "https://iiif.lib.umd.edu/manifests",
+        },
+    )
+    config.pop("sets_csv")
+    harvester = OaiQdcHarvester(config)
+    harvester.load_reference_data()
+
+    records = harvester.flatten(harvester.parse(harvester.fetch()))
+    primary_df = harvester.build_dataframe(records)
+    distributions_df = harvester.oai_build_distributions(primary_df)
+
+    assert primary_df["Title"].tolist() == ["Maryland"]
+    manifest_rows = distributions_df.loc[
+        distributions_df["reference_type"].eq("iiif_manifest")
+    ]
+    assert manifest_rows["distribution_url"].tolist() == [
+        "https://iiif.lib.umd.edu/manifests/fcrepo:dc:2023:2:c1:91:18:3e:"
+        "c191183e-76b0-43ee-8221-4108b3521c3a/manifest"
+    ]

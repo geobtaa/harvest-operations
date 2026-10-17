@@ -24,6 +24,10 @@ from utils.oai_pmh import load_configured_sets
 from utils.resource_type_match import split_resource_type_values
 from utils.umich_oai import collapse_umich_catalog_items
 from utils.temporal_fields import extract_issued_year
+from utils.umd_oai_rdf import (
+    filter_and_enrich_umd_records,
+    load_umd_rdf_records,
+)
 from utils.spatial_match import (
     load_city_spatial_lookup,
     load_county_spatial_lookup,
@@ -142,6 +146,12 @@ class OaiQdcHarvester(BaseHarvester):
                 "oai_download_dir",
                 Path("inputs") / "oai-downloads" / self.config.get("name", "oai_qdc"),
             )
+        )
+        self.rdf_companion = self.config.get("rdf_companion", {}) or {}
+        self.rdf_companion_dir = (
+            self.oai_resolve_path(self.rdf_companion["download_dir"])
+            if self.rdf_companion
+            else None
         )
 
         self.crosswalk_csv = self.config.get("metadata_crosswalk_csv", "")
@@ -291,6 +301,26 @@ class OaiQdcHarvester(BaseHarvester):
         flattened = []
         for parsed_page in harvested_metadata:
             flattened.extend(parsed_page.get("records", []))
+
+        if self.rdf_companion:
+            set_specs = list(
+                dict.fromkeys(page["set_spec"] for page in harvested_metadata)
+            )
+            rdf_records = load_umd_rdf_records(
+                self.rdf_companion_dir,
+                set_specs,
+            )
+            unfiltered_count = len(flattened)
+            flattened = filter_and_enrich_umd_records(
+                flattened,
+                rdf_records,
+                aggregation_uri=self.rdf_companion["aggregation_uri"],
+                manifest_base_url=self.rdf_companion["manifest_base_url"],
+            )
+            print(
+                f"[OAI_QDC] Retained {len(flattened)} of {unfiltered_count} record(s) "
+                f"using RDF aggregation {self.rdf_companion['aggregation_uri']}."
+            )
 
         print(
             f"[OAI_QDC] Prepared {len(flattened)} records across "
@@ -879,6 +909,7 @@ class OaiQdcHarvester(BaseHarvester):
             "bounding_box": self.oai_extract_bbox_from_values(spatial_values),
             "scale_values": scale_values,
             "format_values": format_values,
+            "manifest": record.get("manifest", ""),
             "publisher_values": publisher_values,
             "rights_values": rights_values,
             "provenance_values": provenance_values,
@@ -978,6 +1009,7 @@ class OaiQdcHarvester(BaseHarvester):
                 lambda values: self.oai_serialize_values("Is Part Of", values)
             ),
             "information": df["landing_page"],
+            "manifest": df["manifest"],
         }
 
         return pd.DataFrame(output_data)
