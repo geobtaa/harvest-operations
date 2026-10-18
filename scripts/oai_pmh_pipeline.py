@@ -22,6 +22,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from harvesters.oai_qdc import OaiQdcHarvester  # noqa: E402
+from utils.dspace_bitstreams import download_dspace_bitstream_inventory  # noqa: E402
 from scripts.oai_download import (  # noqa: E402
     configure_retry_session,
     download_set,
@@ -440,6 +441,34 @@ def run_download(
                 f"see {companion_manifest_path}."
             )
 
+    dspace_inventory_path = None
+    dspace_item_count = 0
+    dspace_file_count = 0
+    dspace_companion = config.get("dspace_bitstream_companion", {}) or {}
+    if dspace_companion:
+        dspace_inventory_path = resolve_repo_path(
+            dspace_companion["inventory_json"],
+            REPO_ROOT,
+            config_path,
+        )
+        print(
+            "[OAI-PMH] Downloading DSpace ORIGINAL-bundle bitstream inventory "
+            f"for {dspace_companion['collection_handle']}..."
+        )
+        inventory = download_dspace_bitstream_inventory(
+            session,
+            rest_base_url=dspace_companion["rest_base_url"],
+            collection_handle=dspace_companion["collection_handle"],
+            output_path=dspace_inventory_path,
+            timeout=settings["timeout"],
+        )
+        dspace_item_count = len(inventory["items"])
+        dspace_file_count = sum(len(item["files"]) for item in inventory["items"])
+        print(
+            f"[OAI-PMH] Saved {dspace_file_count} bitstream(s) for "
+            f"{dspace_item_count} item(s) to {dspace_inventory_path}."
+        )
+
     run_manifest = {
         "job_id": config["name"],
         "source_name": config["source_name"],
@@ -466,6 +495,11 @@ def run_download(
         "companion_manifest_path": (
             str(companion_manifest_path) if companion_manifest_path else ""
         ),
+        "dspace_inventory_path": (
+            str(dspace_inventory_path) if dspace_inventory_path else ""
+        ),
+        "dspace_item_count": dspace_item_count,
+        "dspace_file_count": dspace_file_count,
         "manifest_path": str(manifest_path),
     }
 

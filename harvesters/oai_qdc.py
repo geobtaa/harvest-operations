@@ -15,11 +15,15 @@ if __package__ in (None, ""):
 from harvesters.base import BaseHarvester
 from utils.creator_fields import split_creator_names_and_ids
 from utils.distribution_writer import generate_secondary_table
+from utils.dspace_bitstreams import (
+    enrich_records_with_dspace_bitstreams,
+    load_dspace_bitstream_inventory,
+)
 from utils.field_order import FIELD_ORDER, PRIMARY_FIELD_ORDER
-from utils.local_ids import assign_persistent_ids
+from utils.local_ids import assign_persistent_ids, assign_reconciled_new_ids
 from utils.linked_data import split_http_identifiers
 from utils.marc_coordinates import extract_scale_statements
-from utils.metadata_reconciliation import umich_keys
+from utils.metadata_reconciliation import handle_keys, read_csv, reconcile, umich_keys
 from utils.oai_pmh import load_configured_sets
 from utils.resource_type_match import split_resource_type_values
 from utils.umich_oai import collapse_umich_catalog_items
@@ -29,6 +33,7 @@ from utils.umd_oai_rdf import (
     load_umd_rdf_records,
 )
 from utils.spatial_match import (
+    derive_county_spatial_from_titles,
     load_city_spatial_lookup,
     load_county_spatial_lookup,
     load_plss_bbox_lookup,
@@ -52,6 +57,7 @@ class OaiQdcHarvester(BaseHarvester):
         "dcterms": "http://purl.org/dc/terms/",
         "oai_dc": "http://www.openarchives.org/OAI/2.0/oai_dc/",
         "oai_qdc": "http://worldcat.org/xmlschemas/qdc-1.0/",
+        "dspace_qdc": "http://dspace.org/qualifieddc/",
     }
     NS_PREFIXES = {uri: prefix for prefix, uri in OAI_NS.items() if prefix != "oai"}
 
@@ -83,6 +89,9 @@ class OaiQdcHarvester(BaseHarvester):
         self.publisher = self.config.get("publisher", "")
         self.harvest_workflow = self.config.get("harvest_workflow", "py_oai_qdc")
         self.spatial_match_state = self.config.get("spatial_match_state", "").strip()
+        self.spatial_match_geometry = bool(
+            self.config.get("spatial_match_geometry", True)
+        )
         self.spatial_cities_csv = self.config.get(
             "spatial_cities_csv",
             "reference_data/spatial_cities.csv",
@@ -128,12 +137,20 @@ class OaiQdcHarvester(BaseHarvester):
         self.plss_lookup = {}
         self.umich_item_membership = None
         self.local_id_assignments = None
-        if self.config.get("local_id_registry") and self.config.get("record_granularity") != "umich_catalog_item":
-            raise ValueError("local_id_registry currently requires umich_catalog_item grouping")
+        if (
+            self.config.get("local_id_registry")
+            and self.config.get("record_granularity") != "umich_catalog_item"
+        ):
+            raise ValueError(
+                "local_id_registry currently requires umich_catalog_item grouping"
+            )
         if self.config.get("record_granularity", "oai_record") not in {
-            "oai_record", "umich_catalog_item"
+            "oai_record",
+            "umich_catalog_item",
         }:
-            raise ValueError("record_granularity must be oai_record or umich_catalog_item")
+            raise ValueError(
+                "record_granularity must be oai_record or umich_catalog_item"
+            )
 
         sets_csv_value = self.config.get("sets_csv", "")
         self.sets_csv = (
@@ -153,6 +170,13 @@ class OaiQdcHarvester(BaseHarvester):
             if self.rdf_companion
             else None
         )
+        self.metadata_reconciliation = (
+            self.config.get("metadata_reconciliation", {}) or {}
+        )
+        self.dspace_bitstream_companion = (
+            self.config.get("dspace_bitstream_companion", {}) or {}
+        )
+        self.metadata_reconciliation_outputs = None
 
         self.crosswalk_csv = self.config.get("metadata_crosswalk_csv", "")
         self.crosswalk_config = self.config.get("metadata_crosswalk", [])
@@ -218,7 +242,9 @@ class OaiQdcHarvester(BaseHarvester):
         )
 
         plss_path = self.oai_resolve_path(self.spatial_plss_csv)
-        self.plss_lookup = load_plss_bbox_lookup(plss_path, self.spatial_plss_state_abbr)
+        self.plss_lookup = load_plss_bbox_lookup(
+            plss_path, self.spatial_plss_state_abbr
+        )
         if self.spatial_plss_state_abbr:
             print(
                 f"[OAI_QDC] Loaded {len(self.plss_lookup)} PLSS lookup row(s) "
@@ -287,7 +313,9 @@ class OaiQdcHarvester(BaseHarvester):
 
             set_spec = bundle["set_spec"]
             set_page_counts[set_spec] = set_page_counts.get(set_spec, 0) + 1
-            set_record_counts[set_spec] = set_record_counts.get(set_spec, 0) + len(page_records)
+            set_record_counts[set_spec] = set_record_counts.get(set_spec, 0) + len(
+                page_records
+            )
 
         for set_spec in sorted(set_record_counts):
             print(
@@ -322,6 +350,17 @@ class OaiQdcHarvester(BaseHarvester):
                 f"using RDF aggregation {self.rdf_companion['aggregation_uri']}."
             )
 
+        if self.dspace_bitstream_companion:
+            inventory_path = self.oai_resolve_path(
+                self.dspace_bitstream_companion["inventory_json"]
+            )
+            inventory = load_dspace_bitstream_inventory(inventory_path)
+            flattened = enrich_records_with_dspace_bitstreams(flattened, inventory)
+            print(
+                f"[OAI_QDC] Attached DSpace bitstreams to {len(flattened)} "
+                f"record(s) from {inventory_path}."
+            )
+
         print(
             f"[OAI_QDC] Prepared {len(flattened)} records across "
             f"{len(harvested_metadata)} XML page(s)."
@@ -335,7 +374,9 @@ class OaiQdcHarvester(BaseHarvester):
             print("[OAI_QDC] No local OAI records found. Returning an empty dataframe.")
             return pd.DataFrame(columns=self.oai_output_columns())
 
-        context_df = pd.DataFrame([self.oai_prepare_record_context(record) for record in record_rows])
+        context_df = pd.DataFrame(
+            [self.oai_prepare_record_context(record) for record in record_rows]
+        )
         df = self.oai_map_to_schema(context_df)
         df = self.oai_apply_crosswalk(df, context_df)
         df = self.oai_route_identifier_values(df)
@@ -350,12 +391,16 @@ class OaiQdcHarvester(BaseHarvester):
             if self.config.get("local_id_registry"):
                 df = df.pipe(
                     assign_persistent_ids,
-                    registry_path=self.oai_resolve_path(self.config["local_id_registry"]),
+                    registry_path=self.oai_resolve_path(
+                        self.config["local_id_registry"]
+                    ),
                     identity_keys=umich_keys,
                     prefix=f"{self.source_id_prefix}_",
                 )
                 self.local_id_assignments = df.attrs.pop("local_id_assignments")
-                id_map = self.local_id_assignments.set_index("previous_harvested_id")["ID"]
+                id_map = self.local_id_assignments.set_index("previous_harvested_id")[
+                    "ID"
+                ]
                 self.umich_item_membership["item_harvested_id"] = (
                     self.umich_item_membership["item_harvested_id"].map(id_map)
                 )
@@ -367,6 +412,11 @@ class OaiQdcHarvester(BaseHarvester):
 
     def derive_fields(self, df):
         df = super().derive_fields(df)
+        if self.config.get("spatial_county_from_title", False):
+            df = df.pipe(
+                derive_county_spatial_from_titles,
+                county_lookup=self.county_spatial_lookup,
+            )
         df = self.oai_enrich_spatial_fields(df)
         return df
 
@@ -416,7 +466,9 @@ class OaiQdcHarvester(BaseHarvester):
         )
         if "Provenance" in df.columns:
             df["Provenance"] = df["Provenance"].apply(
-                lambda value: f"{value}|{harvest_statement}" if value else harvest_statement
+                lambda value: f"{value}|{harvest_statement}"
+                if value
+                else harvest_statement
             )
         else:
             df["Provenance"] = harvest_statement
@@ -434,7 +486,137 @@ class OaiQdcHarvester(BaseHarvester):
 
     def write_outputs(self, primary_df, distributions_df=None):
         distributions_df = self.oai_build_distributions(primary_df.copy())
+        self.metadata_reconciliation_outputs = None
+        if self.metadata_reconciliation:
+            identity_name = self.metadata_reconciliation.get("identity", "")
+            identity_keys = {"handle": handle_keys}.get(identity_name)
+            if identity_keys is None:
+                raise ValueError(
+                    "[OAI_QDC] metadata_reconciliation.identity must be 'handle'."
+                )
+            existing_primary_path = self.oai_resolve_path(
+                self.metadata_reconciliation["existing_primary_csv"]
+            )
+            existing_distributions_path = self.oai_resolve_path(
+                self.metadata_reconciliation["existing_distributions_csv"]
+            )
+            existing_primary = read_csv(existing_primary_path, ("ID",))
+            existing_distributions = read_csv(
+                existing_distributions_path,
+                ("friendlier_id", "distribution_url"),
+            )
+            decisions_csv = self.metadata_reconciliation.get("decisions_csv", "")
+            decisions = (
+                read_csv(
+                    self.oai_resolve_path(decisions_csv),
+                    ("harvested_id", "action", "canonical_id"),
+                )
+                if decisions_csv
+                else None
+            )
+            self.metadata_reconciliation_outputs = reconcile(
+                primary_df,
+                existing_primary,
+                existing_distributions,
+                harvested_distributions=distributions_df,
+                decisions=decisions,
+                excluded_enrichment_fields=tuple(
+                    self.metadata_reconciliation.get("exclude_fields", [])
+                ),
+                identity_keys=identity_keys,
+                ignore_unknown_enrichment_fields=bool(
+                    self.metadata_reconciliation.get("ignore_unknown_fields", False)
+                ),
+            )
+            needs_review = self.metadata_reconciliation_outputs["needs_review"]
+            if not needs_review.empty:
+                raise ValueError(
+                    "[OAI_QDC] Metadata reconciliation found "
+                    f"{len(needs_review)} ambiguous match(es); review is required "
+                    "before reconciled outputs can be written."
+                )
+            new_id_registry = self.metadata_reconciliation.get("new_id_registry", "")
+            if new_id_registry:
+                self.metadata_reconciliation_outputs = assign_reconciled_new_ids(
+                    self.metadata_reconciliation_outputs,
+                    registry_path=self.oai_resolve_path(new_id_registry),
+                    identity_keys=identity_keys,
+                    prefix=self.metadata_reconciliation.get("new_id_prefix", ""),
+                )
+                self.local_id_assignments = self.metadata_reconciliation_outputs[
+                    "local_id_assignments"
+                ]
+            preserve_ids = set(
+                self.metadata_reconciliation.get("preserve_existing_ids", [])
+            )
+            if preserve_ids:
+                preserved_primary = existing_primary.loc[
+                    existing_primary["ID"].isin(preserve_ids)
+                ]
+                found_ids = set(preserved_primary["ID"])
+                if found_ids != preserve_ids:
+                    raise ValueError(
+                        "[OAI_QDC] preserve_existing_ids not found in existing "
+                        f"primary CSV: {sorted(preserve_ids - found_ids)}"
+                    )
+                self.metadata_reconciliation_outputs["reconciled_primary"] = (
+                    pd.concat(
+                        [
+                            self.metadata_reconciliation_outputs[
+                                "reconciled_primary"
+                            ],
+                            preserved_primary,
+                        ],
+                        ignore_index=True,
+                    )
+                )
+                preserved_distributions = existing_distributions.loc[
+                    existing_distributions["friendlier_id"].isin(preserve_ids)
+                ]
+                self.metadata_reconciliation_outputs[
+                    "reconciled_distributions"
+                ] = pd.concat(
+                    [
+                        self.metadata_reconciliation_outputs[
+                            "reconciled_distributions"
+                        ],
+                        preserved_distributions,
+                    ],
+                    ignore_index=True,
+                )
+            primary_df = self.metadata_reconciliation_outputs["reconciled_primary"]
+            distributions_df = self.metadata_reconciliation_outputs[
+                "reconciled_distributions"
+            ]
+            match_counts = self.metadata_reconciliation_outputs["crosswalk"][
+                "match_status"
+            ].value_counts()
+            print(
+                "[OAI_QDC] Reconciled existing metadata: "
+                f"{match_counts.get('matched', 0)} matched, "
+                f"{match_counts.get('new', 0)} new, "
+                f"{len(self.metadata_reconciliation_outputs['enrichment_audit'])} "
+                "nonblank existing values applied."
+            )
         results = super().write_outputs(primary_df, distributions_df)
+        if self.metadata_reconciliation_outputs is not None:
+            primary_path = Path(results["primary_csv"])
+            for output_name in (
+                "crosswalk",
+                "enrichment_audit",
+                "new_items",
+                "needs_review",
+                "missing_existing",
+                "ignored_enrichment_fields",
+            ):
+                output_path = primary_path.with_name(
+                    f"{primary_path.stem}_{output_name}.csv"
+                )
+                self.metadata_reconciliation_outputs[output_name].to_csv(
+                    output_path,
+                    index=False,
+                )
+                results[f"reconciliation_{output_name}_csv"] = str(output_path)
         if self.umich_item_membership is not None:
             primary_path = Path(results["primary_csv"])
             membership_path = primary_path.with_name(
@@ -444,7 +626,9 @@ class OaiQdcHarvester(BaseHarvester):
             results["item_membership_csv"] = str(membership_path)
         if self.local_id_assignments is not None:
             primary_path = Path(results["primary_csv"])
-            assignments_path = primary_path.with_name(f"{primary_path.stem}_id_assignments.csv")
+            assignments_path = primary_path.with_name(
+                f"{primary_path.stem}_id_assignments.csv"
+            )
             self.local_id_assignments.to_csv(assignments_path, index=False)
             results["id_assignments_csv"] = str(assignments_path)
         return results
@@ -500,7 +684,9 @@ class OaiQdcHarvester(BaseHarvester):
     def oai_load_crosswalk(self):
         if self.crosswalk_config:
             mappings = self.oai_load_crosswalk_from_config(self.crosswalk_config)
-            print(f"[OAI_QDC] Loaded {len(mappings)} inline crosswalk mappings from config.")
+            print(
+                f"[OAI_QDC] Loaded {len(mappings)} inline crosswalk mappings from config."
+            )
             return mappings
 
         if not self.crosswalk_csv:
@@ -508,23 +694,33 @@ class OaiQdcHarvester(BaseHarvester):
 
         crosswalk_path = self.oai_resolve_path(self.crosswalk_csv)
         if not crosswalk_path.exists():
-            raise FileNotFoundError(f"[OAI_QDC] Crosswalk CSV not found: {crosswalk_path}")
+            raise FileNotFoundError(
+                f"[OAI_QDC] Crosswalk CSV not found: {crosswalk_path}"
+            )
 
         mappings = []
         with crosswalk_path.open(newline="", encoding="utf-8-sig") as handle:
             if self.crosswalk_has_header:
                 reader = csv.DictReader(handle)
                 for row in reader:
-                    source = self.oai_extract_crosswalk_cell(row, self.crosswalk_source_column)
-                    target = self.oai_extract_crosswalk_cell(row, self.crosswalk_target_column)
+                    source = self.oai_extract_crosswalk_cell(
+                        row, self.crosswalk_source_column
+                    )
+                    target = self.oai_extract_crosswalk_cell(
+                        row, self.crosswalk_target_column
+                    )
                     mapping = self.oai_normalize_crosswalk_mapping(source, target)
                     if mapping is not None:
                         mappings.append(mapping)
             else:
                 reader = csv.reader(handle)
                 for row in reader:
-                    source = self.oai_extract_crosswalk_cell(row, self.crosswalk_source_column)
-                    target = self.oai_extract_crosswalk_cell(row, self.crosswalk_target_column)
+                    source = self.oai_extract_crosswalk_cell(
+                        row, self.crosswalk_source_column
+                    )
+                    target = self.oai_extract_crosswalk_cell(
+                        row, self.crosswalk_target_column
+                    )
                     mapping = self.oai_normalize_crosswalk_mapping(source, target)
                     if mapping is not None:
                         mappings.append(mapping)
@@ -589,11 +785,16 @@ class OaiQdcHarvester(BaseHarvester):
         existing_geometry = df.get("Geometry", pd.Series([""] * len(df)))
         df["Geometry"] = [
             self.oai_normalize_space(existing_value)
-            or city_match.get("geometry", "")
             or (
-                ""
-                if plss_match.get("has_plss")
-                else county_match.get("geometry", "") or state_match.get("geometry", "")
+                city_match.get("geometry", "")
+                or (
+                    ""
+                    if plss_match.get("has_plss")
+                    else county_match.get("geometry", "")
+                    or state_match.get("geometry", "")
+                )
+                if self.spatial_match_geometry
+                else ""
             )
             for existing_value, city_match, county_match, plss_match, state_match in zip(
                 existing_geometry,
@@ -870,11 +1071,19 @@ class OaiQdcHarvester(BaseHarvester):
             self.oai_values(record, "dc:subject", "dcterms:subject")
         )
         type_values = self.oai_values(record, "dc:type", "dcterms:type")
-        identifier_values = self.oai_values(record, "dc:identifier", "dcterms:identifier")
-        all_identifiers = self.oai_unique([record.get("oai_identifier", "")] + identifier_values)
+        identifier_values = self.oai_values(
+            record, "dc:identifier", "dcterms:identifier"
+        )
+        all_identifiers = self.oai_unique(
+            [record.get("oai_identifier", "")] + identifier_values
+        )
         wxs_identifier_values = self.oai_wxs_identifiers(identifier_values)
-        landing_page = self.oai_select_landing_page(all_identifiers)
-        date_values = self.oai_values(record, "dc:date", "dcterms:date", "dcterms:created")
+        landing_page = record.get("information", "") or self.oai_select_landing_page(
+            all_identifiers
+        )
+        date_values = self.oai_values(
+            record, "dc:date", "dcterms:date", "dcterms:created"
+        )
         temporal_values = self.oai_values(record, "dcterms:temporal")
         spatial_values = self.oai_values(record, "dcterms:spatial", "dc:coverage")
         format_values = self.oai_values(record, "dc:format", "dcterms:format")
@@ -885,7 +1094,12 @@ class OaiQdcHarvester(BaseHarvester):
         is_part_of_values = self.oai_values(record, "dcterms:isPartOf")
         source_values = self.oai_values(record, "dc:source", "dcterms:source")
         scale_values = extract_scale_statements(spatial_values + source_values)
-        description_values = self.oai_values(record, "dc:description", "dcterms:description")
+        description_values = self.oai_values(
+            record,
+            "dc:description",
+            "dcterms:description",
+            "dcterms:abstract",
+        )
         language_values = self.oai_values(record, "dc:language", "dcterms:language")
         spatial_coverage = self.oai_spatial_coverage(spatial_values)
 
@@ -910,6 +1124,8 @@ class OaiQdcHarvester(BaseHarvester):
             "scale_values": scale_values,
             "format_values": format_values,
             "manifest": record.get("manifest", ""),
+            "download": record.get("download", []),
+            "thumbnail": record.get("thumbnail", ""),
             "publisher_values": publisher_values,
             "rights_values": rights_values,
             "provenance_values": provenance_values,
@@ -924,7 +1140,9 @@ class OaiQdcHarvester(BaseHarvester):
                 record.get("set_title", ""),
             ),
             "local_collection": self.oai_local_collection(record, is_part_of_values),
-            "temporal_coverage": self.oai_build_temporal_coverage(temporal_values, date_values),
+            "temporal_coverage": self.oai_build_temporal_coverage(
+                temporal_values, date_values
+            ),
             "date_issued": self.oai_date_issued(
                 self.oai_values(record, "dcterms:issued") or date_values
             ),
@@ -935,7 +1153,9 @@ class OaiQdcHarvester(BaseHarvester):
 
     def oai_map_to_schema(self, df):
         alternative_titles = df.apply(
-            lambda row: self.oai_unique(row["title_values"][1:] + row["alternative_title_values"]),
+            lambda row: self.oai_unique(
+                row["title_values"][1:] + row["alternative_title_values"]
+            ),
             axis=1,
         )
         resource_type_split = df["type_values"].apply(split_resource_type_values)
@@ -944,7 +1164,9 @@ class OaiQdcHarvester(BaseHarvester):
 
         output_data = {
             "ID": df["record_id"],
-            "Title": df["title_values"].apply(lambda values: values[0] if values else ""),
+            "Title": df["title_values"].apply(
+                lambda values: values[0] if values else ""
+            ),
             "Alternative Title": alternative_titles.apply(
                 lambda values: self.oai_serialize_values("Alternative Title", values)
             ),
@@ -986,7 +1208,9 @@ class OaiQdcHarvester(BaseHarvester):
             ),
             "Bounding Box": df["bounding_box"],
             "Spatial Resolution as Text": df["scale_values"].apply(
-                lambda values: self.oai_serialize_values("Spatial Resolution as Text", values)
+                lambda values: self.oai_serialize_values(
+                    "Spatial Resolution as Text", values
+                )
             ),
             "Provenance": df["provenance_values"].apply(
                 lambda values: self.oai_serialize_values("Provenance", values)
@@ -1002,6 +1226,7 @@ class OaiQdcHarvester(BaseHarvester):
             ),
             "Format": df["format"],
             "File Size": df["file_size"],
+            "B1G Image": df["thumbnail"],
             "Source": df["source_values"].apply(
                 lambda values: self.oai_serialize_values("Source", values)
             ),
@@ -1010,6 +1235,7 @@ class OaiQdcHarvester(BaseHarvester):
             ),
             "information": df["landing_page"],
             "manifest": df["manifest"],
+            "download": df["download"],
         }
 
         return pd.DataFrame(output_data)
@@ -1066,7 +1292,9 @@ class OaiQdcHarvester(BaseHarvester):
                 if field_name not in df.columns:
                     df[field_name] = ""
 
-                df.loc[matching_rows, field_name] = df.loc[matching_rows, field_name].apply(
+                df.loc[matching_rows, field_name] = df.loc[
+                    matching_rows, field_name
+                ].apply(
                     lambda existing_value: self.oai_serialize_values(
                         field_name,
                         self.oai_deserialize_values(field_name, existing_value)
@@ -1087,7 +1315,9 @@ class OaiQdcHarvester(BaseHarvester):
                     self.oai_serialize_values(
                         target,
                         self.oai_deserialize_values(target, existing_value)
-                        + self.oai_crosswalk_source_values(context_row, mapping["source"]),
+                        + self.oai_crosswalk_source_values(
+                            context_row, mapping["source"]
+                        ),
                     )
                     for existing_value, (_, context_row) in zip(
                         schema_df.get(target, pd.Series([""] * len(schema_df))),
@@ -1142,17 +1372,23 @@ class OaiQdcHarvester(BaseHarvester):
                 df[target_field] = ""
 
         updated_identifiers = []
-        routed_values_by_field = {target_field: [] for target_field, _ in normalized_rules}
+        routed_values_by_field = {
+            target_field: [] for target_field, _ in normalized_rules
+        }
 
         for _, row in df.iterrows():
             remaining_identifiers = []
             routed_for_row = {target_field: [] for target_field, _ in normalized_rules}
 
-            for value in self.oai_deserialize_values("Identifier", row.get("Identifier", "")):
+            for value in self.oai_deserialize_values(
+                "Identifier", row.get("Identifier", "")
+            ):
                 matched_field = None
                 lowered_value = value.lower()
                 for target_field, prefixes in normalized_rules:
-                    if any(lowered_value.startswith(prefix.lower()) for prefix in prefixes):
+                    if any(
+                        lowered_value.startswith(prefix.lower()) for prefix in prefixes
+                    ):
                         matched_field = target_field
                         break
 
@@ -1211,7 +1447,9 @@ class OaiQdcHarvester(BaseHarvester):
         return self.oai_unique(values)
 
     def oai_serialize_values(self, target, values):
-        cleaned_values = self.oai_unique(values if isinstance(values, list) else [values])
+        cleaned_values = self.oai_unique(
+            values if isinstance(values, list) else [values]
+        )
         if not cleaned_values:
             return ""
 
@@ -1268,6 +1506,8 @@ class OaiQdcHarvester(BaseHarvester):
             return None
 
         dc_root = metadata_el.find("oai_qdc:qualifieddc", self.OAI_NS)
+        if dc_root is None:
+            dc_root = metadata_el.find("dspace_qdc:qualifieddc", self.OAI_NS)
         if dc_root is None:
             dc_root = metadata_el.find("oai_dc:dc", self.OAI_NS)
         if dc_root is None:
@@ -1334,9 +1574,7 @@ class OaiQdcHarvester(BaseHarvester):
         split_values = []
         for value in values:
             parts = [
-                part.strip(" .")
-                for part in re.split(r"\s*;\s*", value)
-                if part.strip()
+                part.strip(" .") for part in re.split(r"\s*;\s*", value) if part.strip()
             ]
             split_values.extend(parts or [value])
         return self.oai_unique(split_values)
@@ -1386,7 +1624,7 @@ class OaiQdcHarvester(BaseHarvester):
         friendlier_id = str(row.get("ID", ""))
         prefix = f"{self.source_id_prefix}_"
         if friendlier_id.startswith(prefix):
-            suffix = friendlier_id[len(prefix):]
+            suffix = friendlier_id[len(prefix) :]
             if "_" in suffix:
                 set_slug, record_number = suffix.rsplit("_", 1)
                 return set_slug, record_number
@@ -1396,8 +1634,8 @@ class OaiQdcHarvester(BaseHarvester):
     def oai_build_id(self, record, landing_page):
         set_part = self.oai_build_id_set_part(record.get("set_spec", ""))
         raw_identifier = (
-            self.oai_extract_record_number(landing_page)
-            or self.oai_extract_record_number(record.get("oai_identifier", ""))
+            self.oai_extract_record_number(record.get("oai_identifier", ""))
+            or self.oai_extract_record_number(landing_page)
             or self.oai_slugify(
                 landing_page or record.get("oai_identifier", "")
             ).replace("-", "_")
@@ -1487,7 +1725,9 @@ class OaiQdcHarvester(BaseHarvester):
 
     def oai_extract_bbox(self, value):
         clean_value = self.oai_normalize_space(value)
-        envelope_match = re.match(r"ENVELOPE\(([^)]+)\)", clean_value, flags=re.IGNORECASE)
+        envelope_match = re.match(
+            r"ENVELOPE\(([^)]+)\)", clean_value, flags=re.IGNORECASE
+        )
         if envelope_match:
             coords = [part.strip() for part in envelope_match.group(1).split(",")]
             if len(coords) == 4:
@@ -1520,13 +1760,22 @@ class OaiQdcHarvester(BaseHarvester):
 
         if "collection" in type_text:
             return "Collections"
-        if any(term in type_text for term in ["aerial", "orthophoto", "satellite", "imagery"]):
+        if any(
+            term in type_text
+            for term in ["aerial", "orthophoto", "satellite", "imagery"]
+        ):
             return "Imagery"
-        if any(term in type_text for term in ["map", "maps", "cartograph", "stillimage", "image"]):
+        if any(
+            term in type_text
+            for term in ["map", "maps", "cartograph", "stillimage", "image"]
+        ):
             return "Maps"
         if any(term in type_text for term in ["dataset", "data set", "tabular"]):
             return "Datasets"
-        if any(term in type_text for term in ["website", "interactive resource", "web site"]):
+        if any(
+            term in type_text
+            for term in ["website", "interactive resource", "web site"]
+        ):
             return "Websites"
         if "collection" in set_text:
             return "Collections"

@@ -3,8 +3,13 @@ import re
 import pandas as pd
 import pytest
 
-from utils.local_ids import REGISTRY_COLUMNS, assign_persistent_ids, new_local_id
-from utils.metadata_reconciliation import umich_keys
+from utils.local_ids import (
+    REGISTRY_COLUMNS,
+    assign_persistent_ids,
+    assign_reconciled_new_ids,
+    new_local_id,
+)
+from utils.metadata_reconciliation import handle_keys, reconcile, umich_keys
 
 
 def source(catalog="123", image="456", record_id="temporary"):
@@ -94,3 +99,85 @@ def test_conflicting_aliases_and_multiple_claims_do_not_write(tmp_path):
             pd.concat([source(), source(record_id="another")]), path, umich_keys
         )
     assert path.read_bytes() == before
+
+
+def test_reconciled_new_ids_are_persistent_and_do_not_replace_existing_ids(
+    tmp_path,
+    monkeypatch,
+):
+    suffixes = iter(["aB1234567890"])
+    monkeypatch.setattr(
+        "utils.local_ids.generate",
+        lambda alphabet, size: next(suffixes),
+    )
+    harvested = pd.DataFrame(
+        [
+            {
+                "ID": "harvested-existing",
+                "Identifier": "hdl:1903.1/12533",
+                "Title": "Existing map",
+            },
+            {
+                "ID": "harvested-new",
+                "Identifier": "hdl:1903.1/99999",
+                "Title": "New map",
+            },
+        ]
+    )
+    distributions = pd.DataFrame(
+        [
+            {
+                "friendlier_id": "harvested-existing",
+                "distribution_url": "https://hdl.handle.net/1903.1/12533",
+            },
+            {
+                "friendlier_id": "harvested-new",
+                "distribution_url": "https://hdl.handle.net/1903.1/99999",
+            },
+        ]
+    )
+    outputs = reconcile(
+        harvested,
+        pd.DataFrame([{"ID": "existing-uuid", "Title": "Curated map"}]),
+        pd.DataFrame(
+            [
+                {
+                    "friendlier_id": "existing-uuid",
+                    "distribution_url": "http://hdl.handle.net/1903.1/12533",
+                }
+            ]
+        ),
+        harvested_distributions=distributions,
+        identity_keys=handle_keys,
+    )
+    registry_path = tmp_path / "umd_ids.csv"
+
+    assigned = assign_reconciled_new_ids(
+        outputs,
+        registry_path,
+        handle_keys,
+        "umd_",
+    )
+
+    assert assigned["reconciled_primary"]["ID"].tolist() == [
+        "existing-uuid",
+        "umd_aB1234567890",
+    ]
+    assert assigned["reconciled_distributions"]["friendlier_id"].tolist() == [
+        "existing-uuid",
+        "umd_aB1234567890",
+    ]
+    assert assigned["crosswalk"]["canonical_id"].tolist() == [
+        "existing-uuid",
+        "umd_aB1234567890",
+    ]
+    assert assigned["local_id_assignments"].iloc[0]["assignment_status"] == "created"
+
+    repeated = assign_reconciled_new_ids(
+        outputs,
+        registry_path,
+        handle_keys,
+        "umd_",
+    )
+    assert repeated["reconciled_primary"]["ID"].tolist()[-1] == "umd_aB1234567890"
+    assert repeated["local_id_assignments"].iloc[0]["assignment_status"] == "reused"

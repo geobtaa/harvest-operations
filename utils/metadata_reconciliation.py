@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 import re
+from typing import Callable
 from urllib.parse import unquote, urlsplit
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -53,6 +54,28 @@ def umich_keys(value: str) -> set[str]:
     return keys
 
 
+def handle_keys(value: str) -> set[str]:
+    """Extract normalized Handle identifiers from URLs and identifier aliases."""
+    keys = set()
+    for token in str(value or "").split("|"):
+        token = unquote(token.strip())
+        if not token:
+            continue
+        parsed = urlsplit(token)
+        handle = ""
+        if parsed.scheme in {"http", "https"} and parsed.hostname == "hdl.handle.net":
+            handle = parsed.path.strip("/")
+        elif token.lower().startswith("hdl:"):
+            handle = token[4:].strip("/")
+        else:
+            match = re.search(r":(\d+(?:\.\d+)?/[^:|/?#\s]+)$", token)
+            if match:
+                handle = match.group(1)
+        if handle:
+            keys.add(f"handle:{handle}")
+    return keys
+
+
 def read_csv(path: Path, required: tuple[str, ...]) -> pd.DataFrame:
     frame = pd.read_csv(path, dtype=str, keep_default_na=False, encoding="utf-8-sig")
     missing = set(required) - set(frame.columns)
@@ -97,6 +120,8 @@ def reconcile(
     harvested_distributions: pd.DataFrame | None = None,
     decisions: pd.DataFrame | None = None,
     excluded_enrichment_fields: tuple[str, ...] = (),
+    identity_keys: Callable[[str], set[str]] = umich_keys,
+    ignore_unknown_enrichment_fields: bool = False,
 ) -> dict[str, pd.DataFrame]:
     """Return reviewable outputs without modifying the source frames.
 
@@ -107,10 +132,24 @@ def reconcile(
     require_unique_ids(harvested, "Harvest")
     require_unique_ids(enrichments, "Enrichments")
     unknown = set(enrichments.columns) - set(harvested.columns)
-    if unknown:
+    ignored_enrichment_fields = pd.DataFrame(
+        [
+            {
+                "field": field,
+                "nonblank_value_count": int(
+                    enrichments[field].astype(str).str.strip().ne("").sum()
+                ),
+            }
+            for field in sorted(unknown)
+        ],
+        columns=["field", "nonblank_value_count"],
+    )
+    if unknown and not ignore_unknown_enrichment_fields:
         raise ValueError(
             f"Enrichment columns missing from harvested schema: {sorted(unknown)}"
         )
+    if unknown:
+        enrichments = enrichments.drop(columns=sorted(unknown))
     old_keys = defaultdict(set)
     for record_id in enrichments["ID"]:
         old_keys[record_id].add(f"id:{record_id}")
@@ -118,7 +157,7 @@ def reconcile(
         record_id = row["friendlier_id"]
         if not record_id.strip():
             raise ValueError("Existing distributions contain a blank friendlier_id")
-        old_keys[record_id].update(umich_keys(row["distribution_url"]))
+        old_keys[record_id].update(identity_keys(row["distribution_url"]))
         old_keys[record_id].add(f"id:{record_id}")
     if aliases is not None:
         for row in aliases.to_dict("records"):
@@ -134,7 +173,7 @@ def reconcile(
             index[key].add(record_id)
     new_keys = {}
     for row in harvested.to_dict("records"):
-        new_keys[row["ID"]] = umich_keys(row.get("Identifier", "")) | {
+        new_keys[row["ID"]] = identity_keys(row.get("Identifier", "")) | {
             f"id:{row['ID']}"
         }
     if harvested_distributions is not None:
@@ -143,7 +182,9 @@ def reconcile(
                 raise ValueError(
                     f"Harvest distribution ID absent from primary: {row['friendlier_id']}"
                 )
-            new_keys[row["friendlier_id"]].update(umich_keys(row["distribution_url"]))
+            new_keys[row["friendlier_id"]].update(
+                identity_keys(row["distribution_url"])
+            )
     candidates, weak_candidates = {}, {}
     for record_id, keys in new_keys.items():
         candidates[record_id] = set().union(
@@ -315,6 +356,7 @@ def reconcile(
                 "source_deletion_notices",
             ],
         ),
+        "ignored_enrichment_fields": ignored_enrichment_fields,
     }
     template = crosswalk_df.loc[
         crosswalk_df["match_status"].eq("needs_review"),

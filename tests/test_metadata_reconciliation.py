@@ -3,7 +3,12 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from utils.metadata_reconciliation import deleted_keys, reconcile, umich_keys
+from utils.metadata_reconciliation import (
+    deleted_keys,
+    handle_keys,
+    reconcile,
+    umich_keys,
+)
 
 
 def primary(*items):
@@ -142,6 +147,72 @@ def test_keys_preserve_sheet_suffix_and_scope():
     assert umich_keys(
         "https://quod.lib.umich.edu/cgi/i/image/api/search/clark1ic:003281819"
     ) == {"catalog:clark1ic:3281819"}
+
+
+def test_handle_keys_normalize_umd_identifier_forms():
+    expected = {"handle:1903.1/12533"}
+
+    assert handle_keys("http://hdl.handle.net/1903.1/12533") == expected
+    assert handle_keys("https://hdl.handle.net/1903.1/12533") == expected
+    assert handle_keys("hdl:1903.1/12533") == expected
+    assert handle_keys("oai:fcrepo.lib.umd.edu:1903.1/12533") == expected
+
+
+def test_handle_reconciliation_can_report_and_ignore_legacy_columns():
+    harvested = pd.DataFrame(
+        [
+            {
+                "ID": "harvested-id",
+                "Identifier": "hdl:1903.1/12533",
+                "Title": "Harvested title",
+                "Website Platform": "Fedora",
+            },
+            {
+                "ID": "new-id",
+                "Identifier": "hdl:1903.1/99999",
+                "Title": "New map",
+                "Website Platform": "Fedora",
+            },
+        ]
+    )
+    enrichments = pd.DataFrame(
+        [
+            {
+                "ID": "canonical-id",
+                "Identifier": "canonical-id",
+                "Title": "Curated title",
+                "Website Platform": "PHP",
+                "Created At": "2021-04-27",
+            }
+        ]
+    )
+    existing_distributions = existing(
+        ("canonical-id", "http://hdl.handle.net/1903.1/12533")
+    )
+    harvested_distributions = existing(
+        ("harvested-id", "https://hdl.handle.net/1903.1/12533"),
+        ("new-id", "https://hdl.handle.net/1903.1/99999"),
+    )
+
+    result = reconcile(
+        harvested,
+        enrichments,
+        existing_distributions,
+        harvested_distributions=harvested_distributions,
+        excluded_enrichment_fields=("Identifier", "Website Platform"),
+        identity_keys=handle_keys,
+        ignore_unknown_enrichment_fields=True,
+    )
+
+    reconciled = result["reconciled_primary"].set_index("ID")
+    assert list(reconciled.index) == ["canonical-id", "new-id"]
+    assert reconciled.loc["canonical-id", "Title"] == "Curated title"
+    assert reconciled.loc["canonical-id", "Identifier"] == "hdl:1903.1/12533"
+    assert reconciled.loc["canonical-id", "Website Platform"] == "Fedora"
+    assert result["crosswalk"]["match_status"].tolist() == ["matched", "new"]
+    assert result["ignored_enrichment_fields"].to_dict("records") == [
+        {"field": "Created At", "nonblank_value_count": 1}
+    ]
 
 
 def test_deleted_and_missing_records_are_retained(tmp_path: Path):

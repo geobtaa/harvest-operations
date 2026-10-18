@@ -38,6 +38,28 @@ rdf_companion:
   aggregation_uri: "http://vocab.lib.umd.edu/set#marylandMaps"
   manifest_base_url: "https://iiif.lib.umd.edu/manifests"
 
+# Match current records to the existing inventory by Handle URL. Existing
+# nonblank descriptive values and canonical UUIDs are retained; current source
+# and harvest-management fields remain authoritative.
+metadata_reconciliation:
+  identity: handle
+  existing_primary_csv: enrichments/04d-01_primary.csv
+  existing_distributions_csv: enrichments/04d-01_distributions.csv
+  new_id_registry: enrichments/04d-01_local_ids.csv
+  new_id_prefix: umd_
+  ignore_unknown_fields: true
+  exclude_fields:
+    - Identifier
+    - Provenance
+    - Website Platform
+    - Endpoint URL
+    - Endpoint Description
+    - Is Harvested
+    - Last Harvested
+    - Accrual Method
+    - Accrual Periodicity
+    - Harvest Workflow
+
 # Defaults applied when the source record leaves these values blank.
 default_resource_class: Maps
 hardcoded_values:

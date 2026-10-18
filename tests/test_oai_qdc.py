@@ -66,7 +66,7 @@ def _write_spatial_lookup_csvs(tmp_path: Path) -> dict[str, str]:
         "\n".join(
             [
                 "Township,Township Direction,Range,Range Direction,STATEABBR,PRINMERCD,PRINMER,PLSSID,Bounding Box",
-                "1,N,1,W,IA,,,,\"1,2,3,4\"",
+                '1,N,1,W,IA,,,,"1,2,3,4"',
             ]
         )
         + "\n",
@@ -139,7 +139,9 @@ def test_oai_qdc_prefers_plss_bbox_over_city_match(tmp_path) -> None:
     sets_csv = tmp_path / "sets.csv"
     sets_csv.write_text("set,title\nnode:1,Sample Set\n", encoding="utf-8")
 
-    harvester = OaiQdcHarvester(_config(sets_csv, **_write_spatial_lookup_csvs(tmp_path)))
+    harvester = OaiQdcHarvester(
+        _config(sets_csv, **_write_spatial_lookup_csvs(tmp_path))
+    )
     harvester.load_reference_data()
 
     df = pd.DataFrame(
@@ -161,11 +163,15 @@ def test_oai_qdc_prefers_plss_bbox_over_city_match(tmp_path) -> None:
     assert row["GeoNames"] == "CITY_GEONAMES"
 
 
-def test_oai_qdc_does_not_confuse_des_moines_city_with_des_moines_county(tmp_path) -> None:
+def test_oai_qdc_does_not_confuse_des_moines_city_with_des_moines_county(
+    tmp_path,
+) -> None:
     sets_csv = tmp_path / "sets.csv"
     sets_csv.write_text("set,title\nnode:1,Sample Set\n", encoding="utf-8")
 
-    harvester = OaiQdcHarvester(_config(sets_csv, **_write_spatial_lookup_csvs(tmp_path)))
+    harvester = OaiQdcHarvester(
+        _config(sets_csv, **_write_spatial_lookup_csvs(tmp_path))
+    )
     harvester.load_reference_data()
 
     df = pd.DataFrame(
@@ -191,7 +197,9 @@ def test_oai_qdc_distinguishes_iowa_state_county_and_city_matches(tmp_path) -> N
     sets_csv = tmp_path / "sets.csv"
     sets_csv.write_text("set,title\nnode:1,Sample Set\n", encoding="utf-8")
 
-    harvester = OaiQdcHarvester(_config(sets_csv, **_write_spatial_lookup_csvs(tmp_path)))
+    harvester = OaiQdcHarvester(
+        _config(sets_csv, **_write_spatial_lookup_csvs(tmp_path))
+    )
     harvester.load_reference_data()
 
     df = pd.DataFrame(
@@ -301,6 +309,58 @@ def test_oai_qdc_parses_standard_oai_dc_records(tmp_path) -> None:
     ]
 
 
+def test_oai_qdc_parses_dspace_qdc_and_uses_header_identifier_for_id(
+    tmp_path,
+) -> None:
+    config = _config(
+        tmp_path / "unused.csv",
+        source_id_prefix="umn_udc",
+    )
+    config.pop("sets_csv")
+    config["sets"] = [
+        {"set": "col_11299_57196", "title": "County Atlas Series"}
+    ]
+    harvester = OaiQdcHarvester(config)
+    xml_text = """<?xml version="1.0" encoding="UTF-8"?>
+    <OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/"
+      xmlns:qdc="http://dspace.org/qualifieddc/"
+      xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xmlns:dcterms="http://purl.org/dc/terms/">
+      <ListRecords>
+        <record>
+          <header>
+            <identifier>oai:conservancy.umn.edu:11299/173781</identifier>
+            <datestamp>2022-09-06T16:38:59Z</datestamp>
+          </header>
+          <metadata>
+            <qdc:qualifieddc>
+              <dc:title>Surficial Geology Map, Wadena County.</dc:title>
+              <dcterms:abstract>Only the surficial geology map is available.</dcterms:abstract>
+              <dcterms:issued>2016</dcterms:issued>
+              <dc:type>Map</dc:type>
+              <dc:identifier>http://hdl.handle.net/11299/173781
+                http://hdl.handle.net/11299/183206</dc:identifier>
+            </qdc:qualifieddc>
+          </metadata>
+        </record>
+      </ListRecords>
+    </OAI-PMH>
+    """
+
+    records = harvester.oai_parse_xml(
+        xml_text,
+        {"set_spec": "col_11299_57196", "set_title": "County Atlas Series"},
+    )
+    df = harvester.build_dataframe(records)
+
+    assert records[0]["fields"]["dcterms:abstract"] == [
+        "Only the surficial geology map is available."
+    ]
+    assert df.loc[0, "ID"] == "umn_udc_col_11299_57196_173781"
+    assert df.loc[0, "Description"] == "Only the surficial geology map is available."
+    assert df.loc[0, "Date Issued"] == "2016"
+
+
 def test_oai_qdc_filters_with_umd_rdf_and_emits_manifest_distribution(tmp_path) -> None:
     primary_dir = tmp_path / "primary" / "maryland_and_historical_collections"
     rdf_dir = tmp_path / "rdf" / "maryland_and_historical_collections"
@@ -369,4 +429,96 @@ def test_oai_qdc_filters_with_umd_rdf_and_emits_manifest_distribution(tmp_path) 
     assert manifest_rows["distribution_url"].tolist() == [
         "https://iiif.lib.umd.edu/manifests/fcrepo:dc:2023:2:c1:91:18:3e:"
         "c191183e-76b0-43ee-8221-4108b3521c3a/manifest"
+    ]
+
+
+def test_oai_qdc_reconciles_existing_handle_inventory_during_write(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    existing_primary_path = tmp_path / "existing_primary.csv"
+    pd.DataFrame(
+        [
+            {
+                "ID": "canonical-id",
+                "Identifier": "canonical-id",
+                "Title": "Curated Maryland title",
+                "Website Platform": "PHP",
+                "Created At": "2021-04-27",
+            }
+        ]
+    ).to_csv(existing_primary_path, index=False)
+    existing_distributions_path = tmp_path / "existing_distributions.csv"
+    pd.DataFrame(
+        [
+            {
+                "friendlier_id": "canonical-id",
+                "reference_type": "documentation_external",
+                "distribution_url": "http://hdl.handle.net/1903.1/12533",
+                "label": "",
+            }
+        ]
+    ).to_csv(existing_distributions_path, index=False)
+    config = _config(
+        tmp_path / "unused.csv",
+        metadata_reconciliation={
+            "identity": "handle",
+            "existing_primary_csv": str(existing_primary_path),
+            "existing_distributions_csv": str(existing_distributions_path),
+            "ignore_unknown_fields": True,
+            "exclude_fields": ["Identifier", "Website Platform"],
+        },
+    )
+    captured = {}
+
+    def capture_outputs(self, primary_df, distributions_df=None):
+        captured["primary"] = primary_df.copy()
+        captured["distributions"] = distributions_df.copy()
+        return {
+            "primary_csv": str(tmp_path / "2026-10-17_umd_primary.csv"),
+            "distributions_csv": str(tmp_path / "2026-10-17_umd_distributions.csv"),
+        }
+
+    monkeypatch.setattr("harvesters.base.BaseHarvester.write_outputs", capture_outputs)
+    harvester = OaiQdcHarvester(config)
+    harvester.load_reference_data()
+    harvested = pd.DataFrame(
+        [
+            {
+                "ID": "harvested-id",
+                "Identifier": "hdl:1903.1/12533",
+                "Title": "Harvested title",
+                "Website Platform": "Fedora",
+                "information": "https://hdl.handle.net/1903.1/12533",
+                "manifest": "https://iiif.example/12533/manifest",
+            },
+            {
+                "ID": "new-id",
+                "Identifier": "hdl:1903.1/99999",
+                "Title": "New map",
+                "Website Platform": "Fedora",
+                "information": "https://hdl.handle.net/1903.1/99999",
+                "manifest": "https://iiif.example/99999/manifest",
+            },
+        ]
+    )
+
+    results = harvester.write_outputs(harvested)
+
+    reconciled = captured["primary"].set_index("ID")
+    assert list(reconciled.index) == ["canonical-id", "new-id"]
+    assert reconciled.loc["canonical-id", "Title"] == "Curated Maryland title"
+    assert reconciled.loc["canonical-id", "Identifier"] == "hdl:1903.1/12533"
+    assert reconciled.loc["canonical-id", "Website Platform"] == "Fedora"
+    assert set(captured["distributions"]["friendlier_id"]) == {
+        "canonical-id",
+        "new-id",
+    }
+    assert Path(results["reconciliation_crosswalk_csv"]).is_file()
+    ignored = pd.read_csv(
+        results["reconciliation_ignored_enrichment_fields_csv"],
+        dtype=str,
+    )
+    assert ignored.to_dict("records") == [
+        {"field": "Created At", "nonblank_value_count": "1"}
     ]

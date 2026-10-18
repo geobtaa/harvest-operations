@@ -81,6 +81,21 @@ build rather than silently producing an incomplete collection. The RDF snapshot
 must therefore use the same sets and date window as the Dublin Core snapshot;
 the staged pipeline does this automatically.
 
+UMD also configures `metadata_reconciliation` with the existing `04d-01`
+primary and distribution CSVs. Build outputs matches old and current records by
+normalized Handle URL, retains the established UUID in `ID`, applies nonblank
+existing descriptive values, remaps current landing-page and IIIF distributions,
+and keeps unmatched harvested records as new items. Current operational fields
+such as endpoint, platform, harvest workflow, provenance, and source identifiers
+are excluded from the overlay. The build writes crosswalk, audit, new-item,
+missing-item, and ignored-legacy-field sidecars beside the normal output files;
+ambiguous matches stop the build for review.
+
+New UMD items receive a persistent `umd_` plus 12-character alphanumeric Nano ID.
+Assignments are stored in `enrichments/04d-01_local_ids.csv` and matched by Handle
+alias on later builds, so the random IDs remain stable. Existing UUIDs are never
+replaced by this assignment step.
+
 The default `Date Issued` mapping extracts a single four-digit year, preferring
 `dcterms:issued` when supplied and otherwise using the source date fields. It
 accepts publication statements, ISO dates, and bracketed/qualified years. Values
