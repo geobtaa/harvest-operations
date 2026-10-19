@@ -114,6 +114,38 @@ def match_county_spatial(normalized_values, county_lookup, county_alias_lookup):
     return empty_match
 
 
+def derive_county_spatial_from_titles(df, county_lookup):
+    """Fill blank spatial coverage when a title names one known county."""
+    if df.empty or not county_lookup or "Title" not in df.columns:
+        return df
+
+    county_names = sorted(
+        (
+            (full_name.split("--")[-1].strip(), full_name)
+            for full_name in county_lookup
+        ),
+        key=lambda pair: len(pair[0]),
+        reverse=True,
+    )
+
+    def derive(row):
+        existing = _normalize_space(row.get("Spatial Coverage", ""))
+        if existing:
+            return existing
+        title = _normalize_space(row.get("Title", ""))
+        matches = [
+            full_name
+            for county_name, full_name in county_names
+            if re.search(rf"(?<!\w){re.escape(county_name)}(?!\w)", title, re.I)
+        ]
+        unique_matches = list(dict.fromkeys(matches))
+        return unique_matches[0] if len(unique_matches) == 1 else ""
+
+    result = df.copy()
+    result["Spatial Coverage"] = result.apply(derive, axis=1)
+    return result
+
+
 def load_state_spatial_lookup(states_csv_path):
     state_lookup = {}
     state_alias_lookup = {}

@@ -234,6 +234,25 @@
       </div>
     </fieldset>
 
+    <fieldset>
+      <legend>Metadata handling</legend>
+      <div class="radio-row">
+        <label>
+          <input
+            id="preserve-source-metadata"
+            name="preserve_source_metadata"
+            type="checkbox"
+          />
+          Preserve source metadata values
+        </label>
+      </div>
+      <p>
+        Skip filtering, derivation, cleaning, and normalized-schema validation.
+        Only Code, Publication State, Date Accessioned, and Provenance are added
+        when the source does not already provide them.
+      </p>
+    </fieldset>
+
     <button id="run-button" type="submit">Run Harvester</button>
   </form>
 
@@ -268,7 +287,12 @@
 
     function buildPayload() {
       const mode = sourceMode.value;
-      const payload = { source_mode: mode };
+      const payload = {
+        source_mode: mode,
+        preserve_source_metadata: document.getElementById(
+          "preserve-source-metadata"
+        ).checked
+      };
 
       if (mode === "local_json") {
         return payload;

@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 import math
 import re
 
+import pandas as pd
 from shapely import to_wkt, wkt
 from shapely.geometry import MultiPolygon, Polygon
 from shapely.geometry.polygon import orient
@@ -37,10 +38,9 @@ def repair_geometry_fields(bounding_box: object, geometry: object) -> GeometryRe
         if original_geometry:
             return GeometryRepair(
                 bounding_box="",
-                geometry="",
-                action="clear_geometry_without_bbox",
-                requires_review=True,
-                note="Geometry was cleared because Bounding Box is blank.",
+                geometry=original_geometry,
+                action="retain_geometry_without_bbox",
+                note="Geometry retained without a Bounding Box.",
             )
         return GeometryRepair(
             bounding_box="",
@@ -346,6 +346,11 @@ def _crosses_antimeridian(geometry: Polygon | MultiPolygon) -> bool:
 def _clean_text(value: object) -> str:
     if value is None:
         return ""
+    try:
+        if pd.isna(value):
+            return ""
+    except (TypeError, ValueError):
+        pass
     return str(value).strip()
 
 

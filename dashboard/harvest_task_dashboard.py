@@ -898,7 +898,14 @@ class HarvestTaskDashboardJob:
 
         self._ensure_columns(
             harvest_df,
-            ["ID", "Identifier", "Harvest Workflow", "Last Harvested", "Accrual Periodicity"],
+            [
+                "ID",
+                "Identifier",
+                "Harvest Workflow",
+                "Last Harvested",
+                "Accrual Periodicity",
+                "Provenance",
+            ],
         )
         self._ensure_columns(websites_df, ["ID", "Harvest Workflow"])
 
@@ -950,6 +957,10 @@ class HarvestTaskDashboardJob:
                 row_dict.get("Last Harvested", ""),
                 row_dict.get("Accrual Periodicity", ""),
                 row_dict,
+            )
+            last_reviewed = self._last_reviewed_date(row_dict)
+            base_task["Last Reviewed"] = (
+                last_reviewed.strftime("%Y-%m-%d") if last_reviewed is not None else ""
             )
             base_task["Review Date"] = review_date.strftime("%Y-%m-%d") if review_date is not None else ""
             base_task["Review Status"] = self._determine_review_status(review_date, row_dict)
@@ -1458,6 +1469,7 @@ class HarvestTaskDashboardJob:
             "Identifier",
             "Code",
             "Last Harvested",
+            "Last Reviewed",
             "Accrual Periodicity",
             "Due Date",
             "Due Status",
@@ -1470,7 +1482,17 @@ class HarvestTaskDashboardJob:
         working_df = harvest_df.copy()
         self._ensure_columns(
             working_df,
-            ["ID", "Title", "Identifier", "Code", "Last Harvested", "Accrual Periodicity", "Tag", "Tags"],
+            [
+                "ID",
+                "Title",
+                "Identifier",
+                "Code",
+                "Last Harvested",
+                "Accrual Periodicity",
+                "Provenance",
+                "Tag",
+                "Tags",
+            ],
         )
 
         record_rows: list[dict[str, Any]] = []
@@ -1487,9 +1509,15 @@ class HarvestTaskDashboardJob:
                 row_dict.get("Accrual Periodicity", ""),
                 row_dict,
             )
+            last_reviewed = self._last_reviewed_date(row_dict)
             record_rows.append(
                 {
                     **row_dict,
+                    "Last Reviewed": (
+                        last_reviewed.strftime("%Y-%m-%d")
+                        if last_reviewed is not None
+                        else ""
+                    ),
                     "Due Date": due_date.strftime("%Y-%m-%d") if due_date is not None else "",
                     "Due Status": self._determine_due_status(
                         due_date,
@@ -3436,6 +3464,7 @@ class HarvestTaskDashboardJob:
 
     def _render_triage_timing_cell(self, row: pd.Series | dict[str, Any]) -> str:
         last_harvested = self._clean_value(row.get("Last Harvested", "")) or "Not yet harvested"
+        last_reviewed = self._clean_value(row.get("Last Reviewed", "")) or "Not yet reviewed"
         periodicity = self._clean_value(row.get("Accrual Periodicity", "")) or "Not provided"
         normalized_periodicity = self._normalize_periodicity(periodicity)
 
@@ -3457,7 +3486,7 @@ class HarvestTaskDashboardJob:
             elif review_interval is not None and review_date and review_status == "Scheduled":
                 primary_line = (
                     f'<div class="review-flag review-flag--upcoming">'
-                    f'Review upcoming · {escape(review_date)}</div>'
+                    f'Next Review · {escape(review_date)}</div>'
                 )
             else:
                 primary_line = '<div class="triage-work-date">Review as needed</div>'
@@ -3471,6 +3500,7 @@ class HarvestTaskDashboardJob:
                 )
             return (
                 f"{primary_line}"
+                f'<div class="timing-meta">Last reviewed: {escape(last_reviewed)}</div>'
                 f'<div class="timing-meta">Last harvested: {escape(last_harvested)}</div>'
                 f"{interval_line}"
             )
@@ -3847,11 +3877,34 @@ class HarvestTaskDashboardJob:
         if review_interval_years is None:
             return None
 
-        last_harvested_date = pd.to_datetime(last_harvested, errors="coerce")
-        if pd.isna(last_harvested_date):
+        review_base_date = self._last_reviewed_date(row)
+        if review_base_date is None:
+            last_harvested_date = pd.to_datetime(last_harvested, errors="coerce")
+            if not pd.isna(last_harvested_date):
+                review_base_date = last_harvested_date.normalize()
+
+        if review_base_date is None:
             return None
 
-        return last_harvested_date + pd.DateOffset(years=review_interval_years)
+        return review_base_date + pd.DateOffset(years=review_interval_years)
+
+    def _last_reviewed_date(
+        self,
+        row: pd.Series | dict[str, Any] | None,
+    ) -> pd.Timestamp | None:
+        if row is None:
+            return None
+
+        review_dates = []
+        for entry in self._extract_provenance_entries(row.get("Provenance", "")):
+            action_type = self._extract_provenance_action_type(entry).lower()
+            if action_type != "review":
+                continue
+            entry_date = self._extract_dated_entry_date(entry)
+            if entry_date is not None:
+                review_dates.append(entry_date)
+
+        return max(review_dates) if review_dates else None
 
     def _determine_review_status(
         self,

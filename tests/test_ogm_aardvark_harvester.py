@@ -628,3 +628,78 @@ def test_ogm_aardvark_repo_defaults_preserve_existing_values():
 
     assert df.loc[0, "Code"] == "source-code"
     assert df.loc[0, "Member Of"] == "source-member"
+
+
+def test_source_preservation_mode_keeps_original_values_and_restricted_records(
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.chdir(tmp_path)
+    record = {
+        "id": "preserved-record",
+        "dct_title_s": "  Original   title  ",
+        "dct_description_sm": ["<p>Original  description</p>"],
+        "dct_rights_sm": ["<p>Original rights</p>"],
+        "dct_accessRights_s": "Restricted",
+        "gbl_resourceClass_sm": ["Datasets"],
+        "dcat_bbox": "ENVELOPE(-123.424, -122.3, 49.474, 49.004)",
+        "locn_geometry": "ENVELOPE(-123.424, -122.3, 49.474, 49.004)",
+        "dct_references_s": json.dumps(
+            {"http://schema.org/url": "https://example.com/preserved-record"}
+        ),
+        "gbl_mdVersion_s": "Aardvark",
+        "gbl_mdModified_dt": "2026-10-01T00:00:00Z",
+    }
+    config = _github_config(
+        source_mode="github_tarball",
+        github_repo="ca.lunaris",
+        preserve_source_metadata=True,
+    )
+    harvester = OgmAardvarkHarvester(config)
+    harvester.load_reference_data()
+
+    df = harvester.build_dataframe(harvester.flatten([record]))
+    df = harvester.derive_fields(df)
+    df = harvester.add_defaults(df)
+    df = harvester.add_provenance(df)
+    df = harvester.clean(df)
+    df = harvester.validate(df)
+    results = harvester.write_outputs(df)
+
+    primary = pd.read_csv(
+        results["primary_csv"], dtype=str, keep_default_na=False
+    ).fillna("")
+    row = primary.iloc[0]
+
+    assert len(primary) == 1
+    assert row["Title"] == "  Original   title  "
+    assert row["Description"] == "<p>Original  description</p>"
+    assert row["Rights"] == "<p>Original rights</p>"
+    assert row["Access Rights"] == "Restricted"
+    assert row["Bounding Box"] == record["dcat_bbox"]
+    assert row["Geometry"] == record["locn_geometry"]
+    assert "dct_references_s" not in primary.columns
+    assert row["gbl_mdVersion_s"] == "Aardvark"
+    assert row["gbl_mdModified_dt"] == "2026-10-01T00:00:00Z"
+    assert row["Code"] == "20d-0008"
+    assert row["Publication State"] == "published"
+    assert row["Date Accessioned"]
+    assert row["Provenance"]
+    assert "Theme" not in primary.columns
+    assert "Date Range" not in primary.columns
+    assert "Member Of" not in primary.columns
+    assert "Website Platform" not in primary.columns
+    assert "Endpoint URL" not in primary.columns
+    assert "information" not in primary.columns
+
+    distributions = pd.read_csv(
+        results["distributions_csv"], dtype=str, keep_default_na=False
+    ).fillna("")
+    assert distributions.to_dict("records") == [
+        {
+            "friendlier_id": "preserved-record",
+            "reference_type": "documentation_external",
+            "distribution_url": "https://example.com/preserved-record",
+            "label": "",
+        }
+    ]

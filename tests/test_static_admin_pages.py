@@ -25,6 +25,10 @@ def test_static_ogm_aardvark_page_runs_expected_job() -> None:
     assert 'value="4"' in page_html
     assert 'name="github_since_date"' in page_html
     assert 'value="2026-06-01"' in page_html
+    assert 'name="preserve_source_metadata"' in page_html
+    assert "payload = {" in page_html
+    assert "preserve_source_metadata:" in page_html
+    assert "Preserve source metadata values" in page_html
     assert 'fetch("/jobs/ogm-aardvark/run"' in page_html
 
 

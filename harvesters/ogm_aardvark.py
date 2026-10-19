@@ -45,6 +45,9 @@ class OgmAardvarkHarvester(BaseHarvester):
         super().__init__(config)
         self.repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.source_mode = self.config.get("source_mode", "local_json")
+        self.preserve_source_metadata = bool(
+            self.config.get("preserve_source_metadata", False)
+        )
         self.json_path = self._resolve_path(self.config.get("json_path", ""))
         self.source_field_map = {}
         self.schema_field_names = set()
@@ -177,7 +180,7 @@ class OgmAardvarkHarvester(BaseHarvester):
         extra_columns = []
 
         for record in records:
-            if self._is_restricted_record(record):
+            if not self.preserve_source_metadata and self._is_restricted_record(record):
                 continue
 
             normalized_record = {}
@@ -204,6 +207,8 @@ class OgmAardvarkHarvester(BaseHarvester):
 
     def derive_fields(self, df):
         if df.empty:
+            return df
+        if self.preserve_source_metadata:
             return df
 
         existing_theme = None
@@ -239,6 +244,14 @@ class OgmAardvarkHarvester(BaseHarvester):
         return df
 
     def add_defaults(self, df):
+        if self.preserve_source_metadata:
+            df = add_value_without_overwriting(df, "Publication State", "published")
+            defaults = repo_defaults_for_config(self.config, self.repo_defaults)
+            code = defaults.get("Code", "")
+            if code:
+                df = add_value_without_overwriting(df, "Code", code)
+            return df
+
         existing_access_rights = (
             df["Access Rights"].copy() if "Access Rights" in df.columns else None
         )
@@ -258,6 +271,24 @@ class OgmAardvarkHarvester(BaseHarvester):
         return df
 
     def add_provenance(self, df):
+        if self.preserve_source_metadata:
+            today = time.strftime("%Y-%m-%d")
+            endpoint_url = (
+                github_repo_url(self.config)
+                if self.source_mode.startswith("github_")
+                else self.config.get("endpoint_url") or self.json_path
+            )
+            endpoint_description = self.config.get(
+                "endpoint_description",
+                "OGM Aardvark JSON directory",
+            )
+            provenance = (
+                "The metadata for this resource was harvested from "
+                f"{endpoint_description} at {endpoint_url} on {today}."
+            )
+            df = add_value_without_overwriting(df, "Date Accessioned", today)
+            return add_value_without_overwriting(df, "Provenance", provenance)
+
         df = super().add_provenance(df)
         if df.empty:
             return df
@@ -295,6 +326,8 @@ class OgmAardvarkHarvester(BaseHarvester):
     def clean(self, df):
         if df.empty:
             return df
+        if self.preserve_source_metadata:
+            return self._reorder_columns_with_extras(df)
 
         before_cols = set(df.columns)
         df = (
@@ -315,6 +348,12 @@ class OgmAardvarkHarvester(BaseHarvester):
         return df
 
     def validate(self, df):
+        if self.preserve_source_metadata:
+            print(
+                "[VALIDATION] Source-preservation mode: skipped normalized-schema "
+                "validation."
+            )
+            return df
         return super().validate(df)
 
     def write_outputs(self, primary_df, distributions_df=None):
@@ -329,17 +368,22 @@ class OgmAardvarkHarvester(BaseHarvester):
         output_dir = "outputs"
         os.makedirs(output_dir, exist_ok=True)
 
+        excluded_fields = (
+            {"dct_references_s"}
+            if self.preserve_source_metadata
+            else self.PRIMARY_OUTPUT_EXCLUDED_FIELDS
+        )
         primary_columns = [
             col
             for col in PRIMARY_FIELD_ORDER
             if col in primary_df.columns
-            and col not in self.PRIMARY_OUTPUT_EXCLUDED_FIELDS
+            and col not in excluded_fields
         ]
         primary_columns.extend(
             col
             for col in primary_df.columns
             if col not in PRIMARY_FIELD_ORDER
-            and col not in self.PRIMARY_OUTPUT_EXCLUDED_FIELDS
+            and col not in excluded_fields
             and col not in self.distribution_variables
             and col not in primary_columns
         )
@@ -586,6 +630,17 @@ def apply_repo_defaults(df, defaults):
         existing = df[column].fillna("").astype(str).str.strip()
         df[column] = df[column].where(existing != "", value)
 
+    return df
+
+
+def add_value_without_overwriting(df, column, value):
+    """Add a local value only where the source did not supply one."""
+    if column not in df.columns:
+        df[column] = value
+        return df
+
+    existing = df[column].fillna("").astype(str).str.strip()
+    df[column] = df[column].where(existing != "", value)
     return df
 
 
@@ -854,17 +909,22 @@ def write_commit_delta_outputs(primary_df, distributions_df, harvester):
         f"{today}_{output_basename(harvester.config, 'deletions', harvester.source_mode, True)}",
     )
 
+    excluded_fields = (
+        {"dct_references_s"}
+        if harvester.preserve_source_metadata
+        else harvester.PRIMARY_OUTPUT_EXCLUDED_FIELDS
+    )
     primary_columns = [
         col
         for col in PRIMARY_FIELD_ORDER
         if col in primary_df.columns
-        and col not in harvester.PRIMARY_OUTPUT_EXCLUDED_FIELDS
+        and col not in excluded_fields
     ]
     primary_columns.extend(
         col
         for col in primary_df.columns
         if col not in PRIMARY_FIELD_ORDER
-        and col not in harvester.PRIMARY_OUTPUT_EXCLUDED_FIELDS
+        and col not in excluded_fields
         and col not in harvester.distribution_variables
         and col not in primary_columns
     )
