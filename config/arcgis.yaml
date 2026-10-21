@@ -5,7 +5,9 @@ hub_metadata_csv: reference_data/websites.csv
 output_primary_csv: outputs/arcgis_primary.csv
 output_distributions_csv: outputs/arcgis_distributions.csv
 output_report_csv: reports/arcgis/arcgis_report.csv
+# All Hubs: use explicit catalog parent titles; keep original record eligibility.
+parent_sublayer_context: true
 source_policies:
   05a-01:
-    # Experimental: explicit parents, contextual layer titles, existing CSV schemas.
-    parent_sublayer_context: true
+    # Existing MnGeo download/service link preservation, independent of titling.
+    preserve_distribution_links: true

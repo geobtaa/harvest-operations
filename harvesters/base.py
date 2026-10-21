@@ -26,6 +26,7 @@ class BaseHarvester:
         self.config = config
         self.distribution_types = None
         self.theme_map = {} # Initialize theme_map
+        self.extra_primary_columns = []
 
     def load_reference_data(self):
         """
@@ -150,7 +151,7 @@ class BaseHarvester:
 
         # Reorder columns to match schema field order
         primary_df = primary_df.reindex(
-            columns=[col for col in PRIMARY_FIELD_ORDER if col in primary_df.columns]
+            columns=[col for col in PRIMARY_FIELD_ORDER + self.extra_primary_columns if col in primary_df.columns]
         )
         primary_df.to_csv(primary_filename, index=False, encoding="utf-8")
         results["primary_csv"] = primary_filename

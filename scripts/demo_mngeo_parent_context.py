@@ -12,8 +12,6 @@ import yaml
 from harvesters.arcgis import ArcGISHarvester, arcgis_harvest_identifier_and_id
 from utils.distribution_writer import generate_secondary_table
 from utils.field_order import PRIMARY_FIELD_ORDER
-from utils.arcgis_parent_context import prepare_parent_context
-from harvesters.arcgis import arcgis_filter_rows
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = {
@@ -31,6 +29,7 @@ def transform(catalog, code, enabled=True, write_directory=None):
     config["build_uploads"] = False
     if not enabled:
         config.pop("source_policies", None)
+        config["parent_sublayer_context"] = False
     harvester = ArcGISHarvester(config)
     harvester.load_reference_data()
     defaults = pd.read_csv(config["hub_metadata_csv"], dtype=str, keep_default_na=False)
@@ -45,7 +44,7 @@ def transform(catalog, code, enabled=True, write_directory=None):
     df["Date Accessioned"] = "2026-10-08"
     df = harvester.clean(df)
     df = harvester.validate(df)
-    primary = df.reindex(columns=[c for c in PRIMARY_FIELD_ORDER if c in df.columns])
+    primary = df.reindex(columns=[c for c in PRIMARY_FIELD_ORDER + harvester.extra_primary_columns if c in df.columns])
     distributions = generate_secondary_table(df, harvester.distribution_types)
     if write_directory is not None:
         write_directory.mkdir(parents=True, exist_ok=True)
@@ -82,7 +81,7 @@ def generate(destination):
         pd.testing.assert_frame_equal(canonical(after), canonical(repeat))
         pd.testing.assert_frame_equal(canonical(ad), canonical(repeat_d))
         assert after["ID"].is_unique and after["Identifier"].is_unique
-        assert set(before.ID) <= set(after.ID)
+        assert set(before.ID) == set(after.ID)
         assert set(ad.friendlier_id) <= set(after.ID)
         shared = before.set_index("ID").index
         for column in ("Description", "Bounding Box", "Identifier"):
@@ -102,11 +101,6 @@ def generate(destination):
         if name == "mngeo":
             by_id = after.set_index("ID")
             old = before.set_index("ID")
-            prepared = prepare_parent_context(catalog["dataset"], arcgis_filter_rows)
-            for resource in prepared:
-                if resource.get("_include_parent"):
-                    _, parent_id = arcgis_harvest_identifier_and_id(resource["identifier"])
-                    assert (after.ID == parent_id).sum() == 1
             parcel_titles = after.loc[after.Title.str.contains("Metropolitan 7-County Parcel"), "Title"]
             assert parcel_titles.is_unique
             for year in (2021, 2022, 2023, 2024, 2025):

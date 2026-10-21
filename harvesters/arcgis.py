@@ -37,6 +37,7 @@ class ArcGISHarvester(BaseHarvester):
             "registry/arcgis_distributions_registry.csv",
         )
         super().__init__(config)
+        self.extra_primary_columns = ["sublayer"]
         self.workflow_input_path = required_config_path(self.config, "input_csv")
         self.hub_metadata_path = required_config_path(self.config, "hub_metadata_csv")
         self.report_output_path = required_config_path(self.config, "output_report_csv")
@@ -126,10 +127,15 @@ class ArcGISHarvester(BaseHarvester):
 
             # Extract the list of datasets from within the fetched catalog
             resources = source_record.get("fetched_catalog", {}).get("dataset", [])
+            # Read catalog parents before filtering, for every Hub. This does not
+            # make a parent or child eligible; arcgis_filter_rows stays unchanged.
+            if self.config.get("parent_sublayer_context", True):
+                resources = prepare_parent_context(resources)
             code = first_non_empty(harvest_record.get("Code", ""), hub_defaults.get("Code", ""))
             policy = self.config.get("source_policies", {}).get(code, {})
-            if policy.get("parent_sublayer_context", False):
-                resources = prepare_parent_context(resources, arcgis_filter_rows)
+            # Keep the existing MnGeo link mapping separate from global titling.
+            if policy.get("preserve_distribution_links", False):
+                resources = [dict(resource, _preserve_links=True) for resource in resources]
             
 
             # Creates a new, combined record for each individual dataset
@@ -201,8 +207,13 @@ class ArcGISHarvester(BaseHarvester):
 
 
     def clean(self, df):
-        # Run shared cleanup logic without adding ArcGIS-specific post-processing yet.
+        # Shared cleanup keeps schema columns only; preserve this ArcGIS audit flag
+        # by ID so row deduplication/reordering cannot misalign it.
+        sublayer_by_id = df.assign(
+            sublayer=df.get("sublayer", False)
+        ).drop_duplicates("ID").set_index("ID")["sublayer"]
         df = super().clean(df)
+        df["sublayer"] = df["ID"].map(sublayer_by_id).eq(True)
         return df
 
     def validate(self, df):
@@ -213,6 +224,7 @@ class ArcGISHarvester(BaseHarvester):
     def write_outputs(self, primary_df, distributions_df=None):
         # Generate the secondary distributions table and delegate final file writing to the base harvester.
         primary_df = drop_arcgis_output_columns(primary_df)
+        primary_df["sublayer"] = primary_df.get("sublayer", pd.Series(False, index=primary_df.index)).eq(True)
         distributions_df = generate_secondary_table(primary_df.copy(), self.distribution_types)
         results = super().write_outputs(primary_df, distributions_df)
         report_path = write_arcgis_harvest_report(
@@ -788,7 +800,7 @@ def arcgis_filter_rows(df):
             and any(pattern in str(dist.get("accessURL", "")) for pattern in access_patterns)
             for dist in dists
         )
-        return has_valid_title or has_valid_url or resource.get("_include_parent", False)
+        return has_valid_title or has_valid_url
 
     return df[df.apply(is_valid, axis=1)].reset_index(drop=True)
 
@@ -877,6 +889,7 @@ def arcgis_map_resource_fields(resources: pd.Series) -> pd.DataFrame:
     return pd.DataFrame(
         {
             "Alternative Title": resources.apply(lambda data: str(data.get("_context_title", data.get("title", ""))).strip()),
+            "sublayer": resources.apply(lambda data: bool(data.get("_inherited_parent_suffix", False))),
             "Description": resources.apply(lambda data: data.get("description", "")),
             "Creator": resources.apply(get_creator),
             "Keyword": resources.apply(

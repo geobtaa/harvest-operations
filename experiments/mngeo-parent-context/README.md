@@ -1,5 +1,16 @@
 # MnGeo parent and sublayer harvesting proof of concept
 
+> **Policy update, October 20, 2026:** the code now uses explicit parents for
+> title context only. It no longer admits previously filtered-out parent records.
+> Every record must pass the original Shapefile/ImageServer filter, including
+> parents. Existing eligible parents remain eligible. Title context now applies
+> to all Hubs by default; MnGeo's existing link handling remains source-specific.
+> The earlier CSVs and counts below are preserved historical
+> results of the former parent-admission experiment, not current expected output.
+> The current focused regression suite passes 23 tests and verifies identical
+> baseline/updated ID sets. See the
+> [October 20 cross-hub audit](../arcgis-parent-audit-2026-10-20/README.md).
+
 This experiment runs locally on `mngeo-harvest-tests` using the saved feeds. Nothing was
 uploaded, deployed, merged, or written into the normal outputs directory.
 
@@ -66,10 +77,11 @@ numbers. It never invents a parent, merges layers, or infers geometry from a nam
 Conflicting feed entries sharing an identifier stop processing with an error;
 identical entries are emitted once.
 
-The policy is enabled only for `05a-01` through
-`source_policies.05a-01.parent_sublayer_context` in `config/arcgis.yaml`.
-Removing or disabling that setting restores the previous behavior. Other sources
-retain the previous eligibility and distribution mapping.
+The current title policy is enabled for every Hub through the top-level
+`parent_sublayer_context: true` in `config/arcgis.yaml` (also the default if absent).
+Setting it to false disables parent-title context. The separate
+`source_policies.05a-01.preserve_distribution_links` setting retains the existing
+MnGeo link mapping; it does not control title context for other Hubs.
 
 The CSV schemas and shared distribution writer are unchanged. Each record keeps
 its own service and download URLs. The existing writer already accepts lists;

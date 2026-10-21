@@ -1,5 +1,12 @@
 # Comparing parent context across two Hub feeds
 
+> **Historical comparison:** on October 20, the code was changed to stop adding
+> previously excluded parent records. These October 9 CSVs are retained unchanged
+> as a record of the earlier experiment; their `updated_title` and inclusion
+> columns for newly admitted parents no longer describe current behavior.
+> Parent titles still inform eligible sublayer titles. See the
+> [current audit and policy notes](../arcgis-parent-audit-2026-10-20/README.md).
+
 This review compares the saved feeds in `example-feeds` against the actual
 October 9 harvest in `outputs/2026-10-09_arcgis_primary.csv` and
 `outputs/2026-10-09_arcgis_distributions.csv`. It was produced on

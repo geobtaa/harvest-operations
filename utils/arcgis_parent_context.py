@@ -1,4 +1,4 @@
-"""Opt-in DCAT parent context; never infer a parent from a layer name."""
+"""DCAT catalog parent context; never infer a parent from a service name."""
 
 import copy
 import json
@@ -20,14 +20,15 @@ def service_urls(resource):
     })
 
 
-def prepare_parent_context(resources, filter_rows):
-    """Return copies with context and narrow parent eligibility markers.
+def prepare_parent_context(resources):
+    """Return copies with title context; never change dataset eligibility.
+
+    Parents are consulted before filtering, even when they are not eligible for
+    harvest. They supply context only; the original filter decides all rows.
 
     Conflicting repeated identifiers fail explicitly instead of choosing a record
     according to feed ordering. Identical entries are emitted once.
     """
-    import pandas as pd
-
     unique = {}
     groups = defaultdict(list)
     for original in resources:
@@ -58,12 +59,11 @@ def prepare_parent_context(resources, filter_rows):
             layer = item_layer(child)[1]
             if any(u.rstrip("/") == f"{root}/{layer}" for u in service_urls(child) for root in roots):
                 matched.append(child)
-        eligible = filter_rows(pd.DataFrame([{"resource": r} for r in matched])) if matched else []
-        parent["_include_parent"] = bool(roots) and len(eligible) > 0
         for child in matched:
             original_title = str(child.get("title", "")).strip()
             if not original_title or original_title.startswith("{{"):
                 continue
+            child["_inherited_parent_suffix"] = title.casefold() not in original_title.casefold()
             child["_context_title"] = (
                 original_title if title.casefold() in original_title.casefold()
                 else f"{original_title} - {title}"
@@ -77,8 +77,6 @@ def prepare_parent_context(resources, filter_rows):
             name = child.get("_context_title")
             if name and counts[name.casefold()] > 1:
                 child["_context_title"] = f"{name} - Layer {item_layer(child)[1]}"
-    for resource in unique.values():
-        resource["_preserve_links"] = True
     return list(unique.values())
 
 

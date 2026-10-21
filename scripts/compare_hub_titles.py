@@ -17,7 +17,6 @@ import yaml
 
 from harvesters.arcgis import ArcGISHarvester, arcgis_harvest_identifier_and_id
 from utils.arcgis_parent_context import item_layer, prepare_parent_context, service_urls
-from harvesters.arcgis import arcgis_filter_rows
 from utils.distribution_writer import generate_secondary_table
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,7 +32,7 @@ def service_container(resource):
 
 def updated_tables(catalog, code):
     config = yaml.safe_load((ROOT / "config/arcgis.yaml").read_text())
-    config["source_policies"] = {code: {"parent_sublayer_context": True}}
+    config["parent_sublayer_context"] = True
     config["build_uploads"] = False
     config["hub_metadata_csv"] = str(ROOT / config["hub_metadata_csv"])
     h = ArcGISHarvester(config)
@@ -85,7 +84,7 @@ def analyze(output, harvest_date="2026-10-09"):
             proposed_links[row["friendlier_id"]].add(row["distribution_url"])
         groups = collections.defaultdict(list)
         containers = collections.defaultdict(set)
-        prepared = prepare_parent_context(catalog["dataset"], arcgis_filter_rows)
+        prepared = prepare_parent_context(catalog["dataset"])
         for r in catalog["dataset"]:
             item, _ = item_layer(r)
             groups[item].append(r)
@@ -162,7 +161,9 @@ def analyze(output, harvest_date="2026-10-09"):
         summary = {"source": source, "saved_feed_records": len(catalog["dataset"]),
                    "current_harvest_records": len(current), "updated_saved_feed_records": len(proposed),
                    "explicit_parent_families": sum(any(item_layer(r)[1] is None for r in rs) and len(rs) > 1 for rs in groups.values()),
-                   "included_explicit_parents": sum(bool(r.get("_include_parent")) for r in prepared),
+                   "eligible_explicit_parents": sum(
+                       item_layer(r)[1] is None and item_layer(r)[0] in updated for r in prepared),
+                   "parent_records_added_by_policy": 0,
                    "comparison_rows": len(records), "comparison_families": len(selected_families),
                    "comparison_changes": dict(collections.Counter(r["change"] for r in records)),
                    "shared_service_containers": sum(len(v) > 1 for v in containers.values()),

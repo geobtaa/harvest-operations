@@ -8,6 +8,16 @@ At the center of the repository is a small FastAPI application that serves brows
 
 For the experimental Minnesota Geospatial Commons parent/sublayer harvesting
 work, see the [experiment walkthrough and CSV review guide](experiments/mngeo-parent-context/README.md).
+As of October 20, 2026, the policy uses parent titles for context without changing
+the original record eligibility filter; it does not add previously excluded parents.
+Catalog parent-title context is now enabled for all ArcGIS Hubs by default through
+`parent_sublayer_context: true` in `config/arcgis.yaml`. A matching item ID and
+parent/layer service URLs are required; server-container names are not used.
+The ArcGIS primary CSV appends one boolean audit column, `sublayer`: `True` only
+when a child title received its catalog parent's title suffix, otherwise `False`.
+This is not a general parent/child classification. All existing primary columns
+retain their names and order; the shared metadata schema and distributions schema
+are unchanged. Other harvesters do not receive the additional column.
 It explains the source-specific policy, before/after results, filenames, tests,
 and remaining review questions. The isolated outputs are demonstration artifacts.
 
