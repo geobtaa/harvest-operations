@@ -170,7 +170,6 @@ def test_socrata_curation_page_exposes_browser_workflow() -> None:
     assert "/jobs/socrata-curation-pipeline/status" in html
     assert "/jobs/socrata-curation-pipeline/run-stream" in html
     assert "ordered SODA2 GeoJSON pages" in html
-    assert "city abbreviation and download year once" in html
     assert "Create from template" in html
     assert "Confirm manual review" in html
     assert 'id="yaml-editor"' in html
@@ -185,9 +184,19 @@ def test_socrata_curation_page_exposes_browser_workflow() -> None:
         "thumbnails",
         "derivatives",
         "zip",
-        "postprocess",
         "snapshot",
     ):
         assert f"runStage('{stage}')" in html
+    assert "runStage('postprocess')" not in html
+    assert "Socrata Curation Pipeline" in html
+    assert 'id="config-panel"' in html
+    assert 'id="pipeline-readiness"' in html
+    assert 'class="workflow"' in html
+    assert html.count('class="step-number"') == 9
+    assert html.count('class="run-button"') == 9
+    assert 'id="activity-log"' in html
+    assert "Refresh jobs" not in html
+    assert "Refresh status" not in html
+    assert "Overwrite existing" not in html
     assert "/static/socrata-curation-pipeline.html" in dashboard_html
     assert "Socrata Curation Pipeline" in dashboard_html

@@ -1,0 +1,227 @@
+# Approximate search extents for public PGC records that lack usable source
+# coordinates. These are discovery aids, not verified map-sheet boundaries.
+# The harvester applies them only while a record's Bounding Box is blank.
+
+records:
+  ANT-REF-ES2004-003:
+    bounding_box: "158.398,-78.445,164.732,-76.441"
+    note: "Approximate search extent copied from the similarly titled McMurdo Dry Valleys map ANT-REF-ES2004-001; this is not a verified sheet boundary."
+  ANT-REF-MA2510-003:
+    bounding_box: "-180,-90,180,-82"
+    note: "Approximate search extent copied from the South Pole map ANT-PLN-OT2609-003; this is not a verified sheet boundary."
+  ANT-REF-GT0303-009:
+    bounding_box: "-180,-90,180,-60"
+    note: "Approximate search extent inferred from the Antarctica Spatial Coverage because the title describes Gondwanaland; this is not a verified sheet boundary."
+  ANT-SUM-ML2602-002:
+    bounding_box: "-180,-90,180,-60"
+    note: "Approximate search extent inferred from the Pan-Antarctic Spatial Coverage and related Operation Deep Freeze maps; this is not a verified sheet boundary."
+  ANT-SUM-ML2602-003:
+    bounding_box: "-180,-90,180,-60"
+    note: "Approximate search extent inferred from the Pan-Antarctic Spatial Coverage and related expedition maps; this is not a verified sheet boundary."
+  ANT-SUM-ML2602-005:
+    bounding_box: "-180,-90,180,-60"
+    note: "Approximate search extent inferred from the Pan-Antarctic Spatial Coverage and related exploration maps; this is not a verified sheet boundary."
+  ANT-REF-CT2201-001:
+    bounding_box: "-180,-90,180,-60"
+    note: "Approximate search extent inferred from the Pan-Antarctic Spatial Coverage and the continent-wide ice-sheet title; this is not a verified sheet boundary."
+  ANT-REF-HT2014-001:
+    bounding_box: "161.722,-77.966,163.011,-77.582"
+    note: "Approximate search extent copied from the similarly titled Lake Bonney map ANT-REF-MT1602-026; this is not a verified sheet boundary."
+  ANT-SUM-MA2510-007:
+    bounding_box: "80,-86,95,-85"
+    note: "Approximate search extent copied from the similarly titled Thiel Mountains map ANT-REF-MT2503-087; this is not a verified sheet boundary."
+  ANT-IND-MT2511-001:
+    bounding_box: "-180,-90,180,-70"
+    note: "Approximate search extent copied from the related Antarctica topographic-map index ANT-IND-MT2511-002; this is not a verified sheet boundary."
+  ANT-REF-MP2015-002:
+    bounding_box: "-180,-90,180,-60"
+    note: "Approximate search extent inferred from the Antarctica Spatial Coverage and continent-wide poster title; this is not a verified sheet boundary."
+  ANT-REF-MT1601-001-699:
+    bounding_box: "166.665,-77.616,168.015,-77.220"
+    note: "Approximate search extent copied from the similarly titled Mount Erebus map ANT-REF-MT1602-035; this is not a verified sheet boundary."
+  ANT-REF-IT1601-003:
+    bounding_box: "166.664,-77.851,166.768,-77.844"
+    note: "Approximate search extent copied from the Scott Base map ANT-REF-MA2510-006; this is not a verified sheet boundary."
+  ANT-REF-MK1601-002-701:
+    bounding_box: "155.386,-79.379,173.462,-75.634"
+    note: "Approximate search extent copied from the similarly titled McMurdo Sound Region map ANT-REF-MS2509-015; this is not a verified sheet boundary."
+  ANT-REF-MT1601-001-702:
+    bounding_box: "156,-80,162,-79"
+    note: "Approximate search extent copied from the similarly titled Darwin Glacier map ANT-REF-MP1603-003; this is not a verified sheet boundary."
+  ANT-REF-MK1601-007:
+    bounding_box: "147.641,-78.966,176.022,-69.599"
+    note: "Approximate search extent copied from the related Victoria Land map ANT-REF-MS2006-006 based on the title's Mawson and Aviator Glaciers; this is not a verified sheet boundary."
+  ANT-REF-MK1601-008:
+    bounding_box: "159,-78.750,170,-76.500"
+    note: "Approximate search extent copied from Ross Island and Vicinity map ANT-REF-MT2503-075 based on the Minna Bluff title; this is not a verified sheet boundary."
+  ANT-REF-MK1601-006:
+    bounding_box: "156,-80,162,-79"
+    note: "Approximate search extent copied from the similarly titled Darwin Glacier map ANT-REF-MP1603-003; this is not a verified sheet boundary."
+  ANT-REF-MK1601-010:
+    bounding_box: "158.216,-78.730,162.950,-77.958"
+    note: "Approximate search extent copied from the similarly titled Skelton Neve map ANT-REF-MS2509-028; this is not a verified sheet boundary."
+  ANT-REF-MK1601-005:
+    bounding_box: "-180.000,-90.000,180.000,-75.298"
+    note: "Approximate search extent copied from the similarly titled Central Transantarctic Mountains map ANT-REF-MS2006-001; this is not a verified sheet boundary."
+  ANT-REF-MK1601-013:
+    bounding_box: "140.895,-79.704,178.728,-67.592"
+    note: "Approximate search extent copied from the Victoria Land Coast map ANT-REF-MS2509-049 based on the David Glacier title; this is not a verified sheet boundary."
+  ANT-REF-MK1601-003:
+    bounding_box: "-180.000,-90.000,180.000,-75.298"
+    note: "Approximate search extent copied from the Central Transantarctic Mountains map ANT-REF-MS2006-001 based on the Beardmore Glacier title; this is not a verified sheet boundary."
+  ANT-REF-MK1601-012:
+    bounding_box: "157,-79,165,-76"
+    note: "Approximate search extent copied from the related southern Victoria Land map ANT-REF-MT1606-004; this is not a verified sheet boundary."
+  ANT-REF-MK1601-011:
+    bounding_box: "157,-79,165,-76"
+    note: "Approximate search extent copied from the related southern Victoria Land map ANT-REF-MT1606-004; this is not a verified sheet boundary."
+  ANT-REF-MK1601-009:
+    bounding_box: "157.500,-76.000,162.000,-75.000"
+    note: "Approximate search extent copied from the similarly titled Mount Joyce map ANT-REF-MT2503-050; this is not a verified sheet boundary."
+  ANT-REF-MK1601-004:
+    bounding_box: "166.573,-77.295,167.887,-76.898"
+    note: "Approximate search extent copied from the similarly titled Beaufort Island map ANT-REF-MT1602-003; this is not a verified sheet boundary."
+  ANT-REF-MK1601-002-714:
+    bounding_box: "-180.000,-90.000,180.000,-75.298"
+    note: "Approximate search extent copied from the Central Transantarctic Mountains map ANT-REF-MS2006-001 based on the Beardmore-Axel Heiberg title; this is not a verified sheet boundary."
+  ANT-REF-MK1601-001:
+    bounding_box: "-180.000,-90.000,180.000,-75.298"
+    note: "Approximate search extent copied from the Central Transantarctic Mountains map ANT-REF-MS2006-001 based on the Beardmore-Axel Heiberg title; this is not a verified sheet boundary."
+  ANT-REF-OL5302-001:
+    bounding_box: "-25,-78,15,-70"
+    note: "Approximate search extent inferred from the Wasa Research Station and Queen Maud Land Spatial Coverage; this is not a verified sheet boundary."
+  ANT-REF-OL5302-002:
+    bounding_box: "-25,-78,15,-70"
+    note: "Approximate search extent inferred from the Nordenskiold Base title and Queen Maud Land Spatial Coverage; this is not a verified sheet boundary."
+  ANT-REF-CP4401-003:
+    bounding_box: "-160,-85,130,-74"
+    note: "Approximate search extent copied from Ross Ice Shelf map ANT-SUM-OP6101-003 based on the Siple Coast Spatial Coverage; this is not a verified sheet boundary."
+  ANT-SUM-MK6101-001:
+    bounding_box: "-180,-85,-140,-74"
+    note: "Approximate search extent inferred from the Bay of Whales title and Ross Ice Shelf Spatial Coverage; this is not a verified sheet boundary."
+  ANT-REF-HT2512-003:
+    bounding_box: "-180,-90,180,-70"
+    note: "Approximate search extent copied from the similarly titled Subglacial and Ocean Bottom Features map ANT-REF-HT2512-002; this is not a verified sheet boundary."
+  ANT-SUM-MT2601-026:
+    bounding_box: "84,-81,162,-56"
+    note: "Approximate search extent copied from the George Coast chart ANT-NAV-MT0507-027 based on the George V Coast Spatial Coverage; this is not a verified sheet boundary."
+  ANT-SUM-MK6101-002:
+    bounding_box: "-180,-85,-140,-74"
+    note: "Approximate search extent inferred from the Bay of Whales title and Ross Ice Shelf Spatial Coverage; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-003:
+    bounding_box: "87,-81,150,-49"
+    note: "Approximate search extent inferred from the GNC 21 title and Wilkes Land Spatial Coverage using nearby navigation-chart extents; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-004:
+    bounding_box: "87,-81,150,-49"
+    note: "Approximate search extent inferred from the GNC 21N title and Wilkes Land Spatial Coverage using nearby navigation-chart extents; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-005:
+    bounding_box: "87,-81,150,-49"
+    note: "Approximate search extent inferred from the GNC 21N title and Wilkes Land Spatial Coverage using nearby navigation-chart extents; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-006:
+    bounding_box: "87,-81,150,-49"
+    note: "Approximate search extent inferred from the GNC 21N title and Wilkes Land Spatial Coverage using nearby navigation-chart extents; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-007:
+    bounding_box: "3,-81,150,-49"
+    note: "Approximate search extent inferred from the GNC 22 title and Queen Maud Land-Wilkes Land Spatial Coverage using nearby navigation-chart extents; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-008:
+    bounding_box: "3,-81,150,-49"
+    note: "Approximate search extent inferred from the GNC 22N title and Queen Maud Land-Wilkes Land Spatial Coverage using nearby navigation-chart extents; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-009:
+    bounding_box: "3,-81,150,-49"
+    note: "Approximate search extent inferred from the GNC 22N title and Queen Maud Land-Wilkes Land Spatial Coverage using nearby navigation-chart extents; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-010:
+    bounding_box: "3,-81,150,-49"
+    note: "Approximate search extent inferred from the GNC 22N title and Queen Maud Land-Wilkes Land Spatial Coverage using nearby navigation-chart extents; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-011:
+    bounding_box: "-81,-81,-22,-49"
+    note: "Approximate search extent inferred from the GNC 23 title and Antarctic Peninsula-Weddell Sea Spatial Coverage using nearby navigation-chart extents; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-012:
+    bounding_box: "-81,-81,-22,-49"
+    note: "Approximate search extent inferred from the GNC 23N title and Antarctic Peninsula-Weddell Sea Spatial Coverage using nearby navigation-chart extents; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-013:
+    bounding_box: "-81,-81,-22,-49"
+    note: "Approximate search extent inferred from the GNC 23N title and Antarctic Peninsula-Weddell Sea Spatial Coverage using nearby navigation-chart extents; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-014:
+    bounding_box: "-84,-76,-42,-60"
+    note: "Approximate search extent copied from the Palmer Peninsula map ANT-NAV-MT2601-019 based on the GNC 24 title and Antarctic Peninsula Spatial Coverage; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-015:
+    bounding_box: "-84,-76,-42,-60"
+    note: "Approximate search extent copied from the Palmer Peninsula map ANT-NAV-MT2601-019 based on the GNC 24N title and Antarctic Peninsula Spatial Coverage; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-016:
+    bounding_box: "-84,-76,-42,-60"
+    note: "Approximate search extent copied from the Palmer Peninsula map ANT-NAV-MT2601-019 based on the GNC 24N title and Antarctic Peninsula Spatial Coverage; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-017:
+    bounding_box: "150,-90,-130,-65"
+    note: "Approximate search extent inferred from the GNC 25 title and Ross Sea Spatial Coverage using nearby navigation-chart extents; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-018:
+    bounding_box: "150,-90,-130,-65"
+    note: "Approximate search extent inferred from the GNC 25N title and Ross Sea Spatial Coverage using nearby navigation-chart extents; this is not a verified sheet boundary."
+  ANT-NAV-MT0508-019:
+    bounding_box: "150,-90,-130,-65"
+    note: "Approximate search extent inferred from the GNC 25N title and Ross Sea Spatial Coverage using nearby navigation-chart extents; this is not a verified sheet boundary."
+  ANT-NAV-MT0507-005:
+    bounding_box: "-111,-73,-53,-49"
+    note: "Approximate search extent inferred from the JNC-104N title, adjacent JNC chart numbering, and Chile-South America Spatial Coverage; this is not a verified sheet boundary."
+  ANT-REF-GP0304-007:
+    bounding_box: "-180,-90,180,-60"
+    note: "Approximate search extent inferred from the Pan-Antarctic Spatial Coverage and continent-wide north-south profile title; this is not a verified sheet boundary."
+  ANT-REF-GP0304-008:
+    bounding_box: "-180,-90,180,-60"
+    note: "Approximate search extent inferred from the Pan-Antarctic Spatial Coverage and continent-wide east-west profile title; this is not a verified sheet boundary."
+  ANT-REF-AP0302-008:
+    bounding_box: "-180,-90,180,-60"
+    note: "Approximate search extent inferred from the Pan-Antarctic Spatial Coverage and profile-studies title; this is not a verified sheet boundary."
+  ANT-REF-MS2007-005:
+    bounding_box: "-58.133,-63.983,-57.767,-63.783"
+    note: "Approximate search extent copied from the similarly titled James Ross Island map ANT-REF-MT7301-001; this is not a verified sheet boundary."
+  ANT-REF-MS2007-006:
+    bounding_box: "-61.960,-63.304,-58.802,-61.871"
+    note: "Approximate search extent copied from the similarly titled Livingston Island map ANT-REF-ML0201-001; this is not a verified sheet boundary."
+  ANT-REF-MS2007-007:
+    bounding_box: "-59,-63,-57,-61"
+    note: "Approximate search extent inferred from similarly titled King George Island maps, including ANT-REF-MT3301-001; this is not a verified sheet boundary."
+  CAN-SUM-CT0901-003:
+    bounding_box: "-91,79,-90,80"
+    note: "Approximate search extent inferred from the Crusoe Glacier title and the Axel Heiberg Island Spatial Coverage using nearby White Glacier maps; this is not a verified sheet boundary."
+  CAN-REF-CT5101-001:
+    bounding_box: "-118,51,-116,53"
+    note: "Approximate search extent inferred from the Saskatchewan Glacier title and Alberta Spatial Coverage; this is not a verified sheet boundary."
+  CAN-SUM-CT5101-002:
+    bounding_box: "-118,51,-116,53"
+    note: "Approximate search extent inferred from the Saskatchewan Glacier title and Alberta Spatial Coverage; this is not a verified sheet boundary."
+  CAN-REF-CT5101-004:
+    bounding_box: "-76.586,81.509,-76.468,81.530"
+    note: "Approximate search extent copied from the similarly titled Per Ardua Glacier map CAN-REF-CT5101-003; this is not a verified sheet boundary."
+  ARC-REF-HT0307-001:
+    bounding_box: "-180,70,180,90"
+    note: "Approximate search extent copied from the similarly titled Arctic Basin chart ARC-NAV-OP0307-006; this is not a verified sheet boundary."
+  ARC-IND-MP0510-007:
+    bounding_box: "-180,-90,180,90"
+    note: "Approximate search extent inferred from the World Aeronautical Chart Index title and World Spatial Coverage; this is not a verified sheet boundary."
+  USA-IND-OT5502-002:
+    bounding_box: "-154,57,-144,65"
+    note: "Approximate search extent copied from the identically titled Fairbanks-to-Kodiak map USA-NAV-OT5502-001; this is not a verified sheet boundary."
+  USA-REF-CT0308-001:
+    bounding_box: "-124,47,-122,48"
+    note: "Approximate search extent inferred from the Blue Glacier-Mount Olympus title and Washington Spatial Coverage; this is not a verified sheet boundary."
+  CAN-PLN-IT0903-003:
+    bounding_box: "-117,60,-108,63"
+    note: "Approximate search extent inferred from the Great Slave Lake title and Northwest Territories Spatial Coverage, using related map CAN-REF-MT0903-004; this is not a verified sheet boundary."
+  GRL-NAV-OP2613-001:
+    bounding_box: "-27,70,-17,76"
+    note: "Approximate search extent inferred from the Scoresby Sound-Clavering Island Spatial Coverage using related maps GRL-REF-MT0505-035 and GRL-REF-MT0504-002; this is not a verified sheet boundary."
+  USA-IND-MA0803-001:
+    bounding_box: "172,51,-130,72"
+    note: "Approximate search extent inferred from the Alaska Spatial Coverage and Alaska aerial-photography index title; this is not a verified sheet boundary."
+  USA-IND-MA0803-002:
+    bounding_box: "172,51,-130,72"
+    note: "Approximate search extent inferred from the Alaska Spatial Coverage and Alaska aerial-photography index title; this is not a verified sheet boundary."
+  GRL-NAV-MP2613-004:
+    bounding_box: "-29,72,-16,78"
+    note: "Approximate search extent inferred from the Bessel Fjord title and Northeast Greenland Park Spatial Coverage using nearby nautical maps; this is not a verified sheet boundary."
+  ARC-REF-OP2611-003:
+    bounding_box: "140,20,-120,70"
+    note: "Approximate search extent inferred from the North Pacific Ocean title using related map ARC-REF-MP0903-001; this is not a verified sheet boundary."
+  USA-REF-MT0804-003:
+    bounding_box: "172,51,-130,72"
+    note: "Approximate search extent inferred from the Alaska Spatial Coverage and the Arctic terrain-exercise title; this is not a verified sheet boundary."

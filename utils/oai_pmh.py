@@ -31,9 +31,8 @@ def raise_for_oai_status(response: Any) -> None:
     server = normalize_space(headers.get("server", "")).lower()
     mitigation = normalize_space(headers.get("cf-mitigated", "")).lower()
     response_text = str(getattr(response, "text", "") or "")
-    cloudflare_challenge = (
-        mitigation == "challenge"
-        or (server == "cloudflare" and "challenge-platform" in response_text)
+    cloudflare_challenge = mitigation == "challenge" or (
+        server == "cloudflare" and "challenge-platform" in response_text
     )
     if status_code == 403 and cloudflare_challenge:
         raise OaiPmhAccessError(
@@ -111,7 +110,9 @@ def load_configured_sets(
 ) -> list[dict[str, str]]:
     """Load set definitions from inline YAML or the legacy sets CSV."""
     set_column = normalize_space(config.get("sets_csv_set_column", "set")) or "set"
-    title_column = normalize_space(config.get("sets_csv_title_column", "title")) or "title"
+    title_column = (
+        normalize_space(config.get("sets_csv_title_column", "title")) or "title"
+    )
     sets: list[dict[str, str]] = []
 
     if "sets" in config:
@@ -167,7 +168,9 @@ def oai_download_directory(config: dict[str, Any], repo_root: Path) -> Path:
     configured = normalize_space(config.get("oai_download_dir", ""))
     if configured:
         return resolve_repo_path(configured, repo_root)
-    return (repo_root / "inputs" / "oai-downloads" / slugify(config.get("name", "oai"))).resolve()
+    return (
+        repo_root / "inputs" / "oai-downloads" / slugify(config.get("name", "oai"))
+    ).resolve()
 
 
 def oai_status_path(config: dict[str, Any], repo_root: Path) -> Path:
@@ -208,7 +211,9 @@ def validate_oai_job_config(
     if not isinstance(config, dict):
         raise OaiPmhConfigError("Job YAML must contain a mapping.")
     if contains_placeholder(config) and not allow_placeholders:
-        raise OaiPmhConfigError("Replace every <placeholder> value before running the job.")
+        raise OaiPmhConfigError(
+            "Replace every <placeholder> value before running the job."
+        )
 
     name = normalize_space(config.get("name", ""))
     if not name:
@@ -239,6 +244,129 @@ def validate_oai_job_config(
             "underscores, and hyphens."
         )
 
+    rdf_companion = config.get("rdf_companion", {}) or {}
+    if not isinstance(rdf_companion, dict):
+        raise OaiPmhConfigError("rdf_companion must be a mapping.")
+    if rdf_companion:
+        companion_prefix = normalize_space(rdf_companion.get("metadata_prefix", ""))
+        if not METADATA_PREFIX_PATTERN.fullmatch(companion_prefix):
+            raise OaiPmhConfigError(
+                "rdf_companion.metadata_prefix is required and must be a valid "
+                "OAI metadata prefix."
+            )
+        for field_name in ("download_dir", "aggregation_uri", "manifest_base_url"):
+            if not normalize_space(rdf_companion.get(field_name, "")):
+                raise OaiPmhConfigError(f"rdf_companion.{field_name} is required.")
+        for field_name in ("aggregation_uri", "manifest_base_url"):
+            parsed_companion_url = urlparse(normalize_space(rdf_companion[field_name]))
+            if (
+                parsed_companion_url.scheme not in {"http", "https"}
+                or not parsed_companion_url.netloc
+            ):
+                raise OaiPmhConfigError(
+                    f"rdf_companion.{field_name} must be an HTTP(S) URL."
+                )
+
+    dspace_companion = config.get("dspace_bitstream_companion", {}) or {}
+    if not isinstance(dspace_companion, dict):
+        raise OaiPmhConfigError("dspace_bitstream_companion must be a mapping.")
+    if dspace_companion:
+        for field_name in (
+            "rest_base_url",
+            "collection_handle",
+            "inventory_json",
+        ):
+            if not normalize_space(dspace_companion.get(field_name, "")):
+                raise OaiPmhConfigError(
+                    f"dspace_bitstream_companion.{field_name} is required."
+                )
+        parsed_dspace_url = urlparse(
+            normalize_space(dspace_companion["rest_base_url"])
+        )
+        if (
+            parsed_dspace_url.scheme not in {"http", "https"}
+            or not parsed_dspace_url.netloc
+        ):
+            raise OaiPmhConfigError(
+                "dspace_bitstream_companion.rest_base_url must be an HTTP(S) URL."
+            )
+
+    reconciliation = config.get("metadata_reconciliation", {}) or {}
+    if not isinstance(reconciliation, dict):
+        raise OaiPmhConfigError("metadata_reconciliation must be a mapping.")
+    if reconciliation:
+        if normalize_space(reconciliation.get("identity", "")) != "handle":
+            raise OaiPmhConfigError(
+                "metadata_reconciliation.identity must be 'handle'."
+            )
+        for field_name in ("existing_primary_csv", "existing_distributions_csv"):
+            configured_path = normalize_space(reconciliation.get(field_name, ""))
+            if not configured_path:
+                raise OaiPmhConfigError(
+                    f"metadata_reconciliation.{field_name} is required."
+                )
+            if not (allow_placeholders and contains_placeholder(configured_path)):
+                resolved_path = resolve_repo_path(
+                    configured_path,
+                    repo_root,
+                    config_path,
+                )
+                if not resolved_path.is_file():
+                    raise OaiPmhConfigError(
+                        f"metadata_reconciliation.{field_name} was not found: "
+                        f"{resolved_path}"
+                    )
+        decisions_csv = normalize_space(reconciliation.get("decisions_csv", ""))
+        if decisions_csv and not (
+            allow_placeholders and contains_placeholder(decisions_csv)
+        ):
+            resolved_decisions = resolve_repo_path(
+                decisions_csv,
+                repo_root,
+                config_path,
+            )
+            if not resolved_decisions.is_file():
+                raise OaiPmhConfigError(
+                    "metadata_reconciliation.decisions_csv was not found: "
+                    f"{resolved_decisions}"
+                )
+        preserve_ids = reconciliation.get("preserve_existing_ids", [])
+        if not isinstance(preserve_ids, list) or not all(
+            isinstance(record_id, str) and normalize_space(record_id)
+            for record_id in preserve_ids
+        ):
+            raise OaiPmhConfigError(
+                "metadata_reconciliation.preserve_existing_ids must be a list "
+                "of nonblank IDs."
+            )
+        exclude_fields = reconciliation.get("exclude_fields", [])
+        if not isinstance(exclude_fields, list) or not all(
+            isinstance(field, str) and normalize_space(field)
+            for field in exclude_fields
+        ):
+            raise OaiPmhConfigError(
+                "metadata_reconciliation.exclude_fields must be a list of field names."
+            )
+        if not isinstance(
+            reconciliation.get("ignore_unknown_fields", False),
+            bool,
+        ):
+            raise OaiPmhConfigError(
+                "metadata_reconciliation.ignore_unknown_fields must be true or false."
+            )
+        new_id_registry = normalize_space(reconciliation.get("new_id_registry", ""))
+        new_id_prefix = normalize_space(reconciliation.get("new_id_prefix", ""))
+        if bool(new_id_registry) != bool(new_id_prefix):
+            raise OaiPmhConfigError(
+                "metadata_reconciliation.new_id_registry and new_id_prefix must "
+                "be configured together."
+            )
+        if new_id_prefix and not re.fullmatch(r"[A-Za-z0-9_]+", new_id_prefix):
+            raise OaiPmhConfigError(
+                "metadata_reconciliation.new_id_prefix may contain only letters, "
+                "numbers, and underscores."
+            )
+
     for field_name in ("provider", "source_name", "source_id_prefix"):
         if not normalize_space(config.get(field_name, "")):
             raise OaiPmhConfigError(f"{field_name} is required.")
@@ -255,13 +383,17 @@ def validate_oai_job_config(
         if date.fromisoformat(str(request_config["from"])) > date.fromisoformat(
             str(request_config["until"])
         ):
-            raise OaiPmhConfigError("oai_request.from cannot be after oai_request.until.")
+            raise OaiPmhConfigError(
+                "oai_request.from cannot be after oai_request.until."
+            )
     for key, minimum in (("timeout_seconds", 1), ("retries", 0)):
         if key not in request_config:
             continue
         value = request_config[key]
         if not isinstance(value, int) or isinstance(value, bool) or value < minimum:
-            raise OaiPmhConfigError(f"oai_request.{key} must be an integer >= {minimum}.")
+            raise OaiPmhConfigError(
+                f"oai_request.{key} must be an integer >= {minimum}."
+            )
     for key in ("delay_seconds", "backoff_seconds"):
         if key not in request_config:
             continue

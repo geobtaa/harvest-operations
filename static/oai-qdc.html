@@ -110,7 +110,7 @@
 
   <div class="intro">
     <p>Build and run one YAML job per university repository. Existing Iowa and Washington jobs are loaded automatically, and additional universities can be created from the shared template without adding Python code.</p>
-    <p>The pipeline supports standard <code>oai_dc</code> and qualified Dublin Core, follows resumption tokens, keeps atomic local XML snapshots, and records stage status separately for every source.</p>
+    <p>The pipeline supports standard <code>oai_dc</code>, qualified Dublin Core, and an optional companion RDF feed for filtering records or deriving fields such as IIIF manifests. It follows resumption tokens, keeps atomic local XML snapshots, and records stage status separately for every source.</p>
   </div>
 
   <section class="panel" aria-labelledby="source-heading">
@@ -153,7 +153,7 @@
   </section>
 
   <h2>Pipeline tasks</h2>
-  <p>Identify and Discover sets contact the source but do not harvest records. Download creates the reusable XML snapshot; Build outputs parses that snapshot into primary and distribution CSVs.</p>
+  <p>Identify and Discover sets contact the source but do not harvest records. Download creates the reusable XML snapshot or snapshots; Build outputs parses them into primary and distribution CSVs.</p>
   <div class="stage-grid">
     <section class="stage-card" data-stage-card="validate" data-status="pending">
       <h3>Validate YAML</h3>
@@ -164,7 +164,7 @@
 
     <section class="stage-card" data-stage-card="identify" data-status="pending">
       <h3>Identify source</h3>
-      <p>Verify the endpoint, protocol metadata, and configured metadata prefix.</p>
+      <p>Verify the endpoint, protocol metadata, and every configured metadata prefix.</p>
       <button type="button" data-stage-button onclick="runStage('identify')">Run Identify</button>
       <span class="stage-status" data-stage-status="identify">Not run</span>
     </section>
@@ -178,14 +178,14 @@
 
     <section class="stage-card" data-stage-card="download" data-status="pending">
       <h3>Download XML</h3>
-      <p>Fetch the selected scope and atomically replace each completed set snapshot.</p>
+      <p>Fetch the selected scope, including companion metadata when configured, and atomically replace each completed set snapshot.</p>
       <button type="button" data-stage-button onclick="runStage('download')">Download snapshot</button>
       <span class="stage-status" data-stage-status="download">Not run</span>
     </section>
 
     <section class="stage-card" data-stage-card="harvest" data-status="pending">
       <h3>Build outputs</h3>
-      <p>Parse local XML and write CSVs; one-set runs use safely scoped filenames.</p>
+      <p>Parse local XML, apply any companion RDF filtering and enrichment, and write CSVs.</p>
       <button type="button" data-stage-button onclick="runStage('harvest')">Build CSV outputs</button>
       <span class="stage-status" data-stage-status="harvest">Not run</span>
     </section>
@@ -441,18 +441,31 @@
         const currentStatus = data.configuration_current ? data.status : null;
         updateStageIndicators(currentStatus);
         const discoverResult = currentStatus?.stages?.discover?.result || {};
-        target.textContent = [
+        const downloadResult = currentStatus?.stages?.download?.result || {};
+        const statusLines = [
           `Config: ${data.job.config_path}`,
           `Endpoint: ${data.job.base_url}`,
           `Metadata prefix: ${data.job.metadata_prefix}`,
           `Configured sets: ${data.job.set_count}`,
           `Download directory: ${data.job.download_directory}`,
+        ];
+        if (data.job.companion_metadata_prefix) {
+          statusLines.push(
+            `Companion metadata prefix: ${data.job.companion_metadata_prefix}`,
+            `Companion download directory: ${data.job.companion_download_directory}`,
+            `Companion collection filter: ${data.job.companion_aggregation_uri}`,
+            `IIIF manifest base: ${data.job.companion_manifest_base_url}`,
+            `Downloaded pages: primary ${downloadResult.page_count ?? "Not downloaded"}; companion ${downloadResult.companion_page_count ?? "Not downloaded"}`,
+          );
+        }
+        statusLines.push(
           `Status file: ${data.status_path}`,
           `Configuration matches status: ${data.configuration_current ? "yes" : "no — rerun a stage"}`,
           `Completed stages: ${completedStageNames(currentStatus)}`,
           `Discovered sets CSV: ${discoverResult.sets_csv || "Not generated"}`,
           `Currently running: ${data.running ? "yes" : "no"}`,
-        ].join("\n");
+        );
+        target.textContent = statusLines.join("\n");
       } catch (error) {
         target.textContent = error.message;
       }

@@ -1,216 +1,264 @@
 # ArcGIS Harvester
 
-The ArcGIS harvester gathers dataset records from configured ArcGIS Hub DCAT
-endpoints, maps them into the project metadata schema, appends updated harvest
-record rows, and writes primary and distribution CSV outputs.
+The ArcGIS harvester scans the configured ArcGIS Hub DCAT feeds, keeps supported
+web-service datasets, normalizes them into the GeoBTAA schema, and prepares the
+files needed for review and upload.
 
-## Main Pipeline
+## Quick start
 
-The harvester follows the shared `BaseHarvester` pipeline. The ArcGIS-specific
-class methods are limited to the same template methods defined in
-`harvesters/base.py`.
+1. Start the local application and open the Harvest Task Dashboard.
+2. Run the dashboard source-CSV task. This creates
+   `inputs/harvest-workflow-inputs/py-arcgis-hub.csv` from the current harvest
+   records.
+3. Review that workflow CSV and confirm it contains every hub intended for the
+   run. An incomplete list can make valid registry records appear retired.
+4. Preserve or commit the current ArcGIS registry files before running:
+   - `registry/arcgis_primary_registry.csv`
+   - `registry/arcgis_distributions_registry.csv`
+5. Open the ArcGIS Harvester page and start a full run.
+6. Review the streamed messages, the report's error rows, and all new/retired
+   counts before uploading anything.
+7. Run the Harvest Task Dashboard reports task after the harvest report CSV is
+   present.
+8. Commit the dated ArcGIS report, updated registries, and regenerated dashboard
+   reports together.
 
-- `__init__`
-  - Enables `build_uploads` by default unless the config explicitly disables it.
-  - Enables `use_registry` by default unless the config explicitly disables it.
-  - Stores the workflow input CSV path.
-  - Stores the ArcGIS hub metadata defaults CSV path.
-  - Stores the ArcGIS primary and distribution registry CSV paths.
+The browser page is `/static/arcgis.html`. The workflow name used by the
+dashboard is `py_arcgis_hub`; its filename form is `py-arcgis-hub`.
 
-- `load_reference_data`
-  - Runs the base reference-data loading.
-  - Loads website metadata defaults into a lookup table.
-  - Uses `Code`, `Identifier`, and `ID` values to match harvest records to
-    website defaults.
+## Required inputs
 
-- `fetch`
-  - Reads each configured harvest record from the ArcGIS input CSV.
-  - Matches each harvest record to its website metadata defaults.
-  - Requests the row's `Endpoint URL` as DCAT JSON.
-  - Yields status messages for logging and structured harvested records for
-    downstream processing.
+| Input | Default path | Purpose |
+| --- | --- | --- |
+| Workflow input | `inputs/harvest-workflow-inputs/py-arcgis-hub.csv` | Lists the ArcGIS harvest records and DCAT endpoint URLs to fetch. |
+| Website defaults | `reference_data/websites.csv` | Supplies stable website metadata and fallback values matched by `Code`, `Identifier`, or `ID`. |
+| Primary registry | `registry/arcgis_primary_registry.csv` | Stores the previous active primary-record snapshot used to identify new and retired records. |
+| Distribution registry | `registry/arcgis_distributions_registry.csv` | Stores the previous active distribution snapshot used to identify added and deleted links. |
 
-- `flatten`
-  - Expands each fetched ArcGIS Hub catalog into one item per dataset.
-  - Preserves three pieces of context for each item:
-    - The source harvest-record row.
-    - The matched website metadata defaults.
-    - The individual dataset resource from the DCAT feed.
+The paths are configured in `config/arcgis.yaml`. Each workflow row's
+`Endpoint URL` must return DCAT JSON with a `dataset` list. The harvester stops
+before fetching if the same normalized endpoint URL is assigned to multiple
+harvest codes.
 
-- `build_dataframe`
-  - Converts flattened records to a dataframe.
-  - Uses a pipe-based sequence of ArcGIS transforms:
-    - Filters unsupported or placeholder dataset rows.
-    - Maps ArcGIS and workflow fields into the target schema.
-    - Extracts ArcGIS service URLs into distribution columns.
+## Outputs to verify
 
-- `derive_fields`
-  - Runs the shared base derived-field logic first.
-  - Uses a pipe-based sequence of ArcGIS transforms:
-    - Parses raw ArcGIS identifiers into `Identifier` and `ID`.
-    - Infers temporal coverage.
-    - Builds normalized date ranges.
-    - Computes bounding boxes from dataset spatial fields, with hub defaults as
-      fallback values.
-    - Cleans creator values.
-    - Reformats titles with place labels.
-    - Sets resource types from ArcGIS-specific keyword matches.
+A full run writes these dated files:
 
-- `add_defaults`
-  - Applies base defaults.
-  - Sets ArcGIS defaults for fields such as `Display Note`, `Language`, and
-    `Resource Class`.
+| Output | Path pattern | Purpose |
+| --- | --- | --- |
+| Primary | `outputs/YYYY-MM-DD_arcgis_primary.csv` | Harvested dataset rows plus harvest-record rows whose `Last Harvested` value was updated. |
+| Distributions | `outputs/YYYY-MM-DD_arcgis_distributions.csv` | Landing-page, download, and ArcGIS service links derived from the primary output. |
+| Harvest report | `reports/arcgis/YYYY-MM-DD_arcgis_report.csv` | One status/count row per hub and a final `TOTAL` row. This is the dashboard's source for ArcGIS run history. |
+| Primary upload | `outputs/to_upload/YYYY-MM-DD_arcgis_primary_upload.csv` | Updated harvest records, new dataset records, and records to unpublish. |
+| New distributions | `outputs/to_upload/YYYY-MM-DD_arcgis_distributions_new.csv` | Distribution rows to add. |
+| Deleted distributions | `outputs/to_upload/YYYY-MM-DD_arcgis_distributions_delete.csv` | Distribution rows to delete. |
 
-- `add_provenance`
-  - Adds harvest date provenance to dataset rows.
-  - Reads harvest-record rows from the workflow input CSV.
-  - Updates only `Last Harvested` on those harvest-record rows.
-  - Appends the updated harvest-record rows to the primary dataframe.
+The run also rewrites both registry CSVs as current active snapshots after it
+builds the upload deltas. Review those changes before committing them.
 
-- `clean`
-  - Delegates to the shared base cleanup pipeline.
-  - Runs the common dataframe and spatial cleanup behavior.
+### Reading the harvest report
 
-- `validate`
-  - Delegates to the shared base validation pipeline.
-  - Checks the final dataframe before output writing.
+Each hub row includes:
 
-- `write_outputs`
-  - Builds the secondary distributions table from the primary dataframe.
-  - Delegates dated CSV writing to the base harvester.
-  - Writes the ArcGIS harvest report CSV.
+- `Harvest Run` and `Harvest Message` for the request outcome;
+- `Total Records Found` from the hub's DCAT response;
+- `New Records` and `Unpublished Records`, calculated by comparing the current
+  primary output with the shared pre-run primary registry.
 
-- `build_uploads`
-  - When `use_registry` is enabled, compares the current local output files to
-    the ArcGIS registry CSVs in `registry/`.
-  - Writes upload-ready CSVs for new records, retired records, new distribution
-    rows, and deleted distribution rows.
-  - Updates the registry CSVs after upload deltas are built.
-  - Falls back to the shared base upload builder only when `use_registry` is
-    disabled.
+The final `TOTAL` row summarizes successful/failed hubs and the record counts.
+An endpoint error does not stop the remaining hubs from running, so inspect the
+error rows even when the overall process reaches completion.
 
-## Inputs
+## Dashboard reporting and publishing
 
-- Workflow input CSV
-  - Config key: `input_csv`
-  - Default path:
-    `inputs/harvest-workflow-inputs/py-arcgis-hub.csv`
-  - Contains the hub records to fetch, including endpoint URLs and workflow
-    metadata.
+The ArcGIS report archive and Harvest Task Retrospective discover runs from
+files in `reports/arcgis/` whose names exactly match:
 
-- Hub metadata defaults CSV
-  - Config key: `hub_metadata_csv`
-  - Default path: `reference_data/websites.csv`
-  - Supplies stable website metadata and fallback values for
-    child dataset records. The harvester loads the full websites reference
-    table and matches ArcGIS harvest records by `Code`, `Identifier`, or `ID`.
-
-- ArcGIS DCAT endpoint
-  - Read from each workflow row's `Endpoint URL`.
-  - Expected to return JSON with a `dataset` list.
-
-- Primary registry CSV
-  - Config key: `primary_registry_csv`
-  - Default path: `registry/arcgis_primary_registry.csv`
-  - Git-trackable previous-run state for current primary records. It keeps
-    compact citation fields for ArcGIS records, including `Title`,
-    `Alternative Title`, `Creator`, `Publisher`, `Resource Class`,
-    `Temporal Coverage`, `Date Issued`, `Date Accessioned`, `ID`,
-    `Identifier`, and `Code`.
-
-- Distributions registry CSV
-  - Config key: `distributions_registry_csv`
-  - Default path: `registry/arcgis_distributions_registry.csv`
-  - Git-trackable previous-run state for distribution rows. It stores
-    `friendlier_id`, `reference_type`, `distribution_url`, and `label`.
-
-## Outputs
-
-- Primary CSV
-  - Config key: `output_primary_csv`
-  - Contains harvested dataset rows and appended harvest-record rows.
-
-- Distributions CSV
-  - Config key: `output_distributions_csv`
-  - Built from service URL columns such as `featureService`, `mapService`,
-    `imageService`, and `tileService`.
-
-- Harvest report CSV
-  - Config key: `output_report_csv`
-  - Contains one row per harvest record with code, title, identifier, harvest
-    run status/message, total records found, new records, and unpublished
-    records.
-  - Includes a final `TOTAL` row with run and record tallies.
-
-- Upload delta files
-  - Built automatically when `build_uploads` is enabled and the ArcGIS primary
-    registry exists.
-  - Written to `outputs/to_upload/`.
-  - Include updated harvest-record rows from the current run.
-  - Include new dataset rows from the current run.
-  - Include retired dataset rows constructed from the primary registry.
-  - Include distribution add/delete files constructed by comparing the current
-    distributions output to the distributions registry.
-
-- Updated registry CSVs
-  - The harvester updates `registry/arcgis_primary_registry.csv` and
-    `registry/arcgis_distributions_registry.csv` after building upload deltas.
-  - The registries are rewritten as current snapshots, so records and
-    distribution rows missing from the current harvest are pruned.
-  - `Date Accessioned` is preserved from the existing primary registry.
-  - Descriptive fields such as title, creator, publisher, temporal coverage,
-    and identifier are refreshed from the current harvest for active records.
-
-## ArcGIS-Specific Behavior
-
-- Dataset filtering
-  - Keeps records with supported distribution titles, currently `Shapefile`.
-  - Keeps records with supported `ArcGIS GeoService` URL patterns, currently
-    `ImageServer`.
-  - Drops placeholder titles and malformed distribution lists.
-
-- Identifier handling
-  - Parses ArcGIS Hub query-string identifiers.
-  - Uses the `id` query parameter as the stable item ID.
-  - Appends the `sublayer` value to the ID when present.
-  - Builds canonical `https://hub.arcgis.com/datasets/{id}` identifiers.
-
-- Distribution extraction
-  - Detects ArcGIS GeoService URLs.
-  - Maps service URL patterns to output columns and format labels:
-    - `FeatureServer` to `featureService` and `ArcGIS FeatureLayer`.
-    - `MapServer` to `mapService` and `ArcGIS DynamicMapLayer`.
-    - `ImageServer` to `imageService` and `ArcGIS ImageMapLayer`.
-    - `TileServer` to `tileService` and `ArcGIS TiledMapLayer`.
-
-- Harvest-record rows
-  - Read directly from the workflow input CSV.
-  - Appended to the primary output after setting `Last Harvested` to the current
-    run date.
-  - Included in the primary upload delta file on each run.
-  - No parent website records are updated by this harvester.
-
-- Registry-based retirement
-  - Active registry records missing from the current harvest are treated as
-    retired.
-  - Retired upload rows preserve compact citation fields from the registry.
-  - Retired upload rows set `Publication State` to `unpublished`,
-    `Access Rights` to `Public`, and `Resource Class` to `Web services`.
-  - Retired records are removed from the primary registry after the upload
-    delta is written, so they are not repeatedly emitted as newly retired on
-    later runs.
-
-## Code Organization
-
-- Reusable helpers live in `utils/harvester_helpers.py`.
-  - `first_non_empty`
-  - `read_csv_rows`
-
-- ArcGIS-only helpers live at the end of `harvesters/arcgis.py` under:
-
-```python
-# Custom functions for this harvester
+```text
+YYYY-MM-DD_arcgis_report.csv
 ```
 
-- The harvester class calls those helper functions from base-template methods,
-  usually through `DataFrame.pipe(...)` where the step is a dataframe transform.
+They do **not** infer a completed harvest from
+`registry/arcgis_primary_registry.csv` or
+`registry/arcgis_distributions_registry.csv`.
+
+After verifying a harvest:
+
+1. Confirm the dated report CSV exists in `reports/arcgis/`.
+2. Run the Harvest Task Dashboard reports task using
+   `config/harvest-task-reports.yaml`, or run the complete dashboard job.
+3. Confirm the retrospective contains an `ArcGIS Hubs Harvest Report` entry for
+   the run date.
+4. Confirm a dated file such as
+   `reports/YYYY-MM-DD_harvest-task-dashboard-py-arcgis-hub.html` was created.
+5. Commit and push the source report and generated dashboard HTML. GitHub Pages
+   publishes committed dashboard reports from `main`.
+
+## Before uploading
+
+Use the report and Git diff as a review gate:
+
+- Investigate every hub with `Harvest Run = error`.
+- Compare new and unpublished totals with the expected scope of the run.
+- Treat a large or widespread retirement count as a possible incomplete input,
+  source outage, filtering change, or failed endpoint—not automatically as a
+  valid deletion event.
+- Inspect all three upload delta CSVs.
+- Review both registry diffs. The registries are updated locally when upload
+  deltas are built, before any external upload occurs.
+- If the run is invalid, do not upload its deltas. Restore the prior registries
+  from version control after preserving any files needed for diagnosis.
+
+## Test runs
+
+The browser's test option selects three random rows from the normal workflow
+input. It is useful for checking requests and transformations, but it is not a
+production result.
+
+The current test path uses the normal dated output/report names and runs the
+normal registry comparison. Before a test run, preserve any same-day full
+outputs and the registry files. After the test, do not commit its report,
+upload deltas, or registry changes as though they represented a full harvest.
+
+## Troubleshooting
+
+### A harvest is absent from the retrospective or ArcGIS report archive
+
+Check for `reports/arcgis/YYYY-MM-DD_arcgis_report.csv` on the branch where the
+dashboard is being generated. Updating the registries alone does not create a
+dashboard history entry.
+
+If the report was committed on another branch, restore or copy that single file
+onto the working branch, then rerun the dashboard reports task. Prefer restoring
+the individual report over cherry-picking a commit that also contains unrelated
+work. Commit the source report and regenerated dashboard HTML together.
+
+Also verify the filename. A report under `outputs/`, an undated file, or a name
+other than `YYYY-MM-DD_arcgis_report.csv` is ignored by dashboard discovery.
+
+### The dashboard still shows an older run
+
+- Confirm the new report is present in the current working tree and branch.
+- Confirm its date is valid and zero-padded, for example `2026-10-09`.
+- Rerun the dashboard **reports** task; committing only the source CSV does not
+  regenerate existing HTML.
+- Confirm the dated `py-arcgis-hub` HTML and retrospective HTML were updated.
+
+### The workflow input is missing or stale
+
+Run the Harvest Task Dashboard source-CSV task again, then inspect
+`inputs/harvest-workflow-inputs/py-arcgis-hub.csv`. The harvester raises a
+`FileNotFoundError` when this file is absent.
+
+### The run stops before fetching
+
+Look for the duplicate-endpoint error. One normalized `Endpoint URL` cannot be
+assigned to multiple harvest codes. Correct the source harvest records, rebuild
+the workflow input, and rerun.
+
+### A hub reports an HTTP or JSON error
+
+Open the URL from the report's `Harvest Message`. Common causes include an
+expired or redirected DCAT URL, `403`, `404`, `500`, a timeout, or a response
+that is not valid JSON. Correct the harvest record or retry after a temporary
+source outage. Review proposed retirements associated with failed hubs before
+uploading.
+
+### Record totals are unexpectedly low or zero
+
+The harvester intentionally keeps datasets that have either a `Shapefile`
+distribution or an `ArcGIS GeoService` whose access URL contains
+`ImageServer`. Placeholder titles and malformed distribution lists are dropped.
+Check the source DCAT response and the filtering rules before assuming the hub
+contains no records.
+
+### New or unpublished counts look wrong
+
+The report and upload deltas both compare against the Git-tracked registry.
+Confirm the registry represented the previous complete run before starting the
+harvest. If it had already been changed by a partial or test run, restore the
+last authoritative registry version before rerunning.
+
+### The browser stream disconnects
+
+Check the server log and the dated output files before rerunning. A disconnected
+browser does not prove the server process stopped, and rerunning on the same day
+can overwrite same-named output files.
+
+## Technical pipeline
+
+`ArcGISHarvester` follows the template-method sequence defined by
+`BaseHarvester.harvest_pipeline()`:
+
+1. `load_reference_data` loads shared themes and builds the website-defaults
+   lookup.
+2. `fetch` requests each DCAT endpoint with a 30-second timeout, records a
+   success/error report row, and continues after individual request failures.
+3. `parse` uses the base passthrough because the fetched catalogs are already
+   structured.
+4. `flatten` expands each catalog into one source dataset per item while
+   retaining its workflow row and matched website defaults.
+5. `build_dataframe` filters supported items, maps source/workflow fields into
+   the target schema, and extracts distribution URLs.
+6. `derive_fields` applies shared themes, parses identifiers, infers temporal
+   coverage/date ranges, calculates bounding boxes, cleans creators, formats
+   titles, and matches resource types.
+7. `add_defaults` applies website defaults and ArcGIS defaults such as
+   `Language = eng` and `Resource Class = Web services`.
+8. `add_provenance` adds the retrieval statement and appends workflow harvest
+   records with the current `Last Harvested` date.
+9. `clean` and `validate` run the shared dataframe, spatial, and validation
+   pipelines.
+10. `write_outputs` removes `Created At` and `Updated At`, builds the secondary
+    distribution table, writes the dated full outputs, and writes the dated
+    harvest report.
+11. `build_uploads` compares current records with the registries, writes upload
+    deltas, and replaces the registries with the current active snapshots.
+
+## ArcGIS-specific transformations
+
+### Identifiers
+
+The harvester parses ArcGIS Hub query-string identifiers, uses the `id` query
+parameter as the stable item ID, appends `sublayer` when present, and builds the
+canonical identifier `https://hub.arcgis.com/datasets/{id}`.
+
+### Distributions
+
+ArcGIS GeoService URLs map to these output columns and labels:
+
+| URL pattern | Output column | Label |
+| --- | --- | --- |
+| `FeatureServer` | `featureService` | `ArcGIS FeatureLayer` |
+| `MapServer` | `mapService` | `ArcGIS DynamicMapLayer` |
+| `ImageServer` | `imageService` | `ArcGIS ImageMapLayer` |
+| `TileServer` | `tileService` | `ArcGIS TiledMapLayer` |
+
+### Harvest-record rows
+
+The workflow input rows are appended to the primary output with an updated
+`Last Harvested` date and included in each primary upload delta. The harvester
+does not update separate parent website records.
+
+### Registry-based retirement
+
+Current dataset IDs are compared with active IDs in the primary registry.
+Missing IDs become upload rows with `Publication State = unpublished`,
+`Access Rights = Public`, a retirement date, and a warning display note. The
+retired records are then omitted from the rewritten current registry so they
+are not emitted again on the next run. Existing `Date Accessioned` values are
+preserved for records that remain active.
+
+Distribution additions and deletions are calculated separately by comparing
+the current distribution output with the distribution registry.
+
+## Code organization
+
+- The harvester class is in `harvesters/arcgis.py` and implements only methods
+  from `BaseHarvester`.
+- Reusable helpers such as `first_non_empty` and `read_csv_rows` live in
+  `utils/harvester_helpers.py`.
+- ArcGIS-only helpers are module-level functions below the class under
+  `# Custom functions for this harvester`.
+- Dataframe transformations are composed with `DataFrame.pipe(...)` where
+  practical.

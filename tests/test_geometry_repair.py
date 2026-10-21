@@ -1,5 +1,6 @@
 import csv
 
+import pandas as pd
 from shapely import wkt
 from shapely.geometry import MultiPolygon, Polygon
 
@@ -100,13 +101,22 @@ def test_missing_bbox_and_geometry_are_valid_blank_spatial_fields():
     assert not result.requires_review
 
 
-def test_geometry_without_bbox_is_cleared_and_requires_review():
+def test_geometry_without_bbox_is_retained():
     result = repair_geometry_fields("", "ENVELOPE(-90,-89,41,40)")
 
     assert result.bounding_box == ""
-    assert result.geometry == ""
-    assert result.action == "clear_geometry_without_bbox"
-    assert result.requires_review
+    assert result.geometry == "ENVELOPE(-90,-89,41,40)"
+    assert result.action == "retain_geometry_without_bbox"
+    assert not result.requires_review
+
+
+def test_pandas_missing_values_remain_blank():
+    for missing_value in (pd.NA, float("nan")):
+        result = repair_geometry_fields(missing_value, missing_value)
+
+        assert result.bounding_box == ""
+        assert result.geometry == ""
+        assert result.action == "retain_blank_spatial_fields"
 
 
 def test_csv_repair_changes_only_spatial_fields(tmp_path):

@@ -76,6 +76,9 @@ def clean_bounding_box(df):
         try:
             west, south, east, north = map(float, x.split(","))
 
+            if _is_exact_full_world_bbox((west, south, east, north)):
+                return _format_bbox((west, south, east, north))
+
             # Clamp extreme longitudes and latitudes
             west = _clamp(west, -MAX_LONGITUDE, MAX_LONGITUDE)
             east = _clamp(east, -MAX_LONGITUDE, MAX_LONGITUDE)
@@ -196,3 +199,7 @@ def _is_full_world_bbox(coords):
         and east >= MAX_LONGITUDE
         and north >= MAX_LATITUDE
     )
+
+
+def _is_exact_full_world_bbox(coords):
+    return tuple(coords) == (-180.0, -90.0, 180.0, 90.0)

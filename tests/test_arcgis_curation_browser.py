@@ -231,24 +231,129 @@ def test_arcgis_curation_page_exposes_individual_and_postprocess_tasks() -> None
         "thumbnails",
         "derivatives",
         "zip",
-        "postprocess",
         "snapshot",
     ):
         assert f"runStage('{stage}')" in html
     assert "confirmReview()" in html
     assert "Confirm manual review" in html
-    assert "Run all postprocess tasks" in html
-    assert "Save Run Record" in html
+    assert "Run all postprocess tasks" not in html
+    assert "runStage('postprocess')" not in html
+    assert "<h3>Run Record</h3>" in html
     assert "Save run record" in html
+    assert 'class="run-record"' in html
     assert 'data-stage-card="metadata"' in html
-    assert 'data-stage-status="metadata"' in html
-    assert 'id="metadata-output-path"' in html
-    assert "✓ ${label}" in html
+    assert 'data-stage-status="metadata"' not in html
+    assert 'data-stage-status="snapshot"' not in html
+    assert html.count('<span class="stage-status" data-stage-status="') == 1
+    assert 'id="metadata-output-path"' not in html
+    assert 'status.textContent = state === "completed"' in html
+    assert 'stage === "snapshot"' in html
+    assert "formattedStageDate(completedAt)" in html
+    assert "parsed.toLocaleDateString()" in html
+    assert "parsed.toLocaleString()" not in html
+    assert "Run failed — see the live log" not in html
     assert "updateStageIndicators" in html
     assert "stageFailureMessage" in html
     assert "Create from template" in html
-    assert "Save YAML" in html
+    assert "Save configuration" in html
     assert 'id="yaml-editor"' in html
+    assert 'id="config-panel"' in html
+    assert 'class="job-selection"' in html
+    assert "font-size: 0.88rem" in html
+    assert "background: var(--accent-soft)" in html
+    assert ".file-badge { display: none; }" not in html
+    job_select_position = html.index('id="job-select"')
+    config_open_position = html.index('id="config-panel"')
+    config_close_position = html.index("</details>", config_open_position)
+    assert config_open_position < job_select_position < config_close_position
+    assert "Choose a curation job" not in html
+    assert "Open config +" in html
+    assert "Close config −" in html
+    validation_position = html.index('data-stage-card="validate"')
+    pipeline_position = html.index('id="pipeline-tasks"')
+    assert validation_position < config_close_position < pipeline_position
+    assert "Validate before starting" in html
+    assert 'data-validation-button' in html
+    assert 'data-pipeline-button' in html
+    assert "setPipelineAvailability" in html
+    assert "Job config validated — pipeline ready" in html
+    assert "Pipeline tasks" not in html
+    config_summary_start = html.index("<summary>", config_open_position)
+    config_summary_end = html.index("</summary>", config_summary_start)
+    readiness_position = html.index('id="pipeline-readiness"')
+    assert config_summary_start < readiness_position < config_summary_end
+    assert '<span id="pipeline-readiness"' in html
+    assert "openValidation" not in html
+    assert 'class="stage-card" data-stage-card="validate"' not in html
+    assert "shortFileName" not in html
+    assert '.textContent = data.metadata_path' not in html
+    assert "Configuration matches manifest:" not in html
+    assert "Curation workspace" not in html
+    assert ">Workflow<" not in html
+    assert ">Active job<" not in html
+    assert ">Configuration<" not in html
+    assert ">Job Config<" in html
+    assert ">Advanced<" not in html
+    assert ">Refresh jobs<" not in html
+    assert ">Refresh status<" not in html
+    assert "Replace existing output files when supported" not in html
+    assert 'id="overwrite-toggle"' not in html
+    assert "max-width: 1440px" in html
+    assert "h1, h2, h3 {" in html
+    assert 'font-family: "Avenir Next", Avenir, "Helvetica Neue", sans-serif' in html
+    assert "letter-spacing: 0.035em" in html
+    assert "letter-spacing: 0.025em" in html
+    assert 'class="workflow"' in html
+    assert "grid-template-columns: 52px minmax(0, 1fr) auto" in html
+    assert "--run:" in html
+    assert "--run-ink: #332d00" in html
+    assert '.workflow-step[data-status="completed"] {' in html
+    assert "background: var(--success-soft)" in html
+    assert ".play-icon svg {" in html
+    assert "stroke-width: 1.7" in html
+    assert "height: 30px" in html
+    assert '.pipeline-readiness[data-ready="true"]::before {' in html
+    assert ".step-detail p {\n      color: #000000;" in html
+    assert "font-size: 1.45rem" in html
+    assert ".workflow-step:hover .step-detail p" in html
+    assert ".workflow-step:focus-within .step-detail p" in html
+    assert "opacity: 0" in html
+    assert "<h3>Harvest metadata</h3>" in html
+    assert "<h3>Review metadata</h3>" in html
+    assert "<h3>Zip GeoPackages</h3>" in html
+    assert html.count('class="run-button"') == 9
+    assert "min-width: 126px" in html
+    assert "height: 42px" in html
+    assert html.count('class="play-icon" aria-hidden="true">▶</span>') == 9
+    assert "<span>Run</span>" not in html
+    assert 'state === "completed" || state === "failed"' in html
+    assert 'actionIcon === "rerun"' in html
+    assert '<svg viewBox="0 0 24 24"' in html
+    assert '"↻"' not in html
+    assert '? "Rerun"' in html
+    assert '? "Retry"' in html
+    assert 'snapshotButton.textContent = `Save again${formattedStageDate(completedAt)}`' in html
+    assert "font-size: 1.2rem" in html
+    assert html.count('class="step-number"') == 9
+    assert 'content: "↓"' in html
+    assert "left: calc(1rem + 21px)" in html
+    assert "left: calc(1rem + 19px)" in html
+    assert "transform: translateX(-50%)" in html
+    assert "border-radius: 12px" not in html
+    assert "<h3>1. Metadata</h3>" not in html
+    assert "<h3>2. Manual review</h3>" not in html
+    assert 'class="panel job-picker-row"' not in html
+    assert 'id="job-status"' not in html
+    assert "tasks complete" not in html
+    assert "Review ${reviewStatus" not in html
+    assert 'id="activity-log"' in html
     assert "expected_sha256" in html
     assert '/static/arcgis-curation-pipeline.html' in dashboard_html
     assert "ArcGIS Curation Pipeline" in dashboard_html
+    assert "<h1>ArcGIS Curation Pipeline</h1>" in html
+    header_start = html.index('<header class="page-header">')
+    header_end = html.index("</header>", header_start)
+    assert header_start < html.index('class="back-link"') < header_end
+    assert "&larr; Dashboard" in html
+    assert "font-size: clamp(1.35rem, 2.5vw, 1.85rem)" in html
+    assert "Prepare, review, and package selected ArcGIS datasets" not in html
