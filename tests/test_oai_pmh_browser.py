@@ -69,6 +69,16 @@ def test_browser_can_create_load_and_save_oai_source_job(monkeypatch, tmp_path) 
         "sets: []",
         'sets:\n  - set: maps\n    title: "Map Collection"',
     )
+    edited += "\n".join(
+        [
+            "rdf_companion:",
+            "  metadata_prefix: rdf",
+            "  download_dir: inputs/oai-downloads/example-university-rdf",
+            '  aggregation_uri: "http://example.org/sets#maps"',
+            '  manifest_base_url: "https://iiif.example.org/manifests"',
+            "",
+        ]
+    )
     saved = asyncio.run(
         oai_pmh.save_oai_yaml(
             oai_pmh.SaveOaiJobRequest(
@@ -83,6 +93,14 @@ def test_browser_can_create_load_and_save_oai_source_job(monkeypatch, tmp_path) 
     assert created["job"]["id"] == "example-university"
     assert saved["job"]["set_count"] == 1
     assert saved["job"]["sets"][0]["set_spec"] == "maps"
+    assert saved["job"]["companion_metadata_prefix"] == "rdf"
+    assert saved["job"]["companion_download_directory"] == str(
+        tmp_path / "inputs" / "oai-downloads" / "example-university-rdf"
+    )
+    assert saved["job"]["companion_aggregation_uri"] == "http://example.org/sets#maps"
+    assert "rdf_companion:" in (jobs_root / "example-university.yaml").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_browser_oai_save_rejects_changed_file(monkeypatch, tmp_path) -> None:
@@ -143,6 +161,9 @@ def test_oai_page_exposes_job_editor_and_staged_pipeline() -> None:
     assert "Save YAML" in html
     assert 'id="yaml-editor"' in html
     assert "expected_sha256" in html
+    assert "optional companion RDF feed" in html
+    assert "Companion metadata prefix" in html
+    assert "companion_page_count" in html
     for stage in ("validate", "identify", "discover", "download", "harvest", "all"):
         assert f"runStage('{stage}')" in html
         assert f'data-stage-card="{stage}"' in html

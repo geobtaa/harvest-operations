@@ -383,7 +383,7 @@ def test_harvest_task_dashboard_triage_groups_only_unqueued_individual_records(
     assert "harvest_due:YYYY-MM-DD" in triage_html
     assert "review:Ny" in triage_html
     assert 'class="review-flag review-flag--due">Review overdue · 2026-04-01' in triage_html
-    assert 'class="review-flag review-flag--upcoming">Review upcoming · 2026-08-01' in triage_html
+    assert 'class="review-flag review-flag--upcoming">Next Review · 2026-08-01' in triage_html
     assert "Review as needed" in triage_html
     assert '<span class="status-pill' not in triage_html
     assert ">Update</a>" in triage_html
@@ -1768,6 +1768,66 @@ def test_harvest_task_dashboard_creates_reviews_section_for_due_irregular_review
     assert "To be reviewed (1)" in due_dashboard_html
     assert "Annual Review Task" in due_dashboard_html
     assert "Biennial Review Task" not in due_dashboard_html
+
+
+def test_irregular_review_uses_latest_provenance_review_date(tmp_path: Path) -> None:
+    harvest_records_path = tmp_path / "harvest-records.csv"
+    websites_path = tmp_path / "websites.csv"
+    outputs_dir = tmp_path / "outputs"
+
+    pd.DataFrame(
+        [
+            {
+                "ID": "harvest_08d-01",
+                "Title": "Digital Map Drawer",
+                "Harvest Workflow": "template_csv",
+                "Last Harvested": "2021-04-27",
+                "Accrual Periodicity": "Irregular",
+                "Tags": "ogm|review:2y",
+                "Provenance": (
+                    "2021-04-27 / harvest|2026-08-15 / review / completed|"
+                    "2026-10-08 / review / IIIF and thumbnails working"
+                ),
+            }
+        ]
+    ).to_csv(harvest_records_path, index=False)
+    pd.DataFrame(columns=["ID", "Harvest Workflow", "Name", "URL"]).to_csv(
+        websites_path, index=False
+    )
+
+    job = HarvestTaskDashboardJob(
+        {
+            "harvest_records_csv": str(harvest_records_path),
+            "websites_csv": str(websites_path),
+            "output_tasks_csv": str(outputs_dir / "harvest-task-dashboard.csv"),
+            "output_dashboard_html": str(outputs_dir / "harvest-task-dashboard.html"),
+            "output_due_dashboard_html": str(
+                outputs_dir / "harvest-task-dashboard-due.html"
+            ),
+            "output_review_dashboard_html": str(
+                outputs_dir / "harvest-task-dashboard-review.html"
+            ),
+            "output_todo_dashboard_html": str(
+                outputs_dir / "harvest-task-dashboard-todo.html"
+            ),
+            "output_retrospective_dashboard_html": str(
+                outputs_dir / "harvest-task-dashboard-retrospective.html"
+            ),
+            "output_workflow_dir": str(outputs_dir / "harvest-workflow-inputs"),
+            "today": "2026-10-17",
+        }
+    )
+
+    results = job.harvest_pipeline()
+
+    task = pd.read_csv(results["task_csv"], dtype=str).fillna("").iloc[0]
+    review_html = Path(results["review_dashboard_html"]).read_text(encoding="utf-8")
+
+    assert task["Last Reviewed"] == "2026-10-08"
+    assert task["Review Date"] == "2028-10-08"
+    assert task["Review Status"] == "Scheduled"
+    assert "Last reviewed: 2026-10-08" in review_html
+    assert "Next Review · 2028-10-08" in review_html
 
 
 def test_harvest_task_dashboard_routes_pending_harvest_rows_to_harvest_section(

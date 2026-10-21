@@ -373,19 +373,29 @@ def test_arcgis_registry_uploads_preserve_accessioned_dates_and_prune_state(tmp_
     }
 
 
-def test_arcgis_harvester_writes_harvest_report_with_counts(tmp_path, monkeypatch) -> None:
+def test_arcgis_harvester_uses_registry_for_harvest_report_counts(tmp_path, monkeypatch) -> None:
     outputs_dir = tmp_path / "outputs"
     outputs_dir.mkdir()
+    registry_dir = tmp_path / "registry"
+    registry_dir.mkdir()
     old_primary = outputs_dir / "2026-04-01_arcgis_primary.csv"
     current_primary = outputs_dir / "2026-04-25_arcgis_primary.csv"
+    primary_registry = registry_dir / "arcgis_primary_registry.csv"
 
     pd.DataFrame(
         [
             {"ID": "old-shared", "Is Part Of": "05c-01", "Resource Class": "Web services"},
-            {"ID": "old-retired", "Is Part Of": "05c-01", "Resource Class": "Web services"},
+            {"ID": "new-road", "Is Part Of": "05c-01", "Resource Class": "Web services"},
+            {"ID": "new-imagery", "Is Part Of": "11b-39075", "Resource Class": "Web services"},
             {"ID": "harvest_05c-01", "Is Part Of": "", "Resource Class": "Websites"},
         ]
     ).to_csv(old_primary, index=False)
+    pd.DataFrame(
+        [
+            {"ID": "old-shared", "Code": "05c-01", "Resource Class": "Web services"},
+            {"ID": "old-retired", "Code": "05c-01", "Resource Class": "Web services"},
+        ]
+    ).to_csv(primary_registry, index=False)
     pd.DataFrame(
         [
             {"ID": "old-shared", "Is Part Of": "05c-01", "Resource Class": "Web services"},
@@ -416,7 +426,7 @@ def test_arcgis_harvester_writes_harvest_report_with_counts(tmp_path, monkeypatc
             },
         ],
         str(current_primary),
-        "outputs/arcgis_primary.csv",
+        str(primary_registry),
         "outputs/arcgis_report.csv",
     )
 
@@ -437,6 +447,12 @@ def test_arcgis_harvester_writes_harvest_report_with_counts(tmp_path, monkeypatc
 
 def test_arcgis_harvester_omits_created_and_updated_at_from_primary_output(tmp_path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
+    registry_path = tmp_path / "registry" / "arcgis_primary_registry.csv"
+    registry_path.parent.mkdir()
+    pd.DataFrame(columns=["ID", "Code", "Resource Class"]).to_csv(
+        registry_path,
+        index=False,
+    )
     harvester = ArcGISHarvester(
         {
             "input_csv": str(FIXTURE_CSV),
@@ -444,6 +460,7 @@ def test_arcgis_harvester_omits_created_and_updated_at_from_primary_output(tmp_p
             "output_primary_csv": "outputs/arcgis_primary.csv",
             "output_distributions_csv": "outputs/arcgis_distributions.csv",
             "output_report_csv": "outputs/arcgis_report.csv",
+            "primary_registry_csv": str(registry_path),
             "build_uploads": False,
         }
     )

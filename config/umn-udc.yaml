@@ -1,0 +1,85 @@
+# Source-scoped OAI-PMH harvest job. See harvesters/oai_pmh_jobs.md.
+name: umn-udc
+type: oai_qdc
+feed_type: qdc
+
+oai_base_url: "https://conservancy.umn.edu/server/oai/request"
+metadata_prefix: qdc
+provider: "University of Minnesota"
+source_name: "UMN University Digital Conservancy"
+source_id_prefix: "umn_udc"
+website_platform: DSpace
+harvest_workflow: py_oai_pmh
+
+# Keep acquisition polite and retry common transient server failures.
+oai_request:
+  delay_seconds: 1.0
+  timeout_seconds: 60
+  retries: 3
+  backoff_seconds: 1.0
+  # Optional inclusive OAI datestamp range:
+  # from: "2026-01-01"
+  # until: "2026-12-31"
+
+oai_download_dir: inputs/oai-downloads/umn-udc
+
+dspace_bitstream_companion:
+  rest_base_url: "https://conservancy.umn.edu/server/api"
+  collection_handle: "11299/57196"
+  inventory_json: inputs/oai-downloads/umn-udc/col_11299_57196/bitstreams.json
+
+spatial_match_state: Minnesota
+spatial_match_geometry: false
+spatial_append_state: Minnesota
+spatial_default_when_blank: Minnesota
+spatial_county_from_title: true
+
+metadata_reconciliation:
+  identity: handle
+  existing_primary_csv: enrichments/05d-04_primary.csv
+  existing_distributions_csv: enrichments/05d-04_distributions.csv
+  decisions_csv: enrichments/05d-04_reconciliation_decisions.csv
+  new_id_registry: enrichments/05d-04_local_ids.csv
+  new_id_prefix: umn_
+  preserve_existing_ids:
+    - harvest_05d-04
+    - 05d-04
+  ignore_unknown_fields: true
+  exclude_fields:
+    - Identifier
+    - Provenance
+    - Website Platform
+    - Endpoint URL
+    - Endpoint Description
+    - Is Harvested
+    - Last Harvested
+    - Accrual Method
+    - Accrual Periodicity
+    - Harvest Workflow
+
+# Run Discover sets first, then add one row per repository set. Use __all__ as
+# the set value when the repository has no set hierarchy or the whole
+# repository should be harvested.
+sets: []
+sets:
+  - set: col_11299_57196
+    title: County Atlas Series
+#  - set: col_11299_166578
+#    title: Data Repository for U of M (DRUM)
+
+# Defaults applied when the source record leaves these values blank.
+default_resource_class: Maps
+hardcoded_values:
+  Code: 05d-04
+  Member Of: 64bd8c4c-8e60-4956-b43d-bdc3f93db488
+
+# Optional source-specific QDC mappings can replace or append generic mappings.
+# metadata_crosswalk:
+#   - source: dcterms:spatial
+#     target: Spatial Coverage
+#   - source: dcterms:extent
+#     target: Description
+#     mode: append
+
+output_primary_csv: outputs/umn-udc_primary.csv
+output_distributions_csv: outputs/umn-udc_distributions.csv

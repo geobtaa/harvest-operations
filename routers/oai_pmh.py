@@ -24,6 +24,7 @@ from utils.oai_pmh import (
     load_configured_sets,
     oai_download_directory,
     oai_status_path,
+    resolve_repo_path,
     validate_oai_job_config,
 )
 
@@ -171,6 +172,10 @@ def replace_job_config(config_path: Path, content: str) -> None:
 
 def summarize_job(config_path: Path) -> dict[str, Any]:
     config = load_job_yaml(config_path)
+    rdf_companion = config.get("rdf_companion", {}) or {}
+    if not isinstance(rdf_companion, dict):
+        rdf_companion = {}
+    companion_download_dir = rdf_companion.get("download_dir", "")
     try:
         sets = load_configured_sets(
             config,
@@ -189,6 +194,16 @@ def summarize_job(config_path: Path) -> dict[str, Any]:
         "base_url": str(config.get("oai_base_url", "")),
         "metadata_prefix": str(config.get("metadata_prefix", "")),
         "download_directory": str(oai_download_directory(config, REPO_ROOT)),
+        "companion_metadata_prefix": str(rdf_companion.get("metadata_prefix", "")),
+        "companion_download_directory": (
+            str(resolve_repo_path(companion_download_dir, REPO_ROOT, config_path))
+            if companion_download_dir
+            else ""
+        ),
+        "companion_aggregation_uri": str(rdf_companion.get("aggregation_uri", "")),
+        "companion_manifest_base_url": str(
+            rdf_companion.get("manifest_base_url", "")
+        ),
         "set_count": len(sets),
         "sets": sets,
         "error": configuration_error,
@@ -233,6 +248,10 @@ async def list_oai_jobs():
                     "base_url": "",
                     "metadata_prefix": "",
                     "download_directory": "",
+                    "companion_metadata_prefix": "",
+                    "companion_download_directory": "",
+                    "companion_aggregation_uri": "",
+                    "companion_manifest_base_url": "",
                     "set_count": 0,
                     "sets": [],
                     "error": exc.detail,

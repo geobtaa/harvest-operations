@@ -6,6 +6,7 @@ output_distributions_csv: outputs/ogm_aardvark_distributions.csv
 github_owner: OpenGeoMetadata
 github_ref: main
 github_token_env: GITHUB_TOKEN
+preserve_source_metadata: false
 repo_defaults_csv: config/ogm-repos.csv
 endpoint_description: GitHub
 website_platform: GeoBlacklight

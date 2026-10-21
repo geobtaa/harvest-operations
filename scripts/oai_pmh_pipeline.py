@@ -22,6 +22,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from harvesters.oai_qdc import OaiQdcHarvester  # noqa: E402
+from utils.dspace_bitstreams import download_dspace_bitstream_inventory  # noqa: E402
 from scripts.oai_download import (  # noqa: E402
     configure_retry_session,
     download_set,
@@ -35,6 +36,7 @@ from utils.oai_pmh import (  # noqa: E402
     oai_download_directory,
     oai_status_path,
     raise_for_oai_status,
+    resolve_repo_path,
     slugify,
     validate_oai_job_config,
 )
@@ -96,7 +98,8 @@ def begin_stage(
     status.update(
         {
             "job_id": normalize_space(config.get("name")) or config_path.stem,
-            "source_name": normalize_space(config.get("source_name")) or config_path.stem,
+            "source_name": normalize_space(config.get("source_name"))
+            or config_path.stem,
             "config_path": str(config_path.resolve()),
             "config_sha256": config_hash,
             "download_directory": str(oai_download_directory(config, REPO_ROOT)),
@@ -148,6 +151,29 @@ def fail_stage(
     )
     status["updated_at"] = utc_now()
     write_status(config, status)
+
+
+def should_recover_download(
+    prior_status: dict[str, Any],
+    config_path: Path,
+    stage: str,
+    set_spec: str,
+) -> bool:
+    if prior_status.get("config_sha256") != file_sha256(config_path):
+        return False
+    stages = prior_status.get("stages", {})
+    download_status = stages.get("download", {})
+    matching_download = download_status.get("set_spec") == set_spec
+    if matching_download and download_status.get("status") in {"running", "failed"}:
+        return True
+    all_status = stages.get("all", {})
+    return (
+        stage == "all"
+        and all_status.get("set_spec") == set_spec
+        and all_status.get("status") in {"running", "failed"}
+        and matching_download
+        and download_status.get("status") == "completed"
+    )
 
 
 def select_sets(
@@ -207,7 +233,9 @@ def run_identify(config: dict[str, Any]) -> dict[str, Any]:
         raise RuntimeError("OAI Identify returned errors: " + "; ".join(errors))
     identify = root.find(".//oai:Identify", OAI_NS)
     if identify is None:
-        raise RuntimeError("The endpoint response did not contain OAI-PMH Identify metadata.")
+        raise RuntimeError(
+            "The endpoint response did not contain OAI-PMH Identify metadata."
+        )
 
     def text(name: str) -> str:
         element = identify.find(f"oai:{name}", OAI_NS)
@@ -247,6 +275,13 @@ def run_identify(config: dict[str, Any]) -> dict[str, Any]:
             f"The endpoint does not advertise metadataPrefix={config['metadata_prefix']!r}. "
             f"Available prefixes: {', '.join(metadata_prefixes) or 'none'}"
         )
+    rdf_companion = config.get("rdf_companion", {}) or {}
+    companion_prefix = normalize_space(rdf_companion.get("metadata_prefix", ""))
+    if companion_prefix and companion_prefix not in metadata_prefixes:
+        raise RuntimeError(
+            f"The endpoint does not advertise companion metadataPrefix={companion_prefix!r}. "
+            f"Available prefixes: {', '.join(metadata_prefixes) or 'none'}"
+        )
     result["metadata_formats"] = metadata_prefixes
     print(
         "[OAI-PMH] Identified "
@@ -272,8 +307,7 @@ def run_discover(config: dict[str, Any]) -> dict[str, Any]:
         writer = csv.DictWriter(handle, fieldnames=["set", "title"])
         writer.writeheader()
         writer.writerows(
-            {"set": item["set_spec"], "title": item["set_title"]}
-            for item in discovered
+            {"set": item["set_spec"], "title": item["set_title"]} for item in discovered
         )
     temporary_path.replace(output_path)
     print(f"[OAI-PMH] Discovered {len(discovered)} set(s):")
@@ -297,6 +331,8 @@ def run_download(
     config: dict[str, Any],
     config_path: Path,
     set_spec: str,
+    *,
+    recover_interrupted: bool = False,
 ) -> dict[str, Any]:
     selected_sets = select_sets(config, config_path, set_spec)
     settings = request_settings(config)
@@ -317,11 +353,120 @@ def run_download(
             timeout=settings["timeout"],
             from_date=settings["from_date"],
             until_date=settings["until_date"],
+            skip_completed=recover_interrupted,
         )
         manifests.append(manifest)
+        if manifest.get("snapshot_reused"):
+            print(
+                f"[OAI-PMH] Reused {len(manifest['downloaded_files'])} completed "
+                f"page(s) for {item['set_spec']}."
+            )
+        else:
+            resume_note = (
+                f" after resuming at page {manifest['resumed_from_page']}"
+                if manifest.get("resumed_from_page")
+                else ""
+            )
+            print(
+                f"[OAI-PMH] Saved {len(manifest['downloaded_files'])} page(s) "
+                f"for {item['set_spec']}{resume_note}."
+            )
+
+    companion_manifests = []
+    companion_manifest_path = None
+    rdf_companion = config.get("rdf_companion", {}) or {}
+    if rdf_companion:
+        companion_output_dir = resolve_repo_path(
+            rdf_companion["download_dir"],
+            REPO_ROOT,
+            config_path,
+        )
+        companion_output_dir.mkdir(parents=True, exist_ok=True)
+        companion_prefix = rdf_companion["metadata_prefix"]
+        for item in selected_sets:
+            print(
+                f"[OAI-PMH] Downloading {item['set_spec']} "
+                f"as companion {companion_prefix}..."
+            )
+            manifest = download_set(
+                session=session,
+                base_url=config["oai_base_url"],
+                metadata_prefix=companion_prefix,
+                set_spec=item["set_spec"],
+                set_title=item["set_title"],
+                output_dir=companion_output_dir,
+                delay=settings["delay"],
+                timeout=settings["timeout"],
+                from_date=settings["from_date"],
+                until_date=settings["until_date"],
+                skip_completed=recover_interrupted,
+            )
+            companion_manifests.append(manifest)
+            if manifest.get("snapshot_reused"):
+                print(
+                    f"[OAI-PMH] Reused {len(manifest['downloaded_files'])} completed "
+                    f"companion page(s) for {item['set_spec']}."
+                )
+            else:
+                resume_note = (
+                    f" after resuming at page {manifest['resumed_from_page']}"
+                    if manifest.get("resumed_from_page")
+                    else ""
+                )
+                print(
+                    f"[OAI-PMH] Saved {len(manifest['downloaded_files'])} companion "
+                    f"page(s) for {item['set_spec']}{resume_note}."
+                )
+
+        companion_run_manifest = {
+            "job_id": config["name"],
+            "source_name": config["source_name"],
+            "base_url": config["oai_base_url"],
+            "metadata_prefix": companion_prefix,
+            "downloaded_at": utc_now(),
+            "from": settings["from_date"] or "",
+            "until": settings["until_date"] or "",
+            "sets": companion_manifests,
+            "error_count": sum(item["error_count"] for item in companion_manifests),
+        }
+        companion_manifest_path = companion_output_dir / "manifest.json"
+        write_text(
+            companion_manifest_path,
+            json.dumps(companion_run_manifest, indent=2) + "\n",
+        )
+        if companion_run_manifest["error_count"]:
+            raise RuntimeError(
+                "OAI-PMH companion download returned "
+                f"{companion_run_manifest['error_count']} error(s); "
+                f"see {companion_manifest_path}."
+            )
+
+    dspace_inventory_path = None
+    dspace_item_count = 0
+    dspace_file_count = 0
+    dspace_companion = config.get("dspace_bitstream_companion", {}) or {}
+    if dspace_companion:
+        dspace_inventory_path = resolve_repo_path(
+            dspace_companion["inventory_json"],
+            REPO_ROOT,
+            config_path,
+        )
         print(
-            f"[OAI-PMH] Saved {len(manifest['downloaded_files'])} page(s) "
-            f"for {item['set_spec']}."
+            "[OAI-PMH] Downloading DSpace ORIGINAL-bundle bitstream inventory "
+            f"for {dspace_companion['collection_handle']}..."
+        )
+        inventory = download_dspace_bitstream_inventory(
+            session,
+            rest_base_url=dspace_companion["rest_base_url"],
+            collection_handle=dspace_companion["collection_handle"],
+            output_path=dspace_inventory_path,
+            timeout=settings["timeout"],
+        )
+        dspace_item_count = len(inventory["items"])
+        dspace_file_count = sum(len(item["files"]) for item in inventory["items"])
+        print(
+            f"[OAI-PMH] Saved {dspace_file_count} bitstream(s) for "
+            f"{dspace_item_count} item(s) to {dspace_inventory_path}."
         )
 
     run_manifest = {
@@ -344,6 +489,17 @@ def run_download(
     return {
         "set_count": len(manifests),
         "page_count": sum(len(item["downloaded_files"]) for item in manifests),
+        "companion_page_count": sum(
+            len(item["downloaded_files"]) for item in companion_manifests
+        ),
+        "companion_manifest_path": (
+            str(companion_manifest_path) if companion_manifest_path else ""
+        ),
+        "dspace_inventory_path": (
+            str(dspace_inventory_path) if dspace_inventory_path else ""
+        ),
+        "dspace_item_count": dspace_item_count,
+        "dspace_file_count": dspace_file_count,
         "manifest_path": str(manifest_path),
     }
 
@@ -357,8 +513,7 @@ def run_harvest(
     run_config = dict(config)
     run_config.pop("sets_csv", None)
     run_config["sets"] = [
-        {"set": item["set_spec"], "title": item["set_title"]}
-        for item in selected_sets
+        {"set": item["set_spec"], "title": item["set_title"]} for item in selected_sets
     ]
     if set_spec != ALL_RECORDS_SET:
         run_config["build_uploads"] = False
@@ -372,12 +527,25 @@ def run_harvest(
         f"for {config['source_name']}."
     )
     results = OaiQdcHarvester(run_config).harvest_pipeline()
-    return {key: value for key, value in results.items() if isinstance(value, (str, int, float, bool, dict, list))}
+    return {
+        key: value
+        for key, value in results.items()
+        if isinstance(value, (str, int, float, bool, dict, list))
+    }
 
 
-def execute_stage(config_path: Path, stage: str, set_spec: str = ALL_RECORDS_SET) -> dict[str, Any]:
+def execute_stage(
+    config_path: Path, stage: str, set_spec: str = ALL_RECORDS_SET
+) -> dict[str, Any]:
     config_path = config_path.resolve()
     config = load_config(config_path)
+    prior_status = load_status(config)
+    recover_interrupted = should_recover_download(
+        prior_status,
+        config_path,
+        stage,
+        set_spec,
+    )
     status = begin_stage(config, config_path, stage, set_spec)
     try:
         validate_oai_job_config(
@@ -415,13 +583,23 @@ def execute_stage(config_path: Path, stage: str, set_spec: str = ALL_RECORDS_SET
         elif stage == "discover":
             result = run_discover(config)
         elif stage == "download":
-            result = run_download(config, config_path, set_spec)
+            result = run_download(
+                config,
+                config_path,
+                set_spec,
+                recover_interrupted=recover_interrupted,
+            )
         elif stage == "harvest":
             result = run_harvest(config, config_path, set_spec)
         elif stage == "all":
             download_status = begin_stage(config, config_path, "download", set_spec)
             try:
-                download_result = run_download(config, config_path, set_spec)
+                download_result = run_download(
+                    config,
+                    config_path,
+                    set_spec,
+                    recover_interrupted=recover_interrupted,
+                )
                 finish_stage(config, download_status, "download", download_result)
             except Exception as exc:
                 fail_stage(config, download_status, "download", exc)

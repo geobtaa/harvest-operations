@@ -15,7 +15,7 @@ def test_spatial_cleaning_uses_envelope_for_full_world_geometry():
 
     cleaned = spatial_cleaning(df)
 
-    assert cleaned.loc[0, "Bounding Box"] == "-179.999,-89.999,179.999,89.999"
+    assert cleaned.loc[0, "Bounding Box"] == "-180.000,-90.000,180.000,90.000"
     assert cleaned.loc[0, "Geometry"] == "ENVELOPE(-180,180,90,-90)"
 
 

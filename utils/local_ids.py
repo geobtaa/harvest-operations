@@ -141,3 +141,54 @@ def assign_persistent_ids(
             columns=["previous_harvested_id", "ID", "assignment_status", "Identifier"],
         )
         return result
+
+
+def assign_reconciled_new_ids(
+    outputs: dict[str, pd.DataFrame],
+    registry_path: Path,
+    identity_keys,
+    prefix: str,
+) -> dict[str, pd.DataFrame]:
+    """Assign persistent random IDs only to rows classified as new."""
+    result = {name: frame.copy() for name, frame in outputs.items()}
+    crosswalk = result["crosswalk"]
+    new_harvested_ids = set(
+        crosswalk.loc[crosswalk["match_status"].eq("new"), "harvested_id"]
+    )
+    new_rows = result["reconciled_primary"].loc[
+        result["reconciled_primary"]["ID"].isin(new_harvested_ids)
+    ]
+    if new_rows.empty:
+        result["local_id_assignments"] = pd.DataFrame(
+            columns=["previous_harvested_id", "ID", "assignment_status", "Identifier"]
+        )
+        return result
+
+    assigned = assign_persistent_ids(
+        new_rows,
+        registry_path=registry_path,
+        identity_keys=identity_keys,
+        prefix=prefix,
+    )
+    assignments = assigned.attrs.pop("local_id_assignments")
+    id_map = assignments.set_index("previous_harvested_id")["ID"]
+
+    for frame_name, column in (
+        ("reconciled_primary", "ID"),
+        ("reconciled_distributions", "friendlier_id"),
+        ("review_primary", "ID"),
+        ("review_primary", "canonical_id"),
+        ("new_items", "ID"),
+        ("new_items", "canonical_id"),
+        ("unmatched_items", "ID"),
+        ("unmatched_items", "canonical_id"),
+        ("identity_aliases", "canonical_id"),
+    ):
+        frame = result.get(frame_name)
+        if frame is not None and column in frame.columns:
+            frame[column] = frame[column].map(id_map).fillna(frame[column])
+    crosswalk["canonical_id"] = (
+        crosswalk["canonical_id"].map(id_map).fillna(crosswalk["canonical_id"])
+    )
+    result["local_id_assignments"] = assignments
+    return result

@@ -8,9 +8,13 @@ def test_blank_bbox_and_geometry_are_valid():
     assert geometry_validation_error(pd.NA, pd.NA) == ""
 
 
-def test_geometry_must_be_blank_without_bbox():
-    assert geometry_validation_error("", "ENVELOPE(-90,-89,41,40)") == (
-        "Geometry must be blank when Bounding Box is blank."
+def test_geometry_is_valid_without_bbox():
+    assert geometry_validation_error("", "ENVELOPE(-90,-89,41,40)") == ""
+
+
+def test_invalid_geometry_without_bbox_is_reported():
+    assert geometry_validation_error("", "not geometry") == (
+        "Geometry must be valid ENVELOPE, POLYGON, or MULTIPOLYGON syntax."
     )
 
 

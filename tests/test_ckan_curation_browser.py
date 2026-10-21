@@ -44,9 +44,19 @@ def test_ckan_curation_page_exposes_browser_workflow() -> None:
         "thumbnails",
         "derivatives",
         "zip",
-        "postprocess",
         "snapshot",
     ):
         assert f'"{stage}"' in html
+    assert 'runStage(\'postprocess\')' not in html
+    assert "CKAN Curation Pipeline" in html
+    assert 'id="config-panel"' in html
+    assert 'id="pipeline-readiness"' in html
+    assert 'class="workflow"' in html
+    assert html.count('class="step-number"') == 9
+    assert html.count('class="run-button"') == 9
+    assert 'id="activity-log"' in html
+    assert "Refresh jobs" not in html
+    assert "Refresh status" not in html
+    assert "Overwrite existing" not in html
     assert "/static/ckan-curation-pipeline.html" in dashboard_html
     assert "CKAN Curation Pipeline" in dashboard_html

@@ -25,6 +25,10 @@ def test_static_ogm_aardvark_page_runs_expected_job() -> None:
     assert 'value="4"' in page_html
     assert 'name="github_since_date"' in page_html
     assert 'value="2026-06-01"' in page_html
+    assert 'name="preserve_source_metadata"' in page_html
+    assert "payload = {" in page_html
+    assert "preserve_source_metadata:" in page_html
+    assert "Preserve source metadata values" in page_html
     assert 'fetch("/jobs/ogm-aardvark/run"' in page_html
 
 
@@ -78,6 +82,22 @@ def test_static_socrata_page_shows_stream_progress_and_status() -> None:
     assert "Connecting to the Socrata harvest stream" in page_html
     assert "Socrata harvest completed successfully" in page_html
     assert "button.disabled = true" in page_html
+
+
+def test_static_arcgis_page_links_to_rendered_guide_and_reports() -> None:
+    page_html = (ROOT / "static" / "arcgis.html").read_text(encoding="utf-8")
+    guide_markdown = (ROOT / "static" / "arcgis.md").read_text(encoding="utf-8")
+
+    assert "github.com/geobtaa/harvest-operations/blob/main/static/arcgis.md" in page_html
+    assert "/jobs/harvest-task-dashboard/reports/py_arcgis_hub" in page_html
+    assert "reports/arcgis/" in page_html
+    assert 'id="run-status"' in page_html
+    assert 'id="run-button"' in page_html
+    assert "button.disabled = true" in page_html
+    assert "## Quick start" in guide_markdown
+    assert "## Troubleshooting" in guide_markdown
+    assert "Updating the registries alone does not create a" in guide_markdown
+    assert "dashboard history entry" in guide_markdown
 
 
 def test_static_pasda_page_runs_portal_stream_endpoint_from_browser() -> None:

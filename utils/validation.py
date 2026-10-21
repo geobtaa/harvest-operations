@@ -112,30 +112,32 @@ def geometry_validation_error(bounding_box, geometry) -> str:
     bbox_text = _clean_value(bounding_box)
     geometry_text = _clean_value(geometry)
 
-    if not bbox_text:
-        if geometry_text:
-            return "Geometry must be blank when Bounding Box is blank."
+    if not bbox_text and not geometry_text:
         return ""
 
-    bbox_parts, bbox_note = normalize_bbox(bbox_text)
-    if bbox_parts is None:
-        return (
-            f"Geometry cannot be validated because Bounding Box is invalid: {bbox_note}"
-        )
+    bbox_parts = None
+    if bbox_text:
+        bbox_parts, bbox_note = normalize_bbox(bbox_text)
+        if bbox_parts is None:
+            return (
+                "Geometry cannot be validated because Bounding Box is invalid: "
+                f"{bbox_note}"
+            )
     if not geometry_text:
         return "Geometry is required when Bounding Box is populated."
 
     envelope_parts = parse_envelope(geometry_text)
     if envelope_parts is not None:
-        expected = (
-            float(bbox_parts[0]),
-            float(bbox_parts[2]),
-            float(bbox_parts[3]),
-            float(bbox_parts[1]),
-        )
-        actual = tuple(float(part) for part in envelope_parts)
-        if not _coordinates_match(actual, expected):
-            return "ENVELOPE coordinates do not match Bounding Box."
+        if bbox_parts is not None:
+            expected = (
+                float(bbox_parts[0]),
+                float(bbox_parts[2]),
+                float(bbox_parts[3]),
+                float(bbox_parts[1]),
+            )
+            actual = tuple(float(part) for part in envelope_parts)
+            if not _coordinates_match(actual, expected):
+                return "ENVELOPE coordinates do not match Bounding Box."
         return ""
 
     try:
@@ -160,7 +162,7 @@ def geometry_validation_error(bounding_box, geometry) -> str:
     if any(ring.is_ccw for polygon in polygons for ring in polygon.interiors):
         return "Polygon interior rings must be clockwise."
 
-    if not bbox_crosses_antimeridian(bbox_parts):
+    if bbox_parts is not None and not bbox_crosses_antimeridian(bbox_parts):
         bbox_bounds = tuple(float(part) for part in bbox_parts)
         if not _coordinates_match(parsed.bounds, bbox_bounds):
             return "Geometry bounds do not match Bounding Box."

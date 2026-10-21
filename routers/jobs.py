@@ -56,6 +56,7 @@ OGM_GITHUB_ALLOWED_OVERRIDES = {
     "github_path",
     "github_token_env",
 }
+OGM_AARDVARK_ALLOWED_OVERRIDES = {"preserve_source_metadata"}
 
 
 def load_job_config(job_id: str) -> dict:
@@ -107,7 +108,11 @@ async def load_job_overrides(job_id: str, request: Request) -> dict:
     if not isinstance(payload, dict):
         raise HTTPException(status_code=400, detail="Request body must be a JSON object.")
 
-    unknown = sorted(set(payload) - OGM_GITHUB_ALLOWED_OVERRIDES)
+    allowed_overrides = set(OGM_GITHUB_ALLOWED_OVERRIDES)
+    if job_id == "ogm-aardvark":
+        allowed_overrides.update(OGM_AARDVARK_ALLOWED_OVERRIDES)
+
+    unknown = sorted(set(payload) - allowed_overrides)
     if unknown:
         raise HTTPException(
             status_code=400,
@@ -115,6 +120,13 @@ async def load_job_overrides(job_id: str, request: Request) -> dict:
         )
 
     overrides = {key: value for key, value in payload.items() if value not in ("", None)}
+    if "preserve_source_metadata" in overrides and not isinstance(
+        overrides["preserve_source_metadata"], bool
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="preserve_source_metadata must be true or false.",
+        )
     source_mode = overrides.get("source_mode")
     if source_mode and source_mode not in {"local_json", "github_tarball", "github_commits"}:
         raise HTTPException(
