@@ -1,0 +1,72 @@
+# ArcGIS curation job template. Setup notes and optional fields:
+# arcgis_curation_pipeline_reference.md
+version: 1
+
+job:
+  id: "detroit-2026"
+  work_directory: "../work/detroit-2026"
+
+provider: BTAA-GIN
+
+hub:
+  name: "City of Detroit Open Data Portal"
+  landing_page: "https://data.detroitmi.gov/"
+  dcat_api: "https://data.detroitmi.gov/api/feed/dcat-us/1.1.json"
+  website_reference_id: "07c-01"
+  websites_csv: ../../reference_data/websites.csv
+
+coordinate_reference_system:
+  authority: "ESRI:102690"
+  uri: "https://spatialreference.org/ref/esri/102690/"
+
+metadata:
+  code: "b1g_26_22000"
+  member_of: b1g_urbanBaseLayers
+  export_date: "2026-10-29"
+
+selection_criteria:
+  allowed_resource_types:
+    - Polygon data
+    - Line data
+    - Point data
+
+manual_review:
+  required_fields:
+    - filename
+    - ID
+    - Title
+    - Description
+    - Creator
+    - Publisher
+    - Provider
+    - Resource Class
+    - Access Rights
+
+derivatives:
+  pmtiles_config: ../pmtiles_config.sample.json
+
+# Fill the layers the Hub provides and delete unused rows.
+records:
+  - id: "2b9ab7687289457c9793a4a92d7c4eb9_0"
+    filename: "det_address_2026"
+    basic_theme: Address points
+
+  - id: "2b9ab7687289457c9793a4a92d7c4eb9_2"
+    filename: "det_buildings_2026"
+    basic_theme: Building footprints
+
+  - id: "86b221bb68ca4364afe81d156e54f95c_0"
+    filename: "det_boundary_2026"
+    basic_theme: Municipal boundary
+
+  - id: "913df13c75fc4fba8320d95d92e3abc1_0"
+    filename: "det_parks_2026"
+    basic_theme: Parks
+
+  - id: "2b9ab7687289457c9793a4a92d7c4eb9_1"
+    filename: "det_streets_2026"
+    basic_theme: Streets
+    
+  - id: "99527307190240aa98bba80116273fb0_0"
+    filename: "det_zoning_2026"
+    basic_theme: Zoning
