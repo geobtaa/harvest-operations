@@ -1,5 +1,57 @@
 The `scripts` folder contains standalone python scripts that are not integrated into the harvester modules.
 
+`run_arcgis_review.py` runs the regular ArcGIS harvest pipeline for only the portals
+in a supplied CSV, with upload generation disabled. From the repository root:
+
+```bash
+uv run python -m scripts.run_arcgis_review \
+  --input-csv inputs/harvest-workflow-inputs/py-arcgis-hub-ca.csv
+```
+
+To review the entire Minnesota Geospatial Commons group with catalog-parent
+titles, select its harvest record from the regular workflow input:
+
+```bash
+uv run python -m scripts.run_arcgis_review \
+  --input-csv inputs/harvest-workflow-inputs/py-arcgis-hub.csv \
+  --harvest-id harvest_05a-01
+```
+
+This fetches all eligible datasets from that one portal. It uses a temporary
+filtered input without changing the workflow CSV and requires exactly one
+matching ID. Selected-site filenames include `_harvest_05a-01` before
+`_primary.csv`, `_distributions.csv`, or `_report.csv` to separate them from
+whole-workflow reviews. These are complete review outputs; they are not upload
+deltas for updating already-published records.
+
+For this input it writes `outputs/YYYY-MM-DD_review_py-arcgis-hub-ca_primary.csv`,
+`outputs/YYYY-MM-DD_review_py-arcgis-hub-ca_distributions.csv`, and
+`reports/arcgis/review/YYYY-MM-DD_review_py-arcgis-hub-ca_report.csv`.
+The primary and distributions CSVs are the metadata to review; the report shows
+fetch outcomes and counts compared with the existing registry (read only).
+No registry is created or updated, no upload files are built, and no records are
+published. Regular ArcGIS output files and configuration are preserved. Repeating
+the same review input on the same day replaces that day's review files.
+The output retains the regular pipeline's publication-state values; generating
+these local CSVs does not publish them. Keep them for review until the colleague
+has selected which portals to publish.
+
+ArcGIS duplicate IDs retain the entire row from the preferred Series `Code`,
+using the order in `duplicate_id_code_priority` in `config/arcgis.yaml`.
+Unlisted codes rank after the configured codes. Ties retain the
+first encountered row. This applies to both regular and review ArcGIS harvests;
+only one version of each ID and its distribution links is retained.
+
+ArcGIS titles also include `(sublayer of Parent Title)` when the same feed
+contains an explicit parent with the same ArcGIS item ID and a matching root
+FeatureServer/MapServer URL. For example:
+`C18 2026 (sublayer of Lassen 2026 Roll Year) [California]`.
+Parents are checked before dataset filtering, but do not make additional records
+eligible for harvest. Missing, ambiguous, or unrelated parents leave titles
+unchanged, as do titles already containing the parent wording. This uses catalog
+metadata without additional service requests. Set `parent_sublayer_context: false`
+in `config/arcgis.yaml` to disable it for regular and review runs.
+
 `oai_pmh_pipeline.py` runs the validated, source-scoped OAI-PMH stages used by
 the browser UI: Identify, ListSets discovery, atomic XML download, and output
 building. `oai_download.py` remains available as the lower-level acquisition

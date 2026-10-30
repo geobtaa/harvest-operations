@@ -16,6 +16,8 @@ from scripts.build_uploads import (
     load_primary_csv_norm,
 )
 from utils.distribution_writer import generate_secondary_table
+from utils.arcgis_parent_context import prepare_parent_context
+from utils.dataframe_cleaner import prioritize_rows_by_column
 from utils.harvester_helpers import (
     first_non_empty,
     read_csv_rows,
@@ -125,6 +127,8 @@ class ArcGISHarvester(BaseHarvester):
 
             # Extract the list of datasets from within the fetched catalog
             resources = source_record.get("fetched_catalog", {}).get("dataset", [])
+            if self.config.get("parent_sublayer_context", True):
+                resources = prepare_parent_context(resources)
             
 
             # Creates a new, combined record for each individual dataset
@@ -196,7 +200,12 @@ class ArcGISHarvester(BaseHarvester):
 
 
     def clean(self, df):
-        # Run shared cleanup logic without adding ArcGIS-specific post-processing yet.
+        # Prefer configured series before shared cleanup keeps the first row per ID.
+        df = df.pipe(
+            prioritize_rows_by_column,
+            "Code",
+            self.config.get("duplicate_id_code_priority", []),
+        )
         df = super().clean(df)
         return df
 
@@ -871,7 +880,7 @@ def arcgis_map_resource_fields(resources: pd.Series) -> pd.DataFrame:
 
     return pd.DataFrame(
         {
-            "Alternative Title": resources.apply(lambda data: str(data.get("title", "")).strip()),
+            "Alternative Title": resources.apply(lambda data: str(data.get("_context_title", data.get("title", ""))).strip()),
             "Description": resources.apply(lambda data: data.get("description", "")),
             "Creator": resources.apply(get_creator),
             "Keyword": resources.apply(
