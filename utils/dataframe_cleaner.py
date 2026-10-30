@@ -7,6 +7,21 @@ from utils.field_order import FIELD_ORDER
 
 ######### Basic Cleaning #############
 
+def prioritize_rows_by_column(
+    df: pd.DataFrame, column: str, preferred_values: list[str]
+) -> pd.DataFrame:
+    """Order rows for keep-first deduplication, preserving input order for ties.
+
+    Listed values come first in preference order; unlisted values come last.
+    Whole rows are retained so metadata and distribution links stay together.
+    """
+    if not preferred_values or column not in df.columns:
+        return df
+    priority = {value: rank for rank, value in enumerate(dict.fromkeys(preferred_values))}
+    ranks = df[column].astype(str).str.strip().map(priority).fillna(len(priority))
+    return df.iloc[ranks.to_numpy().argsort(kind="stable")]
+
+
 def deduplicate_rows_and_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Remove duplicate columns and deduplicate rows based on the 'ID' column, if present.
