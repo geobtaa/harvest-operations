@@ -1,5 +1,15 @@
 name: ArcGIS Hubs Harvest
 type: arcgis
+# Add context only for explicit catalog parents with matching item/service URLs.
+parent_sublayer_context: true
+# Keep the first available series in this order when dataset IDs overlap.
+# Unlisted series rank last; ties retain their original input order.
+duplicate_id_code_priority:
+  - 18a-01
+  - 18b-01
+  - 18c-01
+  - 18d-01
+
 input_csv: inputs/harvest-workflow-inputs/py-arcgis-hub.csv
 hub_metadata_csv: reference_data/websites.csv
 output_primary_csv: outputs/arcgis_primary.csv
