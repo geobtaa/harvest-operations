@@ -1,0 +1,503 @@
+{
+  "version": 1,
+  "job_id": "detroit-2026",
+  "config_path": "curation/jobs/detroit-2026.yaml",
+  "work_directory": "curation/work/detroit-2026",
+  "metadata_path": "metadata/metadata.csv",
+  "config_sha256": "e278d31af044e44006c9a6ff9c271fc51b43561e7cf4d1c4097f00bb2f3612ef",
+  "created_at": "2026-10-29T17:35:03+00:00",
+  "updated_at": "2026-10-29T17:57:31+00:00",
+  "manual_review": {
+    "status": "confirmed",
+    "confirmed_at": "2026-10-29T17:55:43+00:00",
+    "metadata_sha256": "6d474ae6bbb3e346f843912597182f742be426d8582db2bbf1e8374f7fb47c03"
+  },
+  "stages": {
+    "validate": {
+      "status": "completed",
+      "completed_at": "2026-10-29T17:35:03+00:00"
+    },
+    "metadata": {
+      "status": "completed",
+      "completed_at": "2026-10-29T17:35:03+00:00"
+    },
+    "download": {
+      "status": "completed",
+      "completed_at": "2026-10-29T17:43:54+00:00",
+      "failed_count": 0,
+      "outputs": [
+        {
+          "feature_count": 486853,
+          "geometry_type": "esriGeometryPoint",
+          "output": "det_address_2026/det_address_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 363670,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "det_buildings_2026/det_buildings_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 1,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "det_boundary_2026/det_boundary_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 302,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "det_parks_2026/det_parks_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 36734,
+          "geometry_type": "esriGeometryPolyline",
+          "output": "det_streets_2026/det_streets_2026.gpkg",
+          "status": "downloaded"
+        },
+        {
+          "feature_count": 28290,
+          "geometry_type": "esriGeometryPolygon",
+          "output": "det_zoning_2026/det_zoning_2026.gpkg",
+          "status": "downloaded"
+        }
+      ]
+    },
+    "enrich": {
+      "status": "completed",
+      "completed_at": "2026-10-29T17:44:08+00:00",
+      "records": [
+        {
+          "filename": "det_address_2026.gpkg",
+          "metadata_source": "geopackage",
+          "feature_count": 486853,
+          "resource_type": "Point data",
+          "bounding_box": "-83.2907,42.2527,-82.9104,42.4538"
+        },
+        {
+          "filename": "det_buildings_2026.gpkg",
+          "metadata_source": "geopackage",
+          "feature_count": 363670,
+          "resource_type": "Polygon data",
+          "bounding_box": "-83.2907,42.2528,-82.9102,42.4539"
+        },
+        {
+          "filename": "det_boundary_2026.gpkg",
+          "metadata_source": "geopackage",
+          "feature_count": 1,
+          "resource_type": "Polygon data",
+          "bounding_box": "-83.2910,42.2521,-82.9096,42.4542"
+        },
+        {
+          "filename": "det_parks_2026.gpkg",
+          "metadata_source": "geopackage",
+          "feature_count": 302,
+          "resource_type": "Polygon data",
+          "bounding_box": "-83.2856,42.2634,-82.9146,42.4510"
+        },
+        {
+          "filename": "det_streets_2026.gpkg",
+          "metadata_source": "geopackage",
+          "feature_count": 36734,
+          "resource_type": "Line data",
+          "bounding_box": "-83.2910,42.2521,-82.9096,42.4543"
+        },
+        {
+          "filename": "det_zoning_2026.gpkg",
+          "metadata_source": "geopackage",
+          "feature_count": 28290,
+          "resource_type": "Polygon data",
+          "bounding_box": "-83.2908,42.2525,-82.9099,42.4539"
+        }
+      ]
+    },
+    "dictionaries": {
+      "status": "completed",
+      "completed_at": "2026-10-29T17:44:12+00:00",
+      "fallback_count": 0,
+      "outputs": [
+        "det_address_2026/det_address_2026.csv",
+        "det_buildings_2026/det_buildings_2026.csv",
+        "det_boundary_2026/det_boundary_2026.csv",
+        "det_parks_2026/det_parks_2026.csv",
+        "det_streets_2026/det_streets_2026.csv",
+        "det_zoning_2026/det_zoning_2026.csv"
+      ],
+      "records": [
+        {
+          "filename": "det_address_2026.gpkg",
+          "output": "det_address_2026/det_address_2026.csv",
+          "metadata_source": "arcgis_rest"
+        },
+        {
+          "filename": "det_buildings_2026.gpkg",
+          "output": "det_buildings_2026/det_buildings_2026.csv",
+          "metadata_source": "arcgis_rest"
+        },
+        {
+          "filename": "det_boundary_2026.gpkg",
+          "output": "det_boundary_2026/det_boundary_2026.csv",
+          "metadata_source": "arcgis_rest"
+        },
+        {
+          "filename": "det_parks_2026.gpkg",
+          "output": "det_parks_2026/det_parks_2026.csv",
+          "metadata_source": "arcgis_rest"
+        },
+        {
+          "filename": "det_streets_2026.gpkg",
+          "output": "det_streets_2026/det_streets_2026.csv",
+          "metadata_source": "arcgis_rest"
+        },
+        {
+          "filename": "det_zoning_2026.gpkg",
+          "output": "det_zoning_2026/det_zoning_2026.csv",
+          "metadata_source": "arcgis_rest"
+        }
+      ]
+    },
+    "embed": {
+      "status": "completed",
+      "completed_at": "2026-10-29T17:55:46+00:00",
+      "outputs": [
+        "det_address_2026/det_address_2026.gpkg",
+        "det_buildings_2026/det_buildings_2026.gpkg",
+        "det_boundary_2026/det_boundary_2026.gpkg",
+        "det_parks_2026/det_parks_2026.gpkg",
+        "det_streets_2026/det_streets_2026.gpkg",
+        "det_zoning_2026/det_zoning_2026.gpkg"
+      ]
+    },
+    "thumbnails": {
+      "status": "completed",
+      "completed_at": "2026-10-29T17:56:13+00:00",
+      "outputs": [
+        "det_address_2026/det_address_2026.png",
+        "det_buildings_2026/det_buildings_2026.png",
+        "det_boundary_2026/det_boundary_2026.png",
+        "det_parks_2026/det_parks_2026.png",
+        "det_streets_2026/det_streets_2026.png",
+        "det_zoning_2026/det_zoning_2026.png"
+      ]
+    },
+    "derivatives": {
+      "status": "completed",
+      "completed_at": "2026-10-29T17:57:22+00:00",
+      "report": "reports/pmtiles_build_report.csv"
+    },
+    "zip": {
+      "status": "completed",
+      "completed_at": "2026-10-29T17:57:31+00:00",
+      "outputs": [
+        "det_address_2026/det_address_2026.gpkg.zip",
+        "det_buildings_2026/det_buildings_2026.gpkg.zip",
+        "det_boundary_2026/det_boundary_2026.gpkg.zip",
+        "det_parks_2026/det_parks_2026.gpkg.zip",
+        "det_streets_2026/det_streets_2026.gpkg.zip",
+        "det_zoning_2026/det_zoning_2026.gpkg.zip"
+      ]
+    },
+    "snapshot": {
+      "status": "completed",
+      "completed_at": "2026-10-29T17:57:51+00:00"
+    }
+  },
+  "records": [
+    {
+      "source_id": "2b9ab7687289457c9793a4a92d7c4eb9_0",
+      "curated_id": "b1g_A3culzUFGzMS",
+      "filename": "det_address_2026.gpkg",
+      "landing_page": "https://data.detroitmi.gov/datasets/detroitmi::addresses-4",
+      "service_url": "https://services2.arcgis.com/qvkbeam7Wirps6zC/arcgis/rest/services/BaseUnitFeatures/FeatureServer/0",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "2b9ab7687289457c9793a4a92d7c4eb9_2",
+      "curated_id": "b1g_Db69QufZPdZj",
+      "filename": "det_buildings_2026.gpkg",
+      "landing_page": "https://data.detroitmi.gov/datasets/detroitmi::buildings-4",
+      "service_url": "https://services2.arcgis.com/qvkbeam7Wirps6zC/arcgis/rest/services/BaseUnitFeatures/FeatureServer/2",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "86b221bb68ca4364afe81d156e54f95c_0",
+      "curated_id": "b1g_r6bIeFE18BW8",
+      "filename": "det_boundary_2026.gpkg",
+      "landing_page": "https://data.detroitmi.gov/datasets/detroitmi::city-of-detroit-boundary",
+      "service_url": "https://services2.arcgis.com/qvkbeam7Wirps6zC/arcgis/rest/services/City_of_Detroit_Boundary/FeatureServer/0",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "913df13c75fc4fba8320d95d92e3abc1_0",
+      "curated_id": "b1g_UzpsuAi02ASd",
+      "filename": "det_parks_2026.gpkg",
+      "landing_page": "https://data.detroitmi.gov/datasets/detroitmi::city-parks",
+      "service_url": "https://services2.arcgis.com/qvkbeam7Wirps6zC/arcgis/rest/services/city_parks/FeatureServer/0",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "2b9ab7687289457c9793a4a92d7c4eb9_1",
+      "curated_id": "b1g_gSHLPXbvmPSX",
+      "filename": "det_streets_2026.gpkg",
+      "landing_page": "https://data.detroitmi.gov/datasets/detroitmi::streets-4",
+      "service_url": "https://services2.arcgis.com/qvkbeam7Wirps6zC/arcgis/rest/services/BaseUnitFeatures/FeatureServer/1",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    },
+    {
+      "source_id": "99527307190240aa98bba80116273fb0_0",
+      "curated_id": "b1g_JkIdrfGOZlUA",
+      "filename": "det_zoning_2026.gpkg",
+      "landing_page": "https://data.detroitmi.gov/datasets/detroitmi::zoning",
+      "service_url": "https://services2.arcgis.com/qvkbeam7Wirps6zC/arcgis/rest/services/Zoning_1/FeatureServer/0",
+      "source_type": "dcat",
+      "metadata_source": "dcat"
+    }
+  ],
+  "run_record": {
+    "run_id": "20261029T175751Z",
+    "saved_at": "2026-10-29T17:57:51+00:00",
+    "record_path": "curation/run_records/detroit-2026/20261029T175751Z",
+    "metadata_csv": "metadata.csv",
+    "job_config": "job.yaml",
+    "git": {
+      "revision": "dcf4a7874753bdc55d44d674d778e4ba7de836d9",
+      "dirty": true
+    }
+  },
+  "artifacts": [
+    {
+      "role": "data_dictionary",
+      "path": "det_address_2026/det_address_2026.csv",
+      "size_bytes": 3427,
+      "sha256": "8ea3ef4fd59af04457df21f4fd59fb9722b39c92df829412c439a75fcd801c7e"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "det_address_2026/det_address_2026.fgb",
+      "size_bytes": 124702472,
+      "sha256": "53d1b815384273bef8b902f777a1705cdfbcc8ffdc59da24a3e1999d43469433"
+    },
+    {
+      "role": "geopackage",
+      "path": "det_address_2026/det_address_2026.gpkg",
+      "size_bytes": 111423488,
+      "sha256": "3f959ef5064c4ccf6f8e0a3372219ab304108b96b808bc73b8c73e4586374afc"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "det_address_2026/det_address_2026.gpkg.zip",
+      "size_bytes": 31245045,
+      "sha256": "a8aa4f2110d7a9ca7c4aac0635d9cf232fb7585993452f9fd9d1e25020d36961"
+    },
+    {
+      "role": "pmtiles",
+      "path": "det_address_2026/det_address_2026.pmtiles",
+      "size_bytes": 29369824,
+      "sha256": "41c822e78f1c0113d9c0115f8f336d02e36611fe7e514449691e4745893f2628"
+    },
+    {
+      "role": "thumbnail",
+      "path": "det_address_2026/det_address_2026.png",
+      "size_bytes": 172397,
+      "sha256": "8011cc753fcc6280f03d292045447faf270a63e137366ba414778c51fbb93bb7"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "det_buildings_2026/det_buildings_2026.csv",
+      "size_bytes": 1590,
+      "sha256": "f2560299cee240fc99ac8c3b1dab864aa38a05c1a5a90c9bc1c7fc707b81f775"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "det_buildings_2026/det_buildings_2026.fgb",
+      "size_bytes": 116530440,
+      "sha256": "bf42674d22b2083cb0b54854ec1fe3c8f28c16bf904ba9ac5d002b788b262c4e"
+    },
+    {
+      "role": "geopackage",
+      "path": "det_buildings_2026/det_buildings_2026.gpkg",
+      "size_bytes": 110202880,
+      "sha256": "9f0804bba490faa8419d3522126d3e00b3bcf20c3d0371d57981fa473b906f3c"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "det_buildings_2026/det_buildings_2026.gpkg.zip",
+      "size_bytes": 52147581,
+      "sha256": "5ba59e67b987782d186b4993bed4ca5e594d336f9c7eb9be311a5c12bb1014ad"
+    },
+    {
+      "role": "pmtiles",
+      "path": "det_buildings_2026/det_buildings_2026.pmtiles",
+      "size_bytes": 25821064,
+      "sha256": "a798b0e779369a1d636fe855ad69968f40fcb6490980f45ca4d7fdc76ed21555"
+    },
+    {
+      "role": "thumbnail",
+      "path": "det_buildings_2026/det_buildings_2026.png",
+      "size_bytes": 250473,
+      "sha256": "f65f38b29894626f7b68baec32a92b8e03159033bb0db3fda309077b141b6f42"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "det_boundary_2026/det_boundary_2026.csv",
+      "size_bytes": 4100,
+      "sha256": "3dd08abec4b1b499dd3b94ae381b8d32e03a95be22d49f75b7ec0d045e1eb784"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "det_boundary_2026/det_boundary_2026.fgb",
+      "size_bytes": 27088,
+      "sha256": "0d2328eb4de4c233d8d053c44026b372476e61ef1f2fe5a1ee5b3be8c921a542"
+    },
+    {
+      "role": "geopackage",
+      "path": "det_boundary_2026/det_boundary_2026.gpkg",
+      "size_bytes": 126976,
+      "sha256": "0eaadbf9dda701da1e1837452a535f55514bb6fbb02403195a2cad767c0b7c28"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "det_boundary_2026/det_boundary_2026.gpkg.zip",
+      "size_bytes": 25089,
+      "sha256": "f10694df3804e06476689a2789c6aeb166bb4b59fb8d286957fd745503326aeb"
+    },
+    {
+      "role": "pmtiles",
+      "path": "det_boundary_2026/det_boundary_2026.pmtiles",
+      "size_bytes": 9288,
+      "sha256": "d83de9e8c4c69843010cbf57e484dc23ad2eadebe8bd90d876cf3eecb065f9c7"
+    },
+    {
+      "role": "thumbnail",
+      "path": "det_boundary_2026/det_boundary_2026.png",
+      "size_bytes": 32140,
+      "sha256": "36e5618c84e0920a38b8916bfd740891ad2568f28abcea6296fd95e25e91aa98"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "det_parks_2026/det_parks_2026.csv",
+      "size_bytes": 3276,
+      "sha256": "1de3b4ca8175f6bb6e2503bcf3f7f8f08edce555cac2d69c82791e943343b270"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "det_parks_2026/det_parks_2026.fgb",
+      "size_bytes": 221744,
+      "sha256": "c33f968346899aecccf1f8a6bc25dfd022f5e44ca611daf8238857e30c405687"
+    },
+    {
+      "role": "geopackage",
+      "path": "det_parks_2026/det_parks_2026.gpkg",
+      "size_bytes": 327680,
+      "sha256": "8240a28aa991d90383f87fdd253392582e2645a8c226fb1e96ec7c1eeacda1a3"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "det_parks_2026/det_parks_2026.gpkg.zip",
+      "size_bytes": 134748,
+      "sha256": "0a20f2bc36cc6bf7ed5392cbcc7bb0e32549bf16badee60ec4b0eb4b9cd1c794"
+    },
+    {
+      "role": "pmtiles",
+      "path": "det_parks_2026/det_parks_2026.pmtiles",
+      "size_bytes": 250380,
+      "sha256": "b5c697e2edbeb2b93024c8d11e3224ea827cce6a9f89bf8ff6c99311d3467404"
+    },
+    {
+      "role": "thumbnail",
+      "path": "det_parks_2026/det_parks_2026.png",
+      "size_bytes": 57318,
+      "sha256": "aa62d7f4e9df98e48774bcead855698fc0e311aa1adf038bd3b960235b568de6"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "det_streets_2026/det_streets_2026.csv",
+      "size_bytes": 2875,
+      "sha256": "9eb68fe6a2fead79762fc5c4704a7b3631c7114590dc025c21fb6ac584663b0f"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "det_streets_2026/det_streets_2026.fgb",
+      "size_bytes": 10229640,
+      "sha256": "7a1632e7c914e7bcf7e390106ceedea640bfc4655e3fa3db6d4f6f39c6c1c1e8"
+    },
+    {
+      "role": "geopackage",
+      "path": "det_streets_2026/det_streets_2026.gpkg",
+      "size_bytes": 9994240,
+      "sha256": "57e2c488b160d7fa63a60f64a0edda5814a37743530fedbf3c38d3a3c1b9f44e"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "det_streets_2026/det_streets_2026.gpkg.zip",
+      "size_bytes": 3879382,
+      "sha256": "3ff0e9d947034b4b1be0b454048d1a08f162395ebbc376381430254329838cb7"
+    },
+    {
+      "role": "pmtiles",
+      "path": "det_streets_2026/det_streets_2026.pmtiles",
+      "size_bytes": 6426332,
+      "sha256": "77228d684e5e303c143da220bd0d1b97492e484de3bfc1843148561b41cf602d"
+    },
+    {
+      "role": "thumbnail",
+      "path": "det_streets_2026/det_streets_2026.png",
+      "size_bytes": 284714,
+      "sha256": "eb73a6242f645463d5be775510d17cc2785ae0144e4477fff78899e5f59cd099"
+    },
+    {
+      "role": "data_dictionary",
+      "path": "det_zoning_2026/det_zoning_2026.csv",
+      "size_bytes": 1329,
+      "sha256": "bf758a46df152a9ebcbe2fdc100b594d951e2884ec62c16fd3ab8d876f1c4042"
+    },
+    {
+      "role": "flatgeobuf",
+      "path": "det_zoning_2026/det_zoning_2026.fgb",
+      "size_bytes": 17840840,
+      "sha256": "b8580bc8f0747f77241e0f9f62e0dd857bea6d58787062ee2402ada3e8711cac"
+    },
+    {
+      "role": "geopackage",
+      "path": "det_zoning_2026/det_zoning_2026.gpkg",
+      "size_bytes": 19476480,
+      "sha256": "95a26d2c308dac54622be128cc9b363228c93e209dd6b4df82d88412b95f12cc"
+    },
+    {
+      "role": "geopackage_archive",
+      "path": "det_zoning_2026/det_zoning_2026.gpkg.zip",
+      "size_bytes": 11325604,
+      "sha256": "fc4f06235372e2a3f831133ae249f95e9cbadcbe9f0858b394c9a04f32d69bf5"
+    },
+    {
+      "role": "pmtiles",
+      "path": "det_zoning_2026/det_zoning_2026.pmtiles",
+      "size_bytes": 1938899,
+      "sha256": "1c8b0f7f4a7c418102e0fe594737c6ff9ba40ee41cc9d6804f0902c44a67e3c1"
+    },
+    {
+      "role": "thumbnail",
+      "path": "det_zoning_2026/det_zoning_2026.png",
+      "size_bytes": 137073,
+      "sha256": "ba092e908fd778d6633c5fef2e232f78129ef789133858fa52447550c97900ad"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report.csv",
+      "size_bytes": 320651,
+      "sha256": "79e406cd6406800e870d28b3f639a12669f63fe64c13eedb0bc238ee3fb1a0e3"
+    },
+    {
+      "role": "report",
+      "path": "reports/pmtiles_build_report_fields.csv",
+      "size_bytes": 17230,
+      "sha256": "e6880888c77ee785b8e197195d43265f1a03b7789e8a0ed13def682e765b3cbb"
+    }
+  ]
+}
