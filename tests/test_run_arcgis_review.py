@@ -103,3 +103,43 @@ def test_review_harvests_only_ca_portals_and_preserves_registry(tmp_path, monkey
     assert report.iloc[-1]["Total Records Found"] == 4
     for path in results.values():
         assert "review_py-arcgis-hub-ca_" in Path(path).name
+
+
+def test_selected_review_passes_only_mngeo_to_entire_pipeline(monkeypatch):
+    source_csv = ROOT / "inputs/harvest-workflow-inputs/py-arcgis-hub.csv"
+    original_input = source_csv.read_bytes()
+    captured = {}
+
+    class FakeHarvester:
+        def __init__(self, config):
+            captured.update(config)
+
+        def harvest_pipeline(self):
+            with open(captured["input_csv"], newline="", encoding="utf-8") as handle:
+                rows = list(csv.DictReader(handle))
+            assert len(rows) == 1
+            assert rows[0]["ID"] == "harvest_05a-01"
+            assert rows[0]["Endpoint URL"] == "https://gis.data.mn.gov/api/feed/dcat-us/1.1.json"
+            return {}
+
+    monkeypatch.chdir(ROOT)
+    monkeypatch.setattr("scripts.run_arcgis_review.ArcGISHarvester", FakeHarvester)
+    run_review(source_csv, harvest_id="harvest_05a-01")
+    assert captured["build_uploads"] is False
+    assert captured["parent_sublayer_context"] is True
+    for key in ("output_primary_csv", "output_distributions_csv", "output_report_csv"):
+        assert "review_py-arcgis-hub_harvest_05a-01_" in captured[key]
+    assert not Path(captured["input_csv"]).exists()
+    assert source_csv.read_bytes() == original_input
+
+
+@pytest.mark.parametrize("content,count", [
+    ("ID,Title\nother,Other\n", 0),
+    ("ID,Title\nharvest_05a-01,One\nharvest_05a-01,Two\n", 2),
+])
+def test_selected_review_rejects_missing_or_ambiguous_id(tmp_path, monkeypatch, content, count):
+    source_csv = tmp_path / "input.csv"
+    source_csv.write_text(content)
+    monkeypatch.chdir(ROOT)
+    with pytest.raises(ValueError, match=f"found {count}"):
+        run_review(source_csv, harvest_id="harvest_05a-01")
