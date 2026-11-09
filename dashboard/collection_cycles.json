@@ -37,7 +37,7 @@
           "items": [
             "Archive datasets for a second city in states that were part of Cohort 1."
           ],
-          "status": "planned"
+          "status": "active"
         }
       ]
     },
@@ -54,7 +54,7 @@
             "Index a small number of county sources and the Los Angeles open data portal.",
             "Index a map collection hosted at USC."
           ],
-          "status": "planned"
+          "status": "active"
         },
         {
           "title": "University of Washington and University of Oregon",
@@ -64,7 +64,7 @@
           "status": "waiting"
         },
         {
-          "title": "Purdue and University of Iowa",
+          "title": "University of Iowa",
           "items": [
             "Check with new team members about collections or resources they consider priorities."
           ],

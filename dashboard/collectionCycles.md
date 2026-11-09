@@ -6,7 +6,7 @@
 
 **Goal:** Improve the accessibility and usability of existing BTAA library map collections
 
-- [ ] Complete the evaluation and analysis of existing BTAA library maps.  
+- [x] Complete the evaluation and analysis of existing BTAA library maps.  
 - [ ] Fix as many locally correctable thumbnail and preview problems as possible.  
 - [ ] Work with the new University of Iowa team member to fix access to Iowa map records, including blocks on IIIF links and thumbnails.  
 - [ ] Produce a short follow-up report
@@ -23,7 +23,7 @@
 
 **Cohort 2 — July–October**
 
-- [ ] Archive datasets for two cities in states that were not part of Cohort 1\.
+- [x] Archive datasets for two cities in states that were not part of Cohort 1\.
 
 **Cohort 3 — October–December**
 
