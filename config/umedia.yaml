@@ -3,7 +3,7 @@ type: umedia
 
 base_url: https://umedia.lib.umn.edu/search.json
 facets:
-  contributing_organization_name_s: University of Minnesota Libraries, John R. Borchert Map Library.
+  contributing_organization_name_s: University of Minnesota
 max_items: 10000
 page_size: 20
 page_start: 0
