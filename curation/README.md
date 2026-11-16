@@ -611,6 +611,45 @@ For each matched GeoPackage, the script:
 Unmatched GeoPackages are skipped and left unchanged. Metadata rows that do not
 match any GeoPackage are reported at the end of the run.
 
+## Convert local shapefile batches
+
+Run the shapefile converter from the repository root:
+
+```sh
+uv run --locked python curation/scripts/convert_shapefiles_to_geopackage.py \
+  --input-dir inputs/shapefiles \
+  --output-dir curation/work/shapefiles/gpkg \
+  --skip-existing
+```
+
+The converter discovers `.shp` files recursively (including uppercase extensions)
+and preserves their relative folders under the output directory, so matching
+filenames in different source folders stay separate. It uses GDAL's `ogr2ogr`
+without loading entire datasets into a Python dataframe. Source files, attributes,
+and the source CRS are retained; the PMTiles builder handles reprojection later.
+
+Rerun the same command after adding more shapefiles. `--skip-existing` skips
+nonempty GeoPackages without validating freshness or contents; use `--overwrite`
+instead to rebuild them after source changes. Without either flag, existing
+outputs count as failures. Conversion uses temporary files so a failed rebuild
+does not replace an existing GeoPackage. Failures are reported per file and the
+batch continues, returning a nonzero exit status if any conversion failed or no
+shapefiles were found.
+
+Then build PMTiles for the batch:
+
+```sh
+uv run --locked python curation/scripts/build_pmtiles_from_gpkg.py \
+  --input-dir curation/work/shapefiles/gpkg \
+  --fgb-dir curation/work/shapefiles/fgb \
+  --pmtiles-dir curation/work/shapefiles/pmtiles \
+  --report curation/work/shapefiles/pmtiles_build_report.csv \
+  --skip-existing
+```
+
+If you rebuild GeoPackages after source changes, also use `--overwrite` instead
+of `--skip-existing` for the PMTiles build to refresh the derivatives.
+
 ## Build PMTiles from GeoPackages
 
 Use `build_pmtiles_from_gpkg.py` to recursively convert GeoPackage vector layers
