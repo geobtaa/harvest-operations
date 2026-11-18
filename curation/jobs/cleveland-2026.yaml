@@ -1,0 +1,75 @@
+# ArcGIS curation job template. Setup notes and optional fields:
+# arcgis_curation_pipeline_reference.md
+version: 1
+
+job:
+  id: "cleveland-2026"
+  work_directory: "../work/cleveland-2026"
+
+provider: BTAA-GIN
+
+hub:
+  name: "Cleveland Open Data"
+  landing_page: "https://data.clevelandohio.gov/"
+  dcat_api: "https://data.clevelandohio.gov/api/feed/dcat-us/1.1.json"
+  website_reference_id: "11c-03"
+  websites_csv: ../../reference_data/websites.csv
+
+coordinate_reference_system:
+  authority: "EPSG:3734"
+  uri: "https://spatialreference.org/ref/epsg/3734/"
+
+metadata:
+  code: "b1g_39_16000"
+  member_of: b1g_urbanBaseLayers
+  export_date: "2026-11-17"
+
+selection_criteria:
+  allowed_resource_types:
+    - Polygon data
+    - Line data
+    - Point data
+
+manual_review:
+  required_fields:
+    - filename
+    - ID
+    - Title
+    - Description
+    - Creator
+    - Publisher
+    - Provider
+    - Resource Class
+    - Rights
+    - Access Rights
+
+derivatives:
+  pmtiles_config: ../pmtiles_config.sample.json
+
+# Fill the layers the Hub provides and delete unused rows.
+records:
+  - id: "92a311dcc77446b9bbbaa4403e0e2bdb_0" 
+    filename: "clv_address_2026"
+    basic_theme: Address points
+
+  - id: "fa8ba3c00cf842fd8dd49e8d9e80e268_0"
+    filename: "clv_boundary_2026"
+    basic_theme: Municipal boundary
+
+  - id: "1a67c0ff29db47679bb18f0668ebb280_12"
+    filename: "clv_parks_2026"
+    basic_theme: Parks
+
+  # Street Centerlines is listed in the planning item's description but is
+  # absent from the GeoPackage inspected on 2026-11-17. Add when sourced.
+
+  - id: "21881eeccd734bdc9a20624bdeabc4b3:Zoning"
+    filename: "clv_zoning_2026"
+    basic_theme: Zoning
+    temporal_year: "2026"
+    source:
+      type: geopackage
+      item_id: "21881eeccd734bdc9a20624bdeabc4b3"
+      layer: "Zoning"
+    metadata_overrides:
+      landing_page: "https://data.clevelandohio.gov/content/21881eeccd734bdc9a20624bdeabc4b3/about"
