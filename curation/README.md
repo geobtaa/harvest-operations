@@ -174,8 +174,8 @@ Use `jobs/stpaul-2026.yaml` as the first working example. A job defines:
   descriptions (falling back to the DCAT title when omitted); and
 - an optional four-digit `temporal_year` for records whose source title does
   not identify the archived dataset year;
-- an optional direct ArcGIS REST source and source metadata overrides for
-  vector layers that are absent from the Hub catalog; and
+- an optional direct ArcGIS REST or named GeoPackage layer source, with source
+  metadata overrides, for vector layers absent from the Hub catalog; and
 - an optional PMTiles field-selection configuration.
 
 The records list must not be empty. Record IDs and filenames must be unique.
@@ -213,12 +213,36 @@ items or `source.item_id` when REST does not expose the item ID. Supported
 override keys are `title`, `description`, `creator`, `rights`, `keywords`, and
 `landing_page`. DCAT and direct REST records can be mixed in the same job.
 
-For this first iteration, an eligible record must pass the existing ArcGIS
+For a layer inside an ArcGIS GeoPackage item, use its exact internal name:
+
+```yaml
+- id: "21881eeccd734bdc9a20624bdeabc4b3:Zoning"
+  filename: "clv_zoning_2026"
+  basic_theme: Zoning
+  temporal_year: "2026"
+  source:
+    type: geopackage
+    item_id: "21881eeccd734bdc9a20624bdeabc4b3"
+    layer: "Zoning"
+```
+
+GeoPackage sources support `source.portal_url` and the same metadata overrides
+as direct REST sources. The metadata stage downloads each item once and checks
+the selected layers. Keep the generated `sources/` cache: after manual review,
+the download stage extracts each layer into a separate GeoPackage in the job's
+CRS. A recorded SHA-256 keeps extraction tied to the reviewed snapshot. The
+dictionary stage reads field names and types from the extracted data. All
+three source types can be mixed in one job. See the
+[source configuration reference](jobs/arcgis_curation_pipeline_reference.md#layers-in-a-downloadable-geopackage)
+for cache refresh behavior and metadata details.
+
+For DCAT sources, an eligible record must pass the existing ArcGIS
 harvester distribution filter, expose a vector FeatureServer or MapServer layer
 through its `ArcGIS GeoService` distribution, and derive to one of the resource
 types allowed by the YAML job. Explicit direct REST records bypass the broad
 harvester distribution filter but must expose a queryable supported vector
-geometry. Raster/ImageServer curation remains outside this pipeline.
+geometry. GeoPackage sources validate the named vector layer directly.
+Raster/ImageServer curation remains outside this pipeline.
 
 ### Start a new harvest
 
@@ -297,6 +321,8 @@ harvester rules with these curation overrides:
 - `Member Of`: the configured collection ID
 - `ID`: `b1g_` followed by a stable 12-character alphanumeric Nano ID
 - `Provenance`: `Exported from {web service link} as GeoPackage on {date}.`
+  GeoPackage sources instead record the extracted layer, download URL, date,
+  and source file checksum.
 - `Source`: blank
 - `Is Part Of`: blank
 - `Harvest Workflow`: `curation_datasets`
@@ -326,6 +352,8 @@ uv run --locked python curation/scripts/arcgis_curation_pipeline.py \
 
 1. Pages each FeatureServer layer, downloads GeoJSON in EPSG:4326, and uses
    `ogr2ogr` to create the named GeoPackage in the configured preferred CRS.
+   For GeoPackage sources, extracts the selected layer from the reviewed cache
+   into a single-layer output in that CRS.
 2. Derives controlled `Resource Type`, decimal-degree `Bounding Box`,
    bbox geometry, and centroid values from each local GeoPackage.
 3. Writes one field-level data dictionary per layer, including ArcGIS coded

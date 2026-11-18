@@ -129,6 +129,7 @@ class RecordSpec:
     service_url: str = ""
     portal_url: str = "https://www.arcgis.com"
     item_id: str = ""
+    layer: str = ""
     metadata_overrides: dict[str, Any] | None = None
 
     @property
@@ -192,6 +193,7 @@ class JobConfig:
 
 JsonRequester = Callable[[str, dict[str, Any] | None, str], dict[str, Any]]
 DIRECT_REST_SOURCE_TYPE = "arcgis_rest"
+GEOPACKAGE_SOURCE_TYPE = "geopackage"
 DIRECT_REST_METADATA_OVERRIDE_KEYS = {
     "title",
     "description",
@@ -321,7 +323,7 @@ def load_job_config(config_path: Path | str) -> JobConfig:
             else {}
         )
         unknown_source_keys = sorted(
-            set(source_raw) - {"type", "service_url", "portal_url", "item_id"}
+            set(source_raw) - {"type", "service_url", "portal_url", "item_id", "layer"}
         )
         if unknown_source_keys:
             raise CurationConfigError(
@@ -329,14 +331,36 @@ def load_job_config(config_path: Path | str) -> JobConfig:
                 + ", ".join(unknown_source_keys)
             )
         source_type = str(source_raw.get("type", "dcat")).strip().casefold()
-        if source_type not in {"dcat", DIRECT_REST_SOURCE_TYPE}:
+        if source_type not in {"dcat", DIRECT_REST_SOURCE_TYPE, GEOPACKAGE_SOURCE_TYPE}:
             raise CurationConfigError(
                 f"records[{index}].source.type must be 'dcat' or "
-                f"'{DIRECT_REST_SOURCE_TYPE}'"
+                f"'{DIRECT_REST_SOURCE_TYPE}' or '{GEOPACKAGE_SOURCE_TYPE}'"
             )
         service_url = ""
         portal_url = "https://www.arcgis.com"
         item_id = str(source_raw.get("item_id", "")).strip()
+        layer = ""
+        if source_type != GEOPACKAGE_SOURCE_TYPE and "layer" in source_raw:
+            raise CurationConfigError(
+                f"records[{index}].source.layer requires type: geopackage"
+            )
+        if source_type == GEOPACKAGE_SOURCE_TYPE:
+            item_id = _required_string(
+                source_raw, "item_id", f"records[{index}].source"
+            )
+            if not re.fullmatch(r"[0-9a-fA-F]{32}", item_id):
+                raise CurationConfigError(
+                    f"records[{index}].source.item_id must be a 32-character ArcGIS item ID"
+                )
+            layer = _required_string(source_raw, "layer", f"records[{index}].source")
+            if "service_url" in source_raw:
+                raise CurationConfigError(
+                    f"records[{index}].source.service_url is not supported for geopackage"
+                )
+            portal_url = normalize_portal_url(
+                str(source_raw.get("portal_url", portal_url)),
+                f"records[{index}].source.portal_url",
+            )
         if source_type == DIRECT_REST_SOURCE_TYPE:
             service_url = normalize_arcgis_layer_url(
                 _required_text(
@@ -350,7 +374,9 @@ def load_job_config(config_path: Path | str) -> JobConfig:
                 str(source_raw.get("portal_url", portal_url)),
                 f"records[{index}].source.portal_url",
             )
-        elif any(key in source_raw for key in ("service_url", "portal_url", "item_id")):
+        elif source_type == "dcat" and any(
+            key in source_raw for key in ("service_url", "portal_url", "item_id")
+        ):
             raise CurationConfigError(
                 f"records[{index}].source REST settings require "
                 f"type: {DIRECT_REST_SOURCE_TYPE}"
@@ -369,10 +395,10 @@ def load_job_config(config_path: Path | str) -> JobConfig:
                 f"Unsupported records[{index}].metadata_overrides keys: "
                 + ", ".join(unknown_override_keys)
             )
-        if metadata_overrides and source_type != DIRECT_REST_SOURCE_TYPE:
+        if metadata_overrides and source_type == "dcat":
             raise CurationConfigError(
                 f"records[{index}].metadata_overrides requires "
-                f"source.type: {DIRECT_REST_SOURCE_TYPE}"
+                f"source.type: {DIRECT_REST_SOURCE_TYPE} or {GEOPACKAGE_SOURCE_TYPE}"
             )
         keywords_override = metadata_overrides.get("keywords")
         if keywords_override is not None and not isinstance(
@@ -411,6 +437,7 @@ def load_job_config(config_path: Path | str) -> JobConfig:
                 service_url=service_url,
                 portal_url=portal_url,
                 item_id=item_id,
+                layer=layer,
                 metadata_overrides=dict(metadata_overrides),
             )
         )
@@ -676,6 +703,80 @@ def build_direct_rest_resource(
     }
 
 
+def download_source_geopackage(job: JobConfig, url: str) -> Path:
+    """Keep a content-addressed snapshot so review and extraction use identical data."""
+    source_dir = job.work_dir / "sources"
+    source_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="gpkg-", dir=source_dir) as temp_dir:
+        temporary = Path(temp_dir) / "source.gpkg"
+        with requests.get(url, stream=True, timeout=120) as response:
+            response.raise_for_status()
+            with temporary.open("wb") as handle:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    handle.write(chunk)
+        # Reject JSON error responses and non-GeoPackage files before caching.
+        with temporary.open("rb") as handle:
+            header = handle.read(72)
+        if header[:16] != b"SQLite format 3\x00" or header[68:72] != b"GPKG":
+            raise RuntimeError(f"Download is not a GeoPackage: {url}")
+        fiona.listlayers(temporary)
+        destination = source_dir / f"{file_sha256(temporary)}.gpkg"
+        temporary.replace(destination)
+    return destination
+
+
+def build_geopackage_resource(
+    record: RecordSpec, item: dict[str, Any], package: Path
+) -> dict[str, Any]:
+    """Map ArcGIS item metadata and a named package layer into a curation resource."""
+    layers = fiona.listlayers(package)
+    if record.layer not in layers:
+        raise RuntimeError(
+            f"GeoPackage layer {record.layer!r} not found for {record.source_id}; "
+            f"available layers: {', '.join(layers)}"
+        )
+    inspection = inspect_geopackage(package, layer=record.layer)
+    overrides = record.metadata_overrides or {}
+    item_page = f"{record.portal_url}/home/item.html?id={record.item_id}"
+    download_url = (
+        f"{record.portal_url}/sharing/rest/content/items/{record.item_id}/data"
+    )
+    return {
+        "identifier": item_page,
+        "landingPage": _first_text(overrides.get("landing_page"), item_page),
+        "title": _first_text(overrides.get("title"), record.layer),
+        "description": _first_text(
+            overrides.get("description"), item.get("description"), item.get("snippet")
+        ),
+        "publisher": {
+            "name": _first_text(
+                overrides.get("creator"),
+                item.get("accessInformation"),
+                item.get("owner"),
+            )
+        },
+        "keyword": _direct_rest_keywords(
+            overrides.get("keywords", item.get("tags", [])), ""
+        ),
+        "issued": _arcgis_timestamp_date(item.get("created")),
+        "modified": _arcgis_timestamp_date(item.get("modified")),
+        "license": _first_text(overrides.get("rights"), item.get("licenseInfo")),
+        "spatial": ",".join(str(value) for value in inspection["bounds"]),
+        "distribution": [{"title": "GeoPackage", "accessURL": download_url}],
+        "_curation_metadata_source": "arcgis_geopackage_item",
+        "_curation_item_id": record.item_id,
+        "_curation_item_url": item_page,
+        "_curation_download_url": download_url,
+        "_curation_source_sha256": package.stem,
+        "_curation_resource_type": inspection["resource_type"],
+    }
+
+
+def curation_source_url(resource: dict[str, Any]) -> str:
+    """Return the original package download URL or vector REST layer URL."""
+    return resource.get("_curation_download_url") or arcgis_service_url(resource)
+
+
 def normalized_catalog_id(resource: dict[str, Any]) -> str:
     """Return the ArcGIS item ID with an optional sublayer suffix."""
     _, resource_id = arcgis_harvest_identifier_and_id(
@@ -733,9 +834,23 @@ def resolve_selected_records(
         }
 
     selected: list[tuple[RecordSpec, dict[str, Any]]] = []
+    packages: dict[str, tuple[dict[str, Any], Path]] = {}
     for record in job.records:
         if record.source_type == DIRECT_REST_SOURCE_TYPE:
             resource = build_direct_rest_resource(record, requester)
+        elif record.source_type == GEOPACKAGE_SOURCE_TYPE:
+            item_api = (
+                f"{record.portal_url}/sharing/rest/content/items/{record.item_id}"
+            )
+            if item_api not in packages:
+                item = requester(item_api, {"f": "pjson"}, "GET")
+                if item.get("type") != "GeoPackage":
+                    raise RuntimeError(f"ArcGIS item is not a GeoPackage: {item_api}")
+                packages[item_api] = (
+                    item,
+                    download_source_geopackage(job, f"{item_api}/data"),
+                )
+            resource = build_geopackage_resource(record, *packages[item_api])
         else:
             resource = selected_dcat[record.source_id]
         selected.append((record, resource))
@@ -941,16 +1056,23 @@ def build_metadata_dataframe(
     mapped_records: list[pd.DataFrame] = []
     rejected: list[str] = []
     for record, resource in selected:
-        workflow = (
-            {
-                **dcat_workflow,
-                "Endpoint URL": record.service_url,
-                "Website Platform": "ArcGIS REST",
-                "Endpoint Description": "ArcGIS REST layer",
-            }
-            if record.source_type == DIRECT_REST_SOURCE_TYPE
-            else dcat_workflow
-        )
+        workflow = dict(dcat_workflow)
+        if record.source_type == DIRECT_REST_SOURCE_TYPE:
+            workflow.update(
+                {
+                    "Endpoint URL": record.service_url,
+                    "Website Platform": "ArcGIS REST",
+                    "Endpoint Description": "ArcGIS REST layer",
+                }
+            )
+        elif record.source_type == GEOPACKAGE_SOURCE_TYPE:
+            workflow.update(
+                {
+                    "Endpoint URL": curation_source_url(resource),
+                    "Website Platform": "ArcGIS GeoPackage",
+                    "Endpoint Description": "ArcGIS GeoPackage named layer",
+                }
+            )
         flattened_record = pd.DataFrame(
             [
                 {
@@ -960,7 +1082,7 @@ def build_metadata_dataframe(
                 }
             ]
         )
-        if record.source_type == DIRECT_REST_SOURCE_TYPE:
+        if record.source_type != "dcat":
             mapped = flattened_record.pipe(arcgis_map_to_schema).pipe(
                 arcgis_extract_distributions
             )
@@ -985,8 +1107,8 @@ def build_metadata_dataframe(
         index=dataframe.index,
         dtype=str,
     )
-    service_urls = {
-        record.source_id: arcgis_service_url(resource) for record, resource in selected
+    source_urls = {
+        record.source_id: curation_source_url(resource) for record, resource in selected
     }
     dataframe["Provenance"] = source_ids.map(
         {
@@ -994,9 +1116,18 @@ def build_metadata_dataframe(
                 f"Exported from {service_url} as GeoPackage on "
                 f"{formatted_export_date(job.export_date)}."
             )
-            for source_id, service_url in service_urls.items()
+            for source_id, service_url in source_urls.items()
         }
     ).fillna("")
+    for index, (record, resource) in zip(dataframe.index, selected):
+        if record.source_type == GEOPACKAGE_SOURCE_TYPE:
+            dataframe.loc[index, "Identifier"] = resource["landingPage"]
+            dataframe.loc[index, "Resource Type"] = resource["_curation_resource_type"]
+            dataframe.loc[index, "Provenance"] = (
+                f"Extracted layer {record.layer!r} from {curation_source_url(resource)} "
+                f"as GeoPackage on {formatted_export_date(job.export_date)}. "
+                f"Source SHA-256: {resource['_curation_source_sha256']}."
+            )
     dataframe["ID"] = source_ids.map(curated_ids).fillna("")
     dataframe["Code"] = job.code
     dataframe["Member Of"] = job.member_of
@@ -1049,7 +1180,11 @@ def build_manifest(
                 "curated_id": curated_ids[record.source_id],
                 "filename": record.filename,
                 "landing_page": str(resource.get("landingPage", "")).strip(),
-                "service_url": arcgis_service_url(resource),
+                "service_url": (
+                    ""
+                    if record.source_type == GEOPACKAGE_SOURCE_TYPE
+                    else arcgis_service_url(resource)
+                ),
                 "source_type": record.source_type,
                 "metadata_source": str(
                     resource.get("_curation_metadata_source", "dcat")
@@ -1059,7 +1194,16 @@ def build_manifest(
                         "item_id": str(resource.get("_curation_item_id", "")),
                         "item_url": str(resource.get("_curation_item_url", "")),
                     }
-                    if record.source_type == DIRECT_REST_SOURCE_TYPE
+                    if record.source_type != "dcat"
+                    else {}
+                ),
+                **(
+                    {
+                        "layer": record.layer,
+                        "download_url": resource["_curation_download_url"],
+                        "source_sha256": resource["_curation_source_sha256"],
+                    }
+                    if record.source_type == GEOPACKAGE_SOURCE_TYPE
                     else {}
                 ),
             }
@@ -1579,6 +1723,62 @@ def download_service_geopackage(
     }
 
 
+def extract_geopackage_layer(
+    job: JobConfig,
+    record: dict[str, Any],
+    output_path: Path,
+    *,
+    overwrite: bool = False,
+) -> dict[str, Any]:
+    """Extract one reviewed source layer into an atomic, single-layer output."""
+    package = job.work_dir / "sources" / f"{record['source_sha256']}.gpkg"
+    if not package.is_file():
+        package = download_source_geopackage(job, record["download_url"])
+    if file_sha256(package) != record["source_sha256"]:
+        raise RuntimeError(
+            "Source GeoPackage has changed; rerun metadata and manual review"
+        )
+    if record["layer"] not in fiona.listlayers(package):
+        raise RuntimeError(f"GeoPackage layer not found: {record['layer']!r}")
+    if output_path.exists() and not overwrite:
+        raise FileExistsError(f"GeoPackage already exists: {output_path}")
+    ogr2ogr = shutil.which("ogr2ogr")
+    if not ogr2ogr:
+        raise RuntimeError("ogr2ogr is required to extract GeoPackage layers")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix="gpkg-extract-", dir=output_path.parent
+    ) as temp_dir:
+        temporary = Path(temp_dir) / "output.gpkg"
+        _run_command(
+            [
+                ogr2ogr,
+                "-f",
+                "GPKG",
+                str(temporary),
+                str(package),
+                record["layer"],
+                "-nln",
+                output_path.stem,
+                "-t_srs",
+                job.crs_authority,
+                "-nlt",
+                "PROMOTE_TO_MULTI",
+                "-lco",
+                "SPATIAL_INDEX=YES",
+            ]
+        )
+        inspection = inspect_geopackage(temporary)
+        temporary.replace(output_path)
+    return {
+        "output": str(output_path),
+        "feature_count": inspection["feature_count"],
+        "geometry_type": inspection["geometry_type"],
+        "layer": record["layer"],
+        "source_sha256": record["source_sha256"],
+    }
+
+
 def run_download_stage(
     job: JobConfig,
     *,
@@ -1599,14 +1799,19 @@ def run_download_stage(
             )
             continue
         try:
-            result = download_service_geopackage(
-                record["service_url"],
-                output_path,
-                Path(record["filename"]).stem,
-                job.crs_authority,
-                requester=requester,
-                overwrite=overwrite,
-            )
+            if record.get("source_type") == GEOPACKAGE_SOURCE_TYPE:
+                result = extract_geopackage_layer(
+                    job, record, output_path, overwrite=overwrite
+                )
+            else:
+                result = download_service_geopackage(
+                    record["service_url"],
+                    output_path,
+                    Path(record["filename"]).stem,
+                    job.crs_authority,
+                    requester=requester,
+                    overwrite=overwrite,
+                )
         except Exception as exc:
             LOGGER.error(
                 "Skipping failed ArcGIS download for %s (%s): %s",
@@ -1655,9 +1860,9 @@ def _bbox_geometry(values: tuple[float, float, float, float]) -> str:
     return repair_geometry_fields(_format_bbox(values), "").geometry
 
 
-def inspect_geopackage(path: Path) -> dict[str, Any]:
+def inspect_geopackage(path: Path, *, layer: str | None = None) -> dict[str, Any]:
     """Read geometry, WGS84 bounds, and field schema from a local GeoPackage."""
-    with fiona.open(path) as collection:
+    with fiona.open(path, layer=layer) as collection:
         feature_count = len(collection)
         geometry_type = str(collection.schema.get("geometry", ""))
         fields = [
@@ -1772,30 +1977,34 @@ def run_dictionary_stage(
     for record in manifest["records"]:
         metadata_source = "arcgis_rest"
         fallback_error = ""
-        try:
-            layer_metadata = requester(record["service_url"], {"f": "pjson"}, "GET")
-            fields = layer_metadata.get("fields") or []
-            if not isinstance(fields, list) or not fields:
-                raise RuntimeError(
-                    f"ArcGIS fields are missing or invalid: {record['service_url']}"
-                )
-        except Exception as exc:
-            gpkg_path = job.gpkg_path(record["filename"])
-            if not gpkg_path.is_file():
-                raise RuntimeError(
-                    "Could not load the ArcGIS field definition and no local "
-                    f"GeoPackage is available: {record['filename']}"
-                ) from exc
-            inspection = inspect_geopackage(gpkg_path)
-            fields = inspection["fields"]
+        if record.get("source_type") == GEOPACKAGE_SOURCE_TYPE:
+            fields = inspect_geopackage(job.gpkg_path(record["filename"]))["fields"]
             metadata_source = "geopackage_schema"
-            fallback_error = str(exc)
-            LOGGER.warning(
-                "Could not load ArcGIS field definitions for %s; using the local "
-                "GeoPackage schema without aliases or coded-value domains: %s",
-                record["filename"],
-                exc,
-            )
+        else:
+            try:
+                layer_metadata = requester(record["service_url"], {"f": "pjson"}, "GET")
+                fields = layer_metadata.get("fields") or []
+                if not isinstance(fields, list) or not fields:
+                    raise RuntimeError(
+                        f"ArcGIS fields are missing or invalid: {record['service_url']}"
+                    )
+            except Exception as exc:
+                gpkg_path = job.gpkg_path(record["filename"])
+                if not gpkg_path.is_file():
+                    raise RuntimeError(
+                        "Could not load the ArcGIS field definition and no local "
+                        f"GeoPackage is available: {record['filename']}"
+                    ) from exc
+                inspection = inspect_geopackage(gpkg_path)
+                fields = inspection["fields"]
+                metadata_source = "geopackage_schema"
+                fallback_error = str(exc)
+                LOGGER.warning(
+                    "Could not load ArcGIS field definitions for %s; using the local "
+                    "GeoPackage schema without aliases or coded-value domains: %s",
+                    record["filename"],
+                    exc,
+                )
         output_path = job.dictionary_path(record["filename"])
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w", newline="", encoding="utf-8") as handle:
@@ -1829,9 +2038,7 @@ def run_dictionary_stage(
                 **({"fallback_error": fallback_error} if fallback_error else {}),
             }
         )
-    fallback_count = sum(
-        detail["metadata_source"] == "geopackage_schema" for detail in details
-    )
+    fallback_count = sum(bool(detail.get("fallback_error")) for detail in details)
     mark_stage(
         job,
         "dictionaries",

@@ -59,7 +59,8 @@ field filtering.
 The template includes common urban base layer themes. For each layer that is
 available, fill these fields:
 
-- `id`: the ArcGIS item ID followed by `_<layer-number>`;
+- `id`: the ArcGIS item ID followed by `_<layer-number>` for service layers,
+  or a unique `<item-id>:<layer-name>` label for GeoPackage layers;
 - `filename`: the final, unique archive filename without `.gpkg`; and
 - `basic_theme`: the topic only, without a place or date. The supplied theme
   can be changed to match a more specific layer, such as `Major Streets`.
@@ -84,6 +85,47 @@ Add `temporal_year` when the source title does not identify the dataset year:
 
 Record IDs and filenames must be unique. A filename cannot include a directory
 path. If `basic_theme` is omitted, the pipeline falls back to the DCAT title.
+
+## Layers in a downloadable GeoPackage
+
+For an ArcGIS item containing a GeoPackage, select an internal layer by its
+exact, case-sensitive name. No REST service or DCAT entry is required:
+
+```yaml
+- id: "21881eeccd734bdc9a20624bdeabc4b3:Zoning"
+  filename: "clv_zoning_2026"
+  basic_theme: Zoning
+  temporal_year: "2026"
+  source:
+    type: geopackage
+    item_id: "21881eeccd734bdc9a20624bdeabc4b3"
+    layer: "Zoning"
+```
+
+`source.item_id` must identify an ArcGIS GeoPackage item. `source.portal_url`
+defaults to `https://www.arcgis.com`; set it for an Enterprise portal. The item
+data endpoint supplies the file. `source.service_url` is not accepted for this
+source type. The record `id` is a unique curation label, not a REST layer ID.
+
+The metadata stage downloads each distinct item once, checks the selected
+layers, and caches the package under `work_directory/sources/<sha256>.gpkg`.
+Keep this cache through manual review and postprocessing. The item supplies
+the creator, description, dates, and license; the layer name supplies the
+default title, and its actual geometry supplies the resource type. The same
+`metadata_overrides` keys as direct REST sources are supported. Set
+`temporal_year` when the layer title has no year.
+
+After manual review, the download stage extracts each selected layer into its
+own output GeoPackage in the configured CRS. It uses the cached snapshot and
+records its SHA-256 and layer name in the manifest and provenance. If a missing
+cache is downloaded again and the checksum differs, extraction fails; rerun
+metadata and review the new snapshot before continuing. Rerunning metadata
+fetches the current package. Use `--overwrite` to replace existing outputs.
+
+Dictionaries use the extracted GeoPackage's field names and types. They do not
+invent aliases, definitions, or coded-value domains. Enrichment, embedding,
+thumbnails, derivatives, and packaging use the usual single-layer outputs.
+DCAT, direct REST, and GeoPackage records can be mixed in one job.
 
 ## Layers outside the Hub catalog
 
